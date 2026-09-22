@@ -32,6 +32,9 @@ for (const [name, path, language, width, fullPage] of cases) {
     )
     .waitFor()
   await page.evaluate(() => document.fonts.ready)
+  if (path === '/') {
+    await page.locator('.home-hero-image').evaluate((image) => image.decode())
+  }
   await page.screenshot({
     path: `docs/visual-qa/candidates/${name}.png`,
     fullPage,

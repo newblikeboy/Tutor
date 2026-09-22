@@ -12,7 +12,6 @@ import {
   GraduationCap,
   LockKeyhole,
   Monitor,
-  MoveUpRight,
   ShieldCheck,
   SlidersHorizontal,
   Sprout,
@@ -142,69 +141,121 @@ export function Home() {
     queryKey: ['tutors', 'home'],
     queryFn: ({ signal }) => api<Tutor[]>('/tutors', { signal }),
   })
+  const pillars = [ShieldCheck, Compass, Sprout]
   return (
-    <>
-      <section className="container hero">
+    <div className="home-page">
+      <section className="container hero home-hero" aria-labelledby="home-title">
         <div className="hero-copy">
-          <p className="eyebrow">
-            <span className="short-line" />
-            {t('eyebrow')}
+          <p className="eyebrow home-location">
+            <span className="home-location-dot" aria-hidden="true" />
+            {t('landing.place')}
           </p>
-          <h1>
-            {t('heroA')}
-            <br />
-            {t('heroB')}
-            <br />
-            <span>{t('heroC')}</span>
+          <h1 id="home-title">
+            {t('landing.title')}
+            <span>{t('landing.titleAccent')}</span>
           </h1>
-          <p className="hero-body">{t('heroBody')}</p>
-          <div className="hero-actions">
-            <LinkButton to="/match">{t('find')}</LinkButton>
+          <p className="home-intro">{t('landing.intro')}</p>
+          <div className="home-actions">
+            <LinkButton to="/match">{t('landing.start')}</LinkButton>
             <Link to="/tutors" className="text-link">
-              {t('browse')}
-              <ArrowRight size={17} />
+              {t('landing.explore')} <ArrowRight size={17} />
             </Link>
           </div>
-          <div className="hero-assurance">
-            <ShieldCheck size={19} />
-            <span>{t('assessed')}</span>
-            <span className="assurance-divider" />
-            <span>{t('supported')}</span>
-          </div>
+          <p className="home-reassurance">
+            <ShieldCheck size={16} aria-hidden="true" />
+            {t('landing.reassurance')}
+          </p>
         </div>
-        <LearningPreview />
+        <figure className="home-hero-figure">
+          <div className="home-photo-frame">
+            <img
+              className="home-hero-image"
+              src="/images/purnea-learning-1200.webp"
+              srcSet="/images/purnea-learning-640.webp 640w, /images/purnea-learning-960.webp 960w, /images/purnea-learning-1200.webp 1200w, /images/purnea-learning-1536.webp 1536w"
+              sizes="(max-width: 760px) calc(114vw - 46px), (max-width: 1000px) calc(100vw - 80px), (max-width: 1328px) calc(61.5vw - 84px), 733px"
+              width={1536}
+              height={1024}
+              fetchPriority="high"
+              alt={t('landing.imageAlt')}
+            />
+          </div>
+          <figcaption className="home-photo-caption">
+            <span className="home-photo-icon">
+              <BookOpen size={23} strokeWidth={1.5} aria-hidden="true" />
+            </span>
+            <span>
+              <strong>{t('landing.photoTitle')}</strong>
+              <span>{t('landing.photoBody')}</span>
+            </span>
+            <Sprout className="home-photo-sprout" size={32} strokeWidth={1.3} aria-hidden="true" />
+          </figcaption>
+          <small className="home-image-credit">{t('landing.imageCredit')}</small>
+        </figure>
       </section>
-      <section className="process-section">
+
+      <section className="container home-pillars" aria-label={t('landing.pillars')}>
+        {pillars.map((Icon, i) => (
+          <div className="home-pillar" key={i}>
+            <span className="home-pillar-icon">
+              <Icon size={24} strokeWidth={1.5} aria-hidden="true" />
+            </span>
+            <div>
+              <h2>{t(`landing.pillar${i + 1}`)}</h2>
+              <p>{t(`landing.pillar${i + 1}Body`)}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="home-process home-section" aria-labelledby="home-process-title">
         <div className="container">
-          <p className="eyebrow">{t('howIntro')}</p>
-          <h2>{t('how')}</h2>
-          <div className="process-grid">
+          <div className="home-section-heading">
+            <div>
+              <p className="eyebrow">{t('landing.processEyebrow')}</p>
+              <h2 id="home-process-title">{t('landing.processTitle')}</h2>
+            </div>
+            <p className="home-section-intro">{t('landing.processBody')}</p>
+          </div>
+          <ol className="home-steps">
             {[1, 2, 3].map((n) => (
-              <article key={n}>
-                <span className="step-number">0{n}</span>
+              <li key={n}>
+                <div className="home-step-top">
+                  <span className="home-step-number" aria-hidden="true">
+                    0{n}
+                  </span>
+                  <span className="eyebrow">{t(`landing.step${n}Label`)}</span>
+                  <ArrowRight size={20} aria-hidden="true" />
+                </div>
                 <h3>{t(`step${n}`)}</h3>
                 <p>{t(`step${n}Body`)}</p>
-              </article>
+              </li>
             ))}
-          </div>
+          </ol>
+          <Link to="/how-it-works" className="text-link home-process-link">
+            {t('landing.processLink')} <ArrowRight size={17} />
+          </Link>
         </div>
       </section>
-      <section className="container section">
-        <div className="section-heading">
+
+      <section className="container home-section home-tutors" aria-labelledby="home-tutors-title">
+        <div className="home-section-heading">
           <div>
-            <p className="eyebrow">{t('scoped')}</p>
-            <h2>{t('availableTitle')}</h2>
-            <p>{t('availableBody')}</p>
+            <p className="eyebrow">{t('landing.tutorEyebrow')}</p>
+            <h2 id="home-tutors-title">{t('landing.tutorTitle')}</h2>
+            <p className="home-section-intro">{t('landing.tutorBody')}</p>
           </div>
           <Link to="/tutors" className="text-link">
-            {t('viewAll')}
-            <ArrowRight size={18} />
+            {t('viewAll')} <ArrowRight size={18} />
           </Link>
         </div>
         {tutors.isPending ? (
           <Loading />
         ) : tutors.isError ? (
-          <LoadError retry={() => void tutors.refetch()} />
+          <LoadError
+            title={t('landing.tutorsErrorTitle')}
+            body={t('landing.tutorsErrorBody')}
+            retry={() => void tutors.refetch()}
+          />
         ) : tutors.data.length ? (
           <div className="tutor-grid">
             {tutors.data.slice(0, 2).map((v) => (
@@ -217,36 +268,52 @@ export function Home() {
           </Empty>
         )}
       </section>
-      <section className="continuity-section">
-        <div className="container continuity-grid">
-          <div className="continuity-visual" aria-hidden="true">
-            <div className="book-spine" />
-            <BookOpen size={72} strokeWidth={1.2} />
-            <div className="continuity-rule" />
-            <span>01</span>
-            <span>02</span>
-            <span>03</span>
-            <span>
-              <MoveUpRight size={30} />
-            </span>
+
+      <section className="container home-story" aria-labelledby="home-story-title">
+        <div className="home-story-copy">
+          <span className="home-story-icon">
+            <Sprout size={30} strokeWidth={1.3} aria-hidden="true" />
+          </span>
+          <p className="eyebrow">{t('continuity')}</p>
+          <h2 id="home-story-title">{t('continuousTitle')}</h2>
+          <p>{t('continuousBody')}</p>
+          <Link className="text-link" to="/approach">
+            {t('viewApproach')} <ArrowRight size={18} />
+          </Link>
+        </div>
+        <div className="home-record">
+          <div className="home-record-heading">
+            <p className="eyebrow">{t('landing.recordEyebrow')}</p>
+            <BookOpen size={25} strokeWidth={1.4} aria-hidden="true" />
           </div>
-          <div>
-            <p className="eyebrow">
-              <Sprout size={18} />
-              {t('continuity')}
-            </p>
-            <h2>{t('continuousTitle')}</h2>
-            <p>{t('continuousBody')}</p>
-            <Link className="text-link" to="/approach">
-              {t('viewApproach')}
-              <ArrowRight size={18} />
-            </Link>
-          </div>
+          <h3>{t('landing.recordTitle')}</h3>
+          <ol>
+            {[1, 2, 3].map((n) => (
+              <li key={n}>
+                <span className="home-record-number" aria-hidden="true">
+                  0{n}
+                </span>
+                <div>
+                  <h4>{t(`landing.record${n}Title`)}</h4>
+                  <p>{t(`landing.record${n}Body`)}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="home-record-footer">
+            <LockKeyhole size={15} aria-hidden="true" />
+            {t('landing.recordFooter')}
+          </p>
         </div>
       </section>
-      <section className="container section faq-section">
-        <h2>{t('faqTitle')}</h2>
+
+      <section className="container home-section home-faq" aria-labelledby="home-faq-title">
         <div>
+          <p className="eyebrow">{t('landing.faqEyebrow')}</p>
+          <h2 id="home-faq-title">{t('faqTitle')}</h2>
+          <p className="home-section-intro">{t('landing.faqIntro')}</p>
+        </div>
+        <div className="home-faq-list">
           {[1, 2, 3].map((n) => (
             <details key={n}>
               <summary>
@@ -258,14 +325,20 @@ export function Home() {
           ))}
         </div>
       </section>
-      <section className="container final-cta">
-        <div>
-          <h2>{t('finalTitle')}</h2>
-          <p>{t('finalBody')}</p>
+
+      <section className="container home-closing" aria-labelledby="home-closing-title">
+        <p className="eyebrow">{t('landing.finalEyebrow')}</p>
+        <h2 id="home-closing-title">{t('landing.finalTitle')}</h2>
+        <p>{t('landing.finalBody')}</p>
+        <LinkButton to="/match">{t('landing.start')}</LinkButton>
+        <div className="home-teach-link">
+          <span>{t('landing.teach')}</span>
+          <Link to="/apply">
+            {t('landing.teachLink')} <ArrowRight size={15} />
+          </Link>
         </div>
-        <LinkButton to="/match">{t('find')}</LinkButton>
       </section>
-    </>
+    </div>
   )
 }
 export function Search() {

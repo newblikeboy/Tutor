@@ -12,6 +12,7 @@ import '@fontsource/manrope/latin-700.css'
 import '@fontsource/noto-sans-devanagari/devanagari-400.css'
 import '@fontsource/noto-sans-devanagari/devanagari-600.css'
 import './styles/index.css'
+import './styles/home.css'
 import { queryClient, send, setCSRF } from './lib/api'
 import { useAuth, useConfig } from './lib/session'
 import { Button, Loading, Modal, MutationError } from './components/ui'
@@ -61,7 +62,7 @@ function Layout() {
     )
   }
   return (
-    <>
+    <div className={location.pathname === '/' ? 'landing-shell' : undefined}>
       <a className="skip-link" href="#main">
         {t('skip')}
       </a>
@@ -167,7 +168,7 @@ function Layout() {
         )}
       </footer>
       <ScrollReset />
-    </>
+    </div>
   )
 }
 createRoot(document.getElementById('root')!).render(

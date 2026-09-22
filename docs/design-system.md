@@ -1,12 +1,12 @@
 # Design foundation
 
-Warm academic editorial direction. Provisional text wordmark: Tutor Platform. No invented founder, statistics, photographs or endorsements.
+Warm academic editorial direction. Provisional text wordmark: Tutor Platform. No invented founder, statistics or endorsements. Label illustrative imagery; never present generated people as actual tutors or learners.
 
 Tokens: navy #13213C, teal #087F8C (large elements), darker teal #076B76 for normal text/buttons; paper #F8F7F4; white surfaces; text #152238; secondary #546172; border #E2E6EB. Amber is a supporting surface, with dark text. Status always includes words/icons.
 
 Self-hosted OFL Manrope Latin + Noto Sans Devanagari; body 16px/1.65, large editorial headings, Hindi natural line-height and less aggressive tracking. 8px spacing with 4px subdivisions; 12/16px radii; subtle shadows; 180ms interaction transitions; reduced-motion override. Public width 1248px.
 
-Homepage: 55/45 editorial split with labelled illustrative learning-plan graphic drawn in HTML/CSS. Selection process uses a numbered horizontal narrative; continuity section alternates background. Search: filter rail/drawer, data-backed cards. Profile: scoped evidence and sticky request summary. Parent: learner focus and next action. Tutor: assigned work and lesson tasks. Mentor/admin: contextual queues and reasoned decisions, no decorative metrics.
+Homepage (updated 2026-09-23): an equal-column editorial/photo hero at 1024px and above, stacked below; consistent 1248px section edges and 20px mobile gutters. It follows the approved account palette: paper #F5F3ED, deep ink #15353B, sage #DFE8BC and readable green #57744C. `styles/home.css` scopes these tokens to the landing shell, preserving account and workspace rendering. Three evenly spaced support pillars and numbered process cards lead to actual Go-backed tutor listings. A dark continuity section pairs explanatory text with a clearly illustrative family learning record; a native details/summary FAQ and centred sage call to action finish the page. The generated photograph, provenance and responsive asset choices are documented in assets.md. Search: filter rail/drawer, data-backed cards. Profile: scoped evidence and sticky request summary. Parent: learner focus and next action. Tutor: assigned work and lesson tasks. Mentor/admin: contextual queues and reasoned decisions, no decorative metrics.
 
 44px target product standard, visible focus, skip link, semantic headings, labelled fields, native date/time fields, Radix dialog focus trap/restore, live announcements. 360/390/768/1024/1440 responsive targets. No localStorage except language.
 

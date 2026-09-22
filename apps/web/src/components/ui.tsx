@@ -158,13 +158,21 @@ export function Empty({
     </div>
   )
 }
-export function LoadError({ retry }: { retry: () => void }) {
+export function LoadError({
+  retry,
+  title,
+  body,
+}: {
+  retry: () => void
+  title?: string
+  body?: string
+}) {
   const { t } = useTranslation()
   return (
     <div className="panel">
       <Alert kind="error">
-        <strong>{t('errorTitle')}</strong>
-        <p>{t('errorBody')}</p>
+        <strong>{title ?? t('errorTitle')}</strong>
+        <p>{body ?? t('errorBody')}</p>
       </Alert>
       <Button variant="secondary" onClick={retry}>
         {t('retry')}

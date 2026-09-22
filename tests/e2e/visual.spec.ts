@@ -47,6 +47,9 @@ for (const scenario of cases)
       )
       .waitFor()
     await page.evaluate(() => document.fonts.ready)
+    if (scenario.path === '/') {
+      await page.locator('.home-hero-image').evaluate((image: HTMLImageElement) => image.decode())
+    }
     await expect(page).toHaveScreenshot(`${scenario.name}.png`, {
       fullPage: scenario.fullPage,
       animations: 'disabled',

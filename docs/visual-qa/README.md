@@ -1,5 +1,15 @@
 # Visual review evidence
 
+## Homepage photo redesign, 2026-09-23
+
+The homepage now follows the account page's paper/ink/sage direction with a generated tutoring photograph and balanced grids. The source image was opened before use. Opened the desktop English and mobile English/Hindi candidates under `candidates/home-*.png` before promoting those three images to the existing Windows baselines. Image decoding is now awaited by both the candidate script and comparison test. The seven other account/profile/no-match baselines were preserved and passed.
+
+Individually inspected: the three hero candidates; the full English and Hindi desktop/mobile homepage captures, including `home-en-1440.png`, `home-hi-1440.png` and `home-hi-390.png`; the 1024px composition; `landing-tutors-loading.png` and `landing-tutors-error.png`; and the English/Hindi process portions in `landing-*-200-percent.png`. Some full-page journey captures show the visible main focus outline after keyboard skip navigation. Additional widths were captured and automatically checked; their existence alone is not a claim of individual visual inspection.
+
+Refinements from review: responsive image selection now allows for the cover crop, so desktop uses an adequately sized source; error copy describes the failed tutor query; loading surfaces use the landing palette; tutor-card footers align for different content lengths. The generated scene is explicitly labelled and is not used as a real tutor profile.
+
+Full regression: **24/24 passed** in 2.8m, including the actual four-role Atlas journey and all 10 reviewed baselines. Final affected regression after the small refinements: **12/12 passed** in 1.1m. `home.spec.ts` checks both languages at 360/390/768/1024/1440, column alignment, image decode, keyboard FAQ/menu/skip, CSS 200% reflow, real entry-point navigation, and loading/error/retry; sampled axe checks passed. Existing journey coverage verifies real empty search. No Lighthouse, manual screen-reader, native-zoom, other-browser or production-readiness claim is made.
+
 Date: 2026-09-23. Actual Chromium (Playwright 1.63.0), Windows, device scale 1, self-hosted Manrope/Noto fonts. The real React application called the Go API and Atlas. All records shown are fictional. No screenshots of real child records, live credentials or payment/provider claims are included.
 
 ## Email/password redesign review
