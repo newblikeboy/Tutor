@@ -2,6 +2,8 @@
 
 Scope: first development journey. **Verified** means the named assertion was executed, not that the entire specification section is complete. The production launch gate remains closed.
 
+User override 2026-09-23: OTP was replaced by email/password. `accounts.spec.ts` covers real parent/tutor signup, password login, logout/reload, validation, recovery help, network retry and responsive keyboard flows. `accounts-visual.spec.ts` uses four individually reviewed Windows Chromium baselines. Original OTP acceptance rows below are superseded by password/session evidence.
+
 Evidence keys: **Go-I** = `apps/api/internal/app/integration_test.go` (actual Atlas, separate API instances/clients); **Go-D** = domain/config unit tests; **UI** = Vitest/RTL `ui.test.tsx`; **E1** = complete Playwright journey; **E2** = bilingual/responsive public routes; **E3** = failures/components/zoom; **E4** = Hindi adult requirement; **V** = visually reviewed screenshots/baselines, indexed in `visual-qa/README.md`. Consult progress.md for latest executed counts and any unverified checks.
 
 | Spec / requirement | Screen and API / persistence | Test / review evidence | Status and remaining boundary |
@@ -11,7 +13,7 @@ Evidence keys: **Go-I** = `apps/api/internal/app/integration_test.go` (actual At
 | §1 Learner record owned by family | Learners and trials use adult owner ID | Go-I household boundary / reviewed evidence | Verified persistence; versioned learning-plan/handover domain pending |
 | §1 Provisional honest brand/content | Config APP_NAME, explicit sample/development banners | E2, V | Implemented; real founder/coverage/prices/policies blocked |
 | §2 Required architecture | React → `/api/v1` Go/chi → official MongoDB Go v2/Atlas | Go-I + E1 real persistence, build | Verified. User override: no Docker, GitHub/DigitalOcean |
-| §2 Same-origin | Vite proxy; Nginx template | E1 real cookie/CSRF flow | Local verified; droplet/TLS template unexecuted |
+| §2 Same-origin | Vite proxy; canonical local page redirect; Nginx template | E1 real cookie/CSRF flow; `login.spec.ts` covers localhost navigation, parent/staff sessions after reload, rejected foreign Origin and missing CSRF | Verified: 3 added regressions passed in the 13-test browser suite; droplet/TLS template unexecuted |
 | §2 Public pre-render / SEO | Client-rendered public routes | No SSR claim | Pending D |
 | §3 Tokens/font/layout foundation | `styles/index.css`, shared UI; self-hosted fonts | UI, E2 widths, V | Implemented first core patterns; broader screen system ongoing |
 | §3 Editorial home, standards, continuity/FAQ | `/`, `/standards`, `/approach`, `/how-it-works` | E2 + V | Implemented and labelled development content |
@@ -22,7 +24,7 @@ Evidence keys: **Go-I** = `apps/api/internal/app/integration_test.go` (actual At
 | §4 WCAG AA target / contrast | Semantic labels, hints, status, focus and errors | axe in E1–E4, contrast fixes inspected | Automated subset only; no accessibility certification |
 | §4 Loading/error/empty/retry | Search, shared query components, public scopes | E2 real zero-match, E3 interrupted request and retry | Verified exercised states; wider role permission states API tested |
 | §4 Forms preserve state/drafts/back | `/match`; `/draft`, learners/requirements | E1 refresh/back; Go-I independent instance | Verified authenticated requirement draft at step transitions; per-keystroke autosave not implemented |
-| §4 Component showcase | `/components` | UI + E3 + V | Buttons/fields/OTP/select/dialog/drawer/status/alerts/tabs/skeletons/learning preview. Upload/tooltip/table/pagination primitives pending |
+| §4 Component showcase | `/components` | UI + E3 + V | Buttons/fields/password/select/dialog/drawer/status/alerts/tabs/skeletons/learning preview. Upload/tooltip/table/pagination primitives pending |
 | §5 Discovery without signup | `/tutors`, public DTO, nullable session status | E2, Go-I DTO privacy | Verified. Comparison/shortlist, budget/time/locality/board filters pending |
 | §5 No match captures actual requirement | Search empty CTA → `/match` → MongoDB | E2 and E1 | Requirement persists; operator matching/waitlist management pending |
 | §5 Locality aliases / valid distance | Free locality text, no GPS/address/distance claims | E1 Purnea and Go-I Purnia accepted | Structured city-scoped aliases/geospatial not yet implemented |
@@ -44,9 +46,9 @@ Evidence keys: **Go-I** = `apps/api/internal/app/integration_test.go` (actual At
 | §10 Price snapshots/idempotency | Server zero-paise terms; actor/key/fingerprint transaction | Go-I request replay/tampering | Verified free trial; all future money/booking commands need idempotency |
 | §11 Storage/indexes/validation | Explicit migrate command, bounded collections/history separation | Atlas migrate executed; Go-I fixtures | Required-field validators/indexes present; richer schemas/versioned migration ledger pending |
 | §12 Concurrency, including cancellation | Both tutor/day and learner/day guards, ordered sequential transactions | Go-I simultaneous overlap across 2 API instances, cancel/rebook, UTC-key boundary | Verified tested cases. Recurring/travel/hold/reschedule paths pending; no in-process mutex substitute |
-| §12 Explicit expiry | OTP/session expiry filters plus TTL | Go-I expiration before cleanup, reuse/limits | Verified; paid hold expiry absent |
+| §12 Explicit expiry | Password-session expiry filters plus TTL; old OTP sessions rejected | Go-I expiration before cleanup and legacy session rejection | Verified; paid hold expiry absent |
 | §12 Outbox worker | Persisted suspension follow-up only | Go-I task exists | Worker leases/backoff/failed-job delivery visibility pending C |
-| §13 Authentication/session/CSRF | Development OTP, hashed sessions, exact Origin, CSRF | Go-I attempts/expiry/revocation/CSRF | Verified dev behavior; phone delivery, public account registration, provisioning/MFA blocked |
+| §13 Authentication/session/CSRF, user override | Email/password, Argon2id credentials, atomic signup, hashed sessions, exact Origin, CSRF | Go-I signup/normalization/duplicate concurrency/no staff escalation/hash privacy/generic failures/rate limits/revocation; account and login E2E | Working Atlas-backed parent/tutor signup and password login. Recovery, email ownership policy, breached-password screening and staff MFA/provisioning remain live gates |
 | §13 Production demo rejection | Config gate, sample discovery exclusion, private routes closed | Go-D + Go-I prod replay/seed checks | Verified; production auth intentionally disabled |
 | §13 Private uploads / storage | Not exposed | None | Pending C/D, not claimed scanned or secure |
 | §14 Contract/generated TS | Implemented OpenAPI and generated schema.d.ts | Generation + TS build | Verified implemented subset; remaining modules intentionally absent |

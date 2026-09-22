@@ -47,13 +47,26 @@ function Layout() {
       <NavLink to="/apply">{t('teach')}</NavLink>
     </>
   )
+  if (['/login', '/signup'].includes(location.pathname.replace(/\/+$/, ''))) {
+    return (
+      <Suspense
+        fallback={
+          <div className="container section">
+            <Loading />
+          </div>
+        }
+      >
+        <Login key={location.pathname + location.search} />
+      </Suspense>
+    )
+  }
   return (
     <>
       <a className="skip-link" href="#main">
         {t('skip')}
       </a>
       {config.data?.development && (
-        <div className="dev-banner">
+        <div className="dev-banner" role="region" aria-label={t('dev')}>
           <strong>{t('dev')}</strong>
           <span>{t('devDetail')}</span>
         </div>

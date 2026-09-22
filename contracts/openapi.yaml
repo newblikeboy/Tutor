@@ -3,7 +3,7 @@
   "info": {
     "title": "Tutor Platform API",
     "version": "0.1.0",
-    "description": "Milestone B implemented contract. Live authentication, payments, uploads, ongoing enrollment, messaging and other milestone C APIs are deliberately not exposed yet. Development auth never sends SMS."
+    "description": "Email/password signup and login with opaque sessions. Public signup creates only parent/tutor roles. Production access remains gated pending operator review; no email verification, recovery delivery or SMS is claimed. Payments and other milestone C APIs are not exposed."
   },
   "servers": [
     {
@@ -188,10 +188,10 @@
         ]
       }
     },
-    "/auth/challenges": {
+    "/auth/signup": {
       "post": {
-        "operationId": "post__auth_challenges",
-        "summary": "POST /auth/challenges",
+        "operationId": "post__auth_signup",
+        "summary": "POST /auth/signup",
         "security": [],
         "responses": {
           "201": {
@@ -199,7 +199,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Challenge"
+                  "$ref": "#/components/schemas/Auth"
                 }
               }
             }
@@ -230,47 +230,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChallengeInput"
+                "$ref": "#/components/schemas/SignupInput"
               }
             }
           }
         }
       }
     },
-    "/auth/session": {
-      "get": {
-        "operationId": "get__auth_session",
-        "summary": "GET /auth/session",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthSession"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "parameters": []
-      }
-    },
-    "/auth/verify": {
+    "/auth/login": {
       "post": {
-        "operationId": "post__auth_verify",
-        "summary": "POST /auth/verify",
+        "operationId": "post__auth_login",
+        "summary": "POST /auth/login",
         "security": [],
         "responses": {
           "200": {
@@ -309,11 +279,41 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VerifyInput"
+                "$ref": "#/components/schemas/LoginInput"
               }
             }
           }
         }
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "operationId": "get__auth_session",
+        "summary": "GET /auth/session",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSession"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
       }
     },
     "/me": {
@@ -1044,6 +1044,10 @@
           },
           "sample": {
             "type": "boolean"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
           }
         }
       },
@@ -1519,30 +1523,6 @@
           }
         ]
       },
-      "Challenge": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "challengeId",
-          "developmentCode",
-          "expiresIn",
-          "delivery"
-        ],
-        "properties": {
-          "challengeId": {
-            "type": "string"
-          },
-          "developmentCode": {
-            "type": "string"
-          },
-          "expiresIn": {
-            "type": "integer"
-          },
-          "delivery": {
-            "type": "string"
-          }
-        }
-      },
       "Consent": {
         "type": "object",
         "additionalProperties": false,
@@ -1627,33 +1607,60 @@
           }
         }
       },
-      "ChallengeInput": {
+      "LoginInput": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "identity"
+          "email",
+          "password"
         ],
         "properties": {
-          "identity": {
+          "email": {
             "type": "string",
-            "maxLength": 64
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 512
           }
         }
       },
-      "VerifyInput": {
+      "SignupInput": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "challengeId",
-          "code"
+          "name",
+          "email",
+          "password",
+          "role",
+          "adult"
         ],
         "properties": {
-          "challengeId": {
-            "type": "string"
-          },
-          "code": {
+          "name": {
             "type": "string",
-            "pattern": "^[0-9]{6}$"
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "minLength": 15,
+            "maxLength": 128
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "parent",
+              "tutor"
+            ]
+          },
+          "adult": {
+            "const": true
           }
         }
       },

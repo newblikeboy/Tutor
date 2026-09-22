@@ -2,7 +2,6 @@
 import { spawn } from 'node:child_process'
 import { readFile, mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { randomBytes } from 'node:crypto'
 const env = { ...process.env }
 try {
   for (const line of (await readFile('.env', 'utf8')).split(/\r?\n/)) {
@@ -15,10 +14,10 @@ try {
 if (!env.MONGODB_URI) throw new Error('MONGODB_URI is required for real E2E persistence')
 Object.assign(env, {
   APP_ENV: 'test',
-  AUTH_PROVIDER: 'development',
+  AUTH_PROVIDER: 'password',
+  SEED_PASSWORD: 'E2E-only learning passphrase 426!',
   PAYMENT_PROVIDER: 'disabled',
   TRIAL_FEE_PAISE: '0',
-  OTP_SECRET: randomBytes(32).toString('hex'),
   MONGODB_DATABASE: `tutor_e2e_${Date.now()}`,
   HTTP_ADDR: '127.0.0.1:8081',
   WEB_ORIGIN: 'http://127.0.0.1:5174',

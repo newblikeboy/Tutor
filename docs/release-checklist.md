@@ -4,7 +4,7 @@
 
 - [ ] Real name/wordmark, founder biography, lawful contact details, actual service area and eligibility criteria. APP_NAME remains provisional.
 - [ ] Approved live guardian-verification procedure before real minor data collection. A declaration or phone OTP is not verification.
-- [ ] Live OTP provider credentials/onboarding and approved delivery templates; phone normalization, account provisioning and distributed abuse review.
+- [ ] Reviewed email ownership/recovery policy, actual recovery delivery, breached-password screening, password change/session revocation and distributed abuse/proxy review. OTP was removed at the user's request; no SMS provider is required for password login.
 - [ ] Staff invite/provisioning and production MFA, recovery and privilege-change operations.
 - [ ] Qualified review of draft child-data/privacy/consent, retention/deletion, teacher eligibility, consumer/refund, tax/invoice policies.
 - [ ] Safeguarding workflow, protective controls, external escalation and staffing; never claim 24/7 emergency response or automated authority contact.

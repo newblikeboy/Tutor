@@ -5,6 +5,7 @@ import "time"
 type User struct {
 	ID          string `json:"id" bson:"_id"`
 	Name        string `json:"name" bson:"name"`
+	Email       string `json:"email,omitempty" bson:"email,omitempty"`
 	Role        string `json:"role" bson:"role"`
 	Sample      bool   `json:"sample" bson:"sample"`
 	AuthVersion int    `json:"-" bson:"authVersion"`

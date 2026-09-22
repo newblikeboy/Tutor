@@ -12,7 +12,7 @@ Go 1.26.5 and Node 22.17.1 were used for this checkpoint. Vite/Vitest require No
 npm ci
 # Only create this file if it does not already exist; never overwrite your credentials.
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# Privately configure MONGODB_URI and a random OTP_SECRET in .env.
+# Privately configure MONGODB_URI and AUTH_PROVIDER=password in .env.
 ./scripts/api.ps1 migrate
 ./scripts/api.ps1 seed
 ./scripts/api.ps1 api
@@ -24,7 +24,13 @@ In another terminal:
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. Use that origin consistently; `localhost` is a different origin for CSRF purposes. The supplied Atlas URI has already been verified in this workspace. `.env` is Git-ignored. The helper scripts load it without printing secrets. The API listens only on loopback, port 8080.
+Open **http://127.0.0.1:5173**. Local Vite page navigation from `http://localhost:5173` now redirects to this address, preserving the path and query, so login uses the origin trusted by Go. API requests retain exact Origin and CSRF checks. The supplied Atlas URI has already been verified in this workspace. `.env` is Git-ignored. The helper scripts load it without printing secrets. The API listens only on loopback, port 8080.
+
+If your terminal is already in `apps/api`, start with `..\..\scripts\api.ps1 api`. Bare `go run ./cmd/api` reads process environment variables, not the root `.env` file. Stop an existing API instance before starting another on port 8080.
+
+Open **/signup** to create a parent/adult-learner or tutor account with your name, email and password. Then use **/login** with the same email/password. Passwords require 15–128 characters; a memorable passphrase works well. No OTP or SMS is used. The account, salted Argon2id credential and session persist in Atlas. Creating a tutor account does not approve or publish the tutor. Real child data and live bookings remain disabled pending review.
+
+For fictional staff accounts, set a private `SEED_PASSWORD` before running the development seed. Emails are `mentor-a@example.test` and `admin-a@example.test`; sign in at `/login?staff=1`. Existing fixture passwords are never changed by rerunning the seed. This workspace has a generated `SEED_PASSWORD` stored privately in `.env`; do not share it or commit it. Test scripts use different, explicitly test-only credentials in isolated databases. Public signup cannot create staff accounts. Password recovery/email verification are not configured yet; the sign-in help dialog states this limitation.
 
 ## Run on Linux/macOS
 
@@ -45,14 +51,14 @@ Atlas needs a database user with access to the development/test databases and an
 
 ## Exercise the complete first journey
 
-1. `/login`: choose **Tutor applicant**, get the development code shown on screen, and sign in. No SMS is sent. `/apply`: submit the fictional teaching application.
-2. Use a separate browser profile/private window for `/login?staff=1`, choose **Academic mentor**. In `/workspace`, take the assessment, record the session, six scores and evidence, then approve a defined class range with a reason.
-3. A separate **Family A** session opens `/match`. Complete the guardian declaration (fictional learner only) or choose adult self-management. Add learning needs, review and submit; then choose the approved tutor and a future trial time. Drafts survive refresh after Continue/Back saves.
+1. `/signup?role=tutor`: create a tutor account with email/password. `/apply`: submit a fictional teaching application for preview testing.
+2. Use a separate browser profile/private window for `/login?staff=1`, sign in as the provisioned `mentor-a@example.test` using the private fixture password. In `/workspace`, take the assessment, record the session, six scores and evidence, then approve a defined class range with a reason.
+3. In another browser profile, create a **Parent / adult learner** account at `/signup` and open `/match`. Complete the guardian declaration (fictional learner only) or choose adult self-management. Add learning needs, review and submit; then choose the approved tutor and a future trial time. Drafts survive refresh after Continue/Back saves.
 4. The tutor accepts the request in `/workspace`. MongoDB transaction guards prevent tutor or learner overlaps. The server confirms a ₹0 **development trial** with a terms snapshot; there is no payment simulation.
 5. The tutor records development lesson evidence and next steps. The UI explicitly allows time compression for testing and does not assert real attendance. The assigned mentor reviews it. The family sees the reviewed progress, persisted through Go and Atlas.
 6. **Administrator** can suspend an approved tutor with a reason. Discovery/acceptance immediately reject that scope and an operations follow-up task is saved; existing trials are not deleted.
 
-Accounts have deliberately separate permissions. Staff choices are preseeded development identities, never a production registration mechanism. Sample seeds are idempotent and production seeding is prohibited.
+Accounts have deliberately separate permissions. Staff accounts are preseeded development identities with privately configured passwords, never a production registration mechanism. Sample seeds are idempotent and production seeding is prohibited. Previously issued OTP sessions are invalidated; sign in with email/password again.
 
 ## Verify
 

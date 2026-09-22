@@ -1,5 +1,7 @@
 # Decisions and assumptions
 
+2026-09-23 user override: replace OTP with email/password and redesign login/signup. This supersedes the passwordless requirement in the preserved original brief. Public signup allows adult parent/learner and tutor accounts only; a tutor account remains unapproved. Emails are trimmed/lowercased and not treated as verified contact ownership. Passwords use Argon2id and 15–128-character passphrases. Local/test accounts work against Atlas; recovery delivery, staff MFA/provisioning, guardian verification and security/operator review still gate a live release. Existing records are preserved; legacy OTP sessions are invalidated by requiring password-session method. Optional privately configured seed passwords add missing fixture credentials without resetting existing ones. No Docker or deployment-target change.
+
 2026-09-23: Repository contained only the 36,017-byte master prompt. No ancestor or local AGENTS.md, application, or git metadata existed. Original preserved unchanged and copied to product-spec.md.
 
 User override: no Docker. Source/CI on GitHub; DigitalOcean droplet uses systemd and Nginx; production database remains Atlas. No repository remote, deployment credentials or domain supplied. Do not provision/deploy publicly yet.

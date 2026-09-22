@@ -121,15 +121,6 @@ const en = {
     'Learner details are private. Only the family and authorised academic team can access them.',
   signTitle: 'A good next step starts here.',
   signBody: 'Access your learning space and pick up where you left off.',
-  devLogin: 'Development sign in only',
-  devLoginBody:
-    'Choose a fictional account. The code will be displayed here; no SMS is sent. Live phone login and staff MFA are not configured.',
-  identity: 'Development account',
-  sendCode: 'Get development code',
-  code: 'One-time code',
-  codeHelp: 'Paste the six-digit development code. It expires in five minutes.',
-  verify: 'Continue securely',
-  switchAccount: 'Use another account',
   parentA: 'Family A',
   parentRole: 'Parent / Learner',
   tutorRole: 'Tutor',
@@ -313,7 +304,6 @@ const en = {
     'Live contact details and safeguarding procedures have not been configured. This development preview does not accept service or emergency reports.',
   failureConflict: 'That time is already reserved. Please choose another time.',
   failureScope: 'This teaching scope is no longer available. Refresh and choose an approved tutor.',
-  failureCode: 'That code is invalid, expired or already used.',
   failureLimit: 'Too many attempts. Please wait a minute and try again.',
   failureValidation: 'Check your entries and try again.',
   loadingSave: 'Please wait for the server to confirm.',
@@ -439,15 +429,6 @@ const hi: Record<keyof typeof en, string | string[]> = {
   privacyNote: 'विद्यार्थी की जानकारी निजी है। केवल परिवार और अधिकृत अकादमिक टीम इसे देख सकते हैं।',
   signTitle: 'अच्छे अगले कदम की शुरुआत।',
   signBody: 'अपने सीखने के कार्यक्षेत्र में लौटें।',
-  devLogin: 'केवल विकास के लिए साइन इन',
-  devLoginBody:
-    'काल्पनिक खाता चुनें। कोड यहीं दिखेगा; SMS नहीं जाएगा। वास्तविक फ़ोन लॉगिन और कर्मचारी MFA अभी तैयार नहीं हैं।',
-  identity: 'विकास खाता',
-  sendCode: 'विकास कोड पाएँ',
-  code: 'एक बार उपयोग का कोड',
-  codeHelp: 'छह अंकों का कोड पेस्ट करें। यह पाँच मिनट में समाप्त होगा।',
-  verify: 'सुरक्षित रूप से आगे बढ़ें',
-  switchAccount: 'दूसरा खाता चुनें',
   parentA: 'परिवार A',
   parentRole: 'अभिभावक / विद्यार्थी',
   tutorRole: 'ट्यूटर',
@@ -626,12 +607,12 @@ const hi: Record<keyof typeof en, string | string[]> = {
     'वास्तविक संपर्क जानकारी और सुरक्षा प्रक्रिया अभी तय नहीं हैं। यह पूर्वावलोकन सेवा या आपातकालीन रिपोर्ट स्वीकार नहीं करता।',
   failureConflict: 'यह समय पहले से आरक्षित है। दूसरा समय चुनें।',
   failureScope: 'यह शिक्षण दायरा अब उपलब्ध नहीं है। स्वीकृत ट्यूटर चुनें।',
-  failureCode: 'कोड गलत है, समाप्त हो चुका है या उपयोग हो गया है।',
   failureLimit: 'बहुत अधिक प्रयास हुए। एक मिनट बाद फिर प्रयास करें।',
   failureValidation: 'अपनी जानकारी जाँचकर फिर प्रयास करें।',
   loadingSave: 'सर्वर की पुष्टि की प्रतीक्षा करें।',
   welcome: 'आपकी पढ़ाई, केंद्र में',
 }
+import { authEN, authHI } from './auth'
 let language = 'en'
 try {
   language = localStorage.getItem('language') === 'hi' ? 'hi' : 'en'
@@ -639,7 +620,10 @@ try {
   /* preference persistence is optional */
 }
 void i18n.use(initReactI18next).init({
-  resources: { en: { translation: en }, hi: { translation: hi } },
+  resources: {
+    en: { translation: { ...en, ...authEN } },
+    hi: { translation: { ...hi, ...authHI } },
+  },
   lng: language,
   fallbackLng: 'en',
   interpolation: { escapeValue: false },

@@ -5,8 +5,10 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"os"
 	"time"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/password"
 )
 
 func (s *Store) Seed(ctx context.Context, env string) error {
@@ -17,6 +19,23 @@ func (s *Store) Seed(ctx context.Context, env string) error {
 	for _, u := range users {
 		if _, e := s.C("users").UpdateOne(ctx, bson.M{"_id": u.ID}, bson.M{"$setOnInsert": u}, options.UpdateOne().SetUpsert(true)); e != nil {
 			return e
+		}
+		if value := os.Getenv("SEED_PASSWORD"); value != "" {
+			email := u.ID + "@example.test"
+			if n, e := s.C("credentials").CountDocuments(ctx, bson.M{"userId": u.ID}); e != nil {
+				return e
+			} else if n == 0 {
+				hash, e := password.Hash(value)
+				if e != nil {
+					return e
+				}
+				if _, e = s.C("credentials").UpdateOne(ctx, bson.M{"_id": email}, bson.M{"$setOnInsert": bson.M{"userId": u.ID, "passwordHash": hash}}, options.UpdateOne().SetUpsert(true)); e != nil {
+					return e
+				}
+				if _, e = s.C("users").UpdateOne(ctx, bson.M{"_id": u.ID}, bson.M{"$set": bson.M{"email": email}}); e != nil {
+					return e
+				}
+			}
 		}
 	}
 	assessed := time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)

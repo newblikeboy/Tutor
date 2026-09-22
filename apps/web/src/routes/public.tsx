@@ -526,8 +526,8 @@ export function Showcase() {
               <Field label={t('name')}>
                 <input placeholder={t('name')} />
               </Field>
-              <Field label={t('code')} hint={t('codeHelp')}>
-                <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} />
+              <Field label={t('authPassword')} hint={t('authPasswordHint')}>
+                <input type="password" autoComplete="new-password" />
               </Field>
               <Field label={t('startTime')}>
                 <input type="datetime-local" />

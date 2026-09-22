@@ -62,7 +62,9 @@ export function errorKey(error: unknown): string {
       {
         schedule_conflict: 'failureConflict',
         scope_unavailable: 'failureScope',
-        invalid_code: 'failureCode',
+        invalid_credentials: 'authInvalidCredentials',
+        signup_unavailable: 'authSignupUnavailable',
+        weak_password: 'authWeakPassword',
         rate_limited: 'failureLimit',
         validation: 'failureValidation',
         guardian_required: 'consentHelp',

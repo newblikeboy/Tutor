@@ -4,11 +4,9 @@ import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
 async function login(page: Page, id: string, staff = false) {
   await page.goto(`/login${staff ? '?staff=1' : ''}`)
-  await page.getByLabel('Development account').selectOption(id)
-  await page.getByRole('button', { name: 'Get development code', exact: true }).click()
-  const code = await page.getByTestId('development-code').innerText()
-  await page.getByLabel('One-time code', { exact: true }).fill(code)
-  await page.getByRole('button', { name: 'Continue securely', exact: true }).click()
+  await page.getByLabel('Email address', { exact: true }).fill(id + '@example.test')
+  await page.getByLabel('Password', { exact: true }).fill('E2E-only learning passphrase 426!')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/workspace/)
 }
 async function capture(page: Page, name: string) {

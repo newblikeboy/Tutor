@@ -59,7 +59,8 @@ func (s *Store) Tx(ctx context.Context, fn func(context.Context) error) error {
 	return e
 }
 func (s *Store) Migrate(ctx context.Context) error {
-	required := map[string][]string{"users": {"name", "role", "sample"}, "applications": {"status", "scope", "sample"}, "learners": {"ownerId", "name", "kind"}, "consents": {"ownerId", "version", "verification"}, "requirements": {"ownerId", "learnerId", "status"}, "trials": {"ownerId", "tutorId", "learnerId", "status", "start", "end"}, "sessions": {"userId", "expiresAt"}, "challenges": {"userId", "expiresAt", "hash"}, "audit": {"actor", "action", "at"}, "guards": {"version"}, "requests": {"ownerId", "fingerprint", "resultId"}, "drafts": {"step"}, "rate_limits": {"expiresAt", "count"}, "outbox": {"status", "attempts", "availableAt"}}
+	required := map[string][]string{"users": {"name", "role", "sample"}, "applications": {"status", "scope", "sample"}, "learners": {"ownerId", "name", "kind"}, "consents": {"ownerId", "version", "verification"}, "requirements": {"ownerId", "learnerId", "status"}, "trials": {"ownerId", "tutorId", "learnerId", "status", "start", "end"}, "sessions": {"userId", "expiresAt"}, "audit": {"actor", "action", "at"}, "guards": {"version"}, "requests": {"ownerId", "fingerprint", "resultId"}, "drafts": {"step"}, "rate_limits": {"expiresAt", "count"}, "outbox": {"status", "attempts", "availableAt"}}
+	required["credentials"] = []string{"userId", "passwordHash"}
 	names, e := s.DB.ListCollectionNames(ctx, bson.M{})
 	if e != nil {
 		return e
@@ -80,13 +81,14 @@ func (s *Store) Migrate(ctx context.Context) error {
 		}
 	}
 	indexes := map[string][]mongo.IndexModel{
-		"sessions":   {{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)}, {Keys: bson.D{{Key: "userId", Value: 1}}}},
-		"challenges": {{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)}}, "rate_limits": {{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)}},
+		"sessions":     {{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)}, {Keys: bson.D{{Key: "userId", Value: 1}}}},
+		"rate_limits":  {{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)}},
 		"applications": {{Keys: bson.D{{Key: "status", Value: 1}, {Key: "scope.subject", Value: 1}, {Key: "scope.expiresAt", Value: 1}}}},
 		"learners":     {{Keys: bson.D{{Key: "ownerId", Value: 1}}}}, "consents": {{Keys: bson.D{{Key: "ownerId", Value: 1}}}}, "requirements": {{Keys: bson.D{{Key: "ownerId", Value: 1}, {Key: "status", Value: 1}}}},
 		"trials": {{Keys: bson.D{{Key: "ownerId", Value: 1}, {Key: "start", Value: 1}}}, {Keys: bson.D{{Key: "tutorId", Value: 1}, {Key: "status", Value: 1}, {Key: "start", Value: 1}}}, {Keys: bson.D{{Key: "mentorId", Value: 1}, {Key: "status", Value: 1}}}},
 		"audit":  {{Keys: bson.D{{Key: "target", Value: 1}, {Key: "at", Value: 1}}}}, "outbox": {{Keys: bson.D{{Key: "status", Value: 1}, {Key: "availableAt", Value: 1}}}},
 	}
+	indexes["credentials"] = []mongo.IndexModel{{Keys: bson.D{{Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)}}
 	for c, idx := range indexes {
 		if _, e = s.C(c).Indexes().CreateMany(ctx, idx); e != nil {
 			return e

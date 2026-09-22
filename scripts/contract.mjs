@@ -99,7 +99,6 @@ const schemas = {
   }),
   Auth: obj({ user: ref('User'), csrf: str }),
   AuthSession: { anyOf: [ref('Auth'), { type: 'null' }] },
-  Challenge: obj({ challengeId: str, developmentCode: str, expiresIn: num, delivery: str }),
   Consent: obj({
     id: str,
     ownerId: str,
@@ -116,8 +115,17 @@ const schemas = {
   }),
   OK: obj({ ok: bool }),
   Health: obj({ status: str }),
-  ChallengeInput: obj({ identity: { ...str, maxLength: 64 } }),
-  VerifyInput: obj({ challengeId: str, code: { ...str, pattern: '^[0-9]{6}$' } }),
+  LoginInput: obj({
+    email: { ...str, format: 'email', maxLength: 254 },
+    password: { ...str, maxLength: 512 },
+  }),
+  SignupInput: obj({
+    name: { ...str, minLength: 2, maxLength: 80 },
+    email: { ...str, format: 'email', maxLength: 254 },
+    password: { ...str, minLength: 15, maxLength: 128 },
+    role: { type: 'string', enum: ['parent', 'tutor'] },
+    adult: { const: true },
+  }),
   ApplicationInput: obj({
     name: str,
     education: str,
@@ -159,6 +167,7 @@ const schemas = {
   }),
 }
 schemas.Trial.properties.reviewAt = date
+schemas.User.properties.email = { ...str, format: 'email' }
 const paths = {}
 function route(path, method, response, request, publicRoute = false, isArray = false) {
   const operation = {
@@ -167,7 +176,7 @@ function route(path, method, response, request, publicRoute = false, isArray = f
     security: publicRoute ? [] : [{ session: [] }],
     responses: {
       [method === 'post' &&
-      ['/auth/challenges', '/consents', '/learners', '/requirements', '/trials'].includes(path)
+      ['/auth/signup', '/consents', '/learners', '/requirements', '/trials'].includes(path)
         ? '201'
         : '200']: {
         description: 'Success',
@@ -210,9 +219,9 @@ route('/ready', 'get', 'Health', null, true)
 route('/config', 'get', 'Config', null, true)
 route('/tutors', 'get', 'PublicTutor', null, true, true)
 route('/tutors/{id}', 'get', 'PublicTutor', null, true)
-route('/auth/challenges', 'post', 'Challenge', 'ChallengeInput', true)
+route('/auth/signup', 'post', 'Auth', 'SignupInput', true)
+route('/auth/login', 'post', 'Auth', 'LoginInput', true)
 route('/auth/session', 'get', 'AuthSession', null, true)
-route('/auth/verify', 'post', 'Auth', 'VerifyInput', true)
 route('/me', 'get', 'Auth')
 route('/auth/logout', 'post', 'OK')
 route('/dashboard', 'get', 'Dashboard')
@@ -235,7 +244,7 @@ await writeFile(
         title: 'Tutor Platform API',
         version: '0.1.0',
         description:
-          'Milestone B implemented contract. Live authentication, payments, uploads, ongoing enrollment, messaging and other milestone C APIs are deliberately not exposed yet. Development auth never sends SMS.',
+          'Email/password signup and login with opaque sessions. Public signup creates only parent/tutor roles. Production access remains gated pending operator review; no email verification, recovery delivery or SMS is claimed. Payments and other milestone C APIs are not exposed.',
       },
       servers: [{ url: '/api/v1' }],
       paths,

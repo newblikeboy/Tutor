@@ -44,6 +44,8 @@ Official documentation and package registries were consulted on 2026-09-23 befor
 | Go | 1.26.5 |
 | github.com/go-chi/chi/v5 | 5.3.2 |
 | go.mongodb.org/mongo-driver/v2 | 2.9.1 |
+| golang.org/x/crypto | 0.53.0 (existing pin, now direct for Argon2id) |
+| golang.org/x/sys | 0.46.0 (transitive Argon2 dependency) |
 
 Sources: [React](https://react.dev/learn/build-a-react-app-from-scratch), [Vite](https://vite.dev/guide/), [Tailwind](https://tailwindcss.com/docs/installation/using-vite), [React Router](https://reactrouter.com/start/declarative/installation), [TanStack Query](https://tanstack.com/query/latest/docs/framework/react/installation), [Zod](https://zod.dev/), [react-i18next](https://react.i18next.com/latest/using-with-hooks), [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog), [Vitest](https://vitest.dev/guide/), [Playwright snapshots](https://playwright.dev/docs/test-snapshots), [Go driver](https://www.mongodb.com/docs/drivers/go/current/), [Go transactions](https://www.mongodb.com/docs/drivers/go/current/crud/transactions/), [chi](https://pkg.go.dev/github.com/go-chi/chi/v5). React Hook Form site initially returned an internal error; its current package/resolver versions were verified in the npm registry and used successfully in the compiled/tested integration.
 

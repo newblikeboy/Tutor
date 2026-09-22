@@ -11,6 +11,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -60,11 +61,14 @@ func (tc *testClient) ok(method, path string, body any, status int) map[string]a
 }
 func (tc *testClient) login(id string) {
 	tc.t.Helper()
-	ch := tc.ok("POST", "/auth/challenges", map[string]any{"identity": id}, 201)
-	v := tc.ok("POST", "/auth/verify", map[string]any{"challengeId": ch["challengeId"], "code": ch["developmentCode"]}, 200)
+	v := tc.ok("POST", "/auth/login", map[string]any{"email": id + "@example.test", "password": testPassword}, 200)
 	tc.csrf = v["csrf"].(string)
 }
+
+const testPassword = "Integration-only learning passphrase 426!"
+
 func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
+	t.Setenv("SEED_PASSWORD", testPassword)
 	uri := os.Getenv("TEST_MONGODB_URI")
 	if uri == "" {
 		t.Skip("TEST_MONGODB_URI not set; replica-set integration unverified")
@@ -83,7 +87,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		t.Fatal(e)
 	}
 	t.Log("Created isolated database", name, "(retained for review; no existing database modified)")
-	c := config.Config{Env: "test", Name: "Tutor Platform", Origin: "http://test.local", OTPSecret: token(), AuthProvider: "development"}
+	c := config.Config{Env: "test", Name: "Tutor Platform", Origin: "http://test.local", AuthProvider: "password"}
 	a := New(s, c)
 	server := httptest.NewServer(a.Routes())
 	defer server.Close()
@@ -110,6 +114,87 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 	admin.login("admin-a")
 	tutor2 := client(server2.URL)
 	tutor2.login("tutor-a")
+	t.Run("real email signup normalized unique credentials and tutor approval boundary", func(t *testing.T) {
+		tc := client(server.URL)
+		body := map[string]any{"name": "New tutor", "email": "  NEW.TUTOR@Example.Test  ", "password": testPassword, "role": "tutor", "adult": true}
+		v := tc.ok("POST", "/auth/signup", body, 201)
+		tc.csrf = v["csrf"].(string)
+		u := v["user"].(map[string]any)
+		if u["email"] != "new.tutor@example.test" || u["role"] != "tutor" || u["sample"] != false {
+			t.Fatal("invalid registered identity")
+		}
+		id := u["id"].(string)
+		tc.ok("GET", "/tutors/"+id, nil, 404)
+		tc.ok("POST", "/applications/"+id+"/decision", map[string]any{"action": "approve"}, 403)
+		stored, err := storage.One[credential](ctx, s, "credentials", bson.M{"_id": "new.tutor@example.test"})
+		if err != nil || !strings.HasPrefix(stored.Hash, "$argon2id$") || strings.Contains(stored.Hash, testPassword) {
+			t.Fatal("credential hash not stored correctly")
+		}
+		_, _, raw := tc.call("GET", "/me", nil, nil)
+		if bytes.Contains(raw, []byte("password")) || bytes.Contains(raw, []byte(stored.Hash)) {
+			t.Fatal("credential leaked")
+		}
+		tc.ok("POST", "/auth/logout", map[string]any{}, 200)
+		v = tc.ok("POST", "/auth/login", map[string]any{"email": "NEW.TUTOR@example.test", "password": testPassword}, 200)
+		tc.csrf = v["csrf"].(string)
+		tc.base = server2.URL
+		tc.ok("GET", "/dashboard", nil, 200)
+		body["email"] = "new.tutor@example.test"
+		tc.ok("POST", "/auth/signup", body, 409)
+	})
+	t.Run("signup validates adults passwords email and rejects staff privilege injection", func(t *testing.T) {
+		tc := client(server.URL)
+		body := map[string]any{"name": "Test adult", "email": "validation@example.test", "password": testPassword, "role": "admin", "adult": true}
+		tc.ok("POST", "/auth/signup", body, 422)
+		body["role"] = "parent"
+		body["adult"] = false
+		tc.ok("POST", "/auth/signup", body, 422)
+		body["adult"] = true
+		body["password"] = "short"
+		tc.ok("POST", "/auth/signup", body, 422)
+		body["password"] = testPassword
+		body["email"] = "Full Name <name@example.test>"
+		tc.ok("POST", "/auth/signup", body, 422)
+		body["email"] = "validation@example.test"
+		body["sample"] = true
+		tc.ok("POST", "/auth/signup", body, 422)
+	})
+	t.Run("concurrent signup on two API instances creates exactly one account", func(t *testing.T) {
+		body := map[string]any{"name": "Concurrent parent", "email": "concurrent@example.test", "password": testPassword, "role": "parent", "adult": true}
+		statuses := make([]int, 2)
+		var wg sync.WaitGroup
+		for i, base := range []string{server.URL, server2.URL} {
+			wg.Add(1)
+			go func(i int, base string) {
+				defer wg.Done()
+				statuses[i], _, _ = client(base).call("POST", "/auth/signup", body, nil)
+			}(i, base)
+		}
+		wg.Wait()
+		if !((statuses[0] == 201 && statuses[1] == 409) || (statuses[0] == 409 && statuses[1] == 201)) {
+			t.Fatal("duplicate signup", statuses)
+		}
+		if n, e := s.C("users").CountDocuments(ctx, bson.M{"email": "concurrent@example.test"}); e != nil || n != 1 {
+			t.Fatal("signup not atomic", n, e)
+		}
+	})
+	t.Run("password failures are generic and old OTP sessions are invalid", func(t *testing.T) {
+		tc := client(server.URL)
+		v1 := tc.ok("POST", "/auth/login", map[string]any{"email": "parent-a@example.test", "password": "incorrect password"}, 401)
+		v2 := tc.ok("POST", "/auth/login", map[string]any{"email": "missing@example.test", "password": "incorrect password"}, 401)
+		if v1["code"] != v2["code"] || v1["message"] != v2["message"] {
+			t.Fatal("login enumerates users")
+		}
+		tc.login("adult-a")
+		if _, e := s.C("sessions").UpdateMany(ctx, bson.M{"userId": "adult-a"}, bson.M{"$unset": bson.M{"method": ""}}); e != nil {
+			t.Fatal(e)
+		}
+		tc.ok("GET", "/dashboard", nil, 401)
+		_, _, raw := tc.call("GET", "/auth/session", nil, nil)
+		if string(bytes.TrimSpace(raw)) != "null" {
+			t.Fatal("legacy session accepted")
+		}
+	})
 	t.Run("public DTO excludes private fields", func(t *testing.T) {
 		status, _, raw := parent.call("GET", "/tutors", nil, nil)
 		if status != 200 {
@@ -316,23 +401,16 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 			tc.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "approve"}, 403)
 		}
 	})
-	t.Run("one time code reuse explicit expiry attempts and limits", func(t *testing.T) {
+	t.Run("password login rejects bad credentials and rate limits repeated requests", func(t *testing.T) {
 		tc := client(server.URL)
-		ch := tc.ok("POST", "/auth/challenges", map[string]any{"identity": "adult-a"}, 201)
-		body := map[string]any{"challengeId": ch["challengeId"], "code": ch["developmentCode"]}
-		tc.ok("POST", "/auth/verify", body, 200)
-		tc.ok("POST", "/auth/verify", body, 401)
-		ch = tc.ok("POST", "/auth/challenges", map[string]any{"identity": "adult-a"}, 201)
-		if _, e := s.C("challenges").UpdateOne(ctx, bson.M{"_id": ch["challengeId"]}, bson.M{"$set": bson.M{"expiresAt": time.Now().Add(-time.Second)}}); e != nil {
-			t.Fatal(e)
+		a.Now = func() time.Time { return time.Now().UTC().Truncate(time.Hour) }
+		defer func() { a.Now = func() time.Time { return time.Now().UTC() } }()
+		for range 10 {
+			tc.ok("POST", "/auth/login", map[string]any{"email": "unknown@example.test", "password": "incorrect password"}, 401)
 		}
-		tc.ok("POST", "/auth/verify", map[string]any{"challengeId": ch["challengeId"], "code": ch["developmentCode"]}, 401)
-		ch = tc.ok("POST", "/auth/challenges", map[string]any{"identity": "adult-a"}, 201)
-		for range 5 {
-			tc.ok("POST", "/auth/verify", map[string]any{"challengeId": ch["challengeId"], "code": "not-a-code"}, 401)
-		}
-		tc.ok("POST", "/auth/verify", map[string]any{"challengeId": ch["challengeId"], "code": ch["developmentCode"]}, 401)
-		tc.ok("POST", "/auth/challenges", map[string]any{"identity": "adult-a"}, 429)
+		tc.ok("POST", "/auth/login", map[string]any{"email": "unknown@example.test", "password": "incorrect password"}, 429)
+		tc.ok("POST", "/auth/challenges", map[string]any{}, 404)
+		tc.ok("POST", "/auth/verify", map[string]any{}, 404)
 	})
 	t.Run("production rejects sample seed and sample discovery", func(t *testing.T) {
 		if e = s.Seed(ctx, "production"); e == nil {
@@ -348,7 +426,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		if status != 200 || string(bytes.TrimSpace(raw)) != "[]" {
 			t.Fatal("samples published", status, string(raw))
 		}
-		tc.ok("POST", "/auth/challenges", map[string]any{"identity": "admin-a"}, 503)
+		tc.ok("POST", "/auth/login", map[string]any{"email": "admin-a@example.test", "password": testPassword}, 503)
 		tc.http.Jar = tutor.http.Jar
 		tc.ok("GET", "/dashboard", nil, 503)
 		status, _, raw = tc.call("GET", "/auth/session", nil, nil)

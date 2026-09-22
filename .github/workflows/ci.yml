@@ -10,7 +10,7 @@ jobs:
     timeout-minutes: 20
     env:
       APP_ENV: test
-      AUTH_PROVIDER: development
+      AUTH_PROVIDER: password
       PAYMENT_PROVIDER: disabled
       MONGODB_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0&directConnection=true
       TEST_MONGODB_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0&directConnection=true

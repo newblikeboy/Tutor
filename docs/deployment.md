@@ -32,7 +32,6 @@ HTTP_ADDR=127.0.0.1:8080
 WEB_ORIGIN=https://your-reviewed-domain.example
 MONGODB_URI=<private Atlas SRV connection>
 MONGODB_DATABASE=<separate reviewed production database>
-OTP_SECRET=<cryptographically random 32+ character secret>
 AUTH_PROVIDER=disabled
 PAYMENT_PROVIDER=disabled
 TRIAL_FEE_PAISE=0

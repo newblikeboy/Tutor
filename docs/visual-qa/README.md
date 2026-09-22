@@ -2,6 +2,14 @@
 
 Date: 2026-09-23. Actual Chromium (Playwright 1.63.0), Windows, device scale 1, self-hosted Manrope/Noto fonts. The real React application called the Go API and Atlas. All records shown are fictional. No screenshots of real child records, live credentials or payment/provider claims are included.
 
+## Email/password redesign review
+
+The old OTP login design is superseded. Individually opened final account images: `account-login-en-desktop.png`, `account-signup-en-desktop.png`, `account-login-hi-mobile.png`, `account-signup-hi-mobile.png`, `account-login-en-mobile.png`, `account-signup-en-mobile.png`, staff `login-hi-mobile.png`, `login-error-desktop.png`, `account-login-loading.png`, and `account-login-load-error.png`. Hindi desktop login was also inspected in `.local/auth-login-hi-1440.png`. The password component at 200% was inspected in the updated `components-200-percent.png`.
+
+Fixed clipped illustration text, overly tall signup composition, small field typography and generic account-load error copy. Mobile prioritizes the form. A screenshot initially captured a route-loading skeleton; the test now waits for the form before screenshot/axe review. The four `account-*` desktop/Hindi-mobile baseline images were opened before copying to `tests/e2e/baselines`; all four passed zero-difference comparisons. Empty forms were captured so no passwords appear. `node scripts/capture-auth.mjs` creates review candidates only.
+
+Full regression: 22/22 passed, including the 6 older public baselines and these 4 new account baselines. Final affected-suite rerun: 12/12 passed after error-copy/trailing-slash/screenshot-wait refinements. Public baselines were not rewritten. English/Hindi signup/login, keyboard, 360/390/768/1024/1440 overflow, CSS 200% stress, error/retry and axe checks ran. Native browser zoom and manual assistive-tech review remain unverified.
+
 ## Inspected by opening the rendered images
 
 - Initial English homepage: `home-en-desktop-initial.png`, `home-en-mobile-initial.png` (before refinements).
@@ -14,6 +22,7 @@ Date: 2026-09-23. Actual Chromium (Playwright 1.63.0), Windows, device scale 1, 
 - Mentor scorecard: `mentor-scorecard-en-desktop.png`, `mentor-scorecard-hi-mobile.png`.
 - Admin queue: `admin-en-mobile.png`, `admin-hi-mobile.png`.
 - Hindi adult requirement form: `adult-requirement-hi-mobile.png`.
+- Login follow-up: `login-en-desktop.png` and `login-hi-mobile.png`, inspected during the localhost login fix. Captured before requesting an OTP; no login secrets are retained in these images.
 - Search filter drawer: `search-filter-mobile.png`.
 - Search populated desktop and network-failure state: `search-en-desktop.png`, `search-network-error.png`.
 - 200% component stress case: `components-200-percent.png` and the earlier failed screenshot during diagnosis.
@@ -37,7 +46,7 @@ The six files under `candidates/` were actually opened and reviewed before being
 
 These baselines are **Windows Chromium only**. Linux CI explicitly skips their raster comparisons; it still executes the connected workflow, layout, keyboard and axe tests. Establish separate reviewed Linux/other-browser baselines before broadening claims. Private-role artifacts currently have changing audit/session dates and are review evidence, not automated pixel baselines.
 
-Final complete run: 10/10 Playwright tests passed, including all six exact-pixel comparisons and the Hindi adult requirement flow. The actual snapshots were reviewed before promotion; later tests compared without changing the accepted images.
+Initial checkpoint: 10/10 Playwright tests passed, including all six exact-pixel comparisons and the Hindi adult requirement flow. The actual snapshots were reviewed before promotion; later tests compared without changing the accepted images. After the local login address fix, the full suite passed 13/13, including three added login/security regressions and the same six unchanged baselines. The login screenshots listed above were individually inspected.
 
 `node scripts/capture-baselines.mjs` creates candidates against the running local application. It never promotes them automatically. Never run a blanket snapshot update and call that visual acceptance.
 

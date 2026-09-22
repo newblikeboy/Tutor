@@ -19,13 +19,14 @@ import (
 )
 
 type App struct {
-	Store  *storage.Store
-	Config config.Config
-	Now    func() time.Time
+	Store         *storage.Store
+	Config        config.Config
+	Now           func() time.Time
+	PasswordSlots chan struct{}
 }
 
 func New(s *storage.Store, c config.Config) *App {
-	return &App{s, c, func() time.Time { return time.Now().UTC() }}
+	return &App{Store: s, Config: c, Now: func() time.Time { return time.Now().UTC() }, PasswordSlots: make(chan struct{}, 4)}
 }
 func (a *App) json(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -92,13 +93,13 @@ func (a *App) Routes() http.Handler {
 		a.json(w, 200, map[string]string{"status": "ready"})
 	})
 	r.Get("/api/v1/config", func(w http.ResponseWriter, r *http.Request) {
-		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "development", "trialFeePaise": 0, "payments": "disabled", "timezone": "Asia/Kolkata"})
+		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password" && a.Config.Env != "production", "trialFeePaise": 0, "payments": "disabled", "timezone": "Asia/Kolkata"})
 	})
 	r.Get("/api/v1/tutors", a.tutors)
 	r.Get("/api/v1/tutors/{id}", a.tutor)
-	r.Post("/api/v1/auth/challenges", a.challenge)
+	r.Post("/api/v1/auth/signup", a.signup)
+	r.Post("/api/v1/auth/login", a.login)
 	r.Get("/api/v1/auth/session", a.sessionState)
-	r.Post("/api/v1/auth/verify", a.verify)
 	r.Group(func(r chi.Router) {
 		r.Use(a.authenticated)
 		r.Get("/api/v1/me", a.me)

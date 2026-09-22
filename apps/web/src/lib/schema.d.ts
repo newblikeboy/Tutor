@@ -89,7 +89,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/challenges": {
+    "/auth/signup": {
         parameters: {
             query?: never;
             header?: never;
@@ -98,8 +98,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** POST /auth/challenges */
-        post: operations["post__auth_challenges"];
+        /** POST /auth/signup */
+        post: operations["post__auth_signup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /auth/login */
+        post: operations["post__auth_login"];
         delete?: never;
         options?: never;
         head?: never;
@@ -117,23 +134,6 @@ export interface paths {
         get: operations["get__auth_session"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** POST /auth/verify */
-        post: operations["post__auth_verify"];
         delete?: never;
         options?: never;
         head?: never;
@@ -354,6 +354,8 @@ export interface components {
             /** @enum {string} */
             role: "parent" | "tutor" | "mentor" | "admin" | "support" | "finance";
             sample: boolean;
+            /** Format: email */
+            email?: string;
         };
         Scope: {
             subject: string;
@@ -473,12 +475,6 @@ export interface components {
             csrf: string;
         };
         AuthSession: components["schemas"]["Auth"] | null;
-        Challenge: {
-            challengeId: string;
-            developmentCode: string;
-            expiresIn: number;
-            delivery: string;
-        };
         Consent: {
             id: string;
             ownerId: string;
@@ -502,12 +498,20 @@ export interface components {
         Health: {
             status: string;
         };
-        ChallengeInput: {
-            identity: string;
+        LoginInput: {
+            /** Format: email */
+            email: string;
+            password: string;
         };
-        VerifyInput: {
-            challengeId: string;
-            code: string;
+        SignupInput: {
+            name: string;
+            /** Format: email */
+            email: string;
+            password: string;
+            /** @enum {string} */
+            role: "parent" | "tutor";
+            /** @constant */
+            adult: true;
         };
         ApplicationInput: {
             name: string;
@@ -719,7 +723,7 @@ export interface operations {
             };
         };
     };
-    post__auth_challenges: {
+    post__auth_signup: {
         parameters: {
             query?: never;
             header: {
@@ -730,7 +734,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ChallengeInput"];
+                "application/json": components["schemas"]["SignupInput"];
             };
         };
         responses: {
@@ -740,7 +744,42 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Challenge"];
+                    "application/json": components["schemas"]["Auth"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__auth_login: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Auth"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
@@ -770,41 +809,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthSession"];
-                };
-            };
-            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    post__auth_verify: {
-        parameters: {
-            query?: never;
-            header: {
-                Origin: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyInput"];
-            };
-        };
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Auth"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */

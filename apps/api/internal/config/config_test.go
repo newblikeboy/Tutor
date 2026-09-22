@@ -4,10 +4,9 @@ import "testing"
 
 func TestProductionRejectsDemoAuth(t *testing.T) {
 	t.Setenv("MONGODB_URI", "mongodb://localhost")
-	t.Setenv("OTP_SECRET", "01234567890123456789012345678901")
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("WEB_ORIGIN", "https://example.invalid")
-	t.Setenv("AUTH_PROVIDER", "development")
+	t.Setenv("AUTH_PROVIDER", "password")
 	if _, e := Load(); e == nil {
 		t.Fatal("demo auth accepted in production")
 	}

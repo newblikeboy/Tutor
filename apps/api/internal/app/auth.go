@@ -10,12 +10,15 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
-	"math/big"
 	"net"
 	"net/http"
+	"net/mail"
+	"strings"
 	"time"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/password"
 	"tutorplatform/internal/storage"
+	"unicode/utf8"
 )
 
 type identityKey struct{}
@@ -25,14 +28,12 @@ type Session struct {
 	Version   int       `bson:"version"`
 	ExpiresAt time.Time `bson:"expiresAt"`
 	CSRF      string    `bson:"csrf"`
+	Method    string    `bson:"method"`
 }
-type Challenge struct {
-	ID        string    `bson:"_id"`
-	UserID    string    `bson:"userId"`
-	Hash      string    `bson:"hash"`
-	Attempts  int       `bson:"attempts"`
-	ExpiresAt time.Time `bson:"expiresAt"`
-	Used      bool      `bson:"used"`
+type credential struct {
+	Email  string `bson:"_id"`
+	UserID string `bson:"userId"`
+	Hash   string `bson:"passwordHash"`
 }
 
 func token() string {
@@ -42,17 +43,11 @@ func token() string {
 	}
 	return hex.EncodeToString(b)
 }
-func digest(v string) string { h := sha256.Sum256([]byte(v)); return hex.EncodeToString(h[:]) }
-func (a *App) otpHash(id, code string) string {
-	h := hmac.New(sha256.New, []byte(a.Config.OTPSecret))
-	h.Write([]byte(id + ":" + code))
-	return hex.EncodeToString(h.Sum(nil))
-}
+func digest(v string) string           { h := sha256.Sum256([]byte(v)); return hex.EncodeToString(h[:]) }
 func user(r *http.Request) domain.User { return r.Context().Value(identityKey{}).(domain.User) }
 func (a *App) rate(ctx context.Context, key string, limit int) error {
 	now := a.Now()
-	window := now.Unix() / 60
-	id := digest(key + fmt.Sprint(window))
+	id := digest(key + fmt.Sprint(now.Unix()/60))
 	var v struct {
 		Count int `bson:"count"`
 	}
@@ -61,104 +56,163 @@ func (a *App) rate(ctx context.Context, key string, limit int) error {
 		return e
 	}
 	if v.Count > limit {
-		return domain.Fail(429, "rate_limited", "Please wait before trying again.")
+		return domain.Fail(429, "rate_limited", "Please wait a minute before trying again.")
 	}
 	return nil
 }
-func (a *App) challenge(w http.ResponseWriter, r *http.Request) {
-	if a.Config.AuthProvider != "development" || a.Config.Env == "production" {
-		a.error(w, r, domain.Fail(503, "provider_unconfigured", "Live authentication is not configured."))
-		return
-	}
-	var in struct {
-		Identity string `json:"identity"`
-	}
-	if !a.decode(w, r, &in) {
-		return
-	}
-	if len(in.Identity) > 64 {
-		a.error(w, r, domain.Fail(422, "validation", "Choose a development identity."))
-		return
-	}
-	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-	if e := a.rate(r.Context(), "ip:"+ip, 20); e != nil {
-		a.error(w, r, e)
-		return
-	}
-	if e := a.rate(r.Context(), "identity:"+in.Identity, 3); e != nil {
-		a.error(w, r, e)
-		return
-	}
-	n, e := rand.Int(rand.Reader, big.NewInt(1000000))
-	if e != nil {
-		a.error(w, r, e)
-		return
-	}
-	code := fmt.Sprintf("%06d", n)
-	id := token()
-	c := Challenge{ID: id, UserID: in.Identity, Hash: a.otpHash(id, code), ExpiresAt: a.Now().Add(5 * time.Minute)}
-	if _, e = a.Store.C("challenges").InsertOne(r.Context(), c); e != nil {
-		a.error(w, r, e)
-		return
-	}
-	a.json(w, 201, map[string]any{"challengeId": id, "developmentCode": code, "expiresIn": 300, "delivery": "development_only_no_sms"})
+func normalizeEmail(value string) (string, bool) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	address, e := mail.ParseAddress(value)
+	valid := e == nil && address.Address == value && len(value) <= 254 && !strings.ContainsAny(value, " \t\r\n") && strings.Contains(strings.SplitN(value, "@", 2)[1], ".")
+	return value, valid
 }
-func (a *App) verify(w http.ResponseWriter, r *http.Request) {
-	if a.Config.AuthProvider != "development" || a.Config.Env == "production" {
-		a.error(w, r, domain.Fail(503, "provider_unconfigured", "Live authentication is not configured."))
+func (a *App) passwordAvailable(w http.ResponseWriter, r *http.Request) bool {
+	if a.Config.AuthProvider != "password" || a.Config.Env == "production" {
+		a.error(w, r, domain.Fail(503, "provider_unconfigured", "Account access is not enabled for this environment."))
+		return false
+	}
+	return true
+}
+func (a *App) authLimit(r *http.Request, email, action string) error {
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ipLimit, emailLimit := 40, 10
+	if action == "signup" {
+		ipLimit, emailLimit = 8, 3
+	}
+	if e := a.rate(r.Context(), "auth:"+action+":ip:"+ip, ipLimit); e != nil {
+		return e
+	}
+	return a.rate(r.Context(), "auth:"+action+":email:"+email, emailLimit)
+}
+func (a *App) passwordSlot(w http.ResponseWriter, r *http.Request) bool {
+	select {
+	case a.PasswordSlots <- struct{}{}:
+		return true
+	default:
+		a.error(w, r, domain.Fail(503, "busy", "Please try again in a moment."))
+		return false
+	}
+}
+func (a *App) signup(w http.ResponseWriter, r *http.Request) {
+	if !a.passwordAvailable(w, r) {
 		return
 	}
 	var in struct {
-		ChallengeID string `json:"challengeId"`
-		Code        string `json:"code"`
+		Name     string `json:"name"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Role     string `json:"role"`
+		Adult    bool   `json:"adult"`
 	}
 	if !a.decode(w, r, &in) {
 		return
 	}
-	ctx := r.Context()
-	now := a.Now()
-	var c Challenge
-	e := a.Store.C("challenges").FindOneAndUpdate(ctx, bson.M{"_id": in.ChallengeID, "used": false, "expiresAt": bson.M{"$gt": now}, "attempts": bson.M{"$lt": 5}}, bson.M{"$inc": bson.M{"attempts": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&c)
-	invalid := domain.Fail(401, "invalid_code", "The code is invalid, expired or already used.")
-	if e != nil || !hmac.Equal([]byte(c.Hash), []byte(a.otpHash(c.ID, in.Code))) {
-		a.error(w, r, invalid)
+	email, valid := normalizeEmail(in.Email)
+	in.Name = strings.TrimSpace(in.Name)
+	if !valid || utf8.RuneCountInString(in.Name) < 2 || utf8.RuneCountInString(in.Name) > 80 || !in.Adult || (in.Role != "parent" && in.Role != "tutor") {
+		a.error(w, r, domain.Fail(422, "validation", "Enter your name, email, account type and adult confirmation."))
 		return
 	}
-	raw := token()
-	csrf := token()
-	var u domain.User
-	e = a.Store.Tx(ctx, func(ctx context.Context) error {
-		var er error
-		u, er = storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": c.UserID, "sample": true})
-		if er != nil {
-			return invalid
-		}
-		res, er := a.Store.C("challenges").UpdateOne(ctx, bson.M{"_id": c.ID, "used": false, "expiresAt": bson.M{"$gt": a.Now()}}, bson.M{"$set": bson.M{"used": true}})
-		if er != nil {
-			return er
-		}
-		if res.ModifiedCount != 1 {
-			return invalid
-		}
-		if old, er := r.Cookie("session"); er == nil {
-			if _, er = a.Store.C("sessions").DeleteOne(ctx, bson.M{"_id": digest(old.Value)}); er != nil {
-				return er
-			}
-		}
-		_, er = a.Store.C("sessions").InsertOne(ctx, Session{digest(raw), u.ID, u.AuthVersion, now.Add(8 * time.Hour), csrf})
-		return er
-	})
+	if !password.Valid(in.Password) {
+		a.error(w, r, domain.Fail(422, "weak_password", "Choose a less common password of 15 to 128 characters."))
+		return
+	}
+	if e := a.authLimit(r, email, "signup"); e != nil {
+		a.error(w, r, e)
+		return
+	}
+	if !a.passwordSlot(w, r) {
+		return
+	}
+	defer func() { <-a.PasswordSlots }()
+	hash, e := password.Hash(in.Password)
 	if e != nil {
 		a.error(w, r, e)
 		return
 	}
+	u := domain.User{ID: token(), Name: in.Name, Email: email, Role: in.Role, Sample: false}
+	raw, csrf := token(), token()
+	e = a.Store.Tx(r.Context(), func(ctx context.Context) error {
+		if _, e := a.Store.C("credentials").InsertOne(ctx, credential{email, u.ID, hash}); e != nil {
+			return e
+		}
+		if _, e := a.Store.C("users").InsertOne(ctx, u); e != nil {
+			return e
+		}
+		return a.saveSession(ctx, r, u, raw, csrf)
+	})
+	if mongo.IsDuplicateKeyError(e) {
+		e = domain.Fail(409, "signup_unavailable", "Unable to create an account with these details. Try signing in.")
+	}
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	a.authResponse(w, u, raw, csrf, 201)
+}
+func (a *App) login(w http.ResponseWriter, r *http.Request) {
+	if !a.passwordAvailable(w, r) {
+		return
+	}
+	var in struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if !a.decode(w, r, &in) {
+		return
+	}
+	email, valid := normalizeEmail(in.Email)
+	if !valid || len(in.Password) == 0 || len(in.Password) > 512 {
+		a.error(w, r, domain.Fail(401, "invalid_credentials", "Email or password is incorrect."))
+		return
+	}
+	if e := a.authLimit(r, email, "login"); e != nil {
+		a.error(w, r, e)
+		return
+	}
+	c, e := storage.One[credential](r.Context(), a.Store, "credentials", bson.M{"_id": email})
+	if e != nil && e != mongo.ErrNoDocuments {
+		a.error(w, r, e)
+		return
+	}
+	if !a.passwordSlot(w, r) {
+		return
+	}
+	matched := password.Verify(c.Hash, in.Password)
+	<-a.PasswordSlots
+	if !matched {
+		a.error(w, r, domain.Fail(401, "invalid_credentials", "Email or password is incorrect."))
+		return
+	}
+	u, e := storage.One[domain.User](r.Context(), a.Store, "users", bson.M{"_id": c.UserID})
+	if e != nil {
+		a.error(w, r, domain.Fail(401, "invalid_credentials", "Email or password is incorrect."))
+		return
+	}
+	raw, csrf := token(), token()
+	e = a.Store.Tx(r.Context(), func(ctx context.Context) error { return a.saveSession(ctx, r, u, raw, csrf) })
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	a.authResponse(w, u, raw, csrf, 200)
+}
+func (a *App) saveSession(ctx context.Context, r *http.Request, u domain.User, raw, csrf string) error {
+	if old, e := r.Cookie("session"); e == nil {
+		if _, e = a.Store.C("sessions").DeleteOne(ctx, bson.M{"_id": digest(old.Value)}); e != nil {
+			return e
+		}
+	}
+	_, e := a.Store.C("sessions").InsertOne(ctx, Session{ID: digest(raw), UserID: u.ID, Version: u.AuthVersion, ExpiresAt: a.Now().Add(8 * time.Hour), CSRF: csrf, Method: "password"})
+	return e
+}
+func (a *App) authResponse(w http.ResponseWriter, u domain.User, raw, csrf string, status int) {
 	http.SetCookie(w, &http.Cookie{Name: "session", Value: raw, Path: "/", HttpOnly: true, Secure: a.Config.Env == "production", SameSite: http.SameSiteLaxMode, MaxAge: 28800})
-	a.json(w, 200, map[string]any{"user": u, "csrf": csrf})
+	a.json(w, status, map[string]any{"user": u, "csrf": csrf})
 }
 func (a *App) authenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if a.Config.Env == "production" {
-			a.error(w, r, domain.Fail(503, "provider_unconfigured", "Live authentication and staff MFA require operator review."))
+		if !a.passwordAvailable(w, r) {
 			return
 		}
 		cookie, e := r.Cookie("session")
@@ -166,7 +220,7 @@ func (a *App) authenticated(next http.Handler) http.Handler {
 			a.error(w, r, domain.Fail(401, "unauthenticated", "Please sign in to continue."))
 			return
 		}
-		s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "expiresAt": bson.M{"$gt": a.Now()}})
+		s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": "password", "expiresAt": bson.M{"$gt": a.Now()}})
 		if e != nil {
 			a.error(w, r, domain.Fail(401, "unauthenticated", "Your session has expired."))
 			return
@@ -192,10 +246,8 @@ func (a *App) me(w http.ResponseWriter, r *http.Request) {
 	}
 	a.json(w, 200, map[string]any{"user": user(r), "csrf": s.CSRF})
 }
-
-// Anonymous browsing is an ordinary state, not a failing network request.
 func (a *App) sessionState(w http.ResponseWriter, r *http.Request) {
-	if a.Config.Env == "production" {
+	if a.Config.Env == "production" || a.Config.AuthProvider != "password" {
 		a.json(w, 200, nil)
 		return
 	}
@@ -204,7 +256,7 @@ func (a *App) sessionState(w http.ResponseWriter, r *http.Request) {
 		a.json(w, 200, nil)
 		return
 	}
-	s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "expiresAt": bson.M{"$gt": a.Now()}})
+	s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": "password", "expiresAt": bson.M{"$gt": a.Now()}})
 	if e == mongo.ErrNoDocuments {
 		a.json(w, 200, nil)
 		return
