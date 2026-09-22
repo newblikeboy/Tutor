@@ -1,0 +1,26 @@
+{
+  "name": "tutor-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web",
+    "typecheck": "npm run typecheck -w apps/web",
+    "lint": "npm run lint -w apps/web",
+    "test": "npm run test -w apps/web",
+    "e2e": "playwright test",
+    "db:local": "node scripts/local-mongo.mjs",
+    "contract": "openapi-typescript contracts/openapi.yaml -o apps/web/src/lib/schema.d.ts"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "mongodb-memory-server-core": "11.3.0",
+    "openapi-typescript": "7.13.0",
+    "prettier": "3.9.8"
+  }
+}

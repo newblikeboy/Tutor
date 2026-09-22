@@ -1,0 +1,51 @@
+name: Verify platform
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_ENV: test
+      AUTH_PROVIDER: development
+      PAYMENT_PROVIDER: disabled
+      MONGODB_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0&directConnection=true
+      TEST_MONGODB_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0&directConnection=true
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start actual local MongoDB replica set (no Docker)
+        run: |
+          mkdir -p .local
+          npm run db:local > .local/mongo.log 2>&1 &
+          for attempt in $(seq 1 90); do
+            if grep -q 'replica set ready' .local/mongo.log; then exit 0; fi
+            sleep 2
+          done
+          cat .local/mongo.log
+          exit 1
+      - run: node scripts/contract.mjs && npm run contract && git diff --exit-code -- contracts/openapi.yaml apps/web/src/lib/schema.d.ts
+      - run: npm run typecheck && npm run lint && npm run test && npm run build
+      - run: go vet ./... && go test -race -count=1 ./...
+        working-directory: apps/api
+      - run: npm run e2e
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: browser-review
+          path: |
+            playwright-report
+            docs/visual-qa
+          retention-days: 7
