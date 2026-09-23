@@ -65,7 +65,7 @@ function ApplicationForm() {
       <div className="application-status">
         <Status status={app.status} />
         <h2>{app.name}</h2>
-        <p>{t('profilePrivate')}</p>
+        <p>{t(app.status === 'approved' ? 'scopeHelp' : 'profilePrivate')}</p>
         <p>{t('pipeline')}</p>
         <div className="button-row">
           <LinkButton to="/workspace">{t('viewWorkspace')}</LinkButton>

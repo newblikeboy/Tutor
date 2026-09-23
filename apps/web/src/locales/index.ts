@@ -614,6 +614,7 @@ const hi: Record<keyof typeof en, string | string[]> = {
 }
 import { authEN, authHI } from './auth'
 import { homeEN, homeHI } from './home'
+import { workspaceEN, workspaceHI } from './workspace'
 let language = 'en'
 try {
   language = localStorage.getItem('language') === 'hi' ? 'hi' : 'en'
@@ -622,8 +623,8 @@ try {
 }
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { translation: { ...en, ...authEN, ...homeEN } },
-    hi: { translation: { ...hi, ...authHI, ...homeHI } },
+    en: { translation: { ...en, ...authEN, ...homeEN, ...workspaceEN } },
+    hi: { translation: { ...hi, ...authHI, ...homeHI, ...workspaceHI } },
   },
   lng: language,
   fallbackLng: 'en',

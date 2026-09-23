@@ -18,15 +18,35 @@ import { useAuth, useConfig } from './lib/session'
 import { Button, Loading, Modal, MutationError } from './components/ui'
 import { Home, Info, Search, TutorDetail, Showcase } from './routes/public'
 const Login = lazy(() => import('./routes/login'))
+const WorkspaceShell = lazy(() => import('./components/workspace-shell'))
 const Workspace = lazy(() => import('./routes/workspace'))
 const Match = lazy(() => import('./routes/match'))
 const Apply = lazy(() => import('./routes/apply'))
 function ScrollReset() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const view = pathname === '/workspace' ? new URLSearchParams(search).get('view') : null
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [pathname])
+  }, [pathname, view])
   return null
+}
+function SiteRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/tutors" element={<Search />} />
+      <Route path="/tutors/:id" element={<TutorDetail />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/workspace" element={<Workspace />} />
+      <Route path="/match" element={<Match />} />
+      <Route path="/apply" element={<Apply />} />
+      <Route path="/components" element={<Showcase />} />
+      {['approach', 'standards', 'privacy', 'support', 'how-it-works'].map((path) => (
+        <Route key={path} path={`/${path}`} element={<Info page={path} />} />
+      ))}
+      <Route path="*" element={<Info page="404" />} />
+    </Routes>
+  )
 }
 function Layout() {
   const { t, i18n } = useTranslation()
@@ -58,6 +78,22 @@ function Layout() {
         }
       >
         <Login key={location.pathname + location.search} />
+      </Suspense>
+    )
+  }
+  if (['/workspace', '/match', '/apply'].includes(location.pathname.replace(/\/+$/, ''))) {
+    return (
+      <Suspense
+        fallback={
+          <div className="container section">
+            <Loading />
+          </div>
+        }
+      >
+        <WorkspaceShell>
+          <SiteRoutes />
+          <ScrollReset />
+        </WorkspaceShell>
       </Suspense>
     )
   }
@@ -124,20 +160,7 @@ function Layout() {
             </div>
           }
         >
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/tutors" element={<Search />} />
-            <Route path="/tutors/:id" element={<TutorDetail />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/workspace" element={<Workspace />} />
-            <Route path="/match" element={<Match />} />
-            <Route path="/apply" element={<Apply />} />
-            <Route path="/components" element={<Showcase />} />
-            {['approach', 'standards', 'privacy', 'support', 'how-it-works'].map((path) => (
-              <Route key={path} path={`/${path}`} element={<Info page={path} />} />
-            ))}
-            <Route path="*" element={<Info page="404" />} />
-          </Routes>
+          <SiteRoutes />
         </Suspense>
       </main>
       <footer>

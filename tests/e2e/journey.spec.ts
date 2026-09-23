@@ -30,6 +30,9 @@ async function axe(page: Page) {
 test('complete application → scoped approval → requirement → trial → reviewed progress', async ({
   browser,
 }) => {
+  // Four real Atlas-backed roles plus visual/axe review need a larger total budget;
+  // individual interaction assertions retain their normal timeouts.
+  test.setTimeout(180_000)
   const contexts = await Promise.all([
     browser.newContext({
       baseURL: 'http://127.0.0.1:5174',
