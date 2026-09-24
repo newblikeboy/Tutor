@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-09-25: owner-authorized live account and media reset
+
+The operator explicitly requested deletion of all application user data, confirmed the live database as `tutor_dev`, and chose deletion of its Cloudinary uploads. A bounded, one-off Go tool used the project Argon2id implementation and a MongoDB transaction to remove 52 old documents (including 13 accounts) and provision exactly one non-sample administrator, parent and tutor with the privately supplied password. Existing collections, indexes, validators and migration marker were preserved. Three provisioning audit entries were created. No other database was modified. Personal account details and password were not written to source files.
+
+Cloudinary confirmed deletion of the three inventoried application assets; invalidation was requested and all nine application-prefix/resource-type inventory checks returned zero assets. Initial verification found exactly three users/credentials and zero old application records. A subsequent check found one new draft application and active session after the reset; these new records were preserved. Learner and file collections remain empty. Live HTTPS parent/tutor login, persisted session and logout checks passed. The first verification harness omitted the required JSON content type for logout; corrected checks passed and its residual session was removed. Administrator login still returns `503 staff_auth_unavailable`: the running droplet API predates the already-pushed staff-login fix. Operator deployment/restart remains required; no server shell access is available here. Local ignored operator evidence contains counts only, with no plaintext password.
+
 ## 2026-09-25: eight-character password minimum
 
 The user requested a minimum of eight characters everywhere. The shared Go password validator, signup and password-change forms, staff provisioning errors, API contract generators and current documentation now use 8-128 characters. Existing hashes and longer passwords remain valid; no reset, configuration change or database migration is required. Argon2id, the existing common-password checks, session revocation and staff role boundaries remain unchanged.
