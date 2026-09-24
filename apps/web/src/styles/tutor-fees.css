@@ -1,0 +1,46 @@
+.tutor-fees {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.tutor-fees > div {
+  padding: 12px 14px;
+  border: 1px solid #d9e3d3;
+  border-radius: 10px;
+  background: linear-gradient(125deg, #f9fcf6, #eff5e9);
+}
+.tutor-fees dt {
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+.tutor-fees dd {
+  margin: 4px 0 0;
+}
+.tutor-fees dd strong {
+  font-size: 1.15rem;
+}
+.tutor-fees dd span,
+.tutor-fees dd small {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.tutor-fees dd small {
+  display: block;
+  margin-top: 4px;
+}
+.tutor-fee-pending {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.staff-fee-form fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #d9e3d3;
+  border-radius: 10px;
+}
+.staff-fee-form legend {
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 0 4px;
+}

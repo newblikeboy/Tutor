@@ -13,7 +13,7 @@ export function applicationContract(schemas, route) {
   const nullable = (name) => ({ anyOf: [ref(name), { type: 'null' }] })
   const strings = (names) => Object.fromEntries(names.split(' ').map((k) => [k, s]))
   schemas.ApplicantAbout = obj({
-    ...strings('fullName displayName mobile city locality pin'),
+    ...strings('fullName displayName mobile city locality pin photoFileId'),
     communicationLanguages: array(s),
   })
   schemas.ApplicantEducation = obj({

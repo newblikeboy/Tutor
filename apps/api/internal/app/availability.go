@@ -28,12 +28,21 @@ func (a *App) availability(w http.ResponseWriter, r *http.Request) {
 		}
 		id = user(r).ID
 	}
+	var application domain.Application
 	if chi.URLParam(r, "id") != "" {
 		f := bson.M{"_id": id, "status": "approved", "scope.expiresAt": bson.M{"$gt": a.Now()}}
 		if a.Config.Env == "production" {
 			f["sample"] = false
 		}
-		if _, e := storage.One[domain.Application](r.Context(), a.Store, "applications", f); e != nil {
+		var e error
+		if application, e = storage.One[domain.Application](r.Context(), a.Store, "applications", f); e != nil {
+			a.error(w, r, e)
+			return
+		}
+	} else {
+		var e error
+		application, e = storage.One[domain.Application](r.Context(), a.Store, "applications", bson.M{"_id": id})
+		if e != nil {
 			a.error(w, r, e)
 			return
 		}
@@ -47,6 +56,13 @@ func (a *App) availability(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
+	// Never expose the former tutor-authored availability price as an agreed fee.
+	v.FeePaise = 0
+	if plan, ok := application.HourlyFee(); ok {
+		v.FeePlan = &plan
+		v.FeePaise = plan.AmountPaise
+		v.FeeVersion = application.Fees.Version
+	}
 	a.json(w, 200, v)
 }
 func (a *App) saveAvailability(w http.ResponseWriter, r *http.Request) {
@@ -57,9 +73,13 @@ func (a *App) saveAvailability(w http.ResponseWriter, r *http.Request) {
 	if !a.decode(w, r, &in) {
 		return
 	}
+	if in.FeePaise != 0 || in.FeePlan != nil || in.FeeVersion != 0 {
+		a.error(w, r, domain.Fail(403, "staff_fees_only", "Only staff can set tutor fees."))
+		return
+	}
 	loc, e := time.LoadLocation(in.Timezone)
-	if e != nil || loc == time.Local || len(in.Windows) > 21 || len(in.LeaveDates) > 60 || in.BufferMinutes < 0 || in.BufferMinutes > 90 || in.DailyCapacity < 1 || in.DailyCapacity > 12 || in.FeePaise < 0 || (in.FeePaise > 0 && in.FeePaise < 100) || in.FeePaise > 10000000 {
-		a.error(w, r, domain.Fail(422, "validation", "Check your timezone, availability, capacity and fee."))
+	if e != nil || loc == time.Local || len(in.Windows) > 21 || len(in.LeaveDates) > 60 || in.BufferMinutes < 0 || in.BufferMinutes > 90 || in.DailyCapacity < 1 || in.DailyCapacity > 12 {
+		a.error(w, r, domain.Fail(422, "validation", "Check your timezone, availability and capacity."))
 		return
 	}
 	if in.Windows == nil {

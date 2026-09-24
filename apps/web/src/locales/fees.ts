@@ -1,0 +1,22 @@
+export const feesEN = {
+  tutorFees: {
+    title: 'Tutor fees',
+    save: 'Save fees',
+    saved: 'Fees saved',
+    amount: 'Fee (₹)',
+    onlineHour: 'Online · hourly',
+    homeWeek: 'Home Tuition · weekly',
+    homeMonth: 'Home Tuition · monthly',
+    hour: 'per hour',
+    week: 'per week',
+    month: 'per month',
+    classes: 'Classes included',
+    minutes: 'Minutes per class',
+    includes: '{{count}} classes · {{minutes}} minutes each',
+    pending: 'Fee to be confirmed',
+    staffOnly: 'Staff set your fees during the interview.',
+    required: 'Save the tutor fees before approval.',
+    invalid: 'Check each fee, number of classes and class duration.',
+    history: 'Tutor fees updated',
+  },
+}

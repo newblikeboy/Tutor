@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-test('photo homepage keeps its bilingual layout, keyboard access and real entry points', async ({
+test('photo homepage keeps its English layout, keyboard access and real entry points', async ({
   page,
 }) => {
   const errors: string[] = []
@@ -17,8 +17,8 @@ test('photo homepage keeps its bilingual layout, keyboard access and real entry 
   await page.keyboard.press('Enter')
   await expect(page.locator('#main')).toBeFocused()
 
-  for (const language of ['en', 'hi']) {
-    if (language === 'hi') await page.locator('.language-button').click()
+  for (const language of ['en']) {
+    await expect(page.locator('.language-button')).toHaveCount(0)
     await expect(page.locator('html')).toHaveAttribute('lang', language)
     for (const width of [360, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 1000 })
@@ -65,7 +65,7 @@ test('photo homepage keeps its bilingual layout, keyboard access and real entry 
     })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({
-      path: `docs/visual-qa/landing-${language}-200-percent.png`,
+      path: `docs/visual-qa/english-only/landing-${language}-200-percent.png`,
       fullPage: false,
     })
     await page.evaluate(() => {
@@ -73,7 +73,7 @@ test('photo homepage keeps its bilingual layout, keyboard access and real entry 
     })
   }
 
-  await page.locator('.language-button').click()
+  await expect(page.locator('.language-button')).toHaveCount(0)
   await page.setViewportSize({ width: 390, height: 1000 })
   const menu = page.getByRole('button', { name: 'Open menu' })
   await menu.click()
@@ -90,8 +90,6 @@ test('photo homepage keeps its bilingual layout, keyboard access and real entry 
   await expect(page.locator('.profile-header')).toBeVisible()
   await page.goto('/')
   await page.locator('.home-actions .btn').click()
-  await expect(page).toHaveURL(/\/match$/)
-  await page.getByRole('link', { name: 'Sign in to continue' }).click()
   await expect(page).toHaveURL(/\/login\?return=%2Fmatch$/)
   await expect(page.getByLabel('Email address', { exact: true })).toBeVisible()
   expect(errors).toEqual([])
@@ -114,10 +112,12 @@ test('homepage remains usable while tutors load and recovers from a failed reque
   await expect(page.locator('.home-actions .btn')).toBeVisible()
   await page
     .locator('.home-tutors')
-    .screenshot({ path: 'docs/visual-qa/landing-tutors-loading.png' })
+    .screenshot({ path: 'docs/visual-qa/english-only/landing-tutors-loading.png' })
   release()
   await expect(page.locator('.home-tutors').getByRole('alert')).toBeVisible()
-  await page.locator('.home-tutors').screenshot({ path: 'docs/visual-qa/landing-tutors-error.png' })
+  await page
+    .locator('.home-tutors')
+    .screenshot({ path: 'docs/visual-qa/english-only/landing-tutors-error.png' })
   await page.unroute('**/api/v1/tutors')
   await page.getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(page.locator('.home-tutors .tutor-card').first()).toBeVisible()
@@ -142,7 +142,7 @@ test('landing section link works with reduced motion and high contrast', async (
   await expect(page.locator('.home-actions .btn')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({
-    path: 'docs/visual-qa/landing-editorial/high-contrast.png',
+    path: 'docs/visual-qa/english-only/landing-editorial/high-contrast.png',
     animations: 'disabled',
   })
   await page.locator('.home-actions .text-link').click()

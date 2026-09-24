@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Tutor Platform API",
+    "title": "TheGyanSetu API",
     "version": "0.1.0",
     "description": "Email/password accounts, supervised trials, ongoing tuition and learning continuity, and explicitly configured Razorpay sandbox billing. Production access remains gated pending operator review. Public registration never grants academic approval. No delivery, live charge or bank settlement is implied by local records."
   },
@@ -1123,7 +1123,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Availability"
+                "$ref": "#/components/schemas/AvailabilityInput"
               }
             }
           }
@@ -4033,7 +4033,8 @@
           "experience",
           "scope",
           "assessmentAt",
-          "sample"
+          "sample",
+          "feePlans"
         ],
         "properties": {
           "id": {
@@ -4060,6 +4061,13 @@
           },
           "sample": {
             "type": "boolean"
+          },
+          "feePlans": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/FeePlan"
+            }
           }
         }
       },
@@ -4090,7 +4098,8 @@
           "formVersion",
           "formStep",
           "submission",
-          "eligibility"
+          "eligibility",
+          "fees"
         ],
         "properties": {
           "id": {
@@ -4192,6 +4201,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/EligibilityReview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fees": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TutorFees"
               },
               {
                 "type": "null"
@@ -4740,7 +4759,8 @@
               "terminate",
               "reopen",
               "note",
-              "eligibility"
+              "eligibility",
+              "fees"
             ]
           },
           "version": {
@@ -4782,6 +4802,13 @@
               "cleared",
               "blocked"
             ]
+          },
+          "feePlans": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/FeePlan"
+            }
           }
         }
       },
@@ -5061,7 +5088,9 @@
           "dailyCapacity",
           "paused",
           "feePaise",
-          "version"
+          "version",
+          "feePlan",
+          "feeVersion"
         ],
         "properties": {
           "tutorId": {
@@ -5095,6 +5124,19 @@
             "type": "integer"
           },
           "version": {
+            "type": "integer"
+          },
+          "feePlan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeePlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "feeVersion": {
             "type": "integer"
           }
         }
@@ -5318,7 +5360,8 @@
           "trialId",
           "schedule",
           "offeringVersion",
-          "accepted"
+          "accepted",
+          "feeVersion"
         ],
         "properties": {
           "trialId": {
@@ -5332,6 +5375,9 @@
           },
           "accepted": {
             "const": true
+          },
+          "feeVersion": {
+            "type": "integer"
           }
         }
       },
@@ -6719,7 +6765,8 @@
           "interview",
           "scores",
           "evidence",
-          "scope"
+          "scope",
+          "fees"
         ],
         "properties": {
           "id": {
@@ -6790,6 +6837,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/EligibilityReview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fees": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TutorFees"
               },
               {
                 "type": "null"
@@ -6917,6 +6974,7 @@
           "city",
           "locality",
           "pin",
+          "photoFileId",
           "communicationLanguages"
         ],
         "properties": {
@@ -6936,6 +6994,9 @@
             "type": "string"
           },
           "pin": {
+            "type": "string"
+          },
+          "photoFileId": {
             "type": "string"
           },
           "communicationLanguages": {
@@ -7471,6 +7532,118 @@
             "type": "string"
           }
         }
+      },
+      "FeePlan": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "online",
+              "home"
+            ]
+          },
+          "period": {
+            "enum": [
+              "hour",
+              "week",
+              "month"
+            ]
+          },
+          "amountPaise": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000000
+          },
+          "classes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24
+          },
+          "minutes": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 120
+          }
+        },
+        "required": [
+          "mode",
+          "period",
+          "amountPaise",
+          "classes",
+          "minutes"
+        ]
+      },
+      "TutorFees": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "plans": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/FeePlan"
+            }
+          },
+          "version": {
+            "type": "integer"
+          },
+          "setBy": {
+            "type": "string"
+          },
+          "setAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "plans",
+          "version",
+          "setBy",
+          "setAt"
+        ]
+      },
+      "AvailabilityInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "timezone": {
+            "type": "string"
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklyWindow"
+            }
+          },
+          "leaveDates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bufferMinutes": {
+            "type": "integer"
+          },
+          "dailyCapacity": {
+            "type": "integer"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "timezone",
+          "windows",
+          "leaveDates",
+          "bufferMinutes",
+          "dailyCapacity",
+          "paused",
+          "version"
+        ]
       }
     }
   }

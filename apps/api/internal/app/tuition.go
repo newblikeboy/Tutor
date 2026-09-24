@@ -159,6 +159,7 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 		TrialID         string          `json:"trialId"`
 		Schedule        RecurrenceInput `json:"schedule"`
 		OfferingVersion int             `json:"offeringVersion"`
+		FeeVersion      int             `json:"feeVersion"`
 		Accepted        bool            `json:"accepted"`
 	}
 	if !a.decode(w, r, &in) {
@@ -195,16 +196,21 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 		if av.Version != in.OfferingVersion {
 			return domain.Fail(409, "stale_version", "The tutor's offering changed. Review the latest fee and availability.")
 		}
+		plan, priced := app.HourlyFee()
+		if !priced {
+			return domain.Fail(409, "fees_pending", "Staff must finalize the tutor's fee first.")
+		}
+		if app.Fees.Version != in.FeeVersion {
+			return domain.Fail(409, "stale_version", "The fee changed. Review the latest fee before confirming.")
+		}
+		av.FeePaise = plan.LessonFee(in.Schedule.Minutes)
 		for _, start := range starts {
 			end := start.Add(time.Duration(in.Schedule.Minutes) * time.Minute)
 			if !available(av, start, end) || end.After(app.Scope.ExpiresAt) {
 				return domain.Fail(409, "availability", "A requested class falls outside current availability or approval.")
 			}
 		}
-		if len(starts) > 0 && av.FeePaise > 10000000 {
-			return domain.Fail(422, "validation", "Invalid offering price.")
-		}
-		ag := domain.Agreement{ID: id + ":1", EnrollmentID: id, Version: 1, TutorID: app.ID, Subject: app.Scope.Subject, Mode: app.Scope.Mode, Timezone: in.Schedule.Timezone, SessionCount: len(starts), Minutes: in.Schedule.Minutes, Starts: starts, FeePerSessionPaise: av.FeePaise, TotalPaise: int64(len(starts)) * av.FeePaise, Currency: "INR", CancellationHours: 12, TermsVersion: "development-tuition-v1", Terms: "Development agreement, pending operator/legal review. Fees are the tutor's recorded test offering, not published live prices. Academic support included. Family cancellations at least 12 hours before class retain a makeup session; later family cancellations consume it. Tutor cancellations retain a makeup session. Schedule changes require both parties. No automatic renewal, real payment or result guarantee.", CreatedAt: a.Now()}
+		ag := domain.Agreement{ID: id + ":1", EnrollmentID: id, Version: 1, TutorID: app.ID, Subject: app.Scope.Subject, Mode: app.Scope.Mode, Timezone: in.Schedule.Timezone, SessionCount: len(starts), Minutes: in.Schedule.Minutes, Starts: starts, FeePerSessionPaise: av.FeePaise, TotalPaise: int64(len(starts)) * av.FeePaise, Currency: "INR", CancellationHours: 12, TermsVersion: "development-tuition-v2", Terms: "Development agreement, pending operator/legal review. The staff-confirmed hourly fee is prorated for each class duration and fixed in this agreement. Academic support included. Family cancellations at least 12 hours before class retain a makeup session; later family cancellations consume it. Tutor cancellations retain a makeup session. Schedule changes require both parties. No automatic renewal, real payment or result guarantee.", CreatedAt: a.Now()}
 		result = domain.Enrollment{ID: id, OwnerID: u.ID, TrialID: trial.ID, LearnerID: trial.LearnerID, LearnerName: trial.LearnerName, Class: trial.Class, TutorID: app.ID, TutorName: app.Name, MentorID: trial.MentorID, Status: "pending_agreement", Agreement: ag, Version: 1, CreatedAt: a.Now()}
 		if _, er = a.Store.C("enrollments").InsertOne(ctx, result); er != nil {
 			return er

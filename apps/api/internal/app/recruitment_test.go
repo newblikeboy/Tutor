@@ -250,6 +250,7 @@ func TestMongoRecruitmentProviders(t *testing.T) {
 	t.Run("approval opens teaching access and expiry closes it", func(t *testing.T) {
 		now = now.Add(4 * time.Hour)
 		admin.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Fictional assessment met the subject and teaching criteria."}, 200)
+		admin.setTestFees("tutor-a", 0)
 		admin.decide("tutor-a", map[string]any{"action": "approve", "reason": "Final interview and academic assessment passed.", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a"}, 200)
 		tutor.ok("GET", "/enrollments", nil, 200)
 		if _, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-a"}, bson.M{"$set": bson.M{"scope.expiresAt": now.Add(-time.Minute)}}); e != nil {

@@ -18,7 +18,7 @@ for (const scenario of [
   { role: 'mentor', identity: 'mentor-a', views: ['Assessments', 'Lesson reviews'] },
   { role: 'admin', identity: 'admin-a', views: ['Tutor network', 'Decision history'] },
 ]) {
-  test(`${scenario.role} workspace has usable private navigation and bilingual responsive views`, async ({
+  test(`${scenario.role} workspace has usable private navigation and English responsive views`, async ({
     page,
     baseURL,
   }) => {
@@ -75,9 +75,9 @@ for (const scenario of [
     await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByRole('main')).toBeFocused()
-    await mkdir('docs/visual-qa/parent-ux/regression', { recursive: true })
-    for (const language of ['en', 'hi']) {
-      if (language === 'hi') await page.locator('.language-button').click()
+    await mkdir('docs/visual-qa/english-only/parent-ux/regression', { recursive: true })
+    for (const language of ['en']) {
+      await expect(page.locator('.language-button')).toHaveCount(0)
       for (const width of [360, 390, 768, 1024, 1440]) {
         await page.setViewportSize({ width, height: 1000 })
         await page.evaluate(() => document.fonts.ready)
@@ -86,14 +86,14 @@ for (const scenario of [
         )
         if (width === 390 || width === 1440) {
           await page.screenshot({
-            path: `docs/visual-qa/parent-ux/regression/workspace-${scenario.role}-${language}-${width}.png`,
+            path: `docs/visual-qa/english-only/parent-ux/regression/workspace-${scenario.role}-${language}-${width}.png`,
             fullPage: true,
           })
           expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
         }
       }
     }
-    await page.locator('.language-button').click()
+    await expect(page.locator('.language-button')).toHaveCount(0)
     for (const label of scenario.views) {
       await page.locator('.desk-sidebar').getByRole('link', { name: label, exact: true }).click()
       await page.reload()
@@ -107,7 +107,7 @@ for (const scenario of [
     await menu.click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.screenshot({
-      path: `docs/visual-qa/parent-ux/regression/workspace-${scenario.role}-mobile-menu.png`,
+      path: `docs/visual-qa/english-only/parent-ux/regression/workspace-${scenario.role}-mobile-menu.png`,
     })
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
     await page.keyboard.press('Escape')
@@ -128,7 +128,7 @@ for (const scenario of [
     })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({
-      path: `docs/visual-qa/parent-ux/regression/workspace-${scenario.role}-200-percent.png`,
+      path: `docs/visual-qa/english-only/parent-ux/regression/workspace-${scenario.role}-200-percent.png`,
     })
     await page.evaluate(() => {
       document.documentElement.style.zoom = '1'
@@ -154,7 +154,7 @@ test('staff queue filters preserve their view on reload and produce a real empty
   await page.getByLabel('Search applicants', { exact: true }).fill('No such fictional tutor')
   await expect(page.getByRole('heading', { name: 'No applications in this queue' })).toBeVisible()
   await page.screenshot({
-    path: 'docs/visual-qa/parent-ux/regression/workspace-queue-empty.png',
+    path: 'docs/visual-qa/english-only/parent-ux/regression/workspace-queue-empty.png',
     fullPage: true,
   })
   await page.getByRole('button', { name: 'Clear filters', exact: true }).click()
@@ -177,10 +177,14 @@ test('workspace loading, retry, session failure and sign-out preserve access bou
   })
   await page.goto('/workspace')
   await expect(page.locator('.desk-main .loading-state')).toBeVisible()
-  await page.screenshot({ path: 'docs/visual-qa/parent-ux/regression/workspace-loading.png' })
+  await page.screenshot({
+    path: 'docs/visual-qa/english-only/parent-ux/regression/workspace-loading.png',
+  })
   release()
   await expect(page.getByRole('main').getByRole('alert')).toBeVisible()
-  await page.screenshot({ path: 'docs/visual-qa/parent-ux/regression/workspace-error.png' })
+  await page.screenshot({
+    path: 'docs/visual-qa/english-only/parent-ux/regression/workspace-error.png',
+  })
   await page.unroute('**/api/v1/dashboard')
   await page.getByRole('button', { name: 'Try again' }).click()
   await expect(page.locator('.desk-content')).toBeVisible()
@@ -194,13 +198,11 @@ test('workspace loading, retry, session failure and sign-out preserve access bou
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await expect(page).toHaveURL('/')
   await page.goto('/workspace?view=sessions')
-  await expect(page.getByRole('heading', { name: 'Your learning space is private.' })).toBeVisible()
-  await page.getByRole('link', { name: 'Sign in to continue' }).click()
   await expect(page).toHaveURL(/\/login\?return=%2Fworkspace%3Fview%3Dsessions/)
   await signIn(page, baseURL!, 'support-a')
   await page.goto('/workspace?view=tutors')
   await expect(page).toHaveURL('/cases')
-  await expect(page.getByRole('heading', { name: 'Help', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Support & requests', exact: true })).toBeVisible()
   expect((await page.request.get('/api/v1/dashboard')).status()).toBe(403)
   await expect(page.getByRole('button', { name: 'Suspend new bookings' })).toHaveCount(0)
 })
@@ -267,7 +269,7 @@ test('family learner selection uses real owned records and persists across views
   await page.setViewportSize({ width: 360, height: 1000 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({
-    path: 'docs/visual-qa/parent-ux/regression/workspace-long-learner-name.png',
+    path: 'docs/visual-qa/english-only/parent-ux/regression/workspace-long-learner-name.png',
     fullPage: true,
   })
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])

@@ -24,31 +24,31 @@ test('new tutor sees application stages first and teaching routes stay locked un
   await expect(page).toHaveURL(/\/apply$/)
   await expect(page.getByRole('heading', { name: 'About you', exact: true })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Application stages' })).toHaveCount(0)
-  await expect(page.locator('.af-progress ol button')).toHaveCount(7)
+  await expect(page.getByRole('tab')).toHaveCount(6)
   const nav = page.locator('.desk-sidebar nav')
   await expect(nav.getByRole('link', { name: 'My application', exact: true })).toBeVisible()
   await expect(nav.getByRole('link', { name: 'Trial lessons', exact: true })).toHaveCount(0)
   await expect(nav.locator('a[href="/tuition"]')).toHaveCount(0)
   await expect(nav.locator('a[href="/availability"]')).toHaveCount(0)
   expect((await page.request.get('/api/v1/enrollments')).status()).toBe(403)
-  await mkdir('docs/visual-qa/product-ux/recruitment', { recursive: true })
+  await mkdir('docs/visual-qa/english-only/application-compact/recruitment', { recursive: true })
   await page.screenshot({
-    path: 'docs/visual-qa/product-ux/recruitment/applicant-en-desktop.png',
+    path: 'docs/visual-qa/english-only/application-compact/recruitment/applicant-en-desktop.png',
     fullPage: true,
   })
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   await page.setViewportSize({ width: 390, height: 844 })
-  await expect(page.locator('.af-progress ol')).toBeHidden()
-  await expect(page.getByLabel('Application section', { exact: true })).toBeVisible()
+  await expect(page.getByRole('tablist')).toBeVisible()
+  await expect(page.getByRole('progressbar')).toBeVisible()
   expect((await page.getByLabel('Full name', { exact: true }).boundingBox())!.y).toBeLessThan(450)
-  await page.locator('.language-button').click()
+  await expect(page.locator('.language-button')).toHaveCount(0)
   await page.screenshot({
-    path: 'docs/visual-qa/product-ux/recruitment/applicant-hi-mobile.png',
+    path: 'docs/visual-qa/english-only/application-compact/recruitment/applicant-en-mobile.png',
     fullPage: true,
   })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
-  await page.locator('.language-button').click()
+  await expect(page.locator('.language-button')).toHaveCount(0)
   await page.goto('/tuition')
   await expect(page).toHaveURL(/\/apply$/)
   const profile = applicationProfile('Fictional new applicant')
@@ -64,7 +64,7 @@ test('new tutor sees application stages first and teaching routes stay locked un
   await expect(page.getByRole('heading', { name: 'Application received' })).toBeVisible()
   await expect(page.locator('.af-journey [aria-current="step"]')).toHaveText('2Staff review')
   await page.screenshot({
-    path: 'docs/visual-qa/product-ux/recruitment/submitted-en-mobile.png',
+    path: 'docs/visual-qa/english-only/application-compact/recruitment/submitted-en-mobile.png',
     fullPage: true,
   })
   const approvedContext = await browser.newContext({ baseURL: origin })

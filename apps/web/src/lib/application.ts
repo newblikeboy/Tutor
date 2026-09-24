@@ -6,7 +6,6 @@ export const applicationSteps = [
   'areas',
   'availability',
   'approach',
-  'fees',
   'review',
 ] as const
 export const weekDays = [
@@ -40,6 +39,7 @@ export function emptyApplication(name: string, noticeVersion: string): Applicati
       city: '',
       locality: '',
       pin: '',
+      photoFileId: '',
       communicationLanguages: [],
     },
     education: {
@@ -97,7 +97,7 @@ export function emptyApplication(name: string, noticeVersion: string): Applicati
       worksheetFileId: '',
       assessmentSlots: [],
     },
-    fees: { preference: '', sessionMinutes: 60, rates: [], comments: '' },
+    fees: { preference: 'staff', sessionMinutes: 60, rates: [], comments: '' },
     declarations: {
       accuracy: false,
       conduct: false,
@@ -112,7 +112,7 @@ export function fieldStep(key: string) {
   if (key.startsWith('teachingAreas') || key === 'firstAreaId') return 2
   return Math.max(
     0,
-    ['about', 'education', '', 'availability', 'approach', 'fees', 'declarations'].indexOf(
+    ['about', 'education', '', 'availability', 'approach', 'declarations'].indexOf(
       key.split('.')[0],
     ),
   )
@@ -125,6 +125,11 @@ export function applicationDefaults(
   if (application?.profile)
     return {
       ...application.profile,
+      fees: { preference: 'staff', sessionMinutes: 60, rates: [], comments: '' },
+      about: {
+        ...application.profile.about,
+        photoFileId: application.profile.about.photoFileId ?? '',
+      },
       education: {
         ...application.profile.education,
         educationFileIds: application.profile.education.educationFileIds ?? [],

@@ -12,7 +12,7 @@ import {
   Sprout,
   X,
 } from 'lucide-react'
-import { api, indiaDate, queryClient, send, type Schema } from '../lib/api'
+import { api, APIError, indiaDate, queryClient, send, type Schema } from '../lib/api'
 import { useAuth, useConfig, useDashboard } from '../lib/session'
 import {
   Alert,
@@ -29,6 +29,7 @@ import '../styles/tuition.css'
 import { Checkout } from './billing'
 import { Conversation } from './conversations'
 import { PrivateFiles } from './files'
+import { TutorFees } from '../components/tutor-fees'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
 
 type Agreement = Schema['Agreement']
@@ -126,7 +127,7 @@ function AvailabilityForm({
   const [leaveDates, setLeaveDates] = useState(initial.leaveDates)
   const [leaveDate, setLeaveDate] = useState('')
   const mutation = useMutation({
-    mutationFn: (body: Schema['Availability']) => send('/availability', body, 'PUT'),
+    mutationFn: (body: Schema['AvailabilityInput']) => send('/availability', body, 'PUT'),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['availability'] })
       onSaved()
@@ -140,13 +141,12 @@ function AvailabilityForm({
       onSubmit={(e) => {
         const d = formValues(e)
         mutation.mutate({
-          ...initial,
+          version: initial.version,
           windows,
           timezone: value(d, 'timezone'),
           leaveDates: [...new Set([...leaveDates, ...(leaveDate ? [leaveDate] : [])])].sort(),
           bufferMinutes: Number(d.get('buffer')),
           dailyCapacity: Number(d.get('capacity')),
-          feePaise: Math.round(Number(d.get('fee')) * 100),
           paused: d.has('paused'),
         })
       }}
@@ -292,17 +292,7 @@ function AvailabilityForm({
             />
           </Field>
         </div>
-        <Field label={t('tuition.fee')} hint={t('tuition.feeHint')}>
-          <input
-            name="fee"
-            type="number"
-            min="0"
-            max="100000"
-            step="0.01"
-            required
-            defaultValue={initial.feePaise / 100}
-          />
-        </Field>
+        <TutorFees plans={initial.feePlan ? [initial.feePlan] : []} />
         <label className="tu-check">
           <input type="checkbox" name="paused" defaultChecked={initial.paused} />
           {t('tuition.paused')}
@@ -446,6 +436,8 @@ function AgreementForm({ trialId, tutorId }: { trialId: string; tutorId: string 
   const navigate = useNavigate()
   const [key] = useState(() => crypto.randomUUID())
   const [count, setCount] = useState(4)
+  const [minutes, setMinutes] = useState(60)
+  const [acceptedQuote, setAcceptedQuote] = useState('')
   const q = useQuery({
     queryKey: ['availability', tutorId],
     queryFn: ({ signal }) =>
@@ -454,6 +446,12 @@ function AgreementForm({ trialId, tutorId }: { trialId: string; tutorId: string 
   const mutation = useMutation({
     mutationFn: (body: Schema['EnrollmentInput']) =>
       send<Schema['Enrollment']>('/enrollments', body, 'POST', { 'Idempotency-Key': key }),
+    onError: async (error) => {
+      if (error instanceof APIError && error.code === 'stale_version') {
+        setAcceptedQuote('')
+        await q.refetch()
+      }
+    },
     onSuccess: async (e) => {
       await queryClient.invalidateQueries({ queryKey: ['tuition'] })
       navigate(`/tuition/${e.id}`)
@@ -461,8 +459,10 @@ function AgreementForm({ trialId, tutorId }: { trialId: string; tutorId: string 
   })
   if (q.isPending) return <Loading />
   if (q.isError) return <LoadError retry={() => void q.refetch()} />
+  if (!q.data.feePlan) return <Alert>{t('tutorFees.pending')}</Alert>
   if (!q.data.windows.length || q.data.paused)
     return <Alert>{t('tuition.noAvailabilityBody')}</Alert>
+  const quoteKey = `${q.data.feeVersion}:${q.data.version}:${minutes}:${count}`
   return (
     <form
       className="tu-proposal"
@@ -471,6 +471,7 @@ function AgreementForm({ trialId, tutorId }: { trialId: string; tutorId: string 
         mutation.mutate({
           trialId,
           offeringVersion: q.data.version,
+          feeVersion: q.data.feeVersion,
           accepted: true,
           schedule: {
             startDate: value(d, 'date'),
@@ -478,7 +479,7 @@ function AgreementForm({ trialId, tutorId }: { trialId: string; tutorId: string 
             timezone: 'Asia/Kolkata',
             weekdays: d.getAll('days').map(Number),
             count,
-            minutes: Number(d.get('minutes')),
+            minutes,
           },
         })
       }}
@@ -502,7 +503,15 @@ function AgreementForm({ trialId, tutorId }: { trialId: string; tutorId: string 
           />
         </Field>
         <Field label={t('tuition.minutes')}>
-          <input name="minutes" type="number" min="30" max="120" defaultValue={60} required />
+          <input
+            name="minutes"
+            type="number"
+            min="30"
+            max="120"
+            value={minutes}
+            onChange={(event) => setMinutes(Number(event.target.value))}
+            required
+          />
         </Field>
       </div>
       <fieldset className="tu-weekdays">
@@ -517,16 +526,24 @@ function AgreementForm({ trialId, tutorId }: { trialId: string; tutorId: string 
       <div className="tu-quote">
         <div>
           <span>{t('tuition.perSession')}</span>
-          <strong>{money(q.data.feePaise, i18n.language)}</strong>
+          <strong>{money(Math.round((q.data.feePaise * minutes) / 60), i18n.language)}</strong>
         </div>
         <div>
           <span>{t('tuition.total')}</span>
-          <strong>{money(q.data.feePaise * count, i18n.language)}</strong>
+          <strong>
+            {money(Math.round((q.data.feePaise * minutes) / 60) * count, i18n.language)}
+          </strong>
         </div>
       </div>
       <Policy />
       <label className="tu-check">
-        <input name="accepted" type="checkbox" required />
+        <input
+          name="accepted"
+          type="checkbox"
+          required
+          checked={acceptedQuote === quoteKey}
+          onChange={(event) => setAcceptedQuote(event.target.checked ? quoteKey : '')}
+        />
         {t('tuition.acceptTerms')}
       </label>
       <MutationError error={mutation.error} />

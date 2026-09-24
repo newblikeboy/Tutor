@@ -29,6 +29,7 @@ import {
   Status,
 } from '../components/ui'
 import { InterviewCard } from '../components/interview'
+import { TutorFees, feeLabel } from '../components/tutor-fees'
 import { PrivateFiles } from './files'
 import { ApplicationScope, ApplicationSummary } from '../components/application-summary'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
@@ -551,6 +552,12 @@ function ApplicationDetail({ id }: { id: string }) {
                 <p>{assessor.name || t('staffOps.unassigned')}</p>
               </section>
               <InterviewCard application={a} />
+              {a.fees && (
+                <section className="staff-panel">
+                  <h3>{t('tutorFees.title')}</h3>
+                  <TutorFees plans={a.fees.plans} />
+                </section>
+              )}
               {!!a.scores?.length && (
                 <section className="staff-panel">
                   <h3>{t('staffOps.assessment')}</h3>
@@ -638,6 +645,15 @@ function ApplicationDetail({ id }: { id: string }) {
                   )}
                 </>
               )}
+              {(admin || assigned) &&
+                ['assessment_scheduled', 'assessed', 'approved', 'suspended'].includes(
+                  a.status,
+                ) && (
+                  <section className="staff-panel">
+                    <h3>{t('tutorFees.title')}</h3>
+                    <FeeForm key={`${a.id}:${a.fees?.version ?? 0}`} application={a} />
+                  </section>
+                )}
               {assigned && a.status === 'assessed' && (
                 <section className="staff-panel">
                   <h3>{t('staffOps.approve')}</h3>
@@ -943,6 +959,106 @@ function EligibilityForm({ application }: { application: Application }) {
     </form>
   )
 }
+function FeeForm({ application }: { application: Application }) {
+  const { t } = useTranslation()
+  const mutation = useDecision(application)
+  const now = useClock()
+  const [plans, setPlans] = useState(() => {
+    const modes = new Set(
+      application.profile?.teachingAreas.flatMap((area) => area.modes) ?? [application.scope.mode],
+    )
+    const choices: Pick<Schema['FeePlan'], 'mode' | 'period'>[] = [
+      { mode: 'online', period: 'hour' },
+      { mode: 'home', period: 'week' },
+      { mode: 'home', period: 'month' },
+    ]
+    return choices
+      .filter((plan) => modes.has(plan.mode))
+      .map((plan) => {
+        const saved = application.fees?.plans.find(
+          (p) => p.mode === plan.mode && p.period === plan.period,
+        )
+        return {
+          ...plan,
+          amount: saved ? String(saved.amountPaise / 100) : '',
+          classes: saved ? String(saved.classes) : plan.mode === 'online' ? '1' : '',
+          minutes: String(saved?.minutes ?? 60),
+        }
+      })
+  })
+  const edit = (index: number, field: 'amount' | 'classes' | 'minutes', value: string) =>
+    setPlans((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
+  const waiting =
+    application.status === 'assessment_scheduled' &&
+    (!application.interview ||
+      Date.parse(application.interview.start) > now ||
+      (!!application.interview.provider && application.interview.syncStatus !== 'ready'))
+  return (
+    <form
+      className="form-stack staff-fee-form"
+      aria-label={t('tutorFees.title')}
+      onSubmit={(event) => {
+        event.preventDefault()
+        mutation.mutate({
+          action: 'fees',
+          feePlans: plans.map((plan) => ({
+            mode: plan.mode,
+            period: plan.period,
+            amountPaise: Math.round(Number(plan.amount) * 100),
+            classes: Number(plan.classes),
+            minutes: Number(plan.minutes),
+          })),
+        })
+      }}
+    >
+      {plans.map((plan, index) => (
+        <fieldset key={`${plan.mode}:${plan.period}`} disabled={waiting || mutation.isPending}>
+          <legend>{t(`tutorFees.${feeLabel(plan)}`)}</legend>
+          <Field label={t('tutorFees.amount')}>
+            <input
+              type="number"
+              min="0"
+              max="100000"
+              step="0.01"
+              required
+              value={plan.amount}
+              onChange={(event) => edit(index, 'amount', event.target.value)}
+            />
+          </Field>
+          {plan.mode === 'home' && (
+            <div className="staff-score-inputs">
+              <Field label={t('tutorFees.classes')}>
+                <input
+                  type="number"
+                  min="1"
+                  max={plan.period === 'week' ? 7 : 24}
+                  required
+                  value={plan.classes}
+                  onChange={(event) => edit(index, 'classes', event.target.value)}
+                />
+              </Field>
+              <Field label={t('tutorFees.minutes')}>
+                <input
+                  type="number"
+                  min="30"
+                  max="120"
+                  required
+                  value={plan.minutes}
+                  onChange={(event) => edit(index, 'minutes', event.target.value)}
+                />
+              </Field>
+            </div>
+          )}
+        </fieldset>
+      ))}
+      <MutationError error={mutation.error} />
+      <Button type="submit" busy={mutation.isPending} disabled={waiting || !plans.length}>
+        {t('tutorFees.save')}
+      </Button>
+    </form>
+  )
+}
+
 function ApprovalForm({ application }: { application: Application }) {
   const { t } = useTranslation()
   const mutation = useDecision(application)
@@ -972,6 +1088,7 @@ function ApprovalForm({ application }: { application: Application }) {
     return <Alert>{t('applicationForm.scopeBoundary')}</Alert>
   if (application.eligibility && ['pending', 'blocked'].includes(application.eligibility.status))
     return <Alert>{t('applicationForm.eligibilityPending')}</Alert>
+  if (!application.fees) return <Alert>{t('tutorFees.required')}</Alert>
   return (
     <form
       className="form-stack"
@@ -1193,9 +1310,13 @@ function History({ application, applicantName }: { application?: string; applica
               <span className="staff-history-dot" aria-hidden="true" />
               <div>
                 <strong>
-                  {t(`staffOps.actions.${event.action.replace('application.', '')}`, {
-                    defaultValue: t(`auditAction.${event.action}`, { defaultValue: event.action }),
-                  })}
+                  {event.action === 'application.fees'
+                    ? t('tutorFees.history')
+                    : t(`staffOps.actions.${event.action.replace('application.', '')}`, {
+                        defaultValue: t(`auditAction.${event.action}`, {
+                          defaultValue: event.action,
+                        }),
+                      })}
                 </strong>
                 <p>
                   {event.actorName ||
@@ -1205,6 +1326,9 @@ function History({ application, applicantName }: { application?: string; applica
                   · <time dateTime={event.at}>{indiaDate(event.at, i18n.language)}</time>
                 </p>
                 {event.reason && <blockquote>{event.reason}</blockquote>}
+                {event.action === 'application.fees' && event.fees && (
+                  <TutorFees plans={event.fees.plans} />
+                )}
                 {event.action === 'application.eligibility' && event.eligibility && (
                   <p>{t(`applicationForm.${event.eligibility.status}`)}</p>
                 )}

@@ -80,6 +80,7 @@ func TestMongoCloudinaryApplicationDocuments(t *testing.T) {
 		{"degree.jpg", ".jpg", jpg.Bytes()},
 		{"marksheet.png", ".png", pngData.Bytes()},
 		{"intro.mp4", "", introductionMP4()},
+		{"passport-photo.jpg", ".jpg", jpg.Bytes()},
 	}
 	ids := []string{}
 	for _, fixture := range fixtures {
@@ -101,14 +102,17 @@ func TestMongoCloudinaryApplicationDocuments(t *testing.T) {
 		if !bytes.Equal(selected.objects[saved.ObjectKey], fixture.data) {
 			t.Fatal("wrong storage or changed original bytes")
 		}
-		_, again, _ := tutor.call("POST", "/applications/tutor-a/files", body, map[string]string{"Idempotency-Key": "cloudinary-document-" + fixture.name})
-		if again["id"] != id {
-			t.Fatal("retry duplicated upload")
+		// Check a retry for each storage route without exhausting the upload rate limit.
+		if fixture.name == "resume.pdf" || fixture.name == "intro.mp4" {
+			_, again, _ := tutor.call("POST", "/applications/tutor-a/files", body, map[string]string{"Idempotency-Key": "cloudinary-document-" + fixture.name})
+			if again["id"] != id {
+				t.Fatal("retry duplicated upload")
+			}
 		}
 		tutor.ok("GET", "/files/"+id+"/download", nil, 409)
 		parent.ok("GET", "/files/"+id+"/download", nil, 404)
 	}
-	if len(docs.objects) != 3 || len(videos.objects) != 1 {
+	if len(docs.objects) != 4 || len(videos.objects) != 1 {
 		t.Fatal("documents and videos not routed separately")
 	}
 	save := func(p domain.TutorApplication, status int) {
@@ -117,6 +121,31 @@ func TestMongoCloudinaryApplicationDocuments(t *testing.T) {
 	profile.Education.ResumeFileID = ids[0]
 	profile.Education.EducationFileIDs = []string{ids[1], ids[2]}
 	profile.Approach.DemoFileID = ids[3]
+	profile.About.PhotoFileID = ids[4]
+	for _, id := range []string{ids[0], ids[3], "missing-photo"} {
+		badPhoto := profile
+		badPhoto.About.PhotoFileID = id
+		for _, submit := range []bool{false, true} {
+			tutor.ok("PUT", "/application", map[string]any{"version": 1, "step": 0, "profile": badPhoto, "submit": submit}, 422)
+		}
+	}
+	for _, invalid := range []bson.M{
+		{"uploaderId": "another-tutor"},
+		{"targetId": "another-application"},
+		{"status": "rejected"},
+	} {
+		if _, e = a.updatePrivateFile(ctx, ids[4], "quarantined", invalid); e != nil {
+			t.Fatal(e)
+		}
+		save(profile, 422)
+		status := "quarantined"
+		if invalid["status"] == "rejected" {
+			status = "rejected"
+		}
+		if _, e = a.updatePrivateFile(ctx, ids[4], status, bson.M{"uploaderId": "tutor-a", "targetId": "tutor-a", "status": "quarantined"}); e != nil {
+			t.Fatal(e)
+		}
+	}
 	bad := profile
 	bad.Education.EducationFileIDs = []string{ids[3]}
 	save(bad, 422)
@@ -138,8 +167,15 @@ func TestMongoCloudinaryApplicationDocuments(t *testing.T) {
 	}
 	save(profile, 200)
 	stored, e := storage.One[domain.Application](ctx, s, "applications", bson.M{"_id": "tutor-a"})
-	if e != nil || !slices.Equal(stored.Profile.Education.EducationFileIDs, ids[1:3]) || stored.Profile.Education.ResumeFileID != ids[0] {
+	if e != nil || !slices.Equal(stored.Profile.Education.EducationFileIDs, ids[1:3]) || stored.Profile.Education.ResumeFileID != ids[0] || stored.Profile.About.PhotoFileID != ids[4] {
 		t.Fatal("document links did not persist")
+	}
+	// A PNG photo is also valid, and the linked photo survives final submission.
+	profile.About.PhotoFileID = ids[2]
+	tutor.ok("PUT", "/application", map[string]any{"version": 2, "step": 6, "profile": profile, "submit": true}, 200)
+	stored, e = storage.One[domain.Application](ctx, s, "applications", bson.M{"_id": "tutor-a"})
+	if e != nil || stored.Status != "submitted" || stored.Profile.About.PhotoFileID != ids[2] {
+		t.Fatal("photo did not persist on final submission")
 	}
 	admin.ok("GET", "/applications/tutor-a/files", nil, 200)
 	a.Scanner = testScanner{clean: true}

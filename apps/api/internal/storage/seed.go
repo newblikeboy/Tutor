@@ -43,6 +43,8 @@ func (s *Store) Seed(ctx context.Context, env string) error {
 		names := []string{"Meera · sample", "Arjun · sample"}
 		languages := []string{"Hindi", "English"}
 		a := domain.Application{ID: id, Name: names[i], Education: "Fictional qualification for interface testing; not verified credentials.", Approach: "We begin with what the learner understands, work through one idea at a time, and use short practice tasks to decide what comes next.", Language: languages[i], Experience: 4 + i, Status: "approved", Scope: domain.Scope{Subject: "Mathematics", MinClass: 6, MaxClass: 10, Mode: "online", ExpiresAt: time.Date(2027, 3, 1, 0, 0, 0, 0, time.UTC)}, AssessorID: "mentor-a", AssessmentAt: assessed, Scores: []int{4, 4, 4, 4, 4, 4}, Reason: "Fictional seed approval for development only.", Evidence: "Fictional demonstration explaining fractions and checking misconceptions.", Sample: true, UpdatedAt: assessed}
+		// Explicit free pricing belongs only to these labelled development fixtures.
+		a.Fees = &domain.TutorFees{Plans: []domain.FeePlan{{Mode: "online", Period: "hour", AmountPaise: 0, Classes: 1, Minutes: 60}}, Version: 1, SetBy: "admin-a", SetAt: assessed}
 		if _, e := s.C("applications").UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$setOnInsert": a}, options.UpdateOne().SetUpsert(true)); e != nil {
 			return e
 		}

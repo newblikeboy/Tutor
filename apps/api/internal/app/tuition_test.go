@@ -136,7 +136,7 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 	schedule := RecurrenceInput{StartDate: first.Format("2006-01-02"), Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{int(first.Weekday())}, Count: 3, Minutes: 60}
 	create := func(tc *testClient, sch RecurrenceInput, key string) domain.Enrollment {
 		t.Helper()
-		status, _, raw := tc.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "schedule": sch, "offeringVersion": 1, "accepted": true}, map[string]string{"Idempotency-Key": key})
+		status, _, raw := tc.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "schedule": sch, "offeringVersion": 1, "feeVersion": 1, "accepted": true}, map[string]string{"Idempotency-Key": key})
 		if status != 201 {
 			t.Fatalf("create tuition %d %s", status, raw)
 		}
@@ -309,6 +309,39 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 		}
 		if ok != 1 || conflict != 1 {
 			t.Fatal("overlapping packages both committed")
+		}
+	})
+	t.Run("staff fee revisions reject stale quotes and preserve old agreements", func(t *testing.T) {
+		admin := client("admin-a", srv.URL)
+		admin.setTestFees("tutor-meera", 50000)
+		quote := p.ok("GET", "/tutors/tutor-meera/availability", nil, 200)
+		if quote["feePaise"] != float64(50000) || quote["feeVersion"].(float64) <= 1 {
+			t.Fatal("parent did not receive the staff hourly fee")
+		}
+		body := map[string]any{"trialId": trial.ID, "schedule": schedule, "offeringVersion": quote["version"], "feeVersion": 1, "accepted": true}
+		status, stale, raw := p.call("POST", "/enrollments", body, map[string]string{"Idempotency-Key": token()})
+		if status != 409 || stale["code"] != "stale_version" {
+			t.Fatalf("stale price accepted: %d %s", status, raw)
+		}
+		for _, minutes := range []int{30, 90} {
+			sch := schedule
+			sch.Minutes = minutes
+			body["schedule"] = sch
+			body["feeVersion"] = quote["feeVersion"]
+			status, _, raw = p.call("POST", "/enrollments", body, map[string]string{"Idempotency-Key": token()})
+			if status != 201 {
+				t.Fatalf("new price quote %d %s", status, raw)
+			}
+			var saved domain.Enrollment
+			if err := json.Unmarshal(raw, &saved); err != nil {
+				t.Fatal(err)
+			}
+			if saved.Agreement.FeePerSessionPaise != 50000*int64(minutes)/60 || saved.Agreement.TotalPaise != int64(schedule.Count)*saved.Agreement.FeePerSessionPaise {
+				t.Fatal("hourly price not prorated in agreement")
+			}
+		}
+		if detail(p, v.ID).Enrollment.Agreement.TotalPaise != 0 {
+			t.Fatal("staff price change rewrote an existing agreement")
 		}
 	})
 	t.Log("Isolated tuition database retained for review:", name)

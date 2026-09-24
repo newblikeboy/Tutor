@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Compass,
   GraduationCap,
+  House,
   LockKeyhole,
   Monitor,
   ShieldCheck,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react'
 import { api, indiaDate } from '../lib/api'
 import type { Tutor } from '../lib/api'
+import { TutorFees } from '../components/tutor-fees'
 import {
   Alert,
   Badge,
@@ -121,13 +123,13 @@ export function TutorCard({ tutor }: { tutor: Tutor }) {
       </p>
       <div className="tutor-meta">
         <span>
-          <Monitor size={15} />
-          {t('online')}
+          {tutor.scope.mode === 'home' ? <House size={15} /> : <Monitor size={15} />}
+          {t(tutor.scope.mode === 'home' ? 'applicationForm.home' : 'online')}
         </span>
         <span>{t(tutor.language === 'Hindi' ? 'hindi' : 'english')}</span>
       </div>
       <div className="tutor-bottom">
-        <span>{t('freeTrial')}</span>
+        <TutorFees plans={tutor.feePlans} />
         <Link to={`/tutors/${tutor.id}`} className="text-link">
           {t('profile')}
           <ArrowRight size={17} />
@@ -574,6 +576,7 @@ export function TutorDetail() {
             <GraduationCap size={30} />
           </span>
           <h2>{t('trialTitle')}</h2>
+          <TutorFees plans={tutor.feePlans} />
           <p>{t('trialBody')}</p>
           <div className="price">
             <strong>{t('freeTrial')}</strong>

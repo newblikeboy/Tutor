@@ -26,6 +26,7 @@ type StaffEvent struct {
 	Evidence    string             `json:"evidence" bson:"evidence"`
 	Scope       *Scope             `json:"scope" bson:"scope,omitempty"`
 	Eligibility *EligibilityReview `json:"eligibility" bson:"eligibility,omitempty"`
+	Fees        *TutorFees         `json:"fees" bson:"fees,omitempty"`
 }
 
 func (a Application) AcademicMentor() string {

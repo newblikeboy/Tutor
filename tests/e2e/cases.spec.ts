@@ -16,7 +16,7 @@ async function capture(page: Page, name: string) {
   await page.evaluate(() => scrollTo(0, 0))
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await mkdir('docs/visual-qa', { recursive: true })
-  await page.screenshot({ path: `docs/visual-qa/${name}.png`, fullPage: true })
+  await page.screenshot({ path: `docs/visual-qa/english-only/${name}.png`, fullPage: true })
   const scan = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze()
@@ -79,9 +79,9 @@ test('requester and assigned operator complete a private support request and pre
       ),
     ).toBeVisible()
     await parent.setViewportSize({ width: 390, height: 844 })
-    await parent.locator('.language-button').click()
-    await capture(parent, 'support-response-hi-mobile')
-    await parent.locator('.language-button').click()
+    await expect(parent.locator('.language-button')).toHaveCount(0)
+    await capture(parent, 'support-response-en-mobile')
+    await expect(parent.locator('.language-button')).toHaveCount(0)
     await parent
       .getByLabel('Response or decision evidence')
       .fill('Please also clarify how the makeup session balance is kept.')

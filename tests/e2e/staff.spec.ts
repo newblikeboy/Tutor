@@ -1,4 +1,4 @@
-import { fillApplication } from './helpers/application'
+import { fillApplication, fillStaffFees } from './helpers/application'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir, readFile } from 'node:fs/promises'
@@ -14,9 +14,12 @@ async function signIn(page: Page, email = 'admin-a@example.test') {
   return response.json()
 }
 async function capture(page: Page, name: string) {
-  await mkdir('docs/visual-qa/staff-tabs/lifecycle', { recursive: true })
+  await mkdir('docs/visual-qa/english-only/staff-tabs/lifecycle', { recursive: true })
   await page.evaluate(() => document.fonts.ready)
-  await page.screenshot({ path: `docs/visual-qa/staff-tabs/lifecycle/${name}.png`, fullPage: true })
+  await page.screenshot({
+    path: `docs/visual-qa/english-only/staff-tabs/lifecycle/${name}.png`,
+    fullPage: true,
+  })
   const results = await new AxeBuilder({ page }).analyze()
   expect(
     results.violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) })),
@@ -121,11 +124,37 @@ test('staff reviews a real application, schedules Zoom, approves and manages the
         'Explained equivalent fractions using a number line and checked the denominator misconception.',
       )
     await page.setViewportSize({ width: 390, height: 1000 })
-    await page.locator('.language-button').click()
-    await capture(page, 'assessment-hi-mobile')
-    await page.locator('.language-button').click()
+    await expect(page.locator('.language-button')).toHaveCount(0)
+    await capture(page, 'assessment-en-mobile')
+    await expect(page.locator('.language-button')).toHaveCount(0)
     await page.setViewportSize({ width: 1440, height: 1000 })
     await page.getByRole('button', { name: 'Save assessment', exact: true }).click()
+    await fillStaffFees(page)
+    const fees = (await (await page.request.get(`/api/v1/staff/applications/${id}`)).json())
+      .application.fees
+    expect(fees.plans.map((plan: { amountPaise: number }) => plan.amountPaise)).toEqual([
+      40000, 150000, 500000,
+    ])
+    await page.reload()
+    await expect(
+      page
+        .locator('.staff-fee-form')
+        .getByRole('group', { name: 'Home Tuition · monthly', exact: true })
+        .getByLabel('Classes included'),
+    ).toHaveValue('12')
+    await mkdir('docs/visual-qa/english-only/staff-fees', { recursive: true })
+    await page
+      .locator('.staff-fee-form')
+      .screenshot({ path: 'docs/visual-qa/english-only/staff-fees/fees-en-desktop.png' })
+    await page.setViewportSize({ width: 390, height: 1000 })
+    await expect(page.locator('.language-button')).toHaveCount(0)
+    await page
+      .locator('.staff-fee-form')
+      .screenshot({ path: 'docs/visual-qa/english-only/staff-fees/fees-en-mobile.png' })
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await expect(page.locator('.language-button')).toHaveCount(0)
+    await page.setViewportSize({ width: 1440, height: 1000 })
     const approval = page.getByRole('form', { name: 'Approve tutor', exact: true })
     await approval.getByLabel('Academic mentor for ongoing learning').selectOption('mentor-a')
     await approval.getByLabel('From class', { exact: true }).fill('8')
@@ -136,6 +165,33 @@ test('staff reviews a real application, schedules Zoom, approves and manages the
     await approval.getByRole('button', { name: 'Approve tutor', exact: true }).click()
     await expect(page.locator('.staff-person-heading .badge')).toHaveText('Approved')
     await capture(page, 'approved-en-desktop')
+    const familyContext = await browser.newContext({
+      baseURL: origin,
+      viewport: { width: 1440, height: 1000 },
+    })
+    try {
+      const family = await familyContext.newPage()
+      await signIn(family, 'parent-a@example.test')
+      await family.goto(`/tutors/${id}`)
+      await expect(family.locator('.tutor-fees')).toContainText('₹400.00')
+      await expect(family.locator('.tutor-fees')).toContainText('per hour')
+      await family.screenshot({
+        path: 'docs/visual-qa/english-only/staff-fees/parent-fee-en-desktop.png',
+        fullPage: true,
+      })
+      await family.setViewportSize({ width: 390, height: 844 })
+      await expect(family.locator('.language-button')).toHaveCount(0)
+      await family.screenshot({
+        path: 'docs/visual-qa/english-only/staff-fees/parent-fee-en-mobile.png',
+        fullPage: true,
+      })
+      expect((await new AxeBuilder({ page: family }).analyze()).violations).toEqual([])
+      expect(await family.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      )
+    } finally {
+      await familyContext.close()
+    }
     expect(
       (await (await page.request.get('/api/v1/tutors')).json()).some(
         (v: { id: string }) => v.id === id,

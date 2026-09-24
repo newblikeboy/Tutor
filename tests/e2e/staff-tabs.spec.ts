@@ -13,8 +13,11 @@ async function login(page: Page, role = 'admin') {
 async function capture(page: Page, name: string) {
   await expect(page.locator('.loading-state')).toHaveCount(0)
   await page.evaluate(() => document.fonts.ready)
-  await mkdir('docs/visual-qa/staff-tabs', { recursive: true })
-  await page.screenshot({ path: `docs/visual-qa/staff-tabs/${name}.png`, fullPage: true })
+  await mkdir('docs/visual-qa/english-only/staff-tabs', { recursive: true })
+  await page.screenshot({
+    path: `docs/visual-qa/english-only/staff-tabs/${name}.png`,
+    fullPage: true,
+  })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 }
@@ -78,8 +81,8 @@ test('staff groups related queues and loads only the selected overview and netwo
     'page',
   )
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.locator('.language-button').click()
-  await capture(page, 'followups-hi-mobile')
+  await expect(page.locator('.language-button')).toHaveCount(0)
+  await capture(page, 'followups-en-mobile')
 })
 
 test('applicant tabs defer files and history, preserve unfinished review forms and survive reload', async ({
@@ -121,8 +124,8 @@ test('applicant tabs defer files and history, preserve unfinished review forms a
     'true',
   )
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.locator('.language-button').click()
-  await capture(page, 'documents-hi-mobile')
+  await expect(page.locator('.language-button')).toHaveCount(0)
+  await capture(page, 'documents-en-mobile')
   for (const width of [360, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -160,8 +163,8 @@ test('staff payment tables load separately and finance keeps its own navigation'
   ).toHaveCount(0)
   expect((await page.request.get('/api/v1/staff/applications')).status()).toBe(403)
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.locator('.language-button').click()
-  await capture(page, 'payments-hi-mobile')
+  await expect(page.locator('.language-button')).toHaveCount(0)
+  await capture(page, 'payments-en-mobile')
 })
 
 test('mentor interview links stay inside assessments', async ({ page }) => {

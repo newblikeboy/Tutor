@@ -1,8 +1,15 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { FormProvider, useForm, useFormContext, useWatch, type FieldPath } from 'react-hook-form'
+import {
+  FormProvider,
+  useController,
+  useForm,
+  useFormContext,
+  useWatch,
+  type FieldPath,
+} from 'react-hook-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Check, ChevronRight, Plus } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
 import { api, APIError, queryClient, send, type Application, type Schema } from '../lib/api'
 import { useAuth, useConfig, useTutorApplication } from '../lib/session'
 import {
@@ -25,6 +32,7 @@ import {
   Status,
 } from '../components/ui'
 import { InterviewCard } from '../components/interview'
+import { TutorFees } from '../components/tutor-fees'
 import { ApplicationScope, ApplicationSummary } from '../components/application-summary'
 import { PrivateFiles } from './files'
 import '../styles/application.css'
@@ -37,7 +45,8 @@ const UploadActivity = createContext<(busy: boolean) => void>(() => {})
 const labelKey = (path: string) => path.split('.').at(-1)!
 function useCopy() {
   const { t } = useTranslation()
-  return (key: string) => t(`applicationForm.${key}`)
+  return (key: string, options?: Record<string, string | number>) =>
+    t(`applicationForm.${key}`, options)
 }
 type Path = FieldPath<ApplicationProfile>
 function Input({
@@ -48,6 +57,7 @@ function Input({
   min,
   max,
   multiline = false,
+  hint,
 }: {
   name: Path
   label?: string
@@ -56,19 +66,30 @@ function Input({
   min?: number
   max?: number
   multiline?: boolean
+  hint?: string
 }) {
   const c = useCopy(),
-    { register, getFieldState, formState } = useFormContext<ApplicationProfile>()
+    { getFieldState, formState } = useFormContext<ApplicationProfile>()
+  const { field } = useController<ApplicationProfile>({ name })
   const error = getFieldState(name, formState).error
   const shared = {
-    ...register(name, { valueAsNumber: type === 'number' }),
+    ...field,
+    value: type === 'number' && min && min > 0 && !field.value ? '' : String(field.value ?? ''),
+    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      field.onChange(type === 'number' ? Number(event.target.value) : event.target.value),
     required: !optional,
     'aria-invalid': !!error,
   }
   return (
-    <Field label={c(label ?? labelKey(name))} error={error ? c('required') : undefined}>
+    <Field
+      label={c(label ?? labelKey(name))}
+      hint={
+        hint ? c(hint) : multiline && min ? c('answerHint', { min, max: max ?? 1200 }) : undefined
+      }
+      error={error ? c('required') : undefined}
+    >
       {multiline ? (
-        <textarea {...shared} minLength={min} maxLength={max ?? 1200} rows={4} />
+        <textarea {...shared} minLength={min} maxLength={max ?? 1200} rows={optional ? 2 : 3} />
       ) : (
         <input
           {...shared}
@@ -77,6 +98,7 @@ function Input({
           max={type === 'number' ? max : undefined}
           minLength={type !== 'number' ? min : undefined}
           maxLength={type !== 'number' ? (max ?? 160) : undefined}
+          inputMode={type === 'number' || name === 'about.pin' ? 'numeric' : undefined}
           autoComplete={
             name === 'about.fullName' ? 'name' : name === 'about.mobile' ? 'tel' : 'off'
           }
@@ -225,6 +247,7 @@ function Attachment({
   ensureDraft,
 }: {
   name:
+    | 'about.photoFileId'
     | 'education.resumeFileId'
     | 'education.educationFileIds'
     | 'approach.demoFileId'
@@ -240,6 +263,7 @@ function Attachment({
   const activity = useContext(UploadActivity)
   const selected = useWatch<ApplicationProfile, typeof name>({ name })
   const multiple = name === 'education.educationFileIds'
+  const photo = name === 'about.photoFileId'
   const selectedIds = Array.isArray(selected) ? selected : selected ? [selected] : []
   const [pending, setPending] = useState<{ file: File; key: string; savedId?: string }[]>([])
   const overLimit =
@@ -258,6 +282,16 @@ function Attachment({
     onMutate: () => activity(true),
     onSettled: () => activity(false),
     mutationFn: async () => {
+      if (
+        photo &&
+        pending.some(
+          ({ file }) =>
+            !['image/jpeg', 'image/png'].includes(file.type) ||
+            file.size === 0 ||
+            file.size > 3 * 1024 * 1024,
+        )
+      )
+        throw new APIError(422, 'application_photo', 'Invalid photo')
       if (
         !pending.length ||
         pending.some(({ file }) => file.size === 0 || file.size > (video ? 25 : 3) * 1024 * 1024)
@@ -301,7 +335,10 @@ function Attachment({
     <div className="af-attachment">
       <Field
         label={c(label)}
-        hint={[multiple ? c('educationDocumentsHint') : '', c(video ? 'videoHint' : 'docHint')]
+        hint={[
+          multiple ? c('educationDocumentsHint') : '',
+          c(video ? 'videoHint' : photo ? 'photoHint' : 'docHint'),
+        ]
           .filter(Boolean)
           .join(' · ')}
       >
@@ -309,7 +346,13 @@ function Attachment({
           ref={input}
           type="file"
           multiple={multiple}
-          accept={video ? 'video/mp4,.mp4' : 'application/pdf,image/jpeg,image/png'}
+          accept={
+            video
+              ? 'video/mp4,.mp4'
+              : photo
+                ? 'image/jpeg,image/png'
+                : 'application/pdf,image/jpeg,image/png'
+          }
           onChange={(e) => {
             setPending(
               Array.from(e.target.files ?? []).map((file) => ({ file, key: crypto.randomUUID() })),
@@ -370,8 +413,7 @@ function StepFields({
   ensureDraft: () => Promise<Application>
 }) {
   const c = useCopy(),
-    config = useConfig(),
-    { register, setValue, getValues, getFieldState, formState, clearErrors } =
+    { register, setValue, getFieldState, formState, clearErrors } =
       useFormContext<ApplicationProfile>()
   const p = useWatch<ApplicationProfile>() as ApplicationProfile
   const localitiesError = getFieldState('availability.home.localities', formState).error
@@ -387,20 +429,22 @@ function StepFields({
         <div className="form-grid">
           <Input name="about.fullName" min={2} max={80} />
           <Input name="about.displayName" optional max={80} />
-          <Field label={c('email')}>
+          <Field label={c('email')} hint={c('emailHint')}>
             <input value={email} readOnly type="email" />
           </Field>
           <Input name="about.mobile" type="tel" max={16} />
           <Input name="about.city" min={2} max={80} />
         </div>
         <Checks name="about.communicationLanguages" options={['Hindi', 'English']} />
+        <Attachment name="about.photoFileId" label="photoFileId" ensureDraft={ensureDraft} />
       </>
     )
   if (step === 1)
     return (
       <>
+        <h3 className="af-group-title">{c('qualificationsTitle')}</h3>
         <div className="form-grid">
-          <Input name="education.qualification" min={2} max={120} />
+          <Input name="education.qualification" min={2} max={120} hint="qualificationHint" />
           <Input name="education.specialisation" min={2} max={120} />
           <Input name="education.institution" min={2} max={160} />
           <Input
@@ -426,6 +470,7 @@ function StepFields({
           multiline
           max={600}
         />
+        <h3 className="af-group-title">{c('experienceTitle')}</h3>
         <label className="af-check">
           <input type="checkbox" {...register('education.newToTutoring')} />
           {c('newToTutoring')}
@@ -460,12 +505,15 @@ function StepFields({
             options={['none', 'permission_required', 'restricted', 'unsure']}
           />
         </div>
-        <Attachment name="education.resumeFileId" label="resume" ensureDraft={ensureDraft} />
-        <Attachment
-          name="education.educationFileIds"
-          label="educationFileIds"
-          ensureDraft={ensureDraft}
-        />
+        <h3 className="af-group-title">{c('documentsTitle')}</h3>
+        <div className="af-document-grid">
+          <Attachment name="education.resumeFileId" label="resume" ensureDraft={ensureDraft} />
+          <Attachment
+            name="education.educationFileIds"
+            label="educationFileIds"
+            ensureDraft={ensureDraft}
+          />
+        </div>
       </>
     )
   if (step === 2)
@@ -487,9 +535,11 @@ function StepFields({
                 <Input name={`teachingAreas.${i}.maxClass`} type="number" min={1} max={12} />
               </div>
             </div>
-            <Checks name={`teachingAreas.${i}.boards`} options={['CBSE', 'BSEB', 'ICSE']} />
-            <Checks name={`teachingAreas.${i}.languages`} options={['Hindi', 'English']} />
-            <Checks name={`teachingAreas.${i}.modes`} options={['home', 'online']} />
+            <div className="af-teaching-options">
+              <Checks name={`teachingAreas.${i}.boards`} options={['CBSE', 'BSEB', 'ICSE']} />
+              <Checks name={`teachingAreas.${i}.languages`} options={['Hindi', 'English']} />
+              <Checks name={`teachingAreas.${i}.modes`} options={['home', 'online']} />
+            </div>
             <Select name={`teachingAreas.${i}.priorExperience`} options={['yes', 'no']} />
             <Button
               type="button"
@@ -498,11 +548,6 @@ function StepFields({
                 setValue(
                   'teachingAreas',
                   p.teachingAreas.filter((_, n) => n !== i),
-                  { shouldDirty: true },
-                )
-                setValue(
-                  'fees.rates',
-                  p.fees.rates.filter((r) => r.areaId !== a.id),
                   { shouldDirty: true },
                 )
               }}
@@ -536,7 +581,10 @@ function StepFields({
           <Select name="availability.period" options={['ongoing', 'until', 'unsure']} />
           {p.availability.period === 'until' && <Input name="availability.untilDate" type="date" />}
         </div>
-        <fieldset className="af-checks">
+        <fieldset
+          className="af-checks"
+          aria-invalid={!!getFieldState('availability.durations', formState).error}
+        >
           <legend>{c('durations')}</legend>
           <div>
             {[45, 60, 90].map((n) => (
@@ -558,6 +606,9 @@ function StepFields({
               </label>
             ))}
           </div>
+          {getFieldState('availability.durations', formState).error && (
+            <p className="field-error">{c('required')}</p>
+          )}
         </fieldset>
         <Input name="availability.interruptions" optional multiline max={600} />
         {home && (
@@ -592,6 +643,7 @@ function StepFields({
               />
               <Input name="availability.home.bufferMinutes" type="number" min={5} max={180} />
             </div>
+            <p className="af-note">{c('travelFeesHint')}</p>
           </fieldset>
         )}
         {online && (
@@ -623,72 +675,11 @@ function StepFields({
     return (
       <>
         <Input name="approach.introduction" multiline min={40} max={1200} />
-        <Input name="approach.scenario" multiline min={20} max={800} />
-        <Input name="approach.understanding" multiline min={20} max={800} />
-        <Select
-          name="approach.demonstration"
-          options={config.data?.videoUploadsEnabled ? ['live', 'recorded'] : ['live']}
-        />
-        {!config.data?.videoUploadsEnabled && <p className="af-note">{c('uploadsOff')}</p>}
-        {p.approach.demonstration === 'recorded' && (
-          <div className="af-inset">
-            <Select name="approach.demoAreaId" options={options} />
-            <Input name="approach.demoTopic" min={3} max={160} />
-            <Attachment
-              name="approach.demoFileId"
-              label="introductionVideo"
-              video
-              ensureDraft={ensureDraft}
-            />
-          </div>
-        )}
-        <Attachment name="approach.worksheetFileId" label="worksheet" ensureDraft={ensureDraft} />
+        <div className="form-grid">
+          <Input name="approach.scenario" multiline min={20} max={800} />
+          <Input name="approach.understanding" multiline min={20} max={800} />
+        </div>
         <Slots name="approach.assessmentSlots" />
-      </>
-    )
-  if (step === 5)
-    return (
-      <>
-        <p className="af-note">{c('feePrivate')}</p>
-        <Select name="fees.preference" options={['expected', 'guidance']} />
-        {p.fees.preference === 'expected' && (
-          <fieldset className="af-area">
-            <legend>{c('payout')}</legend>
-            {p.teachingAreas.flatMap((a) =>
-              a.modes.map((mode) => {
-                const index = p.fees.rates.findIndex((r) => r.areaId === a.id && r.mode === mode)
-                const rate = p.fees.rates[index]
-                return (
-                  <Field
-                    key={`${a.id}:${mode}`}
-                    label={`${c(a.subject)} · ${a.minClass}–${a.maxClass} · ${c(mode)}`}
-                  >
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      max={100000}
-                      step="0.01"
-                      value={rate ? rate.amountPaise / 100 : ''}
-                      onChange={(e) => {
-                        const rates = [...getValues('fees.rates')]
-                        const next = {
-                          areaId: a.id,
-                          mode,
-                          amountPaise: Math.round(Number(e.target.value) * 100),
-                        }
-                        if (index >= 0) rates[index] = next
-                        else rates.push(next)
-                        setValue('fees.rates', rates, { shouldDirty: true })
-                      }}
-                    />
-                  </Field>
-                )
-              }),
-            )}
-          </fieldset>
-        )}
-        <Input name="fees.comments" optional multiline max={500} />
       </>
     )
   return null
@@ -765,8 +756,9 @@ function ApplicationForm({
 }) {
   const c = useCopy(),
     { t } = useTranslation()
+  const brand = useConfig().data?.appName ?? t('brand')
   const [app, setApp] = useState(initial),
-    [step, setStep] = useState(initial?.formStep ?? 0),
+    [step, setStep] = useState(Math.min(initial?.formStep ?? 0, 5)),
     [problemSteps, setProblemSteps] = useState<number[]>([])
   const [params, setParams] = useSearchParams()
   const applicationTab = ['application', 'documents'].includes(params.get('tab') ?? '')
@@ -790,15 +782,20 @@ function ApplicationForm({
     return () => window.removeEventListener('beforeunload', guard)
   }, [dirty, uploading])
   useEffect(() => {
-    document.title = `${c(applicationSteps[step])} · ${c('title')}`
-  }, [step, c])
+    const previousTitle = document.title
+    document.title = `${c(applicationSteps[step])} · ${c('title')} · ${brand}`
+    return () => {
+      document.title = previousTitle
+    }
+  }, [step, c, brand])
   const save = useMutation({
     mutationFn: async ({ next, submit = false }: { next: number; submit?: boolean }) => {
       const profile = structuredClone(form.getValues())
       profile.declarations.noticeVersion = notice
-      profile.fees.rates = profile.fees.rates.filter((r) =>
-        profile.teachingAreas.some((a) => a.id === r.areaId && a.modes.includes(r.mode)),
-      )
+      profile.fees = { preference: 'staff', sessionMinutes: 60, rates: [], comments: '' }
+      // The form no longer offers a recorded-demo choice. Keep legacy attachments,
+      // while using the existing interview flow so old incomplete drafts can submit.
+      profile.approach.demonstration = 'live'
       return send<Application>(
         '/application',
         { version: version.current, step: next, submit, profile },
@@ -859,8 +856,6 @@ function ApplicationForm({
       }
       if (step === 4) {
         if (!p.approach.assessmentSlots.length) missing.push('approach.assessmentSlots')
-        if (p.approach.demonstration === 'recorded' && !p.approach.demoFileId)
-          missing.push('approach.demoFileId')
       }
       if (missing.length) {
         missing.forEach((name) => form.setError(name, { type: 'required' }))
@@ -872,10 +867,16 @@ function ApplicationForm({
     try {
       await save.mutateAsync({ next })
       setStep(next)
-      setTimeout(() => {
-        title.current?.focus()
-        title.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-      }, 0)
+      if (next !== step)
+        setTimeout(() => {
+          title.current?.focus()
+          title.current?.scrollIntoView({
+            block: 'start',
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+              ? 'instant'
+              : 'smooth',
+          })
+        }, 0)
     } catch {
       /* mutation renders errors */
     }
@@ -909,6 +910,12 @@ function ApplicationForm({
           </section>
           <InterviewCard application={app} />
           <ApplicationScope application={app} />
+          {app.fees && (
+            <section className="panel">
+              <h2>{t('tutorFees.title')}</h2>
+              <TutorFees plans={app.fees.plans} />
+            </section>
+          )}
         </TabPanel>
         <TabPanel
           id="application-status"
@@ -927,55 +934,79 @@ function ApplicationForm({
       <UploadActivity.Provider value={setUploading}>
         <div className="af-layout">
           <nav className="af-progress" aria-label={c('title')}>
-            <p>{t('applicationForm.progress', { step: step + 1 })}</p>
-            <div className="af-mobile-section">
-              <Field label={t('experience.section')}>
-                <select
-                  value={step}
-                  disabled={save.isPending || uploading}
-                  onChange={(event) => void navigate(Number(event.target.value))}
-                >
-                  {applicationSteps.map((label, index) => (
-                    <option key={label} value={index}>
-                      {index + 1}. {c(label)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+            <div className="af-progress-meta">
+              <span>{t('applicationForm.progress', { step: step + 1 })}</span>
+              <span className="af-save-state" role="status">
+                {!dirty && app ? <Check size={14} aria-hidden="true" /> : null}
+                {dirty ? c('unsaved') : app ? c('saved') : ''}
+              </span>
             </div>
-            <ol>
+            <progress
+              className="af-progress-bar"
+              max={applicationSteps.length}
+              value={step + 1}
+              aria-label={c('stepProgress')}
+              aria-valuetext={t('applicationForm.progress', { step: step + 1 })}
+            />
+            <div className="af-step-tabs" role="tablist" aria-label={c('title')}>
               {applicationSteps.map((s, i) => (
-                <li key={s}>
-                  <button
-                    type="button"
-                    aria-current={step === i ? 'step' : undefined}
-                    aria-label={`${i + 1}. ${c(s)}`}
-                    disabled={save.isPending || uploading}
-                    onClick={() => void navigate(i)}
-                  >
-                    <span className="af-step-number">{i + 1}</span>
-                    <span>{c(s)}</span>
-                    {problemSteps.includes(i) && (
-                      <span className="af-step-error" aria-label={c('check')}>
-                        !
-                      </span>
-                    )}
-                    {i === step && <ChevronRight size={16} aria-hidden="true" />}
-                  </button>
-                </li>
+                <button
+                  key={s}
+                  type="button"
+                  role="tab"
+                  id={`application-step-${i}`}
+                  aria-controls={`application-panel-${i}`}
+                  aria-selected={step === i}
+                  tabIndex={step === i ? 0 : -1}
+                  aria-label={`${i + 1}. ${c(s)}`}
+                  disabled={save.isPending || uploading}
+                  onClick={() => void navigate(i)}
+                  onKeyDown={(event) => {
+                    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+                    event.preventDefault()
+                    const next =
+                      event.key === 'Home'
+                        ? 0
+                        : event.key === 'End'
+                          ? 5
+                          : (i + (event.key === 'ArrowRight' ? 1 : -1) + 6) % 6
+                    document.getElementById(`application-step-${next}`)?.focus()
+                  }}
+                >
+                  <span className="af-step-number">{i + 1}</span>
+                  <span className="af-step-label">{c(s)}</span>
+                  {problemSteps.includes(i) && (
+                    <span className="af-step-error" aria-label={c('check')}>
+                      !
+                    </span>
+                  )}
+                </button>
               ))}
-            </ol>
-            <span className="af-save-state" role="status">
-              {!dirty && app ? <Check size={14} /> : null}
-              {dirty ? c('unsaved') : app ? c('saved') : ''}
-            </span>
+            </div>
           </nav>
-          <section className="af-card">
+          {applicationSteps.map(
+            (s, i) =>
+              i !== step && (
+                <div
+                  key={s}
+                  role="tabpanel"
+                  id={`application-panel-${i}`}
+                  aria-labelledby={`application-step-${i}`}
+                  hidden
+                />
+              ),
+          )}
+          <section
+            className="af-card"
+            role="tabpanel"
+            id={`application-panel-${step}`}
+            aria-labelledby={`application-step-${step}`}
+          >
             <header className="af-card-heading">
-              <p>{t('applicationForm.progress', { step: step + 1 })}</p>
               <h2 ref={title} tabIndex={-1}>
                 {c(applicationSteps[step])}
               </h2>
+              {step < 5 && <p className="af-required-note">{c('requiredHint')}</p>}
             </header>
             {app?.reason && <Alert>{app.reason}</Alert>}
             <form
@@ -984,10 +1015,10 @@ function ApplicationForm({
               onSubmit={(e) => {
                 e.preventDefault()
                 if (uploading || save.isPending) return
-                if (step < 6) void navigate(step + 1, true)
+                if (step < 5) void navigate(step + 1, true)
                 else if (formElement.current?.reportValidity()) {
                   form.clearErrors()
-                  save.mutate({ next: 6, submit: true })
+                  save.mutate({ next: 5, submit: true })
                 }
               }}
             >
@@ -997,7 +1028,7 @@ function ApplicationForm({
                   email={email}
                   ensureDraft={() => save.mutateAsync({ next: step })}
                 />
-                {step === 6 && (
+                {step === 5 && (
                   <>
                     <ApplicationSummary
                       profile={form.getValues()}
@@ -1050,7 +1081,7 @@ function ApplicationForm({
                   {c('save')}
                 </Button>
                 <Button type="submit" busy={save.isPending} disabled={uploading}>
-                  {c(step === 6 ? 'submit' : 'next')}
+                  {c(step === 5 ? 'submit' : 'next')}
                 </Button>
               </footer>
             </form>

@@ -21,6 +21,9 @@ async function prepareTrialTutor() {
       headers: { Origin: origin, 'X-CSRF-Token': auth.csrf },
       data: {
         ...availability,
+        feePaise: 0,
+        feePlan: null,
+        feeVersion: 0,
         windows: Array.from({ length: 7 }, (_, day) => ({ day, startMinute: 0, endMinute: 1440 })),
         leaveDates: [],
         bufferMinutes: 0,
@@ -54,13 +57,16 @@ async function dashboard(page: Page): Promise<Dashboard> {
   return response.json()
 }
 async function capture(page: Page, name: string) {
-  await mkdir('docs/visual-qa/parent-ux', { recursive: true })
+  await mkdir('docs/visual-qa/english-only/parent-ux', { recursive: true })
   if (!(await page.getByRole('dialog').count()))
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await expect(page.locator('button[aria-busy="true"]')).toHaveCount(0)
   await page.evaluate(() => document.fonts.ready)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await page.screenshot({ path: `docs/visual-qa/parent-ux/${name}.png`, fullPage: true })
+  await page.screenshot({
+    path: `docs/visual-qa/english-only/parent-ux/${name}.png`,
+    fullPage: true,
+  })
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 }
 async function consent(page: Page) {
@@ -92,12 +98,12 @@ test('parent setup resumes without duplicate learners, requests or trials; cance
   ).toHaveCount(0)
   await capture(page, 'welcome-en-desktop')
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.locator('.language-button').click()
-  await capture(page, 'welcome-hi-mobile')
-  await page.getByRole('button', { name: 'मेन्यू खोलें' }).click()
-  await capture(page, 'navigation-hi-mobile')
+  await expect(page.locator('.language-button')).toHaveCount(0)
+  await capture(page, 'welcome-en-mobile')
+  await page.getByRole('button', { name: 'Open menu' }).click()
+  await capture(page, 'navigation-en-mobile')
   await page.keyboard.press('Escape')
-  await page.locator('.language-button').click()
+  await expect(page.locator('.language-button')).toHaveCount(0)
   await page.getByRole('link', { name: 'Add learner', exact: true }).click()
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await expect(page.getByLabel('First name or nickname')).toHaveCount(0)
@@ -172,7 +178,7 @@ test('parent setup resumes without duplicate learners, requests or trials; cance
   expect(errors).toEqual([])
 })
 
-test('selected learner takes priority over another draft; add learner starts fresh; adult flow persists in Hindi', async ({
+test('selected learner takes priority over another draft; add learner starts fresh; adult flow preserves authored text', async ({
   page,
 }) => {
   test.setTimeout(150_000)
@@ -232,19 +238,19 @@ test('selected learner takes priority over another draft; add learner starts fre
   await expect(page.getByRole('heading', { name: 'Who is learning?', exact: true })).toBeVisible()
   await expect(page.getByLabel('I am the parent or legal guardian')).not.toBeChecked()
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.locator('.language-button').click()
-  await page.getByLabel('मेरे लिए, मेरी उम्र 18 वर्ष या अधिक है').check()
-  await page.getByRole('button', { name: 'आगे बढ़ें', exact: true }).click()
-  await page.getByLabel('पहला नाम या घर का नाम', { exact: true }).fill('काल्पनिक वयस्क विद्यार्थी')
+  await expect(page.locator('.language-button')).toHaveCount(0)
+  await page.getByLabel('Myself, aged 18 or over').check()
+  await page.getByRole('button', { name: 'Continue setup', exact: true }).click()
+  await page.getByLabel('First name or nickname', { exact: true }).fill('काल्पनिक वयस्क विद्यार्थी')
   await page
-    .getByLabel('किस चीज़ में मदद चाहिए?')
+    .getByLabel('What would you like help with?')
     .fill('भिन्न और अनुपात को रोज़मर्रा के उदाहरणों से समझना।')
-  await capture(page, 'learning-needs-hi-mobile')
-  await page.getByRole('button', { name: 'आगे बढ़ें', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'जानकारी जाँचें', exact: true })).toBeVisible()
+  await capture(page, 'learning-needs-en-mobile')
+  await page.getByRole('button', { name: 'Continue setup', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Check details', exact: true })).toBeVisible()
   await page.reload()
-  await page.getByRole('button', { name: 'ट्यूटर चुनें', exact: true }).click()
-  await expect(page.getByLabel('ट्यूटर चुनें', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Choose a tutor', exact: true }).click()
+  await expect(page.getByLabel('Choose a tutor', { exact: true })).toBeVisible()
   data = await dashboard(page)
   expect(data.learners).toHaveLength(3)
   expect(data.learners.filter((item) => item.kind === 'adult_self')).toHaveLength(1)
@@ -254,12 +260,12 @@ test('selected learner takes priority over another draft; add learner starts fre
     'aria-selected',
     'true',
   )
-  await page.getByRole('button', { name: 'मेन्यू खोलें' }).click()
+  await page.getByRole('button', { name: 'Open menu' }).click()
   await expect(
-    page.getByRole('dialog').getByRole('link', { name: 'ट्रायल कक्षाएँ', exact: true }),
+    page.getByRole('dialog').getByRole('link', { name: 'Trial lessons', exact: true }),
   ).toHaveAttribute('aria-current', 'page')
   await page.keyboard.press('Escape')
-  await capture(page, 'feedback-hi-mobile')
+  await capture(page, 'feedback-en-mobile')
   await page.setViewportSize({ width: 720, height: 1000 })
   await page.evaluate(() => {
     document.documentElement.style.zoom = '2'

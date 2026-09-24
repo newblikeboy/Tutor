@@ -120,14 +120,14 @@ func TestMongoBillingLifecycle(t *testing.T) {
 		t.Fatal(e)
 	}
 	av := defaultAvailability("tutor-meera")
-	av.FeePaise = 50000
+	client("admin-a").setTestFees("tutor-meera", 50000)
 	for d := 0; d < 7; d++ {
 		av.Windows = append(av.Windows, domain.WeeklyWindow{Day: d, StartMinute: 0, EndMinute: 1440})
 	}
 	tutor.ok("PUT", "/availability", av, 200)
 	create := func(days int) domain.Enrollment {
 		first := a.Now().In(mustLocation()).AddDate(0, 0, days)
-		status, _, raw := p.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "accepted": true, "offeringVersion": 1, "schedule": RecurrenceInput{StartDate: first.Format("2006-01-02"), Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{int(first.Weekday())}, Count: 2, Minutes: 60}}, map[string]string{"Idempotency-Key": token()})
+		status, _, raw := p.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "accepted": true, "offeringVersion": 1, "feeVersion": 2, "schedule": RecurrenceInput{StartDate: first.Format("2006-01-02"), Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{int(first.Weekday())}, Count: 2, Minutes: 60}}, map[string]string{"Idempotency-Key": token()})
 		if status != 201 {
 			t.Fatalf("proposal %d %s", status, raw)
 		}

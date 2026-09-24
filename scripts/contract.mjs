@@ -7,6 +7,7 @@ import { accountContract } from './account-contract.mjs'
 import { mediaContract } from './media-contract.mjs'
 import { staffContract } from './staff-contract.mjs'
 import { applicationContract } from './application-contract.mjs'
+import { feesContract } from './fees-contract.mjs'
 const str = { type: 'string' },
   num = { type: 'integer' },
   bool = { type: 'boolean' },
@@ -291,6 +292,7 @@ accountContract(schemas, route)
 mediaContract(schemas, route, paths)
 staffContract(schemas, route, paths)
 applicationContract(schemas, route)
+feesContract(schemas, route)
 paths['/webhooks/razorpay'] = {
   post: {
     operationId: 'razorpayWebhook',
@@ -334,7 +336,7 @@ await writeFile(
     {
       openapi: '3.1.0',
       info: {
-        title: 'Tutor Platform API',
+        title: 'TheGyanSetu API',
         version: '0.1.0',
         description:
           'Email/password accounts, supervised trials, ongoing tuition and learning continuity, and explicitly configured Razorpay sandbox billing. Production access remains gated pending operator review. Public registration never grants academic approval. No delivery, live charge or bank settlement is implied by local records.',

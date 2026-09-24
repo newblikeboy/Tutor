@@ -1,4 +1,4 @@
-# Tutor Platform
+# TheGyanSetu
 
 A bilingual, academically supervised tutor platform for Purnea. **Development checkpoint, not a live service.** Go/chi is the only API, React/TypeScript is the frontend, and MongoDB Atlas stores real application state. No Docker.
 

@@ -94,7 +94,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		t.Fatal(e)
 	}
 	t.Log("Created isolated database", name, "(retained for review; no existing database modified)")
-	c := config.Config{Env: "test", Name: "Tutor Platform", Origin: "http://test.local", AuthProvider: "password"}
+	c := config.Config{Env: "test", Name: "TheGyanSetu", Origin: "http://test.local", AuthProvider: "password"}
 	a := New(s, c)
 	server := httptest.NewServer(a.Routes())
 	defer server.Close()
@@ -226,6 +226,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		mentor.decide("tutor-a", map[string]any{"action": "review", "conflictClear": true}, 200)
 		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": domain.Interview{Start: a.Now().Add(-time.Minute), End: a.Now().Add(29 * time.Minute), Timezone: "Asia/Kolkata", JoinURL: "https://zoom.us/j/12345678901"}}, 200)
 		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Explained equivalent fractions and identified denominator misconception."}, 200)
+		mentor.setTestFees("tutor-a", 0)
 		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "reason": "Observed subject explanation supports class eight online Mathematics."}, 200)
 		v := parent.ok("GET", "/tutors/tutor-a", nil, 200)
 		if v["scope"].(map[string]any)["minClass"] != float64(8) {

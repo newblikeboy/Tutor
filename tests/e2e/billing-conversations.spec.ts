@@ -25,8 +25,11 @@ async function capture(page: Page, name: string) {
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => scrollTo(0, 0))
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await mkdir('docs/visual-qa/product-ux', { recursive: true })
-  await page.screenshot({ path: `docs/visual-qa/product-ux/${name}.png`, fullPage: true })
+  await mkdir('docs/visual-qa/english-only/product-ux', { recursive: true })
+  await page.screenshot({
+    path: `docs/visual-qa/english-only/product-ux/${name}.png`,
+    fullPage: true,
+  })
   const scan = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze()
@@ -39,7 +42,7 @@ test('unconfigured payments stay blocked while family conversation and owned upd
 }) => {
   test.setTimeout(180000)
   const contexts = await Promise.all(
-    Array.from({ length: 3 }, () =>
+    Array.from({ length: 4 }, () =>
       browser.newContext({
         baseURL: origin,
         viewport: { width: 1440, height: 1000 },
@@ -47,7 +50,7 @@ test('unconfigured payments stay blocked while family conversation and owned upd
       }),
     ),
   )
-  const [parent, tutor, finance] = await Promise.all(contexts.map((c) => c.newPage()))
+  const [parent, tutor, finance, admin] = await Promise.all(contexts.map((c) => c.newPage()))
   try {
     const signup = await parent.request.post('/api/v1/auth/signup', {
       headers: { Origin: origin },
@@ -62,13 +65,22 @@ test('unconfigured payments stay blocked while family conversation and owned upd
     expect(signup.status()).toBe(201)
     await login(tutor, 'tutor-arjun')
     await login(finance, 'finance-a')
+    await login(admin, 'admin-a')
+    const review = await (await admin.request.get('/api/v1/staff/applications/tutor-arjun')).json()
+    await write(admin, '/applications/tutor-arjun/decision', {
+      action: 'fees',
+      version: review.application.version,
+      feePlans: [{ mode: 'online', period: 'hour', amountPaise: 50000, classes: 1, minutes: 60 }],
+    })
     const av = await (await tutor.request.get('/api/v1/availability')).json()
     await write(
       tutor,
       '/availability',
       {
         ...av,
-        feePaise: 50000,
+        feePaise: 0,
+        feePlan: null,
+        feeVersion: 0,
         windows: Array.from({ length: 7 }, (_, day) => ({ day, startMinute: 0, endMinute: 1440 })),
       },
       200,
@@ -135,6 +147,7 @@ test('unconfigured payments stay blocked while family conversation and owned upd
       {
         trialId: trial.id,
         offeringVersion: av.version + 1,
+        feeVersion: av.feeVersion,
         accepted: true,
         schedule: {
           startDate: first.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
@@ -154,9 +167,9 @@ test('unconfigured payments stay blocked while family conversation and owned upd
     await expect(parent.getByRole('button', { name: 'Open Razorpay test checkout' })).toHaveCount(0)
     await capture(parent, 'billing-disabled-en-desktop')
     await parent.setViewportSize({ width: 390, height: 844 })
-    await parent.locator('.language-button').click()
-    await capture(parent, 'billing-disabled-hi-mobile')
-    await parent.locator('.language-button').click()
+    await expect(parent.locator('.language-button')).toHaveCount(0)
+    await capture(parent, 'billing-disabled-en-mobile')
+    await expect(parent.locator('.language-button')).toHaveCount(0)
     await parent.getByRole('tab', { name: 'Messages', exact: true }).click()
     await parent
       .getByLabel('Your message', { exact: true })
@@ -191,9 +204,9 @@ test('unconfigured payments stay blocked while family conversation and owned upd
     await expect(
       parent.getByText('We will begin with number-line examples and share reviewed evidence here.'),
     ).toBeVisible()
-    await parent.locator('.language-button').click()
-    await capture(parent, 'conversation-hi-mobile')
-    await parent.locator('.language-button').click()
+    await expect(parent.locator('.language-button')).toHaveCount(0)
+    await capture(parent, 'conversation-en-mobile')
+    await expect(parent.locator('.language-button')).toHaveCount(0)
     await parent.goto('/notifications')
     await expect(
       parent.getByRole('heading', { name: 'A new message in your family conversation' }).first(),
@@ -207,8 +220,8 @@ test('unconfigured payments stay blocked while family conversation and owned upd
     ).toBeVisible()
     await capture(finance, 'finance-records-en-desktop')
     await finance.setViewportSize({ width: 390, height: 844 })
-    await finance.locator('.language-button').click()
-    await capture(finance, 'finance-records-hi-mobile')
+    await expect(finance.locator('.language-button')).toHaveCount(0)
+    await capture(finance, 'finance-records-en-mobile')
   } finally {
     await Promise.all(contexts.map((c) => c.close()))
   }

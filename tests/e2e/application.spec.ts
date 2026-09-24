@@ -35,11 +35,11 @@ async function signup(page: Page) {
   return response.json()
 }
 async function capture(page: Page, name: string) {
-  await mkdir('docs/visual-qa/product-ux/application', { recursive: true })
+  await mkdir('docs/visual-qa/english-only/application-compact', { recursive: true })
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
   await page.screenshot({
-    path: `docs/visual-qa/product-ux/application/${name}.png`,
+    path: `docs/visual-qa/english-only/application-compact/${name}.png`,
     fullPage: true,
   })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -48,7 +48,63 @@ async function capture(page: Page, name: string) {
     [],
   )
 }
-test('seven steps persist home and online preferences, fees and private staff review', async ({
+
+test('compact step tabs save answers, support keyboard navigation and reflow with legacy language preferences', async ({
+  page,
+}) => {
+  test.setTimeout(120000)
+  await signup(page)
+  await page.goto('/apply')
+  const tabs = page.getByRole('tab')
+  await expect(tabs).toHaveCount(6)
+  await expect(page.getByRole('tabpanel')).toHaveCount(1)
+  await expect(page.getByRole('progressbar')).toHaveAttribute('value', '1')
+  await page.getByLabel('City', { exact: true }).fill('Purnea')
+  await tabs.nth(0).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(tabs.nth(1)).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('progressbar')).toHaveAttribute('value', '2')
+  await expect(page.getByLabel('Year completed')).toHaveValue('')
+  await page.getByLabel('Highest completed qualification').fill('BSc')
+  await page.getByLabel('Currently studying?').selectOption('yes')
+  await expect(page.getByLabel('Expected completion month')).toBeVisible()
+  await page.getByLabel('Year completed').fill('2020')
+  await page.getByLabel('Year completed').clear()
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+  await expect(page.getByText('Draft saved', { exact: true })).toBeVisible()
+  await page.reload()
+  await expect(page.getByLabel('Highest completed qualification')).toHaveValue('BSc')
+  await expect(page.getByLabel('Year completed')).toHaveValue('')
+  await page.getByRole('button', { name: 'Save & continue', exact: true }).click()
+  await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
+  for (const language of ['en', 'hi']) {
+    await page.evaluate((value) => localStorage.setItem('language', value), language)
+    await page.reload()
+    await expect(page.getByRole('tabpanel')).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    for (const width of [360, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 1000 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      )
+      await expect(page.getByRole('tablist')).toBeVisible()
+      if ([390, 1440].includes(width))
+        await capture(page, `education-en-legacy-${language}-${width}`)
+    }
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = ''
+  })
+  await page.getByRole('tab').nth(0).click()
+  await expect(page.locator('input[name="about.city"]')).toHaveValue('Purnea')
+})
+test('six steps persist home and online preferences with staff-only fees and private review', async ({
   page,
   browser,
 }) => {
@@ -64,7 +120,7 @@ test('seven steps persist home and online preferences, fees and private staff re
   await expect(page.getByLabel('Account email')).toHaveAttribute('readonly', '')
   await fillApplication(page, 'Fictional application tutor', async (step) => {
     await capture(page, `step-${step + 1}-en-desktop`)
-    if ([0, 2, 3, 6].includes(step)) {
+    if ([0, 2, 3, 5].includes(step)) {
       await page.setViewportSize({ width: 390, height: 844 })
       await capture(page, `step-${step + 1}-en-mobile`)
       await page.setViewportSize({ width: 1440, height: 1000 })
@@ -80,9 +136,8 @@ test('seven steps persist home and online preferences, fees and private staff re
   const response = await page.request.get('/api/v1/application'),
     stored = (await response.json()).application
   expect(stored.profile.teachingAreas[0].modes).toEqual(['home', 'online'])
-  expect(stored.profile.fees.rates.map((r: { amountPaise: number }) => r.amountPaise)).toEqual([
-    50000, 40000,
-  ])
+  expect(stored.profile.fees.rates).toEqual([])
+  expect(stored.fees).toBeNull()
   expect(stored.submission.marketing).toBe(false)
   expect(stored.scope.mode).toBe('')
   await page.reload()
@@ -111,7 +166,7 @@ test('seven steps persist home and online preferences, fees and private staff re
   }
   expect(errors).toEqual([])
 })
-test('stale drafts are preserved, mode-specific sections change, Hindi review remains accessible', async ({
+test('stale drafts are preserved, mode-specific sections change, legacy language preference keeps review in English', async ({
   page,
   context,
 }) => {
@@ -145,11 +200,11 @@ test('stale drafts are preserved, mode-specific sections change, Hindi review re
   await page.evaluate(() => localStorage.setItem('language', 'hi'))
   await page.reload()
   await page.setViewportSize({ width: 390, height: 844 })
-  await expect(page.getByRole('heading', { name: 'समय और जगह' })).toBeVisible()
-  await capture(page, 'step-4-hi-mobile')
-  await page.locator('.af-mobile-section select').selectOption('6')
-  await expect(page.getByRole('heading', { name: 'जाँचें और जमा करें' })).toBeVisible()
-  await capture(page, 'review-hi-mobile')
+  await expect(page.getByRole('heading', { name: 'Time & location' })).toBeVisible()
+  await capture(page, 'step-4-en-mobile')
+  await page.getByRole('tab').nth(5).click()
+  await expect(page.getByRole('heading', { name: 'Check & submit' })).toBeVisible()
+  await capture(page, 'review-en-mobile')
 })
 
 test('locality submission errors are visible and blank lines do not block a corrected application', async ({
@@ -193,7 +248,7 @@ test('locality submission errors are visible and blank lines do not block a corr
   await expect(page.getByText('Draft saved', { exact: true })).toBeVisible()
   await page.reload()
   await expect(localities).toHaveValue('Line Bazar\nBhatta Bazar')
-  await page.locator('.af-mobile-section select').selectOption('6')
+  await page.getByRole('tab').nth(5).click()
   await expect(page.getByRole('heading', { name: 'Check & submit', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Submit application', exact: true }).click()
   await expect(
@@ -206,11 +261,12 @@ test('locality submission errors are visible and blank lines do not block a corr
   expect(stored.profile.fees.rates).toEqual(profile.fees.rates)
 })
 
-test('recorded demo is saved privately and linked without overwriting the draft revision', async ({
+test('Teaching approach omits demo and worksheet controls and submits legacy recorded drafts', async ({
   page,
 }) => {
-  const account = await signup(page),
-    profile = applicationProfile('Fictional application tutor')
+  const account = await signup(page)
+  const profile = applicationProfile('Fictional application tutor')
+  profile.approach.demonstration = 'recorded'
   expect(
     (
       await page.request.put('/api/v1/application', {
@@ -219,32 +275,58 @@ test('recorded demo is saved privately and linked without overwriting the draft 
       })
     ).status(),
   ).toBe(200)
-  await page.goto('/apply')
-  await page.getByLabel('Demonstration preference').selectOption('recorded')
-  await page.getByLabel('Demonstration teaching area').selectOption('math')
-  await page.getByLabel('Demonstration topic').fill('Equivalent fractions')
-  // A synthetic container exercises framing/quarantine, never claims to be playable or scanned.
-  const section = page
-    .locator('.af-attachment')
-    .filter({ has: page.getByLabel('Video introduction', { exact: true }) })
-  await section.getByLabel('Video introduction', { exact: true }).setInputFiles({
-    name: 'fictional-container.mp4',
-    mimeType: 'video/mp4',
-    buffer: demoContainer(),
+  // Retain a historical private attachment, even when the old recorded draft
+  // has no topic or assessment area and could not previously be submitted.
+  const upload = await page.request.post(`/api/v1/applications/${account.user.id}/files`, {
+    headers: {
+      Origin: origin,
+      'X-CSRF-Token': account.csrf,
+      'Idempotency-Key': crypto.randomUUID(),
+    },
+    data: { name: 'legacy-demo.mp4', content: demoContainer().toString('base64') },
   })
-  await section.getByRole('button', { name: 'Upload', exact: true }).click()
-  await expect(section.getByRole('status')).toContainText('File saved privately')
-  await page.getByRole('button', { name: 'Save draft', exact: true }).click()
-  await expect(page.getByText('Draft saved', { exact: true })).toBeVisible()
-  await page.reload()
-  await expect(page.getByLabel('Demonstration topic')).toHaveValue('Equivalent fractions')
-  await expect(page.getByText('fictional-container.mp4', { exact: false })).toBeVisible()
-  const stored = (await (await page.request.get('/api/v1/application')).json()).application
-  expect(stored.profile.approach.demoFileId).toBeTruthy()
+  expect(upload.status()).toBe(201)
+  const file = await upload.json()
+  profile.approach.demoFileId = file.id
   expect(
     (
-      await page.request.get(`/api/v1/files/${stored.profile.approach.demoFileId}/download`)
+      await page.request.put('/api/v1/application', {
+        headers: { Origin: origin, 'X-CSRF-Token': account.csrf },
+        data: { version: 1, step: 4, submit: false, profile },
+      })
     ).status(),
-  ).toBe(409)
-  expect(stored.formVersion).toBe(4)
+  ).toBe(200)
+  await page.goto('/apply')
+  await expect(page.getByRole('heading', { name: 'Teaching approach', exact: true })).toBeVisible()
+  await expect(page.locator('[name="approach.demonstration"]')).toHaveCount(0)
+  await expect(page.locator('.af-attachment')).toHaveCount(0)
+  await expect(page.locator('.af-fields textarea')).toHaveCount(3)
+  await capture(page, 'approach-simplified-en-desktop')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.locator('.language-button')).toHaveCount(0)
+  await capture(page, 'approach-simplified-en-mobile')
+  await expect(page.locator('.language-button')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Save & continue', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Check & submit', exact: true })).toBeVisible()
+  await expect(
+    page.getByText('How would you like to give your demo?', { exact: true }),
+  ).toHaveCount(0)
+  await expect(page.getByText('Sample worksheet (optional)', { exact: true })).toHaveCount(0)
+  await page.reload()
+  await page.getByRole('button', { name: 'Submit application', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Application received', exact: true }),
+  ).toBeVisible()
+  const stored = (await (await page.request.get('/api/v1/application')).json()).application
+  expect(stored.profile.approach.demonstration).toBe('live')
+  // Go clears the obsolete recorded-demo selection on the live path, but the
+  // uploaded evidence remains in the application's private Documents collection.
+  expect(stored.profile.approach.demoFileId).toBe('')
+  const files = await (
+    await page.request.get(`/api/v1/applications/${account.user.id}/files`)
+  ).json()
+  expect(files.items.some((item: { id: string }) => item.id === file.id)).toBe(true)
+  expect(stored.profile.approach.introduction).toBe(profile.approach.introduction)
+  expect(stored.profile.approach.assessmentSlots).toEqual(profile.approach.assessmentSlots)
+  expect((await page.request.get(`/api/v1/files/${file.id}/download`)).status()).toBe(409)
 })

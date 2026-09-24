@@ -16,6 +16,8 @@ type Availability struct {
 	DailyCapacity int            `json:"dailyCapacity" bson:"dailyCapacity"`
 	Paused        bool           `json:"paused" bson:"paused"`
 	FeePaise      int64          `json:"feePaise" bson:"feePaise"`
+	FeePlan       *FeePlan       `json:"feePlan" bson:"-"`
+	FeeVersion    int            `json:"feeVersion" bson:"-"`
 	Version       int            `json:"version" bson:"version"`
 }
 type Agreement struct {

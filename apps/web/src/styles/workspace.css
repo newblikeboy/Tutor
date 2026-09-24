@@ -200,11 +200,6 @@
   gap: 14px;
   flex-shrink: 0;
 }
-.desk-utilities .language-button {
-  font-size: 12px;
-  gap: 6px;
-  padding-inline: 4px;
-}
 .desk-user-avatar {
   display: grid;
   place-items: center;
@@ -1079,23 +1074,6 @@
 .desk-gate main {
   min-height: 240px;
 }
-.desk-gate > nav .text-link {
-  margin-top: 24px;
-}
-:lang(hi) .desk-shell h1,
-:lang(hi) .desk-shell h2,
-:lang(hi) .desk-shell h3 {
-  letter-spacing: 0;
-  line-height: 1.5;
-}
-:lang(hi) .desk-eyebrow,
-:lang(hi) .desk-nav-label,
-:lang(hi) .desk-brand small {
-  letter-spacing: 0.3px;
-}
-:lang(hi) .desk-page-heading h1 {
-  font-size: 29px;
-}
 
 @media (min-width: 1700px) {
   .desk-main {
@@ -1233,12 +1211,6 @@
     padding: 10px;
     border-left: 0;
     min-width: 44px;
-  }
-  .desk-utilities .language-button {
-    font-size: 12px;
-  }
-  .desk-utilities .language-button svg {
-    display: none;
   }
   .desk-preview {
     padding: 9px 20px;
@@ -1479,12 +1451,6 @@
     width: 100%;
     padding-left: 22px;
     font-size: 9px;
-  }
-  :lang(hi) .desk-page-heading h1 {
-    font-size: 27px;
-  }
-  :lang(hi) .desk-page-actions .btn {
-    font-size: 12px;
   }
 }
 @media (max-width: 380px) {

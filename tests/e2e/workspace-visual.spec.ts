@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 for (const scenario of [
   { language: 'en', width: 1440, suffix: 'desktop' },
-  { language: 'hi', width: 390, suffix: 'mobile' },
+  { language: 'en', width: 390, suffix: 'mobile' },
 ]) {
   test(`reviewed private workspace baseline: ${scenario.language}-${scenario.suffix}`, async ({
     page,
@@ -19,10 +19,12 @@ for (const scenario of [
     })
     expect(response.status()).toBe(200)
     await page.goto('/workspace')
-    await page.locator('.desk-start-card').waitFor()
+    await expect(
+      page.getByRole('heading', { name: 'Who needs a tutor?', exact: true }),
+    ).toBeVisible()
     await page.evaluate(() => document.fonts.ready)
     await expect(page).toHaveScreenshot(
-      `workspace-parent-${scenario.language}-${scenario.suffix}.png`,
+      `english-only-workspace-parent-${scenario.language}-${scenario.suffix}.png`,
       { fullPage: true, animations: 'disabled', maxDiffPixels: 0 },
     )
   })

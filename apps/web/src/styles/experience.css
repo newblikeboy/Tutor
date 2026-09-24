@@ -108,23 +108,12 @@
   margin: 0;
   color: var(--muted);
 }
-.af-mobile-section {
-  display: none;
-}
 .af-submitted .workspace-tab-panel {
   display: grid;
   gap: 20px;
 }
 .af-submitted .workspace-tab-panel[hidden] {
   display: none;
-}
-.af-page .af-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  background: #fafcf8f5;
-  backdrop-filter: blur(8px);
-  padding-block: 16px;
 }
 .af-fields :is(input, select, textarea) {
   scroll-margin-bottom: 100px;
@@ -176,28 +165,6 @@
   }
   .desk-shell .af-page .page-heading {
     margin-bottom: 20px;
-  }
-  .af-mobile-section {
-    display: block;
-  }
-  .af-mobile-section .field {
-    margin: 0;
-  }
-  .af-mobile-section label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    clip-path: inset(50%);
-    overflow: hidden;
-  }
-  .af-page .af-progress ol {
-    display: none;
-  }
-  .af-page .af-save-state:empty {
-    display: none;
-  }
-  .af-page .af-progress {
-    padding-bottom: 16px;
   }
   .af-page .af-card-heading {
     padding-bottom: 14px;

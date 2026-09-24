@@ -9,7 +9,6 @@ import {
   Eye,
   EyeOff,
   GraduationCap,
-  Languages,
   ShieldCheck,
   UsersRound,
 } from 'lucide-react'
@@ -39,7 +38,7 @@ const loginRoles = [
 ] as const
 
 export default function Login() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const config = useConfig()
   const auth = useAuth()
   const { pathname } = useLocation()
@@ -137,15 +136,6 @@ export default function Login() {
           <span>.</span>
           <small>{t('authBrandLine')}</small>
         </div>
-        <nav aria-label={t('menu')}>
-          <button
-            className="auth-language"
-            onClick={() => void i18n.changeLanguage(i18n.language === 'en' ? 'hi' : 'en')}
-          >
-            <Languages size={17} />
-            {t('language')}
-          </button>
-        </nav>
       </header>
       <main
         className={`auth-stage ${signup ? 'auth-signup-stage' : 'auth-login-stage'}`}

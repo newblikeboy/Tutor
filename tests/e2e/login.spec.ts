@@ -2,6 +2,35 @@ import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
 
+test('matching opens sign-in directly and preserves the destination through account choices', async ({
+  page,
+}) => {
+  const destination = '/match?new=1&tutor=tutor-meera'
+  await page.goto('/')
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto(destination)
+    await expect(page).toHaveURL(`/login?return=${encodeURIComponent(destination)}`)
+    await expect(page.getByRole('heading', { name: 'Parent sign in', exact: true })).toBeVisible()
+    await expect(page.getByText('Your learning space is private.', { exact: true })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Back to website', exact: true })).toHaveCount(0)
+    await page.evaluate(() => document.fonts.ready)
+    await page.screenshot({
+      path: `docs/visual-qa/direct-sign-in/match-login-${width}.png`,
+      fullPage: true,
+    })
+  }
+  await page.getByRole('link', { name: 'Create account', exact: true }).click()
+  expect(new URL(page.url()).searchParams.get('return')).toBe(destination)
+  await page.getByRole('link', { name: 'Sign in', exact: true }).click()
+  expect(new URL(page.url()).searchParams.get('return')).toBe(destination)
+  await page.getByLabel('Email address', { exact: true }).fill('parent-b@example.test')
+  await page.getByLabel('Password', { exact: true }).fill('E2E-only learning passphrase 426!')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(destination)
+  await expect(page.getByRole('heading', { name: 'Who is learning?', exact: true })).toBeVisible()
+})
+
 for (const scenario of [
   {
     language: 'en',
@@ -25,7 +54,7 @@ for (const scenario of [
     role: 'mentor',
     width: 390,
     staff: true,
-    title: 'कर्मचारी साइन इन',
+    title: 'Staff sign in',
   },
 ]) {
   test(`localhost login redirects and persists ${scenario.role} session (${scenario.language})`, async ({
@@ -53,28 +82,24 @@ for (const scenario of [
     await page.goto(alias.href)
     await expect(page).toHaveURL(`${canonical.origin}${alias.pathname}${alias.search}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(scenario.title)
-    const hindi = scenario.language === 'hi'
-    await expect(
-      page.getByLabel(hindi ? 'ईमेल पता' : 'Email address', { exact: true }),
-    ).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    await expect(page.locator('.language-button, .auth-language')).toHaveCount(0)
+    expect(await page.locator('body').innerText()).not.toMatch(/[\u0900-\u097f]/)
+    await expect(page.getByLabel('Email address', { exact: true })).toBeVisible()
     await page.evaluate(() => document.fonts.ready)
-    await mkdir('docs/visual-qa/login-roles', { recursive: true })
+    await mkdir('docs/visual-qa/english-only/login-roles', { recursive: true })
     // Capture empty forms: never retain login credentials in screenshots.
     await page.screenshot({
-      path: `docs/visual-qa/login-roles/${scenario.role}-${scenario.language}-${scenario.width}.png`,
+      path: `docs/visual-qa/english-only/login-roles/${scenario.role}-en-${scenario.width}.png`,
       fullPage: true,
     })
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 
     await page
-      .getByLabel(hindi ? 'ईमेल पता' : 'Email address', { exact: true })
+      .getByLabel('Email address', { exact: true })
       .fill(scenario.identity + '@example.test')
-    await page
-      .getByLabel(hindi ? 'पासवर्ड' : 'Password', { exact: true })
-      .fill('E2E-only learning passphrase 426!')
-    await page
-      .getByRole('button', { name: hindi ? 'साइन इन करें' : 'Sign in', exact: true })
-      .click()
+    await page.getByLabel('Password', { exact: true }).fill('E2E-only learning passphrase 426!')
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(page).toHaveURL(`${canonical.origin}/workspace?from=login`)
     await page.reload()
     await expect(page).toHaveURL(`${canonical.origin}/workspace?from=login`)

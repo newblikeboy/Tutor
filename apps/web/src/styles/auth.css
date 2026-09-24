@@ -39,20 +39,12 @@
   align-items: center;
   gap: 34px;
 }
-.auth-browse,
-.auth-language {
+.auth-browse {
   display: inline-flex;
   gap: 9px;
   align-items: center;
   font-size: 13px;
   font-weight: 600;
-}
-.auth-language {
-  background: transparent;
-  border: 1px solid #cdd4d0;
-  border-radius: 30px;
-  padding: 9px 14px;
-  min-height: 40px;
 }
 .auth-stage {
   max-width: 1360px;
@@ -703,16 +695,6 @@
   font-size: 12px;
   padding: 12px;
 }
-:lang(hi) .auth-story-copy h2 {
-  line-height: 1.4;
-  letter-spacing: -1px;
-  font-size: 45px;
-}
-:lang(hi) .auth-form-content h1 {
-  line-height: 1.4;
-  font-size: 32px;
-  letter-spacing: -0.6px;
-}
 .auth-signup-stage .auth-form-content {
   margin-top: 22px;
   margin-bottom: 26px;
@@ -831,9 +813,6 @@
   .auth-footer {
     font-size: 10px;
   }
-  :lang(hi) .auth-story-copy h2 {
-    font-size: 32px;
-  }
 }
 @media (max-width: 420px) {
   .auth-experience {
@@ -845,10 +824,6 @@
   }
   .auth-wordmark {
     font-size: 20px;
-  }
-  .auth-language {
-    padding: 8px 10px;
-    font-size: 11px;
   }
   .auth-form-side {
     padding: 18px 22px 21px;
@@ -902,9 +877,6 @@
     flex-wrap: wrap;
     gap: 8px;
     padding-inline: 6px;
-  }
-  :lang(hi) .auth-form-content h1 {
-    font-size: 29px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -1,7 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 const en = {
-  brand: 'Tutor Platform',
+  brand: 'TheGyanSetu',
   provisional: 'A considered approach to learning',
   home: 'Home',
   tutors: 'Find a tutor',
@@ -10,7 +10,6 @@ const en = {
   login: 'Sign in',
   logout: 'Sign out',
   workspace: 'My workspace',
-  language: 'हिन्दी',
   skip: 'Skip to content',
   menu: 'Open menu',
   close: 'Close',
@@ -309,327 +308,26 @@ const en = {
   loadingSave: 'Please wait for the server to confirm.',
   welcome: 'YOUR LEARNING, IN FOCUS',
 }
-const hi: Record<keyof typeof en, string | string[]> = {
-  ...en,
-  brand: 'Tutor Platform',
-  provisional: 'सीखने की सोच-समझकर शुरुआत',
-  home: 'मुख्य पृष्ठ',
-  tutors: 'ट्यूटर खोजें',
-  approach: 'हमारा तरीका',
-  teach: 'हमारे साथ पढ़ाएँ',
-  login: 'साइन इन',
-  logout: 'साइन आउट',
-  workspace: 'मेरा कार्यक्षेत्र',
-  language: 'English',
-  skip: 'मुख्य सामग्री पर जाएँ',
-  menu: 'मेन्यू खोलें',
-  close: 'बंद करें',
-  dev: 'विकास पूर्वावलोकन',
-  devDetail: 'काल्पनिक प्रोफ़ाइल · कोई SMS या भुगतान नहीं · सेवा अभी शुरू नहीं हुई है',
-  eyebrow: 'सोच-समझकर ट्यूशन · पूर्णिया',
-  heroA: 'सही सहयोग।',
-  heroB: 'सीखने की राह',
-  heroC: 'और स्पष्ट।',
-  heroBody:
-    'सिर्फ़ ट्यूटर की तलाश नहीं। ज़रूरत के अनुसार चुनाव, सीखने की स्पष्ट योजना और साथ देने वाली अकादमिक टीम।',
-  find: 'अपने बच्चे के लिए सही ट्यूटर खोजें',
-  browse: 'स्वीकृत ट्यूटर देखें',
-  assessed: 'विषय के लिए आकलित',
-  supported: 'अकादमिक सहयोग',
-  continuity: 'सीखने का सिलसिला बना रहे',
-  preview: 'सीखने की यात्रा का काल्पनिक उदाहरण',
-  plan: 'छोटे कदम। सार्थक प्रगति।',
-  planSubject: 'गणित · कक्षा 8',
-  focus: 'रटने से पहले समझना',
-  focusBody: 'भिन्न से शुरुआत करें। आत्मविश्वास बढ़ाएँ। विचारों को जोड़ें।',
-  introduced: 'परिचय हुआ',
-  practising: 'अभ्यास जारी',
-  independent: 'स्वतंत्र अभ्यास',
-  nextReview: 'समीक्षा के बाद अगला कदम',
-  nextReviewBody: 'परिवार और अकादमिक मेंटर जुड़े रहते हैं।',
-  approval: 'स्वीकृति का दायरा तय है',
-  approvalBody: 'विषय, कक्षा और पढ़ाने के माध्यम का अलग आकलन।',
-  how: 'हर कदम पर थोड़ा और ध्यान।',
-  howIntro: 'पहली बातचीत से नियमित सहयोग तक',
-  step1: 'विद्यार्थी के बारे में बताएँ',
-  step1Body: 'क्या अच्छा चल रहा है, कहाँ कठिनाई है और आगे क्या सीखना है — साझा करें।',
-  step2: 'उपयुक्त ट्यूटर चुनें',
-  step2Body: 'आकलित शिक्षण दायरा देखें और परिचयात्मक ट्रायल के लिए ट्यूटर चुनें।',
-  step3: 'सीखने की लय बनाएँ',
-  step3Body: 'पाठ का विवरण, स्पष्ट अगले कदम और अकादमिक टीम की समीक्षा देखें।',
-  continuousTitle: 'ट्यूटर बदले। सीखने का सिलसिला बना रहे।',
-  continuousBody:
-    'शुरुआती समझ, पूरा किया काम और अगले कदम परिवार के सीखने के रिकॉर्ड में साथ रहते हैं। बदलाव के बाद भी आगे की पढ़ाई वहीं से शुरू हो सके।',
-  viewApproach: 'हमारा अकादमिक तरीका जानें',
-  availableTitle: 'पढ़ाने का तरीका जानें।',
-  availableBody:
-    'स्वीकृति सीमित दायरे के लिए है। हर ट्यूटर के आकलित विषय, कक्षाएँ और माध्यम देखें।',
-  sample: 'काल्पनिक उदाहरण',
-  sampleProfile: 'विकास के लिए काल्पनिक प्रोफ़ाइल',
-  math: 'गणित',
-  online: 'ऑनलाइन',
-  class: 'कक्षा',
-  classes: 'कक्षाएँ',
-  years: 'वर्ष का काल्पनिक अनुभव',
-  profile: 'शिक्षण प्रोफ़ाइल देखें',
-  scoped: 'दायरे की स्वीकृति',
-  viewAll: 'ट्यूटर देखें',
-  footer: 'उपयुक्त चुनाव। स्पष्ट पढ़ाई। निरंतर सहयोग।',
-  standards: 'चयन के मानक',
-  privacy: 'गोपनीयता का मसौदा',
-  components: 'घटक संग्रह',
-  staff: 'कर्मचारी साइन इन',
-  faqTitle: 'ज़रूरी सवाल, स्पष्ट जवाब।',
-  faq1: 'क्या पंजीकरण से ट्यूटर स्वीकृत हो जाते हैं?',
-  faq1Body:
-    'नहीं। आवेदन, विषय का आकलन और निर्धारित दायरे की स्वीकृति अलग चरण हैं। पंजीकरण से बुकिंग की पात्रता नहीं मिलती।',
-  faq2: 'क्या किसी परिणाम की गारंटी है?',
-  faq2Body:
-    'नहीं। हम उपयुक्तता, सीखने के प्रमाण और नियमित सहयोग पर ध्यान देते हैं। अंकों या पूर्ण मेल की गारंटी नहीं है।',
-  faq3: 'क्या अभी सेवा में बुकिंग हो सकती है?',
-  faq3Body:
-    'यह विकास पूर्वावलोकन है। प्रोफ़ाइल काल्पनिक हैं और ट्रायल परीक्षण के लिए हैं। सेवा क्षेत्र, शुल्क और नीतियों पर संचालक की मंज़ूरी बाकी है।',
-  finalTitle: 'शुरुआत आपके बच्चे से करें।',
-  finalBody: 'उनके सवाल। उनकी गति। उनका अगला कदम।',
-  searchTitle: 'उपयुक्त ट्यूटर का चुनाव सही दायरे से शुरू होता है।',
-  searchIntro: 'विषय का आकलन और पढ़ाने का तरीका देखें। अंतिम चुनाव परिवार का है।',
-  filters: 'खोज सीमित करें',
-  subject: 'विषय',
-  preferredLanguage: 'पढ़ाने की भाषा',
-  allLanguages: 'सभी भाषाएँ',
-  english: 'अंग्रेज़ी',
-  hindi: 'हिन्दी',
-  science: 'विज्ञान',
-  reset: 'फ़िल्टर हटाएँ',
-  results: 'ट्यूटर इस पूर्वावलोकन में उपलब्ध',
-  noTutors: 'इन फ़िल्टर के अनुसार कोई स्वीकृत ट्यूटर नहीं',
-  noTutorsBody:
-    'अपनी ज़रूरत भेजें ताकि अकादमिक टीम उसकी समीक्षा कर सके। अनुपयुक्त ट्यूटर विकल्प नहीं है।',
-  requestMatch: 'अपनी ज़रूरत बताएँ',
-  retry: 'फिर प्रयास करें',
-  loading: 'जानकारी लोड हो रही है…',
-  errorTitle: 'अभी जानकारी लोड नहीं हो सकी',
-  errorBody: 'सहेजी गई जानकारी सर्वर पर मौजूद है। कनेक्शन जाँचें और फिर प्रयास करें।',
-  back: 'पीछे',
-  next: 'आगे बढ़ें',
-  save: 'सहेजें',
-  saving: 'सहेजा जा रहा है…',
-  saved: 'आपके खाते में सहेजा गया',
-  cancel: 'रद्द करें',
-  assessment: 'आकलन',
-  assessedOn: 'आकलन दर्ज हुआ',
-  scopeTitle: 'इस स्वीकृति में क्या शामिल है',
-  scopeHelp:
-    'स्वीकृति इस दायरे तक सीमित है और इसकी समीक्षा होती है। यह परिणाम या सुरक्षा की गारंटी नहीं है।',
-  teachingApproach: 'मेरे पढ़ाने का तरीका',
-  trialTitle: 'बातचीत और ट्रायल से शुरुआत करें',
-  trialBody: 'पहले सीखने की ज़रूरत बताएँ। फिर इस ट्यूटर को चुनकर समय का अनुरोध कर सकते हैं।',
-  freeTrial: '₹0 का विकास ट्रायल',
-  freeTrialBody: 'एक ऑनलाइन सत्र · 60 मिनट · कोई भुगतान नहीं',
-  privacyNote: 'विद्यार्थी की जानकारी निजी है। केवल परिवार और अधिकृत अकादमिक टीम इसे देख सकते हैं।',
-  signTitle: 'अच्छे अगले कदम की शुरुआत।',
-  signBody: 'अपने सीखने के कार्यक्षेत्र में लौटें।',
-  parentA: 'परिवार A',
-  parentRole: 'अभिभावक / विद्यार्थी',
-  tutorRole: 'ट्यूटर',
-  mentorRole: 'अकादमिक मेंटर',
-  adminRole: 'प्रशासक',
-  assessmentRecorded: 'आकलन दर्ज हुआ',
-  parentB: 'परिवार B',
-  adultA: 'वयस्क विद्यार्थी',
-  tutorA: 'ट्यूटर आवेदक',
-  tutorMeera: 'मीरा · काल्पनिक ट्यूटर',
-  mentorA: 'अकादमिक मेंटर',
-  adminA: 'प्रशासक',
-  authRequired: 'आगे बढ़ने के लिए साइन इन करें',
-  permission: 'आपकी भूमिका के लिए यह क्षेत्र उपलब्ध नहीं है',
-  parentTitle: 'सीखने की स्पष्ट तस्वीर।',
-  tutorTitle: 'अच्छी पढ़ाई की शुरुआत एक योजना से।',
-  mentorTitle: 'सोच-समझकर निर्णय। निरंतर सहयोग।',
-  adminTitle: 'नेटवर्क को जवाबदेह रखें।',
-  parentIntro: 'विद्यार्थी, अगला सत्र और ज़रूरी कदम।',
-  tutorIntro: 'आपका आकलन, सौंपे गए ट्रायल और पाठ का विवरण एक जगह।',
-  mentorIntro: 'शिक्षण के प्रमाण की समीक्षा करें और अगले कदम का कारण बताएँ।',
-  adminIntro: 'स्वीकृति की स्थिति और निर्णयों का रिकॉर्ड देखें।',
-  newRequirement: 'सीखने की नई ज़रूरत',
-  learner: 'विद्यार्थी',
-  noLearners: 'परिवार के सीखने की शुरुआत यहाँ से',
-  noLearnersBody:
-    'निजी विद्यार्थी प्रोफ़ाइल बनाएँ और ज़रूरत बताएँ। फ़ोटो या स्कूल की जानकारी ज़रूरी नहीं।',
-  learningSpace: 'सीखने का कार्यक्षेत्र',
-  nextClass: 'ट्रायल और अगले कदम',
-  noTrials: 'अभी कोई आगामी ट्रायल नहीं है',
-  noTrialsBody: 'ज़रूरत भेजने के बाद उपयुक्त ट्यूटर चुनें और समय का अनुरोध करें।',
-  requirementTitle: 'सीखने की आपकी ज़रूरतें',
-  applications: 'आकलन की कतार',
-  noApplications: 'कतार में कोई आवेदन नहीं',
-  noApplicationsBody: 'नए आवेदन यहाँ दिखाई देंगे।',
-  applicationTitle: 'पढ़ाने के लिए आपका आवेदन',
-  applyTitle: 'उद्देश्य के साथ पढ़ाएँ। सहयोग के साथ बढ़ें।',
-  applyBody:
-    'कक्षा 6–10 के लिए ऑनलाइन गणित पढ़ाने का आवेदन शुरू करें। सार्वजनिक स्वीकृति से पहले अकादमिक टीम आकलन करेगी।',
-  name: 'नाम',
-  education: 'शिक्षा और संबंधित अनुभव',
-  teaching: 'आपके पढ़ाने का तरीका',
-  experience: 'पढ़ाने का अनुभव (वर्ष)',
-  submitApplication: 'आकलन के लिए भेजें',
-  applicationWarning:
-    'आवेदन भेजना स्वीकृति नहीं है। आकलन के बाद दायरे की स्वीकृति मिलने तक प्रोफ़ाइल निजी रहेगी।',
-  status: 'स्थिति',
-  draft: 'मसौदा',
-  submitted: 'भेजा गया',
-  under_review: 'समीक्षा जारी',
-  assessment_scheduled: 'आकलन तय',
-  approved: 'स्वीकृत',
-  improvement_required: 'सुधार का अनुरोध',
-  declined: 'अस्वीकृत',
-  suspended: 'निलंबित',
-  requested: 'अनुरोध भेजा गया',
-  confirmed: 'पुष्टि हुई',
-  completed: 'अकादमिक समीक्षा बाकी',
-  reviewed: 'समीक्षा पूरी',
-  cancelled: 'रद्द',
-  reviewApplication: 'यह आकलन लें',
-  schedule: 'आकलन सत्र दर्ज करें',
-  recordAssessment: 'आकलन के प्रमाण सहेजें',
-  approve: 'इस दायरे को स्वीकृति दें',
-  improve: 'सुधार माँगें',
-  decline: 'अस्वीकार करें',
-  suspend: 'नई बुकिंग रोकें',
-  reason: 'निर्णय का कारण',
-  evidence: 'आकलन के प्रमाण',
-  scores: 'आकलन अंक-पत्र',
-  scoreLabels: [
-    'विषय का ज्ञान',
-    'समझाने का तरीका',
-    'गलतफ़हमी की पहचान',
-    'धैर्य',
-    'योजना',
-    'विश्वसनीयता',
-  ],
-  minClass: 'कक्षा से',
-  maxClass: 'कक्षा तक',
-  assessmentHelp: 'विकास के आकलन का विवरण दर्ज करें। अंकों से अपने-आप स्वीकृति नहीं मिलती।',
-  requirementHeading: 'विद्यार्थी की ज़रूरत समझें।',
-  requirementSub: 'कुछ ज़रूरी बातें बेहतर चुनाव में मदद करती हैं।',
-  guardianStep: 'आपका संबंध',
-  learnerStep: 'सीखने की ज़रूरत',
-  reviewStep: 'जाँचें और भेजें',
-  adultQuestion: 'यह पढ़ाई किसके लिए है?',
-  minorOption: 'मेरे बच्चे / मेरी देखरेख के विद्यार्थी के लिए',
-  adultOption: 'मेरे लिए, मेरी उम्र 18 वर्ष या अधिक है',
-  guardian: 'मैं माता-पिता या कानूनी अभिभावक हूँ',
-  consent: 'मैं इस विकास प्रोफ़ाइल के लिए गोपनीयता के मसौदे से सहमत हूँ।',
-  consentHelp: 'यह घोषणा अभिभावक का सत्यापन नहीं है। केवल काल्पनिक जानकारी भरें।',
-  confirmGuardian: 'पुष्टि करें और आगे बढ़ें',
-  learnerName: 'विद्यार्थी का पहला नाम या घर का नाम',
-  board: 'बोर्ड',
-  goal: 'किस चीज़ में मदद चाहिए?',
-  goalPlaceholder: 'जैसे, भिन्न को रोज़मर्रा के उदाहरणों से समझना और बिना जल्दबाज़ी अभ्यास करना।',
-  locality: 'शहर / इलाका (पूरा पता नहीं)',
-  localityHelp: 'Purnea और Purnia एक ही शहर हैं। ऑनलाइन ट्रायल के लिए GPS या घर का पता नहीं चाहिए।',
-  addLearner: 'विद्यार्थी जोड़ें',
-  existingLearner: 'सहेजा विद्यार्थी चुनें',
-  newLearner: 'एक और विद्यार्थी जोड़ें',
-  submitRequirement: 'सीखने की ज़रूरत भेजें',
-  requirementSent: 'आपकी ज़रूरत सहेज ली गई है।',
-  requirementSentBody:
-    'उपयुक्त आकलित दायरे वाला ट्यूटर चुनें। ट्यूटर के समय स्वीकार करने पर ही ट्रायल की पुष्टि होगी।',
-  chooseRequirement: 'सीखने की ज़रूरत',
-  requestTrial: 'ट्रायल का अनुरोध करें',
-  startTime: 'पसंदीदा तारीख और समय',
-  timezone: 'यह आपके उपकरण के समय क्षेत्र में है। सत्र का रिकॉर्ड भारतीय समय में दिखेगा।',
-  terms: 'मैं विकास ट्रायल की शर्तों से सहमत हूँ।',
-  termsBody:
-    'एक ऑनलाइन गणित सत्र, 60 मिनट, ₹0। पूरा होने से पहले कोई भी पक्ष रद्द कर सकता है। मेंटर समीक्षा शामिल है। भुगतान या नियमित ट्यूशन नामांकन नहीं।',
-  requestSent: 'ट्रायल अनुरोध भेजा — ट्यूटर की स्वीकृति बाकी',
-  acceptTrial: 'समय स्वीकार और पुष्ट करें',
-  cancelTrial: 'ट्रायल रद्द करें',
-  lessonNotes: 'विद्यार्थी ने क्या अभ्यास किया?',
-  nextSteps: 'अभ्यास और पढ़ाई के अगले कदम',
-  completeLesson: 'विकास पाठ दर्ज करें',
-  simulation:
-    'विकास परीक्षण के लिए तय समय से पहले पाठ दर्ज किया जा सकता है। इससे वास्तविक उपस्थिति का दावा नहीं होता।',
-  reviewNotes: 'अकादमिक समीक्षा और प्रमाण',
-  publishReview: 'समीक्षित प्रगति परिवार से साझा करें',
-  reviewedProgress: 'समीक्षित सीखने की प्रगति',
-  practiceNext: 'आगे क्या करना है',
-  pendingReview: 'पाठ का विवरण यहाँ दिखने से पहले अकादमिक मेंटर उसकी समीक्षा करेंगे।',
-  actionSuccess: 'सर्वर ने यह कार्रवाई सहेज ली है।',
-  actionError: 'यह कार्रवाई पूरी नहीं हुई।',
-  invalidFields: 'कृपया बताए गए फ़ील्ड जाँचें।',
-  required: 'कृपया यह जानकारी भरें।',
-  savedRequirements: 'सहेजी गई ज़रूरतें',
-  audit: 'निर्णयों का इतिहास',
-  noAudit: 'अभी कोई निर्णय दर्ज नहीं',
-  detail: 'विवरण देखें',
-  choose: 'चुनें',
-  empty: 'अभी कोई जानकारी नहीं',
-  wait: 'अगले कदम की प्रतीक्षा',
-  unavailable: 'अभी उपलब्ध नहीं',
-  showcaseTitle: 'सोच-समझकर बनाई गई घटक प्रणाली।',
-  showcaseBody: 'दोबारा उपयोग योग्य डिज़ाइन, सुलभ नियंत्रण और स्पष्ट स्थितियाँ। केवल उदाहरण।',
-  controls: 'नियंत्रण',
-  states: 'प्रतिक्रिया और स्थितियाँ',
-  dialog: 'उदाहरण संवाद खोलें',
-  dialogTitle: 'एक केंद्रित बातचीत',
-  dialogBody: 'इस संवाद में फ़ोकस रहता है। Escape से बंद होकर फ़ोकस पुराने बटन पर लौटता है।',
-  badge: 'अकादमिक समीक्षा',
-  policyTitle: 'गोपनीयता और संचालन नीतियाँ',
-  policyBody:
-    'मसौदा — विशेषज्ञ और संचालक की समीक्षा आवश्यक है। यहाँ काल्पनिक रिकॉर्ड हैं। वास्तविक बच्चों की जानकारी न भरें। सहमति, अभिभावक सत्यापन, डेटा रखने, सुरक्षा, रद्द करने और भुगतान की नीतियाँ अभी प्रकाशित नहीं हैं।',
-  standardsTitle: 'स्वीकृति का स्पष्ट अर्थ होना चाहिए।',
-  standardsBody:
-    'ट्यूटर आवेदन करते हैं, सौंपे गए अकादमिक आकलनकर्ता प्रमाण दर्ज करते हैं और स्वीकृति तय विषय, कक्षाओं व माध्यम तक सीमित होती है। भुगतान से स्वीकृति नहीं खरीदी जा सकती।',
-  approachTitle: 'समझें। योजना बनाएँ। पढ़ाएँ। समीक्षा करें।',
-  approachBody:
-    'विद्यार्थी की वर्तमान समझ से शुरुआत करें। अभ्यास दर्ज करें, कठिनाई पहचानें और स्पष्ट अगला कदम तय करें। प्रमाण और मानवीय समीक्षा योजना को दिशा देते हैं।',
-  notFound: 'यह पृष्ठ नहीं मिला',
-  returnHome: 'मुख्य पृष्ठ पर लौटें',
-  all: 'सभी',
-  selected: 'चुना गया विद्यार्थी',
-  until: 'दायरे की समीक्षा की तारीख',
-  noFounder: 'संचालक की समीक्षा के बाद संस्थापक और वास्तविक सेवा क्षेत्र की जानकारी प्रकाशित होगी।',
-  topic: 'भिन्न और अनुपात की समझ',
-  lesson: 'पाठ के प्रमाण',
-  recorded: 'दर्ज',
-  selectTutor: 'ट्यूटर चुनें',
-  resumeDraft: 'आपका सहेजा मसौदा तैयार है।',
-  currentFocus: 'अभी सीखने का विषय',
-  recentActivity: 'हाल के निर्णय',
-  profilePrivate: 'दायरे की स्वीकृति तक आवेदन निजी है।',
-  pipeline: 'आवेदन → आकलन → दायरे की स्वीकृति',
-  emptyProgress: 'पहले पाठ के बाद समीक्षित प्रगति यहाँ दिखेगी।',
-  viewWorkspace: 'मेरा कार्यक्षेत्र खोलें',
-  aboutPreview: 'पूर्वावलोकन के बारे में',
-  support: 'सहयोग और संपर्क',
-  supportBody:
-    'वास्तविक संपर्क जानकारी और सुरक्षा प्रक्रिया अभी तय नहीं हैं। यह पूर्वावलोकन सेवा या आपातकालीन रिपोर्ट स्वीकार नहीं करता।',
-  failureConflict: 'यह समय पहले से आरक्षित है। दूसरा समय चुनें।',
-  failureScope: 'यह शिक्षण दायरा अब उपलब्ध नहीं है। स्वीकृत ट्यूटर चुनें।',
-  failureLimit: 'बहुत अधिक प्रयास हुए। एक मिनट बाद फिर प्रयास करें।',
-  failureValidation: 'अपनी जानकारी जाँचकर फिर प्रयास करें।',
-  loadingSave: 'सर्वर की पुष्टि की प्रतीक्षा करें।',
-  welcome: 'आपकी पढ़ाई, केंद्र में',
-}
-import { parentEN, parentHI } from './parent'
-import { experienceEN, experienceHI } from './experience'
-import { authEN, authHI } from './auth'
-import { homeEN, homeHI } from './home'
-import { workspaceEN, workspaceHI } from './workspace'
-import { tuitionEN, tuitionHI } from './tuition'
-import { billingEN, billingHI } from './billing'
-import { casesEN, casesHI } from './cases'
-import { accountEN, accountHI } from './account'
-import { filesEN, filesHI } from './files'
-import { auditEN, auditHI } from './audit'
-import { staffEN, staffHI } from './staff'
-import { applicationEN, applicationHI } from './application'
-let language = 'en'
+
+import { parentEN } from './parent'
+import { experienceEN } from './experience'
+import { authEN } from './auth'
+import { homeEN } from './home'
+import { workspaceEN } from './workspace'
+import { tuitionEN } from './tuition'
+import { billingEN } from './billing'
+import { casesEN } from './cases'
+import { accountEN } from './account'
+import { filesEN } from './files'
+import { auditEN } from './audit'
+import { staffEN } from './staff'
+import { applicationEN } from './application'
+import { feesEN } from './fees'
+// Remove obsolete browser preferences; the interface now always uses English.
 try {
-  language = localStorage.getItem('language') === 'hi' ? 'hi' : 'en'
+  localStorage.removeItem('language')
 } catch {
-  /* preference persistence is optional */
+  /* storage may be unavailable */
 }
 void i18n.use(initReactI18next).init({
   resources: {
@@ -647,40 +345,16 @@ void i18n.use(initReactI18next).init({
         ...auditEN,
         ...staffEN,
         ...applicationEN,
+        ...feesEN,
         ...parentEN,
         ...experienceEN,
       },
     },
-    hi: {
-      translation: {
-        ...hi,
-        ...authHI,
-        ...homeHI,
-        ...workspaceHI,
-        ...tuitionHI,
-        ...billingHI,
-        ...casesHI,
-        ...accountHI,
-        ...filesHI,
-        ...auditHI,
-        ...staffHI,
-        ...applicationHI,
-        ...parentHI,
-        ...experienceHI,
-      },
-    },
   },
-  lng: language,
+  lng: 'en',
+  supportedLngs: ['en'],
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
 })
-document.documentElement.lang = language
-i18n.on('languageChanged', (lng) => {
-  document.documentElement.lang = lng
-  try {
-    localStorage.setItem('language', lng)
-  } catch {
-    /* optional */
-  }
-})
+document.documentElement.lang = 'en'
 export default i18n

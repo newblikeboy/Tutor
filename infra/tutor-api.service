@@ -1,5 +1,5 @@
 [Unit]
-Description=Tutor Platform Go API
+Description=TheGyanSetu Go API
 After=network-online.target
 Wants=network-online.target
 

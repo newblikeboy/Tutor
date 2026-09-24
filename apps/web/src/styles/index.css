@@ -3,10 +3,10 @@
   --color-navy: #13213c;
   --color-teal: #076b76;
   --color-paper: #f8f7f4;
-  --font-sans: Manrope, 'Noto Sans Devanagari', sans-serif;
+  --font-sans: Manrope, sans-serif;
 }
 :root {
-  font-family: Manrope, 'Noto Sans Devanagari', sans-serif;
+  font-family: Manrope, sans-serif;
   color: #152238;
   background: #f8f7f4;
   font-synthesis: none;
@@ -318,17 +318,6 @@ textarea[aria-invalid='true'] {
   display: flex;
   align-items: center;
   gap: 20px;
-}
-.language-button {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: none;
-  border: 0;
-  min-height: 44px;
-  color: var(--navy);
-  font-size: 13px;
-  font-weight: 600;
 }
 .sign-link {
   font-size: 13px;
@@ -1836,34 +1825,6 @@ footer {
   font-size: 12px;
   margin-top: 5px;
 }
-html[lang='hi'] {
-  font-family: 'Noto Sans Devanagari', Manrope, sans-serif;
-}
-html[lang='hi'] h1,
-html[lang='hi'] h2,
-html[lang='hi'] h3 {
-  letter-spacing: -0.3px;
-  line-height: 1.5;
-}
-html[lang='hi'] .hero-copy h1 {
-  font-size: clamp(38px, 4vw, 58px);
-  line-height: 1.4;
-}
-html[lang='hi'] .eyebrow {
-  letter-spacing: 0.7px;
-}
-html[lang='hi'] .hero-assurance {
-  line-height: 1.8;
-}
-html[lang='hi'] .btn {
-  line-height: 1.75;
-}
-html[lang='hi'] .plan-paper h2 {
-  font-size: 23px;
-}
-html[lang='hi'] .preview-label {
-  letter-spacing: 0.6px;
-}
 @media (min-width: 1440px) {
   .hero {
     padding-block: 80px 94px;
@@ -2136,13 +2097,6 @@ html[lang='hi'] .preview-label {
     gap: 6px;
   }
   .sign-link {
-    display: none;
-  }
-  .language-button {
-    font-size: 12px;
-    padding: 7px 5px;
-  }
-  .language-button svg {
     display: none;
   }
   .hero {
@@ -2667,34 +2621,6 @@ html[lang='hi'] .preview-label {
   .footer-session {
     gap: 12px;
   }
-  html[lang='hi'] .hero-copy h1 {
-    font-size: 45px;
-    line-height: 1.38;
-  }
-  html[lang='hi'] .hero-assurance {
-    font-size: 9px;
-  }
-  html[lang='hi'] .hero-assurance > span:last-child {
-    padding: 0;
-  }
-  html[lang='hi'] .topic-steps {
-    font-size: 9px;
-  }
-  html[lang='hi'] .plan-paper h2 {
-    font-size: 24px;
-  }
-  html[lang='hi'] .page-heading h1 {
-    font-size: 30px;
-  }
-  html[lang='hi'] .badge {
-    line-height: 1.9;
-  }
-  html[lang='hi'] .tutor-bottom .text-link {
-    font-size: 12px;
-  }
-  html[lang='hi'] .header-inner {
-    min-height: 85px;
-  }
 }
 @media (max-width: 380px) {
   .container,
@@ -2763,17 +2689,8 @@ html[lang='hi'] .preview-label {
   .header-actions {
     gap: 0;
   }
-  .language-button {
-    font-size: 11px;
-  }
   .scope-grid {
     grid-template-columns: 1fr 1fr;
-  }
-  html[lang='hi'] .hero-copy h1 {
-    font-size: 40px;
-  }
-  html[lang='hi'] .hero-assurance {
-    font-size: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

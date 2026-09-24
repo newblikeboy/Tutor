@@ -3,14 +3,12 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { QueryClientProvider, useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ArrowUpRight, Languages, Menu } from 'lucide-react'
+import { ArrowUpRight, Menu } from 'lucide-react'
 import './locales'
 import '@fontsource/manrope/latin-400.css'
 import '@fontsource/manrope/latin-500.css'
 import '@fontsource/manrope/latin-600.css'
 import '@fontsource/manrope/latin-700.css'
-import '@fontsource/noto-sans-devanagari/devanagari-400.css'
-import '@fontsource/noto-sans-devanagari/devanagari-600.css'
 import './styles/index.css'
 import './styles/home.css'
 import { queryClient, send, setCSRF } from './lib/api'
@@ -66,7 +64,7 @@ function SiteRoutes() {
   )
 }
 function Layout() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const auth = useAuth()
   const config = useConfig()
   const location = useLocation()
@@ -148,14 +146,6 @@ function Layout() {
             {navigation}
           </nav>
           <div className="header-actions">
-            <button
-              className="language-button"
-              onClick={() => void i18n.changeLanguage(i18n.language === 'en' ? 'hi' : 'en')}
-              lang={i18n.language === 'en' ? 'hi' : 'en'}
-            >
-              <Languages size={17} />
-              {t('language')}
-            </button>
             <Link className="sign-link" to={auth.data ? '/workspace' : '/login'}>
               {auth.data ? t('workspace') : t('login')}
               <ArrowUpRight size={16} />

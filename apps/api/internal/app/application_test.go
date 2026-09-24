@@ -42,6 +42,7 @@ func TestApplicationValidation(t *testing.T) {
 		name, key string
 		change    func(*domain.TutorApplication)
 	}{
+		{"oversized photo link", "about.photoFileId", func(p *domain.TutorApplication) { p.About.PhotoFileID = strings.Repeat("x", 101) }},
 		{"too many education files", "education.educationFileIds", func(p *domain.TutorApplication) {
 			p.Education.EducationFileIDs = []string{"1", "2", "3", "4", "5", "6", "7"}
 		}},
@@ -50,7 +51,6 @@ func TestApplicationValidation(t *testing.T) {
 		{"missing home service", "availability.home.localities", func(p *domain.TutorApplication) { p.Availability.Home.Localities = nil }},
 		{"missing online readiness", "availability.online.camera", func(p *domain.TutorApplication) { p.Availability.Online.Camera = "" }},
 		{"invalid requested mode", "teachingAreas.0.modes", func(p *domain.TutorApplication) { p.TeachingAreas[0].Modes = []string{"approved"} }},
-		{"fee missing for mode", "fees.rates", func(p *domain.TutorApplication) { p.Fees.Rates = p.Fees.Rates[:1] }},
 		{"overlapping slots", "availability.slots.1.start", func(p *domain.TutorApplication) {
 			p.Availability.Slots = append(p.Availability.Slots, domain.ApplicationSlot{Day: 1, Start: "17:00", End: "19:00"})
 		}},
@@ -186,7 +186,7 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 	if !slices.Equal(stored.Profile.Availability.Home.Localities, []string{"Line Bazar", "Bhatta Bazar"}) {
 		t.Fatal("submitted locality formatting was not normalized")
 	}
-	if !stored.Profile.HasMode("home") || !stored.Profile.HasMode("online") || stored.Profile.Fees.Rates[0].AmountPaise != 50000 || stored.Eligibility.Status != "pending" || stored.Submission == nil || stored.Submission.Marketing || stored.Scope.Mode != "" {
+	if !stored.Profile.HasMode("home") || !stored.Profile.HasMode("online") || len(stored.Profile.Fees.Rates) != 0 || stored.Profile.Fees.Preference != "staff" || stored.Fees != nil || stored.Eligibility.Status != "pending" || stored.Submission == nil || stored.Submission.Marketing || stored.Scope.Mode != "" {
 		t.Fatal("application receipt or requested preferences incorrect")
 	}
 	filtered := admin.ok("GET", "/staff/applications?mode=home", nil, 200)
@@ -215,5 +215,6 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	mentor.setTestFees("tutor-a", 0)
 	mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 200)
 }

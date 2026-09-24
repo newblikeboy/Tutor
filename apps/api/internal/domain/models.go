@@ -42,9 +42,11 @@ type Application struct {
 	FormStep      int                 `json:"formStep" bson:"formStep"`
 	Submission    *ApplicationReceipt `json:"submission" bson:"submission,omitempty"`
 	Eligibility   *EligibilityReview  `json:"eligibility" bson:"eligibility,omitempty"`
+	Fees          *TutorFees          `json:"fees" bson:"fees,omitempty"`
 	Attachments   []PrivateFile       `json:"-" bson:"attachments,omitempty"`
 }
 type PublicTutor struct {
+	FeePlans     []FeePlan `json:"feePlans"`
 	ID           string    `json:"id"`
 	Name         string    `json:"name"`
 	Approach     string    `json:"approach"`
@@ -56,7 +58,7 @@ type PublicTutor struct {
 }
 
 func (a Application) Public() PublicTutor {
-	return PublicTutor{a.ID, a.Name, a.Approach, a.Language, a.Experience, a.Scope, a.AssessmentAt, a.Sample}
+	return PublicTutor{a.FeePlans(), a.ID, a.Name, a.Approach, a.Language, a.Experience, a.Scope, a.AssessmentAt, a.Sample}
 }
 
 type Consent struct {

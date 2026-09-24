@@ -5,24 +5,24 @@ import { mkdir } from 'node:fs/promises'
 const password = 'E2E-only learning passphrase 426!'
 
 for (const language of ['en', 'hi']) {
-  test(`new ${language} parent signs up, signs out and signs in with persisted credentials`, async ({
+  test(`parent with legacy ${language} preference signs up, signs out and signs in with persisted credentials`, async ({
     page,
   }) => {
     const hi = language === 'hi'
     await page.setViewportSize({ width: hi ? 390 : 1440, height: 1000 })
     await page.addInitScript((value) => localStorage.setItem('language', value), language)
     await page.goto('/signup')
-    await expect(page.getByLabel(hi ? 'पूरा नाम' : 'Full name')).toBeVisible()
+    await expect(page.getByLabel('Full name')).toBeVisible()
     await page.evaluate(() => document.fonts.ready)
     await mkdir('docs/visual-qa', { recursive: true })
     await page.screenshot({
-      path: `docs/visual-qa/signup-${language}-${hi ? 'mobile' : 'desktop'}.png`,
+      path: `docs/visual-qa/english-only/signup-en-${hi ? 'mobile' : 'desktop'}.png`,
       fullPage: true,
     })
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
-    const name = page.getByLabel(hi ? 'पूरा नाम' : 'Full name', { exact: true })
-    const email = page.getByLabel(hi ? 'ईमेल पता' : 'Email address', { exact: true })
-    const secret = page.getByLabel(hi ? 'पासवर्ड' : 'Password', { exact: true })
+    const name = page.getByLabel('Full name', { exact: true })
+    const email = page.getByLabel('Email address', { exact: true })
+    const secret = page.getByLabel('Password', { exact: true })
     const address = `new-parent-${language}@example.test`
     await name.fill(hi ? 'काल्पनिक अभिभावक' : 'Fictional parent')
     await name.press('Tab')
@@ -32,29 +32,25 @@ for (const language of ['en', 'hi']) {
     await expect(secret).toBeFocused()
     await secret.fill('short')
     await page.getByRole('checkbox').check()
-    await page
-      .getByRole('button', { name: hi ? 'खाता बनाएँ' : 'Create account', exact: true })
-      .click()
+    await page.getByRole('button', { name: 'Create account', exact: true }).click()
     await expect(secret).toHaveAttribute('aria-invalid', 'true')
     await expect(page).toHaveURL(/signup/)
     await secret.fill(password)
-    await page.getByRole('button', { name: hi ? 'पासवर्ड दिखाएँ' : 'Show password' }).click()
+    await page.getByRole('button', { name: 'Show password' }).click()
     await expect(secret).toHaveAttribute('type', 'text')
-    await page.getByRole('button', { name: hi ? 'पासवर्ड छिपाएँ' : 'Hide password' }).click()
+    await page.getByRole('button', { name: 'Hide password' }).click()
     await expect(secret).toHaveAttribute('type', 'password')
-    await page
-      .getByRole('button', { name: hi ? 'खाता बनाएँ' : 'Create account', exact: true })
-      .click()
+    await page.getByRole('button', { name: 'Create account', exact: true }).click()
     await expect(page).toHaveURL(/workspace/)
     const account = await (await page.request.get('/api/v1/auth/session')).json()
     expect(account.user.email).toBe(address)
     expect(account.user.role).toBe('parent')
-    await page.getByRole('button', { name: hi ? 'साइन आउट' : 'Sign out', exact: true }).click()
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click()
     await expect(page).toHaveURL('/')
     await page.goto('/login')
     await email.fill(address)
     await secret.fill(password)
-    await page.getByRole('button', { name: hi ? 'साइन इन करें' : 'Sign in', exact: true }).click()
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(page).toHaveURL(/workspace/)
     await page.reload()
     expect((await (await page.request.get('/api/v1/auth/session')).json()).user.id).toBe(
@@ -96,7 +92,10 @@ test('login errors preserve inputs, network retry works, and recovery help is ho
   await expect(page.getByRole('alert')).toContainText('That email and password don’t match.')
   await expect(email).toHaveValue('parent-a@example.test')
   await secret.clear()
-  await page.screenshot({ path: 'docs/visual-qa/login-error-desktop.png', fullPage: true })
+  await page.screenshot({
+    path: 'docs/visual-qa/english-only/login-error-desktop.png',
+    fullPage: true,
+  })
   await page.getByRole('button', { name: 'Trouble signing in?' }).click()
   await expect(page.getByRole('dialog')).toContainText('Password recovery is not available')
   await page.keyboard.press('Escape')

@@ -1164,6 +1164,7 @@ export interface components {
             /** Format: date-time */
             assessmentAt: string;
             sample: boolean;
+            feePlans: components["schemas"]["FeePlan"][];
         };
         Application: {
             id: string;
@@ -1192,6 +1193,7 @@ export interface components {
             formStep: number;
             submission: components["schemas"]["ApplicationReceipt"] | null;
             eligibility: components["schemas"]["EligibilityReview"] | null;
+            fees: components["schemas"]["TutorFees"] | null;
         };
         Learner: {
             id: string;
@@ -1323,7 +1325,7 @@ export interface components {
         };
         DecisionInput: {
             /** @enum {string} */
-            action: "review" | "assign" | "confirm_conflict" | "schedule" | "reschedule" | "cancel_interview" | "no_show" | "assess" | "approve" | "improve" | "decline" | "suspend" | "reinstate" | "terminate" | "reopen" | "note" | "eligibility";
+            action: "review" | "assign" | "confirm_conflict" | "schedule" | "reschedule" | "cancel_interview" | "no_show" | "assess" | "approve" | "improve" | "decline" | "suspend" | "reinstate" | "terminate" | "reopen" | "note" | "eligibility" | "fees";
             version: number;
             reason?: string;
             evidence?: string;
@@ -1336,6 +1338,7 @@ export interface components {
             interview?: components["schemas"]["Interview"];
             /** @enum {string} */
             eligibility?: "cleared" | "blocked";
+            feePlans?: components["schemas"]["FeePlan"][];
         };
         ConsentInput: {
             /** @enum {string} */
@@ -1413,6 +1416,8 @@ export interface components {
             paused: boolean;
             feePaise: number;
             version: number;
+            feePlan: components["schemas"]["FeePlan"] | null;
+            feeVersion: number;
         };
         RecurrenceInput: {
             startDate: string;
@@ -1470,6 +1475,7 @@ export interface components {
             offeringVersion: number;
             /** @constant */
             accepted: true;
+            feeVersion: number;
         };
         EnrollmentAction: {
             /** @enum {string} */
@@ -1831,6 +1837,7 @@ export interface components {
             evidence: string;
             scope: components["schemas"]["Scope"] | null;
             eligibility?: components["schemas"]["EligibilityReview"] | null;
+            fees: components["schemas"]["TutorFees"] | null;
         };
         StaffEvents: {
             items: components["schemas"]["StaffEvent"][];
@@ -1865,6 +1872,7 @@ export interface components {
             city: string;
             locality: string;
             pin: string;
+            photoFileId: string;
             communicationLanguages: string[];
         };
         ApplicantEducation: {
@@ -1987,6 +1995,31 @@ export interface components {
         OwnApplication: {
             application: components["schemas"]["Application"] | null;
             noticeVersion: string;
+        };
+        FeePlan: {
+            /** @enum {unknown} */
+            mode: "online" | "home";
+            /** @enum {unknown} */
+            period: "hour" | "week" | "month";
+            amountPaise: number;
+            classes: number;
+            minutes: number;
+        };
+        TutorFees: {
+            plans: components["schemas"]["FeePlan"][];
+            version: number;
+            setBy: string;
+            /** Format: date-time */
+            setAt: string;
+        };
+        AvailabilityInput: {
+            timezone: string;
+            windows: components["schemas"]["WeeklyWindow"][];
+            leaveDates: string[];
+            bufferMinutes: number;
+            dailyCapacity: number;
+            paused: boolean;
+            version: number;
         };
     };
     responses: never;
@@ -2734,7 +2767,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Availability"];
+                "application/json": components["schemas"]["AvailabilityInput"];
             };
         };
         responses: {

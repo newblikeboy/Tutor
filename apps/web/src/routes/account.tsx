@@ -65,15 +65,13 @@ export default function Account() {
   )
 }
 function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => void }) {
-  const { t, i18n } = useTranslation(),
-    [name, setName] = useState(data.name),
-    [language, setLanguage] = useState(data.preferences.language)
+  const { t } = useTranslation(),
+    [name, setName] = useState(data.name)
   const save = useMutation({
     mutationFn: () =>
-      send('/account', { name, language, version: data.preferences.version }, 'PUT'),
+      send('/account', { name, language: 'en', version: data.preferences.version }, 'PUT'),
     onSuccess: async () => {
       onSaved()
-      await i18n.changeLanguage(language)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['account'] }),
         queryClient.invalidateQueries({ queryKey: ['me'] }),
@@ -103,16 +101,6 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
         </Field>
         <Field label={t('account.email')} hint={t('account.emailHelp')}>
           <input value={data.email} type="email" readOnly autoComplete="email" />
-        </Field>
-        <Field label={t('account.language')}>
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as 'en' | 'hi')}
-            disabled={save.isPending}
-          >
-            <option value="en">English</option>
-            <option value="hi">हिन्दी</option>
-          </select>
         </Field>
         <MutationError error={save.error} />
         <Button busy={save.isPending}>{t('account.save')}</Button>

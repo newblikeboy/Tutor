@@ -1,6 +1,31 @@
 import { expect, type Page } from '@playwright/test'
 import { emptyApplication } from '../../../apps/web/src/lib/application'
 export const noticeVersion = 'application-2026-09-23-v1-draft'
+export async function fillStaffFees(page: Page) {
+  const form = page.getByRole('form', { name: 'Tutor fees', exact: true })
+  await expect(form.getByRole('button', { name: 'Save fees' })).toBeEnabled()
+  await form
+    .getByRole('group', { name: 'Online · hourly', exact: true })
+    .getByLabel('Fee (₹)')
+    .fill('400')
+  for (const [period, amount, classes] of [
+    ['weekly', '1500', '3'],
+    ['monthly', '5000', '12'],
+  ]) {
+    const group = form.getByRole('group', { name: `Home Tuition · ${period}`, exact: true })
+    if (await group.count()) {
+      await group.getByLabel('Fee (₹)').fill(amount)
+      await group.getByLabel('Classes included').fill(classes)
+      await group.getByLabel('Minutes per class').fill('60')
+    }
+  }
+  const saved = page.waitForResponse(
+    (r) => r.url().endsWith('/decision') && r.request().method() === 'POST',
+  )
+  await form.getByRole('button', { name: 'Save fees' }).click()
+  expect((await saved).status()).toBe(200)
+  await expect(page.getByRole('form', { name: 'Approve tutor', exact: true })).toBeVisible()
+}
 export function applicationProfile(name: string) {
   const p = emptyApplication(name, noticeVersion)
   Object.assign(p.about, {
@@ -63,11 +88,6 @@ export function applicationProfile(name: string) {
     understanding: 'I ask them to explain the idea and solve another example.',
     assessmentSlots: [{ day: 2, start: '16:00', end: '18:00' }],
   })
-  p.fees.preference = 'expected'
-  p.fees.rates = [
-    { areaId: 'math', mode: 'home', amountPaise: 50000 },
-    { areaId: 'math', mode: 'online', amountPaise: 40000 },
-  ]
   Object.assign(p.declarations, { accuracy: true, conduct: true, dataUse: true })
   return p
 }
@@ -87,7 +107,6 @@ export async function fillApplication(
         'What you can teach',
         'Time & location',
         'Teaching approach',
-        'Your fees',
         'Check & submit',
       ][step + 1],
     )
@@ -98,13 +117,13 @@ export async function fillApplication(
   await page.getByLabel('Hindi', { exact: true }).check()
   await next(0)
   await page.getByLabel('Highest completed qualification').fill('BSc')
-  await page.getByLabel('Subject / specialisation').fill('Mathematics')
+  await page.getByLabel('Main subject or specialisation').fill('Mathematics')
   await page.getByLabel('Institution', { exact: true }).fill('Fictional test college')
   await page.getByLabel('Year completed').fill('2020')
   await page.getByLabel('Currently studying?').selectOption('no')
   await page.getByLabel('I am new to tutoring').check()
   await page.getByLabel('Current occupation').selectOption('independent_tutor')
-  await page.getByLabel('Restrictions on outside teaching').selectOption('none')
+  await page.getByLabel('Does your job restrict private tutoring?').selectOption('none')
   await next(1)
   await page.getByRole('button', { name: 'Add teaching area' }).click()
   await page.getByLabel('Subject', { exact: true }).selectOption('Mathematics')
@@ -114,20 +133,20 @@ export async function fillApplication(
   await page.getByLabel('Hindi', { exact: true }).check()
   await page.getByLabel('Home Tuition', { exact: true }).check()
   await page.getByLabel('Online', { exact: true }).check()
-  await page.getByLabel('Have you taught this area before?').selectOption('no')
-  await page.getByLabel('First area for assessment').selectOption({ index: 1 })
+  await page.getByLabel('Have you taught this subject and class range?').selectOption('no')
+  await page.getByLabel('Subject to assess first').selectOption({ index: 1 })
   await next(2)
   await page.getByRole('button', { name: 'Add time slot' }).click()
   await page.getByLabel('Earliest start date').fill(p.availability.earliestStart)
   await page.getByLabel('Hours available per week').fill('10')
   await page.getByLabel('Additional students you can take').fill('3')
-  await page.getByLabel('Teaching commitment').selectOption('ongoing')
+  await page.getByLabel('How long can you teach with us?').selectOption('ongoing')
   await page.getByLabel('60', { exact: true }).check()
   await page.getByLabel('Your locality').fill('Line Bazar')
   await page.getByLabel('PIN code').fill('854301')
   await page.getByLabel('Service localities').fill('Line Bazar\nBhatta Bazar')
   await page.getByLabel('Maximum travel distance').fill('5')
-  await page.getByLabel('Travel charges', { exact: true }).selectOption('included')
+  await page.getByLabel('Travel cost preference', { exact: true }).selectOption('included')
   await page.getByLabel('Travel buffer between classes').fill('30')
   for (const [label, value] of [
     ['Primary device', 'laptop'],
@@ -145,15 +164,11 @@ export async function fillApplication(
   await page.getByLabel('How do you check understanding?').fill(p.approach.understanding)
   await page.getByRole('button', { name: 'Add time slot' }).click()
   await next(4)
-  await page.getByLabel('Fee preference').selectOption('expected')
-  await page.getByLabel('Mathematics · 6–10 · Home Tuition', { exact: true }).fill('500')
-  await page.getByLabel('Mathematics · 6–10 · Online', { exact: true }).fill('400')
-  await next(5)
   await expect(page.getByLabel('Send me optional opportunities and updates.')).not.toBeChecked()
   await page.getByLabel('My information is accurate.').check()
-  await page.getByLabel('I agree to the conduct standards below.').check()
-  await page.getByLabel('I agree to the application data use described below.').check()
-  if (capture) await capture(6)
+  await page.getByLabel('I agree to the conduct standards in this notice.').check()
+  await page.getByLabel('I agree to the application data use described in this notice.').check()
+  if (capture) await capture(5)
   await page.getByRole('button', { name: 'Submit application', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Application received' })).toBeVisible()
 }

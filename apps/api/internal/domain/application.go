@@ -23,6 +23,7 @@ type ApplicantAbout struct {
 	City                   string   `json:"city" bson:"city"`
 	Locality               string   `json:"locality" bson:"locality"`
 	PIN                    string   `json:"pin" bson:"pin"`
+	PhotoFileID            string   `json:"photoFileId" bson:"photoFileId"`
 	CommunicationLanguages []string `json:"communicationLanguages" bson:"communicationLanguages"`
 }
 type ApplicantEducation struct {

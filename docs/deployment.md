@@ -28,7 +28,7 @@ Production backend environment must include:
 
 ```dotenv
 APP_ENV=production
-APP_NAME=Tutor Platform
+APP_NAME=TheGyanSetu
 HTTP_ADDR=127.0.0.1:8080
 WEB_ORIGIN=https://your-reviewed-domain.example
 MONGODB_URI=<private Atlas SRV connection>

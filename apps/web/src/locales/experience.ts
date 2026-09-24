@@ -20,25 +20,3 @@ export const experienceEN = {
     practice: 'Practice for next time',
   },
 }
-export const experienceHI = {
-  experience: {
-    profile: 'प्रोफ़ाइल',
-    password: 'पासवर्ड',
-    signIns: 'साइन-इन',
-    section: 'आवेदन का भाग',
-    teachingHours: 'पढ़ाने का समय',
-    limits: 'फीस और कक्षा की सीमा',
-    addLeave: 'तारीख जोड़ें',
-    removeLeave: '{{date}} हटाएँ',
-    leaveDate: 'छुट्टी की तारीख',
-    leave: 'छुट्टियाँ',
-    india: 'भारतीय समय (IST)',
-    requests: '{{count}} ट्रायल अनुरोध',
-    reviewRequests: 'अनुरोध देखें',
-    status: 'स्थिति',
-    application: 'आवेदन',
-    documents: 'दस्तावेज़',
-    lesson: 'कक्षा के नोट्स',
-    practice: 'अगली बार के लिए अभ्यास',
-  },
-}

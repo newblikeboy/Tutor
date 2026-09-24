@@ -1,11 +1,10 @@
 export const accountEN = {
   'account.title': 'Account',
-  'account.intro': 'Your details, your language, and control over where you are signed in.',
+  'account.intro': 'Your details and control over where you are signed in.',
   'account.details': 'Profile',
   'account.name': 'Your name',
   'account.email': 'Sign-in email',
   'account.emailHelp': 'To change your email, contact support.',
-  'account.language': 'Preferred language',
   'account.save': 'Save preferences',
   'account.saved': 'Your preferences are saved.',
   'account.security': 'Change password',
@@ -28,35 +27,4 @@ export const accountEN = {
   'account.recoveryBody':
     'Recovery email and staff multi-factor setup still need operator configuration. A support request does not reset a password.',
   'account.support': 'Open support & requests',
-}
-export const accountHI = {
-  'account.title': 'खाता',
-  'account.intro': 'अपनी जानकारी, भाषा और सक्रिय साइन-इन का नियंत्रण रखें।',
-  'account.details': 'प्रोफ़ाइल',
-  'account.name': 'आपका नाम',
-  'account.email': 'साइन-इन ईमेल',
-  'account.emailHelp': 'ईमेल बदलने के लिए सहायता लें।',
-  'account.language': 'पसंदीदा भाषा',
-  'account.save': 'पसंद सहेजें',
-  'account.saved': 'आपकी पसंद सहेज दी गई है।',
-  'account.security': 'पासवर्ड बदलें',
-  'account.securityBody': 'पासवर्ड बदलने पर बाकी साइन-इन बंद हो जाएँगे।',
-  'account.current': 'वर्तमान पासवर्ड',
-  'account.new': 'नया पासवर्ड',
-  'account.confirm': 'नया पासवर्ड दोहराएँ',
-  'account.hint': '15–128 अक्षर।',
-  'account.mismatch': 'दोनों नए पासवर्ड एक जैसे नहीं हैं।',
-  'account.changed': 'पासवर्ड बदल गया। अन्य सत्र बंद कर दिए गए हैं।',
-  'account.sessions': 'साइन-इन',
-  'account.sessionsBody':
-    'ये आपके खाते के सक्रिय साइन-इन हैं। सत्र के गुप्त टोकन कभी नहीं दिखाए जाते।',
-  'account.thisSession': 'वर्तमान साइन-इन',
-  'account.otherSession': 'अन्य साइन-इन',
-  'account.expires': 'समाप्ति',
-  'account.revoke': 'यह सत्र बंद करें',
-  'account.revoked': 'चुना हुआ सत्र बंद कर दिया गया है।',
-  'account.recovery': 'खाते में सहायता चाहिए?',
-  'account.recoveryBody':
-    'रिकवरी ईमेल और कर्मचारी बहु-कारक सुरक्षा के लिए संचालक की व्यवस्था बाकी है। सहायता अनुरोध से पासवर्ड नहीं बदलता।',
-  'account.support': 'सहायता और अनुरोध खोलें',
 }

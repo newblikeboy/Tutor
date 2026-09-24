@@ -29,8 +29,11 @@ async function inspect(page: Page, name: string) {
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => window.scrollTo(0, 0))
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await mkdir('docs/visual-qa/product-ux', { recursive: true })
-  await page.screenshot({ path: `docs/visual-qa/product-ux/${name}.png`, fullPage: true })
+  await mkdir('docs/visual-qa/english-only/product-ux', { recursive: true })
+  await page.screenshot({
+    path: `docs/visual-qa/english-only/product-ux/${name}.png`,
+    fullPage: true,
+  })
   const scan = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze()
@@ -124,7 +127,8 @@ test('recurring tuition, learning plan and consented handover stay connected acr
     for (const teacher of [tutor, replacement]) {
       const previous = await (await teacher.request.get('/api/v1/availability')).json()
       await teacher.goto('/availability')
-      await expect(teacher.getByLabel('Fee per class (₹)', { exact: true })).toBeVisible()
+      await expect(teacher.getByLabel('Fee per class (₹)', { exact: true })).toHaveCount(0)
+      await expect(teacher.locator('.tutor-fees')).toBeVisible()
       while (await teacher.getByRole('button', { name: /^Remove teaching time / }).count()) {
         await teacher
           .getByRole('button', { name: /^Remove teaching time / })
@@ -136,7 +140,6 @@ test('recurring tuition, learning plan and consented handover stay connected acr
       await teacher.getByLabel('From', { exact: true }).fill('09:00')
       await teacher.getByLabel('Until', { exact: true }).fill('18:00')
       await teacher.getByLabel('Break between classes').fill('15')
-      await teacher.getByLabel('Fee per class (₹)', { exact: true }).fill('0')
       await teacher.getByRole('button', { name: 'Save schedule' }).click()
       await expect(teacher.getByRole('button', { name: 'Save schedule' })).toBeEnabled()
       await expect
@@ -147,9 +150,9 @@ test('recurring tuition, learning plan and consented handover stay connected acr
     }
     await inspect(tutor, 'tuition-availability-en-desktop')
     await tutor.setViewportSize({ width: 390, height: 844 })
-    await tutor.locator('.language-button').click()
-    await inspect(tutor, 'tuition-availability-hi-mobile')
-    await tutor.locator('.language-button').click()
+    await expect(tutor.locator('.language-button')).toHaveCount(0)
+    await inspect(tutor, 'tuition-availability-en-mobile')
+    await expect(tutor.locator('.language-button')).toHaveCount(0)
     await tutor.setViewportSize({ width: 1440, height: 1000 })
     await parent.goto('/tuition')
     await parent.getByText('Start regular classes', { exact: true }).click()
@@ -162,6 +165,29 @@ test('recurring tuition, learning plan and consented handover stay connected acr
     await parent.getByLabel('Number of classes').fill('3')
     await parent.getByLabel('I have reviewed the schedule').check()
     await inspect(parent, 'tuition-agreement-en-desktop')
+    const staffContext = await browser.newContext({ baseURL: origin })
+    try {
+      const staff = await staffContext.newPage()
+      await signIn(staff, 'admin-a')
+      const review = await (
+        await staff.request.get('/api/v1/staff/applications/tutor-meera')
+      ).json()
+      await write(staff, '/applications/tutor-meera/decision', {
+        action: 'fees',
+        version: review.application.version,
+        feePlans: [{ mode: 'online', period: 'hour', amountPaise: 0, classes: 1, minutes: 60 }],
+      })
+    } finally {
+      await staffContext.close()
+    }
+    const stale = parent.waitForResponse(
+      (r) => r.url().endsWith('/api/v1/enrollments') && r.request().method() === 'POST',
+    )
+    await parent.getByRole('button', { name: 'Send class request' }).click()
+    expect((await stale).status()).toBe(409)
+    await expect(parent.getByLabel('I have reviewed the schedule')).not.toBeChecked()
+    await expect(parent.getByRole('button', { name: 'Send class request' })).toBeEnabled()
+    await parent.getByLabel('I have reviewed the schedule').check()
     await parent.getByRole('button', { name: 'Send class request' }).click()
     await expect(parent).toHaveURL(/\/tuition\/.+/)
     const tuitionURL = new URL(parent.url()).pathname
@@ -173,16 +199,16 @@ test('recurring tuition, learning plan and consented handover stay connected acr
     await inspect(parent, 'tuition-calendar-en-desktop')
     await parent.keyboard.press('Tab')
     await parent.setViewportSize({ width: 390, height: 844 })
-    await parent.locator('.language-button').click()
-    await inspect(parent, 'tuition-calendar-hi-mobile')
+    await expect(parent.locator('.language-button')).toHaveCount(0)
+    await inspect(parent, 'tuition-calendar-en-mobile')
     for (const width of [360, 768, 1024]) {
       await parent.setViewportSize({ width, height: 1000 })
-      await expect(parent.getByRole('tab', { name: 'कक्षाएँ', exact: true })).toBeVisible()
+      await expect(parent.getByRole('tab', { name: 'Classes', exact: true })).toBeVisible()
       expect(await parent.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       )
     }
-    await parent.locator('.language-button').click()
+    await expect(parent.locator('.language-button')).toHaveCount(0)
     await parent.setViewportSize({ width: 1440, height: 1000 })
     const firstClass = parent.locator('.tu-session').first()
     await firstClass.getByRole('button', { name: 'Propose a new time' }).click()
@@ -271,8 +297,8 @@ test('recurring tuition, learning plan and consented handover stay connected acr
     await parent.reload()
     await parent.getByRole('tab', { name: 'Learning plan', exact: true }).click()
     await parent.setViewportSize({ width: 390, height: 844 })
-    await parent.locator('.language-button').click()
-    await inspect(parent, 'tuition-plan-hi-mobile')
+    await expect(parent.locator('.language-button')).toHaveCount(0)
+    await inspect(parent, 'tuition-plan-en-mobile')
   } finally {
     await Promise.all(contexts.map((c) => c.close()))
   }

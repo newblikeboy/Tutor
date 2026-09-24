@@ -9,6 +9,7 @@ import type { Dashboard, Learner, Requirement, Schema, Tutor } from '../lib/api'
 import { useAuth, useDashboard } from '../lib/session'
 import { workspaceLink } from '../lib/workspace'
 import { TrialCard } from '../components/trial-card'
+import { TutorFees } from '../components/tutor-fees'
 import '../styles/parent.css'
 import {
   Alert,
@@ -521,6 +522,9 @@ function TrialRequest({
               required
             />
           </Field>
+          {tutorId && (
+            <TutorFees plans={suitable.find((tutor) => tutor.id === tutorId)?.feePlans} />
+          )}
           <Alert>{t('termsBody')}</Alert>
           <label className="check-label">
             <input

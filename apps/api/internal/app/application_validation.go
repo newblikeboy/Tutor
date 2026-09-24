@@ -72,6 +72,7 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 	text("about.city", b.City, 2, 80)
 	text("about.locality", b.Locality, 0, 120)
 	text("about.pin", b.PIN, 0, 6)
+	text("about.photoFileId", b.PhotoFileID, 0, 100)
 	choices("about.communicationLanguages", b.CommunicationLanguages, true, "Hindi", "English")
 	e := p.Education
 	text("education.qualification", e.Qualification, 2, 120)
@@ -215,33 +216,6 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 		text("approach.demoFileId", a.DemoFileID, 1, 100)
 	}
 	validateApplicationSlots(errors, "approach.assessmentSlots", a.AssessmentSlots, submit)
-	f := p.Fees
-	choice("fees.preference", f.Preference, true, "expected", "guidance")
-	if f.SessionMinutes != 60 {
-		errors["fees.sessionMinutes"] = "choice"
-	}
-	text("fees.comments", f.Comments, 0, 500)
-	if len(f.Rates) > 16 {
-		errors["fees.rates"] = "choice"
-	}
-	seenRates := map[string]bool{}
-	for i, rate := range f.Rates {
-		key := fmt.Sprintf("fees.rates.%d.amountPaise", i)
-		area, exists := areas[rate.AreaID]
-		if !exists || !enum(rate.Mode, area.Modes...) || seenRates[rate.AreaID+":"+rate.Mode] || rate.AmountPaise < 0 || rate.AmountPaise > 10_000_000 || submit && f.Preference == "expected" && rate.AmountPaise < 100 {
-			errors[key] = "rate"
-		}
-		seenRates[rate.AreaID+":"+rate.Mode] = true
-	}
-	if submit && f.Preference == "expected" {
-		for _, area := range p.TeachingAreas {
-			for _, mode := range area.Modes {
-				if !seenRates[area.ID+":"+mode] {
-					errors["fees.rates"] = "required"
-				}
-			}
-		}
-	}
 	if submit {
 		if !p.Declarations.Accuracy {
 			errors["declarations.accuracy"] = "required"

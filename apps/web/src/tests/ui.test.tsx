@@ -35,11 +35,13 @@ describe('accessible component contracts', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(trigger).toHaveFocus()
   })
-  it('renders Hindi status text and sets document language', async () => {
+  it('uses English for an unsupported legacy language', async () => {
     await i18n.changeLanguage('hi')
     render(<Status status="approved" />)
-    expect(screen.getByText('स्वीकृत')).toBeInTheDocument()
-    expect(document.documentElement.lang).toBe('hi')
+    expect(screen.getByText('Approved')).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('en')
+    expect(i18n.resolvedLanguage).toBe('en')
+    expect(i18n.hasResourceBundle('hi', 'translation')).toBe(false)
     await i18n.changeLanguage('en')
   })
 })

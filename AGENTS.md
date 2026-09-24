@@ -1,6 +1,9 @@
 # Project instructions
 
+- Brand name (2026-09-24): **TheGyanSetu**. Preserve this exact spelling/casing throughout visible branding, metadata and configuration defaults.
+- Signed-out private routes (2026-09-24): go directly to sign-in with the requested destination preserved; do not restore the intermediate privacy/sign-in invitation page.
 - User preference (2026-09-23): never use the `update-design` skill. Make requested interface changes directly in this project.
+- User language override (2026-09-24): use English-only interface copy. No language switcher, account language selector or Hindi UI translations. Ignore legacy Hindi display preferences; preserve authored records and teaching-language/subject choices.
 - User UI direction (2026-09-23): no development-preview banner in parent/tutor account or workspace screens, no website-return link in sign-in/private navigation, and concise task-focused copy. Preserve server release gates and labels on actual sample records and development actions.
 - Landing-page direction (2026-09-23): remove its development-preview banner and use the same paper/ink/sage palette with crystal-like highlights, bright surfaces and restrained glass effects. Keep the AI image label and real database-backed tutor discovery.
 
@@ -9,6 +12,7 @@ Read `docs/product-spec.md` in full before extending product scope. Read `docs/p
 - Go + chi REST API only; React/TypeScript strict + Vite frontend; MongoDB Atlas with the official Go driver v2. Node is build/test tooling only.
 - User override (2026-09-23): **no Docker**. GitHub source and CI, DigitalOcean droplet, systemd + Nginx, Atlas. Local replica-set binaries are optional development/test tooling.
 - User override (2026-09-23): **email/password login and signup; no OTP**. Argon2id credentials, opaque sessions, public parent/tutor roles only. Staff remain provisioned; no public selector or automatic tutor approval. Production access stays gated until release review.
+- User fee override (2026-09-24): tutors never set fees. Staff finalize Online hourly and Home Tuition weekly/monthly plans during the interview, including Home class count/duration; parents see staff-confirmed prices for approved scope. Existing agreements keep their saved prices.
 - Tutor registration never implies academic approval. Scope, availability and suspension checks belong on the server. Staff are provisioned, never public-role selectable in production.
 - Guardian-controlled learner data, ownership/assignment checks, HttpOnly sessions, CSRF protection. Never put credentials or learner data in localStorage/logs/public fixtures.
 - Persist actual actions through Go and MongoDB. No mock success, fake payment or production in-memory fallback. Clearly label development adapters and sample records.

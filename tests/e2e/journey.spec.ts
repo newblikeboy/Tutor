@@ -1,4 +1,4 @@
-import { fillApplication } from './helpers/application'
+import { fillApplication, fillStaffFees } from './helpers/application'
 import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -11,10 +11,13 @@ async function login(page: Page, id: string, staff = false) {
   await expect(page).toHaveURL(/workspace/)
 }
 async function capture(page: Page, name: string) {
-  await mkdir('docs/visual-qa/parent-ux/journey', { recursive: true })
+  await mkdir('docs/visual-qa/english-only/parent-ux/journey', { recursive: true })
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => window.scrollTo(0, 0))
-  await page.screenshot({ path: `docs/visual-qa/parent-ux/journey/${name}.png`, fullPage: true })
+  await page.screenshot({
+    path: `docs/visual-qa/english-only/parent-ux/journey/${name}.png`,
+    fullPage: true,
+  })
 }
 async function axe(page: Page) {
   const result = await new AxeBuilder({ page })
@@ -97,12 +100,13 @@ test('complete application → scoped approval → requirement → trial → rev
   await axe(mentor)
   await mentor.setViewportSize({ width: 390, height: 844 })
   await capture(mentor, 'mentor-scorecard-en-mobile')
-  await mentor.locator('.language-button').click()
-  await capture(mentor, 'mentor-scorecard-hi-mobile')
+  await expect(mentor.locator('.language-button')).toHaveCount(0)
+  await capture(mentor, 'mentor-scorecard-en-mobile')
   await axe(mentor)
-  await mentor.locator('.language-button').click()
+  await expect(mentor.locator('.language-button')).toHaveCount(0)
   await mentor.setViewportSize({ width: 1440, height: 1000 })
   await application.getByRole('button', { name: 'Save assessment', exact: true }).click()
+  await fillStaffFees(mentor)
   await application.getByLabel('From class').fill('8')
   await application.getByLabel('To class').fill('8')
   await application
@@ -163,10 +167,10 @@ test('complete application → scoped approval → requirement → trial → rev
   await axe(tutor)
   await tutor.setViewportSize({ width: 390, height: 844 })
   await capture(tutor, 'tutor-confirmed-en-mobile')
-  await tutor.locator('.language-button').click()
-  await capture(tutor, 'tutor-confirmed-hi-mobile')
+  await expect(tutor.locator('.language-button')).toHaveCount(0)
+  await capture(tutor, 'tutor-confirmed-en-mobile')
   await axe(tutor)
-  await tutor.locator('.language-button').click()
+  await expect(tutor.locator('.language-button')).toHaveCount(0)
   await tutor.setViewportSize({ width: 1440, height: 1000 })
   await teachingTrial
     .getByLabel('What did the learner work through?')
@@ -203,18 +207,18 @@ test('complete application → scoped approval → requirement → trial → rev
   await axe(parent)
   await parent.setViewportSize({ width: 390, height: 844 })
   await capture(parent, 'parent-reviewed-en-mobile')
-  await parent.locator('.language-button').click()
-  await capture(parent, 'parent-reviewed-hi-mobile')
+  await expect(parent.locator('.language-button')).toHaveCount(0)
+  await capture(parent, 'parent-reviewed-en-mobile')
   await axe(parent)
   await login(admin, 'admin-a', true)
   await capture(admin, 'admin-en-desktop')
   await axe(admin)
   await admin.setViewportSize({ width: 390, height: 844 })
   await capture(admin, 'admin-en-mobile')
-  await admin.locator('.language-button').click()
-  await capture(admin, 'admin-hi-mobile')
+  await expect(admin.locator('.language-button')).toHaveCount(0)
+  await capture(admin, 'admin-en-mobile')
   await axe(admin)
-  await admin.locator('.language-button').click()
+  await expect(admin.locator('.language-button')).toHaveCount(0)
   await admin.goto('/workspace?view=tutors&application=tutor-a')
   const trigger = admin.getByRole('button', { name: 'Suspend tutor', exact: true })
   await trigger.click()
@@ -249,7 +253,7 @@ test('responsive public routes, both languages, keyboard and real empty state', 
     await capture(page, `home-en-${width}`)
   }
   await axe(page)
-  await page.locator('.language-button').click()
+  await expect(page.locator('.language-button')).toHaveCount(0)
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.evaluate(() => document.fonts.ready)
@@ -259,7 +263,7 @@ test('responsive public routes, both languages, keyboard and real empty state', 
     await capture(page, `home-hi-${width}`)
     await axe(page)
   }
-  await page.locator('.language-button').click()
+  await expect(page.locator('.language-button')).toHaveCount(0)
   await page.goto('/tutors')
   await page.setViewportSize({ width: 1440, height: 1000 })
   await expect(page.locator('.tutor-card').first()).toBeVisible()
@@ -285,9 +289,9 @@ test('responsive public routes, both languages, keyboard and real empty state', 
   await axe(page)
   await page.setViewportSize({ width: 1440, height: 1000 })
   await capture(page, 'profile-en-desktop')
-  await page.locator('.language-button').click()
+  await expect(page.locator('.language-button')).toHaveCount(0)
   await page.setViewportSize({ width: 390, height: 844 })
-  await capture(page, 'profile-hi-mobile')
+  await capture(page, 'profile-en-mobile')
   await axe(page)
   expect(errors).toEqual([])
 })
@@ -326,30 +330,32 @@ test('loading, network error, retry, components and 200% reflow', async ({ page 
   })
   await page.getByRole('tab', { name: 'Feedback & states' }).click()
   await capture(page, 'components-states')
-  await page.locator('.language-button').click()
+  await expect(page.locator('.language-button')).toHaveCount(0)
   await capture(page, 'components-hi-states')
 })
 
-test('Hindi adult learner completes the saved requirement flow', async ({ page }) => {
+test('Adult learner with Hindi authored text completes the saved requirement flow', async ({
+  page,
+}) => {
   await login(page, 'adult-a')
-  await page.locator('.language-button').click()
+  await expect(page.locator('.language-button')).toHaveCount(0)
   await page.goto('/match')
-  await page.getByLabel('मेरे लिए, मेरी उम्र 18 वर्ष या अधिक है').check()
-  await page.getByRole('button', { name: 'आगे बढ़ें', exact: true }).click()
-  await page.getByLabel('पहला नाम या घर का नाम').fill('काल्पनिक वयस्क विद्यार्थी')
+  await page.getByLabel('Myself, aged 18 or over').check()
+  await page.getByRole('button', { name: 'Continue setup', exact: true }).click()
+  await page.getByLabel('First name or nickname').fill('काल्पनिक वयस्क विद्यार्थी')
   await page
-    .getByLabel('किस चीज़ में मदद चाहिए?')
+    .getByLabel('What would you like help with?')
     .fill('भिन्न और अनुपात को रोज़मर्रा के उदाहरणों से समझना और अभ्यास करना।')
   await capture(page, 'adult-requirement-hi-desktop')
   await page.setViewportSize({ width: 390, height: 844 })
-  await capture(page, 'adult-requirement-hi-mobile')
+  await capture(page, 'adult-requirement-en-mobile')
   await axe(page)
-  await page.getByRole('button', { name: 'आगे बढ़ें', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'ट्यूटर चुनें', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Continue setup', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Choose a tutor', exact: true })).toBeVisible()
   await page.reload()
-  await expect(page.getByText('सहेज लिया', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'ट्यूटर चुनें', exact: true }).click()
-  await expect(page.getByLabel('ट्यूटर चुनें', { exact: true })).toBeVisible()
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Choose a tutor', exact: true }).click()
+  await expect(page.getByLabel('Choose a tutor', { exact: true })).toBeVisible()
   const result = await page.request.get('/api/v1/dashboard')
   expect((await result.json()).learners[0].kind).toBe('adult_self')
 })

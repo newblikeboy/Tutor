@@ -1,115 +1,195 @@
-.af-page {
-  max-width: 1250px;
+.desk-main > .af-page {
+  max-width: 1320px;
 }
-.af-fields > .form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.desk-main:has(> .af-page) {
+  padding-top: 24px;
 }
-.af-area > .form-grid > .form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.af-footer {
-  background: transparent;
+.desk-shell .af-page .page-heading {
+  margin-bottom: 18px;
 }
 .af-layout {
   display: grid;
-  grid-template-columns: 225px minmax(0, 1fr);
-  gap: 28px;
-  align-items: start;
+  gap: 16px;
 }
 .af-progress {
-  position: sticky;
-  top: 95px;
-  padding: 22px 8px;
+  min-width: 0;
 }
-.af-progress > p,
-.af-card-heading > p {
+.af-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.af-save-state {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 24px;
+  color: #42604f;
   font-size: 0.76rem;
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
-  color: var(--muted);
-  font-weight: 700;
+  font-weight: 400;
 }
-.af-progress ol {
-  list-style: none;
-  padding: 0;
-  margin: 22px 0;
+.af-progress-bar {
+  display: block;
+  appearance: none;
+  border: 0;
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: #dce5db;
+  accent-color: #315e48;
+  margin-bottom: 14px;
 }
-.af-progress li {
-  margin-bottom: 7px;
+.af-progress-bar::-webkit-progress-bar {
+  background: #dce5db;
 }
-.af-progress button {
+.af-progress-bar::-webkit-progress-value {
+  background: #315e48;
+  border-radius: 99px;
+}
+.af-progress-bar::-moz-progress-bar {
+  background: #315e48;
+  border-radius: 99px;
+}
+.af-step-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #d5dfd4;
+  border-radius: 12px;
+  background: #ffffffad;
+}
+.af-step-tabs button {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border: 0;
-  background: none;
-  text-align: left;
-  width: 100%;
-  padding: 11px 10px;
-  border-radius: 12px;
-  font-size: 0.82rem;
-  color: var(--ink);
-  cursor: pointer;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
   min-height: 48px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
 }
-.af-progress button[aria-current] {
-  background: linear-gradient(135deg, #eef8f1, #dbece2 60%, #fafffc);
-  box-shadow:
-    inset 0 1px 0 #fff,
-    0 5px 18px #204e3720;
+.af-step-tabs button[aria-selected='true'] {
+  background: #e7f0e5;
+  border-color: #b5cbb8;
   color: #214e39;
-  font-weight: 750;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 #fff;
+}
+.af-step-tabs button:hover:not(:disabled) {
+  background: #edf3eb;
+}
+.af-step-tabs button:focus-visible {
+  outline: 2px solid #315e48;
+  outline-offset: 2px;
 }
 .af-step-number {
   display: grid;
   place-items: center;
-  flex: 0 0 26px;
-  height: 26px;
-  border: 1px solid #c1d3c7;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #aebfaf;
   border-radius: 50%;
-  font-size: 0.73rem;
+  font-size: 0.72rem;
 }
-.af-progress button[aria-current] .af-step-number {
+.af-step-tabs button[aria-selected='true'] .af-step-number {
   background: #315e48;
-  color: white;
   border-color: #315e48;
+  color: white;
 }
 .af-step-error {
   color: #9b372c;
   font-weight: 800;
 }
-.af-save-state {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  min-height: 24px;
-  font-size: 0.76rem;
-  color: #42604f;
-  padding: 0 10px;
-}
 .af-card {
   min-width: 0;
-  background: linear-gradient(145deg, #ffffffed, #fafcf8ed 45%, #f2f7f0f0);
-  border: 1px solid #fff;
-  border-radius: 22px;
+  padding: 24px;
+  border: 1px solid #d5dfd4;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #fffffffa, #fafcf8f5);
   box-shadow:
-    0 16px 50px #274d3710,
-    inset 0 1px 1px #fff,
-    0 0 0 1px #dbe4db;
-  padding: 32px;
+    0 8px 28px #274d3708,
+    inset 0 1px 0 #fff;
 }
 .af-card-heading {
-  padding-bottom: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 20px;
+  padding-bottom: 14px;
   border-bottom: 1px solid #dfe7de;
-  margin-bottom: 26px;
+  margin-bottom: 18px;
 }
 .af-card-heading h2 {
-  font-size: 1.6rem;
-  margin: 8px 0 0;
-  scroll-margin-top: 100px;
+  font-size: 1.4rem;
+  margin: 0;
+  scroll-margin-top: 110px;
 }
 .af-card-heading h2:focus {
   outline: none;
+}
+.af-required-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.af-fields .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 22px;
+  margin-block: 16px;
+}
+.af-fields .form-grid .form-grid {
+  margin: 0;
+}
+.af-group-title {
+  font-size: 0.9rem;
+  margin: 24px 0 12px;
+}
+.af-group-title:first-child {
+  margin-top: 0;
+}
+.af-document-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.af-document-grid .af-attachment {
+  margin: 0;
+}
+.af-fields input:not([type='checkbox']),
+.af-fields select {
+  min-height: 44px;
+  padding: 10px 12px;
+}
+.af-fields input[readonly] {
+  background: #edf1eb;
+  color: #516554;
+}
+.af-fields textarea {
+  padding: 10px 12px;
+  min-height: 80px;
+}
+.af-teaching-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.af-teaching-options .af-checks {
+  margin-block: 12px 18px;
 }
 .af-fields {
   padding: 0;
@@ -120,7 +200,7 @@
 .af-fields > .field,
 .af-fields > .form-grid,
 .af-fields > .btn {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 .af-checks,
 .af-slots,
@@ -128,7 +208,7 @@
   border: 0;
   padding: 0;
   min-width: 0;
-  margin: 24px 0;
+  margin: 18px 0;
 }
 .af-checks legend,
 .af-slots legend,
@@ -191,16 +271,17 @@
   padding: 20px;
   background: #edf4ec88;
   border-radius: 12px;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 .af-slot {
   display: grid;
   grid-template-columns: 1.3fr 1fr 1fr auto;
   gap: 10px;
   align-items: end;
+  margin-bottom: 12px;
 }
 .af-slot > .btn {
-  margin-bottom: 18px;
+  margin-bottom: 0;
   padding: 10px;
 }
 .af-note {
@@ -306,10 +387,10 @@
   flex-shrink: 0;
 }
 .af-attachment {
-  padding: 20px;
+  padding: 16px;
   border: 1px dashed #b6cbb8;
   border-radius: 12px;
-  margin: 22px 0;
+  margin: 16px 0;
   font-size: 0.83rem;
 }
 .af-submitted {
@@ -339,57 +420,32 @@
   opacity: 0.7;
 }
 @media (max-width: 1050px) {
-  .af-layout {
-    grid-template-columns: 190px minmax(0, 1fr);
-    gap: 15px;
-  }
-  .af-card {
-    padding: 24px;
-  }
-  .af-slot {
-    grid-template-columns: 1.3fr 1fr 1fr;
-  }
-  .af-slot > .btn {
-    grid-column: 3;
-    justify-self: end;
-  }
-  .af-progress {
-    padding: 16px 0;
+  .af-step-tabs button {
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
   }
 }
 @media (max-width: 760px) {
   .af-layout {
-    display: block;
+    gap: 12px;
   }
-  .af-progress {
-    position: static;
-    padding: 0 0 18px;
+  .af-step-tabs button {
+    min-height: 44px;
+    padding: 6px 2px;
   }
-  .af-progress > p {
-    margin: 0 0 10px;
-  }
-  .af-progress ol {
-    display: flex;
-    overflow: auto;
-    gap: 6px;
-    margin: 0;
-    padding-bottom: 8px;
-  }
-  .af-progress li {
-    flex: 0 0 auto;
-    margin: 0;
-  }
-  .af-progress button {
-    width: auto;
-    max-width: 220px;
-    font-size: 0.78rem;
-    padding: 9px;
-  }
-  .af-progress button:not([aria-current]) > span:not(.af-step-number):not(.af-step-error) {
+  .af-step-tabs .af-step-label {
     display: none;
   }
-  .af-progress button svg {
-    display: none;
+  .af-document-grid {
+    grid-template-columns: 1fr;
+  }
+  .af-teaching-options {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .af-page .af-progress {
+    padding-bottom: 0;
   }
   .af-card {
     padding: 21px 16px;
@@ -401,9 +457,6 @@
   }
   .af-card-heading h2 {
     font-size: 1.35rem;
-  }
-  .af-card-heading > p {
-    display: none;
   }
   .af-card .form-grid {
     grid-template-columns: 1fr;
@@ -483,5 +536,21 @@
   }
   .af-journey li {
     padding: 0.7rem;
+  }
+}
+
+.af-page .af-footer {
+  position: static;
+  padding-block: 16px 0;
+  margin-top: 20px;
+  background: transparent;
+  backdrop-filter: none;
+}
+@media (forced-colors: active) {
+  .af-step-tabs button[aria-selected='true'] {
+    border: 2px solid Highlight;
+  }
+  .af-progress-bar {
+    appearance: auto;
   }
 }

@@ -29,11 +29,30 @@ test('account preferences, password rotation and cross-browser revocation persis
       ).status(),
     ).toBe(200)
     const page = await first.newPage()
+    const session = await (await first.request.get('/api/v1/auth/session')).json()
+    const account = await (await first.request.get('/api/v1/account')).json()
+    expect(
+      (
+        await first.request.put('/api/v1/account', {
+          headers: { Origin: baseURL, 'X-CSRF-Token': session.csrf },
+          data: { name: account.name, language: 'hi', version: account.preferences.version },
+        })
+      ).status(),
+    ).toBe(200)
+    await page.addInitScript(() => localStorage.setItem('language', 'hi'))
     await page.goto('/account')
     await expect(page.getByRole('heading', { name: 'Account' })).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    await expect(page.locator('.language-button, .auth-language')).toHaveCount(0)
+    await expect(page.getByLabel('Preferred language')).toHaveCount(0)
+    expect(await page.locator('body').innerText()).not.toMatch(/[\u0900-\u097f]/)
+    expect(await page.evaluate(() => localStorage.getItem('language'))).toBeNull()
     await page.getByLabel('Your name', { exact: true }).fill('Family preferences saved')
     await page.getByRole('button', { name: 'Save preferences', exact: true }).click()
     await expect(page.getByText('Your preferences are saved.', { exact: true })).toBeVisible()
+    expect((await (await first.request.get('/api/v1/account')).json()).preferences.language).toBe(
+      'en',
+    )
     await page.reload()
     await expect(page.getByLabel('Your name', { exact: true })).toHaveValue(
       'Family preferences saved',
@@ -42,7 +61,7 @@ test('account preferences, password rotation and cross-browser revocation persis
     await expect(page.getByRole('heading', { name: 'Other sign-in', exact: true })).toBeVisible()
     await page.evaluate(() => document.fonts.ready)
     await page.screenshot({
-      path: 'docs/visual-qa/product-ux/account-settings-en-desktop.png',
+      path: 'docs/visual-qa/english-only/product-ux/account-settings-en-desktop.png',
       fullPage: true,
     })
     await page.getByRole('tab', { name: 'Password', exact: true }).click()
@@ -78,21 +97,21 @@ test('account preferences, password rotation and cross-browser revocation persis
     ).toBeVisible()
     expect((await second.request.get('/api/v1/me')).status()).toBe(401)
     await page.getByRole('tab', { name: 'Profile', exact: true }).click()
-    await page.getByLabel('Preferred language').selectOption('hi')
+    await expect(page.getByLabel('Preferred language')).toHaveCount(0)
     await page.getByRole('button', { name: 'Save preferences', exact: true }).click()
-    await expect(page.getByText('आपकी पसंद सहेज दी गई है।', { exact: true })).toBeVisible()
+    await expect(page.getByText('Your preferences are saved.', { exact: true })).toBeVisible()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.evaluate(() => document.fonts.ready)
     await page.screenshot({
-      path: 'docs/visual-qa/product-ux/account-settings-hi-mobile.png',
+      path: 'docs/visual-qa/english-only/product-ux/account-settings-en-mobile.png',
       fullPage: true,
     })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
     await page.keyboard.press('Control+Home')
-    await page.getByLabel('आपका नाम', { exact: true }).focus()
+    await page.getByLabel('Your name', { exact: true }).focus()
     await page.keyboard.press('Tab')
-    await expect(page.getByLabel('साइन-इन ईमेल', { exact: true })).toBeFocused()
+    await expect(page.getByLabel('Sign-in email', { exact: true })).toBeFocused()
     expect(
       (
         await second.request.post('/api/v1/auth/login', {
@@ -103,8 +122,8 @@ test('account preferences, password rotation and cross-browser revocation persis
     ).toBe(200)
     const anotherDevice = await second.newPage()
     await anotherDevice.goto('/workspace')
-    await expect(anotherDevice.locator('html')).toHaveAttribute('lang', 'hi')
-    await expect(anotherDevice.locator('.language-button')).toHaveText('English')
+    await expect(anotherDevice.locator('html')).toHaveAttribute('lang', 'en')
+    await expect(anotherDevice.locator('.language-button')).toHaveCount(0)
   } finally {
     await first.close()
     await second.close()

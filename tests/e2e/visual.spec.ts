@@ -4,7 +4,6 @@ import { test, expect } from '@playwright/test'
 const cases = [
   { name: 'home-en-desktop', path: '/', language: 'en', width: 1440, fullPage: false },
   { name: 'home-en-mobile', path: '/', language: 'en', width: 390, fullPage: false },
-  { name: 'home-hi-mobile', path: '/', language: 'hi', width: 390, fullPage: false },
   {
     name: 'profile-en-desktop',
     path: '/tutors/tutor-meera',
@@ -13,16 +12,16 @@ const cases = [
     fullPage: true,
   },
   {
-    name: 'profile-hi-mobile',
+    name: 'profile-en-mobile',
     path: '/tutors/tutor-meera',
-    language: 'hi',
+    language: 'en',
     width: 390,
     fullPage: true,
   },
   {
-    name: 'empty-hi-mobile',
+    name: 'empty-en-mobile',
     path: '/tutors?subject=Science',
-    language: 'hi',
+    language: 'en',
     width: 390,
     fullPage: true,
   },
@@ -51,7 +50,7 @@ for (const scenario of cases)
     if (scenario.path === '/') {
       await page.locator('.home-hero-image').evaluate((image: HTMLImageElement) => image.decode())
     }
-    await expect(page).toHaveScreenshot(`${scenario.name}.png`, {
+    await expect(page).toHaveScreenshot(`english-only-${scenario.name}.png`, {
       fullPage: scenario.fullPage,
       animations: 'disabled',
       maxDiffPixels: 0,

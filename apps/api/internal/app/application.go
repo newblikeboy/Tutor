@@ -105,9 +105,8 @@ func normalizeApplication(p *domain.TutorApplication) {
 		p.Approach.DemoTopic = ""
 		p.Approach.DemoFileID = ""
 	}
-	if p.Fees.Preference != "expected" {
-		p.Fees.Rates = []domain.ExpectedRate{}
-	}
+	// Legacy applicant preferences are never accepted as staff pricing.
+	p.Fees = domain.ApplicantFees{Preference: "staff", SessionMinutes: 60, Rates: []domain.ExpectedRate{}}
 }
 
 func (a *App) application(w http.ResponseWriter, r *http.Request) {
@@ -146,7 +145,7 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 			return domain.Fail(409, "stale", "This draft changed in another window. Reload before saving.")
 		}
 		{
-			links := []struct{ id, kind string }{{in.Profile.Education.ResumeFileID, "document"}, {in.Profile.Approach.WorksheetFileID, "document"}, {in.Profile.Approach.DemoFileID, "video"}}
+			links := []struct{ id, kind string }{{in.Profile.About.PhotoFileID, "photo"}, {in.Profile.Education.ResumeFileID, "document"}, {in.Profile.Approach.WorksheetFileID, "document"}, {in.Profile.Approach.DemoFileID, "video"}}
 			for _, id := range in.Profile.Education.EducationFileIDs {
 				links = append(links, struct{ id, kind string }{id, "document"})
 			}
@@ -163,6 +162,9 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 				}
 				if f.TargetKind != "application" || f.TargetID != u.ID || f.UploaderID != u.ID || !enum(f.Status, "quarantined", "clean") || (linked.kind == "video") != (f.ContentType == "video/mp4") {
 					return domain.Fail(422, "application_file", "Choose the correct file type for this application field.")
+				}
+				if linked.kind == "photo" && !enum(f.ContentType, "image/jpeg", "image/png") {
+					return domain.Fail(422, "application_photo", "Choose a JPG or PNG passport-size photo.")
 				}
 			}
 		}
@@ -186,6 +188,7 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 		result.Version++
 		result.UpdatedAt = a.Now()
 		if in.Submit {
+			result.Fees = nil
 			result.Status = "submitted"
 			result.FormStep = 6
 			result.Scope = domain.Scope{}

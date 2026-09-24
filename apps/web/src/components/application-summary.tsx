@@ -94,19 +94,21 @@ export function ApplicationSummary({
       )}
     </>,
     <>
-      <dl className="af-summary-grid">{rows(p.approach)}</dl>
+      <dl className="af-summary-grid">
+        {rows(
+          onEdit
+            ? {
+                introduction: p.approach.introduction,
+                scenario: p.approach.scenario,
+                understanding: p.approach.understanding,
+              }
+            : p.approach,
+        )}
+      </dl>
       <h4>{c('assessmentSlots')}</h4>
       {p.approach.assessmentSlots.map((s, i) => (
         <p key={i}>
           {c(weekDays[s.day])} · {s.start}–{s.end} IST
-        </p>
-      ))}
-    </>,
-    <>
-      <dl className="af-summary-grid">{rows(p.fees)}</dl>
-      {p.fees.rates.map((r, i) => (
-        <p key={i}>
-          {value('areaId', r.areaId)} · {c(r.mode)} · {value('amountPaise', r.amountPaise)}
         </p>
       ))}
     </>,

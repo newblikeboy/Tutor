@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react'
-import { Suspense, useEffect, useRef } from 'react'
+import { Suspense } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
-  ArrowUpRight,
   BookOpen,
   CalendarDays,
   ChevronRight,
@@ -12,7 +11,6 @@ import {
   FileText,
   GraduationCap,
   LayoutDashboard,
-  Languages,
   LogOut,
   Menu,
   ShieldCheck,
@@ -22,7 +20,7 @@ import {
 } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useAuth, useConfig, useTutorApplication } from '../lib/session'
-import { api, queryClient, send, setCSRF, type Schema } from '../lib/api'
+import { queryClient, send, setCSRF } from '../lib/api'
 import {
   initials,
   workspaceLink,
@@ -32,7 +30,7 @@ import {
 } from '../lib/workspace'
 import type { WorkspaceView } from '../lib/workspace'
 import { useClock } from '../lib/clock'
-import { Button, Empty, LinkButton, Loading, LoadError, MutationError } from './ui'
+import { Button, Loading, LoadError, MutationError } from './ui'
 import '../styles/workspace.css'
 import '../styles/experience.css'
 
@@ -51,24 +49,10 @@ const icons: Record<WorkspaceView, typeof BookOpen> = {
 }
 
 export default function WorkspaceShell({ children }: { children: ReactNode }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const auth = useAuth()
   const application = useTutorApplication()
   const now = useClock()
-  const appliedPreference = useRef('')
-  const preferences = useQuery({
-    queryKey: ['account'],
-    queryFn: ({ signal }) => api<Schema['Account']>('/account', { signal }),
-    enabled: !!auth.data,
-  })
-  useEffect(() => {
-    const saved = preferences.data?.preferences
-    const key = auth.data && saved ? `${auth.data.user.id}:${saved.version}` : ''
-    if (saved && saved.version > 0 && key !== appliedPreference.current) {
-      appliedPreference.current = key
-      void i18n.changeLanguage(saved.language)
-    }
-  }, [auth.data, preferences.data, i18n])
   const config = useConfig()
   const location = useLocation()
   const params = new URLSearchParams(location.search)
@@ -80,6 +64,13 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
       window.location.assign('/')
     },
   })
+  if (!auth.isPending && !auth.isError && !auth.data)
+    return (
+      <Navigate
+        to={`/login?return=${encodeURIComponent(location.pathname + location.search)}`}
+        replace
+      />
+    )
   const gate =
     auth.isPending || (auth.data?.user.role === 'tutor' && application.isPending) ? (
       <Loading />
@@ -91,30 +82,17 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
       />
     ) : auth.data?.user.role === 'tutor' && application.isError ? (
       <LoadError retry={() => void application.refetch()} />
-    ) : !auth.data ? (
-      <Empty title={t('desk.privateTitle')} body={t('privacyNote')}>
-        <LinkButton to={`/login?return=${encodeURIComponent(location.pathname + location.search)}`}>
-          {t('authRequired')}
-        </LinkButton>
-      </Empty>
     ) : null
   if (gate)
     return (
       <div className="desk-gate">
         <header>
-          <Link to="/" className="desk-gate-brand">
-            {config.data?.appName ?? t('brand')}.
-          </Link>
+          <span className="desk-gate-brand">{config.data?.appName ?? t('brand')}.</span>
         </header>
         <main>
           <h1 className="sr-only">{t('workspace')}</h1>
           {gate}
         </main>
-        <nav aria-label={t('desk.navigation')}>
-          <Link to="/" className="text-link">
-            {t('desk.backToSite')} <ArrowUpRight size={16} />
-          </Link>
-        </nav>
       </div>
     )
   const user = auth.data!.user
@@ -284,14 +262,6 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             <span>{section}</span>
           </div>
           <div className="desk-utilities">
-            <button
-              className="language-button"
-              onClick={() => void i18n.changeLanguage(i18n.language === 'en' ? 'hi' : 'en')}
-              lang={i18n.language === 'en' ? 'hi' : 'en'}
-            >
-              <Languages size={17} aria-hidden="true" />
-              {t('language')}
-            </button>
             <span className="desk-user-avatar" aria-hidden="true">
               {initials(user.name)}
             </span>

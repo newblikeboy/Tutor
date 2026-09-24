@@ -256,6 +256,7 @@ type staffDecisionInput struct {
 	ConflictClear bool              `json:"conflictClear"`
 	Eligibility   string            `json:"eligibility"`
 	Interview     *domain.Interview `json:"interview"`
+	FeePlans      []domain.FeePlan  `json:"feePlans"`
 }
 
 func validInterview(v *domain.Interview, now time.Time) bool {
@@ -327,6 +328,7 @@ func (a *App) staffAudit(ctx context.Context, u domain.User, action, target, rea
 		event.Evidence = application.Evidence
 		event.Scope = &application.Scope
 		event.Eligibility = application.Eligibility
+		event.Fees = application.Fees
 	}
 	_, e := a.Store.C("audit").InsertOne(ctx, event)
 	return e
@@ -376,6 +378,23 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			return domain.Fail(422, "validation", "Record a reason of 10–1000 characters.")
 		}
 		switch in.Action {
+		case "fees":
+			if !enum(v.Status, "assessment_scheduled", "assessed", "approved", "suspended") ||
+				(v.Status == "assessment_scheduled" && (v.Interview == nil || a.Now().Before(v.Interview.Start))) {
+				return domain.Fail(409, "invalid_transition", "Set fees during or after the interview.")
+			}
+			if u.Role != "admin" && (v.AssessorID != u.ID || !v.ConflictClear) {
+				return domain.Fail(403, "forbidden", "Only an administrator or the assigned reviewer can set fees.")
+			}
+			if e = validateFeePlans(v, in.FeePlans); e != nil {
+				return e
+			}
+			// Application revisions survive a resubmission/reopen that clears fees.
+			version := v.Version + 1
+			if v.Fees != nil {
+				version = max(version, v.Fees.Version+1)
+			}
+			v.Fees = &domain.TutorFees{Plans: in.FeePlans, Version: version, SetBy: u.ID, SetAt: a.Now()}
 		case "eligibility":
 			if u.Role != "admin" || v.Profile == nil || !enum(v.Status, "submitted", "under_review", "assessment_scheduled", "assessed", "improvement_required") {
 				return domain.Fail(403, "forbidden", "An administrator reviews eligibility before approval.")
@@ -513,6 +532,9 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			mentorID := in.MentorID
+			if v.Fees == nil || len(v.FeePlans()) == 0 {
+				return domain.Fail(409, "fees_pending", "Finalize the tutor's fees before approval.")
+			}
 			if mentorID == "" && u.Role == "mentor" {
 				mentorID = u.ID
 			}
@@ -562,6 +584,7 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 					return domain.Fail(409, "invalid_transition", "This application does not need reopening.")
 				}
 				v.Status = "submitted"
+				v.Fees = nil
 				v.AssessorID = ""
 				v.ConflictClear = false
 				v.Scores = nil
