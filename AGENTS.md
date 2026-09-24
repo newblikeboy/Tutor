@@ -1,5 +1,7 @@
 # Project instructions
 
+- User password-policy override (2026-09-25): passwords require 8–128 characters across public signup, password changes, staff provisioning and fixtures. Preserve existing hashes, password-only staff login, rate limits, session/CSRF protection and the existing common-password checks. Keep UI hints and OpenAPI bounds aligned.
+
 - User staff-auth override (2026-09-25): the operator explicitly chose email/password-only staff login, overriding the previous staff MFA requirement. Enable non-sample provisioned mentor/admin/support/finance accounts with `AUTH_PROVIDER=password`; public signup remains parent/tutor only. Preserve role/assignment boundaries, rate limits, HTTPS/Secure cookies, CSRF, session revocation and sample-account denial. Do not add MFA as a release prerequisite without a new user request.
 - User deployment override (2026-09-25): enable production email/password signup and login with explicit `AUTH_PROVIDER=password`, HTTPS, loopback API binding, Secure cookies and separate production sessions. Guardian verification and payment gates remain. Do not use development mode as a production workaround. See `docs/production-auth.md`.
 

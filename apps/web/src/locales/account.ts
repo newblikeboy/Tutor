@@ -12,7 +12,7 @@ export const accountEN = {
   'account.current': 'Current password',
   'account.new': 'New password',
   'account.confirm': 'Confirm new password',
-  'account.hint': '15–128 characters.',
+  'account.hint': '8–128 characters.',
   'account.mismatch': 'The new passwords do not match.',
   'account.changed': 'Password changed. Other sessions have been signed out.',
   'account.sessions': 'Sign-ins',

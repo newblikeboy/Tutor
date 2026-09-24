@@ -43,7 +43,7 @@ export const authEN = {
   authPassword: 'Password',
   authPasswordPlaceholder: 'Create a memorable passphrase',
   authPasswordLoginPlaceholder: 'Enter your password',
-  authPasswordHint: 'Use 15–128 characters. A few memorable words work well.',
+  authPasswordHint: 'Use 8–128 characters. A few memorable words work well.',
   authShowPassword: 'Show password',
   authHidePassword: 'Hide password',
   authNameError: 'Enter your name (2–80 characters).',
@@ -73,5 +73,5 @@ export const authEN = {
   authInvalidCredentials: 'That email and password don’t match. Please check them and try again.',
   authSignupUnavailable:
     'We couldn’t create this account. If you already have one, try signing in.',
-  authWeakPassword: 'Choose a less common passphrase with 15–128 characters.',
+  authWeakPassword: 'Choose a less common passphrase with 8–128 characters.',
 }

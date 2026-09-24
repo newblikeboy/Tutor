@@ -156,7 +156,7 @@ function PasswordChange() {
             value={next}
             onChange={(e) => setNext(e.target.value)}
             required
-            minLength={15}
+            minLength={8}
             maxLength={128}
             disabled={change.isPending}
           />
@@ -168,7 +168,7 @@ function PasswordChange() {
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             required
-            minLength={15}
+            minLength={8}
             maxLength={128}
             disabled={change.isPending}
           />

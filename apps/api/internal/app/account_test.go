@@ -70,7 +70,7 @@ func TestMongoAccountSecurity(t *testing.T) {
 		second.login("parent-a")
 	})
 	t.Run("password requires current secret and rotates all sessions atomically", func(t *testing.T) {
-		next := "Another integration passphrase 739!"
+		next := "Next#739"
 		first.ok("POST", "/account/password", map[string]any{"currentPassword": "Wrong current passphrase", "newPassword": next}, 401)
 		second.ok("GET", "/me", nil, 200)
 		changed := first.ok("POST", "/account/password", map[string]any{"currentPassword": testPassword, "newPassword": next}, 200)

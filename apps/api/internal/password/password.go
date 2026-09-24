@@ -15,7 +15,7 @@ const prefix = "$argon2id$v=19$m=19456,t=2,p=1$"
 
 func Valid(value string) bool {
 	n := utf8.RuneCountInString(value)
-	if n < 15 || n > 128 || len(value) > 512 || strings.TrimSpace(value) == "" {
+	if n < 8 || n > 128 || len(value) > 512 || strings.TrimSpace(value) == "" {
 		return false
 	}
 	for _, weak := range []string{"passwordpassword", "123456789012345", "1234567890123456", "qwertyuiopasdfgh", "letmeinletmeinletmein"} {
@@ -28,7 +28,7 @@ func Valid(value string) bool {
 
 func Hash(value string) (string, error) {
 	if !Valid(value) {
-		return "", errors.New("password must be a non-common passphrase of 15 to 128 characters")
+		return "", errors.New("password must be a non-common passphrase of 8 to 128 characters")
 	}
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {

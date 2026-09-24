@@ -133,7 +133,7 @@ const schemas = {
   SignupInput: obj({
     name: { ...str, minLength: 2, maxLength: 80 },
     email: { ...str, format: 'email', maxLength: 254 },
-    password: { ...str, minLength: 15, maxLength: 128 },
+    password: { ...str, minLength: 8, maxLength: 128 },
     role: { type: 'string', enum: ['parent', 'tutor'] },
     adult: { const: true },
   }),

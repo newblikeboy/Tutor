@@ -15,7 +15,7 @@ export function accountContract(schemas, route) {
     AccountInput: obj({ name: s, language: { type: 'string', enum: ['en', 'hi'] }, version: i }),
     PasswordChange: obj({
       currentPassword: { type: 'string', writeOnly: true },
-      newPassword: { type: 'string', minLength: 15, maxLength: 128, writeOnly: true },
+      newPassword: { type: 'string', minLength: 8, maxLength: 128, writeOnly: true },
     }),
     AccountSession: obj({ id: s, current: b, expiresAt: { type: 'string', format: 'date-time' } }),
     AccountSessions: obj({ items: { type: 'array', items: ref('AccountSession') }, nextCursor: s }),

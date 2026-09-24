@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-09-25: eight-character password minimum
+
+The user requested a minimum of eight characters everywhere. The shared Go password validator, signup and password-change forms, staff provisioning errors, API contract generators and current documentation now use 8-128 characters. Existing hashes and longer passwords remain valid; no reset, configuration change or database migration is required. Argon2id, the existing common-password checks, session revocation and staff role boundaries remain unchanged.
+
+Validation: targeted Go race tests for password bounds, real-Mongo account security, production password accounts and staff provisioning passed, as did Go vet, the final production web build/strict TypeScript, lint and three component tests. Two browser regressions passed against local MongoDB, covering eight-character signup/change/login, seven-character rejection and existing account/session security. Production API tests exercise eight-character parent/tutor passwords and all four provisioned staff roles. Four desktop/mobile screenshots were individually inspected with axe/reflow checks; the two signup baselines were explicitly reviewed before replacement. All four reviewed login/signup visual comparisons passed (53.6s). Fixtures remain in local MongoDB, never Atlas. Deployment of the rebuilt API/frontend is required on the droplet.
+
 ## 2026-09-25: operator-selected password-only staff login
 
 The user explicitly chose option 2, overriding the previous staff MFA requirement. Production password authentication now accepts non-sample provisioned admin, mentor, support and finance accounts, and the staff tab renders the existing email/password form. Unknown roles and sample identities remain rejected. Public signup still accepts only parent/tutor, and all role/ownership/assignment checks remain. The provisioning CLI no longer prints the obsolete MFA gate message; it still requires a hidden password or explicit secret-manager stdin, refuses existing accounts and records an audit event.

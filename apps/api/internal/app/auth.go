@@ -149,7 +149,7 @@ func (a *App) signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !password.Valid(in.Password) {
-		a.error(w, r, domain.Fail(422, "weak_password", "Choose a less common password of 15 to 128 characters."))
+		a.error(w, r, domain.Fail(422, "weak_password", "Choose a less common password of 8 to 128 characters."))
 		return
 	}
 	if e := a.authLimit(r, email, "signup"); e != nil {

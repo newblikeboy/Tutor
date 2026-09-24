@@ -112,7 +112,7 @@ func (a *App) changePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(in.Current) > 512 || in.Current == in.Next || !password.Valid(in.Next) {
-		a.error(w, r, domain.Fail(422, "weak_password", "Choose a different password of 15 to 128 characters."))
+		a.error(w, r, domain.Fail(422, "weak_password", "Choose a different password of 8 to 128 characters."))
 		return
 	}
 	if e := a.rate(r.Context(), "password-change:"+user(r).ID, 5); e != nil {

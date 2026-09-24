@@ -113,7 +113,7 @@ export default function Login() {
         form.setError('name', { message: t('authNameError') })
         invalid = true
       }
-      if (Array.from(values.password).length < 15 || Array.from(values.password).length > 128) {
+      if (Array.from(values.password).length < 8 || Array.from(values.password).length > 128) {
         form.setError('password', { message: t('authPasswordHint') })
         invalid = true
       }

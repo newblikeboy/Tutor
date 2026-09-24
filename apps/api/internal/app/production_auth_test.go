@@ -41,6 +41,7 @@ func TestProductionAuthProxyAndCookie(t *testing.T) {
 }
 
 func TestMongoProductionPasswordAccounts(t *testing.T) {
+	const accountPassword = "Test#842" // Exactly eight characters, including staff provisioning.
 	uri := os.Getenv("TEST_MONGODB_URI")
 	if uri == "" {
 		t.Skip("TEST_MONGODB_URI required for real replica-set verification")
@@ -73,12 +74,16 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 		return value
 	}
 	parent, tutor := newClient(server), newClient(server)
+	call(parent, "POST", "/auth/signup", map[string]any{"name": "Short password", "email": "short@example.test", "password": "Abcd!42", "role": "parent", "adult": true}, 422)
+	if err := staff.Provision(ctx, s, staff.Input{Name: "Short staff", Email: "short-staff@example.test", Role: "admin", Password: "Abcd!42", Operator: "policy-test", Reason: "Reject passwords below the new minimum."}); err == nil {
+		t.Fatal("staff provisioning accepted seven characters")
+	}
 	if v := call(parent, "GET", "/config", nil, 200); v["authEnabled"] != true || v["development"] != false {
 		t.Fatal("production forms remain disabled")
 	}
 	for i, c := range []*testClient{parent, tutor} {
 		role := []string{"parent", "tutor"}[i]
-		v := call(c, "POST", "/auth/signup", map[string]any{"name": "Production test adult", "email": role + "@example.test", "password": testPassword, "role": role, "adult": true}, 201)
+		v := call(c, "POST", "/auth/signup", map[string]any{"name": "Production test adult", "email": role + "@example.test", "password": accountPassword, "role": role, "adult": true}, 201)
 		c.csrf = v["csrf"].(string)
 		if v["user"].(map[string]any)["sample"] != false {
 			t.Fatal("signup created sample account")
@@ -90,18 +95,18 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 		if v := call(c, "GET", "/auth/session", nil, 200); v != nil {
 			t.Fatal("logout retained session")
 		}
-		v = call(c, "POST", "/auth/login", map[string]any{"email": role + "@example.test", "password": testPassword}, 200)
+		v = call(c, "POST", "/auth/login", map[string]any{"email": role + "@example.test", "password": accountPassword}, 200)
 		c.csrf = v["csrf"].(string)
 	}
 	call(tutor, "GET", "/staff/overview", nil, 403)
 	for _, role := range []string{"admin", "mentor", "support", "finance"} {
-		call(parent, "POST", "/auth/signup", map[string]any{"name": "Injected staff", "email": role + "@example.test", "password": testPassword, "role": role, "adult": true}, 422)
-		if err := staff.Provision(ctx, s, staff.Input{Name: "Fictional " + role, Email: role + "@example.test", Role: role, Password: testPassword, Operator: "production-auth-test", Reason: "Verify explicitly provisioned staff password access."}); err != nil {
+		call(parent, "POST", "/auth/signup", map[string]any{"name": "Injected staff", "email": role + "@example.test", "password": accountPassword, "role": role, "adult": true}, 422)
+		if err := staff.Provision(ctx, s, staff.Input{Name: "Fictional " + role, Email: role + "@example.test", Role: role, Password: accountPassword, Operator: "production-auth-test", Reason: "Verify explicitly provisioned staff password access."}); err != nil {
 			t.Fatal(err)
 		}
 		c := newClient(server)
 		call(c, "POST", "/auth/login", map[string]any{"email": role + "@example.test", "password": "wrong test password"}, 401)
-		v := call(c, "POST", "/auth/login", map[string]any{"email": role + "@example.test", "password": testPassword}, 200)
+		v := call(c, "POST", "/auth/login", map[string]any{"email": role + "@example.test", "password": accountPassword}, 200)
 		c.csrf = v["csrf"].(string)
 		if v["user"].(map[string]any)["role"] != role {
 			t.Fatal("staff role changed at login")
@@ -135,14 +140,15 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 	call(second, "GET", "/account", nil, 200)
 	// Password rotation must work with production sessions and revoke other sessions.
 	other := newClient(server)
-	v := call(other, "POST", "/auth/login", map[string]any{"email": "parent@example.test", "password": testPassword}, 200)
+	v := call(other, "POST", "/auth/login", map[string]any{"email": "parent@example.test", "password": accountPassword}, 200)
 	other.csrf = v["csrf"].(string)
-	nextPassword := "Rotated production-only test passphrase 712!"
-	v = call(parent, "POST", "/account/password", map[string]any{"currentPassword": testPassword, "newPassword": nextPassword}, 200)
+	nextPassword := "Next#712"
+	call(parent, "POST", "/account/password", map[string]any{"currentPassword": accountPassword, "newPassword": "Abcd!42"}, 422)
+	v = call(parent, "POST", "/account/password", map[string]any{"currentPassword": accountPassword, "newPassword": nextPassword}, 200)
 	parent.csrf = v["csrf"].(string)
 	call(other, "GET", "/account", nil, 401)
 	call(parent, "GET", "/account", nil, 200)
-	call(other, "POST", "/auth/login", map[string]any{"email": "parent@example.test", "password": testPassword}, 401)
+	call(other, "POST", "/auth/login", map[string]any{"email": "parent@example.test", "password": accountPassword}, 401)
 	// A development session cannot be replayed, even against the same database.
 	cred, err := storage.One[credential](ctx, s, "credentials", bson.M{"_id": "tutor@example.test"})
 	if err != nil {
@@ -161,7 +167,7 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 	if call(tutor, "GET", "/auth/session", nil, 200) != nil {
 		t.Fatal("development session replayed")
 	}
-	login := map[string]any{"email": "tutor@example.test", "password": testPassword}
+	login := map[string]any{"email": "tutor@example.test", "password": accountPassword}
 	v = call(tutor, "POST", "/auth/login", login, 200)
 	tutor.csrf = v["csrf"].(string)
 	updateUser(bson.M{"sample": true})
@@ -193,7 +199,7 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 		ip   string
 		want int
 	}{{"198.51.100.77", 429}, {"198.51.100.78", 401}} {
-		status, _, _ := other.call("POST", "/auth/login", map[string]any{"email": "unknown@example.test", "password": testPassword}, map[string]string{"Origin": cfg.Origin, "X-Forwarded-For": tc.ip})
+		status, _, _ := other.call("POST", "/auth/login", map[string]any{"email": "unknown@example.test", "password": accountPassword}, map[string]string{"Origin": cfg.Origin, "X-Forwarded-For": tc.ip})
 		if status != tc.want {
 			t.Fatal("proxy-aware rate limit", status, tc.want)
 		}

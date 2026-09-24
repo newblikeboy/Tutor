@@ -33,7 +33,7 @@ func Provision(ctx context.Context, s *storage.Store, in Input) error {
 		return errors.New("staff role must be mentor, admin, support or finance")
 	}
 	if !password.Valid(in.Password) {
-		return errors.New("a unique password of 15 to 128 characters is required")
+		return errors.New("a unique password of 8 to 128 characters is required")
 	}
 	hash, e := password.Hash(in.Password)
 	if e != nil {
