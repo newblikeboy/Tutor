@@ -112,9 +112,20 @@ test('login errors preserve inputs, network retry works, and recovery help is ho
 })
 
 test('auth pages reflow across widths and keyboard access stays visible', async ({ page }) => {
-  for (const route of ['/login', '/signup', '/login?staff=1', '/login/', '/signup/']) {
+  for (const route of [
+    '/login',
+    '/login?role=tutor',
+    '/signup',
+    '/login?staff=1',
+    '/login/',
+    '/signup/',
+  ]) {
     await page.goto(route)
     await expect(page.getByLabel('Email address', { exact: true })).toBeVisible()
+    await expect(page.getByText(/Private preview|Development preview/)).toHaveCount(0)
+    await expect(
+      page.locator('.auth-header a[href="/"], .auth-header a[href="/tutors"]'),
+    ).toHaveCount(0)
     for (const width of [360, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 1000 })
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -123,6 +134,7 @@ test('auth pages reflow across widths and keyboard access stays visible', async 
     }
   }
   await page.goto('/login')
+  await expect(page.getByLabel('Email address', { exact: true })).toBeVisible()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused()
   await page.keyboard.press('Enter')

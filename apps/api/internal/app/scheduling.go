@@ -16,9 +16,10 @@ import (
 )
 
 type interval struct {
-	ID    string    `bson:"id"`
-	Start time.Time `bson:"start"`
-	End   time.Time `bson:"end"`
+	ID        string     `bson:"id"`
+	Start     time.Time  `bson:"start"`
+	End       time.Time  `bson:"end"`
+	ExpiresAt *time.Time `bson:"expiresAt,omitempty"`
 }
 type guard struct {
 	ID        string     `bson:"_id"`
@@ -47,30 +48,18 @@ func (a *App) ensureGuards(ctx context.Context, t domain.Trial) error {
 	return nil
 }
 func (a *App) reserve(ctx context.Context, t domain.Trial, release bool) error {
-	for _, key := range guardKeys(t) {
-		var g guard
-		e := a.Store.C("guards").FindOneAndUpdate(ctx, bson.M{"_id": key}, bson.M{"$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&g)
-		if e != nil {
-			return e
+	av := defaultAvailability(t.TutorID)
+	av.DailyCapacity = 48
+	if !release {
+		err := a.Store.C("availability").FindOneAndUpdate(ctx, bson.M{"_id": t.TutorID}, bson.M{"$inc": bson.M{"bookingRevision": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&av)
+		if err != nil && err != mongo.ErrNoDocuments {
+			return err
 		}
-		if release {
-			_, e = a.Store.C("guards").UpdateOne(ctx, bson.M{"_id": key}, bson.M{"$pull": bson.M{"intervals": bson.M{"id": t.ID}}})
-		} else {
-			for _, i := range g.Intervals {
-				if domain.Overlap(t.Start, t.End, i.Start, i.End) {
-					return domain.Fail(409, "schedule_conflict", "This time overlaps another class. Please choose another time.")
-				}
-			}
-			if len(g.Intervals) >= 48 {
-				return domain.Fail(409, "capacity", "Daily scheduling capacity reached.")
-			}
-			_, e = a.Store.C("guards").UpdateOne(ctx, bson.M{"_id": key}, bson.M{"$push": bson.M{"intervals": interval{t.ID, t.Start, t.End}}})
-		}
-		if e != nil {
-			return e
+		if err == nil && !available(av, t.Start, t.End) {
+			return domain.Fail(409, "availability", "This trial falls outside the tutor's teaching availability.")
 		}
 	}
-	return nil
+	return a.reserveClass(ctx, domain.Enrollment{LearnerID: t.LearnerID}, domain.ClassSession{ID: t.ID, TutorID: t.TutorID, Start: t.Start, End: t.End, Timezone: t.ScheduleTimezone, BufferMinutes: t.BufferMinutes}, av, nil, release)
 }
 func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "parent") {
@@ -122,14 +111,23 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 		if er != nil {
 			return er
 		}
-		t, er := storage.One[domain.Application](ctx, a.Store, "applications", bson.M{"_id": in.TutorID})
+		var t domain.Application
+		er = a.Store.C("applications").FindOneAndUpdate(ctx, bson.M{"_id": in.TutorID}, bson.M{"$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&t)
 		if er != nil {
 			return er
 		}
 		if !domain.Eligible(t, l.Class, a.Now()) {
 			return domain.Fail(409, "scope_unavailable", "This tutor is not currently approved for this learning scope.")
 		}
-		v = domain.Trial{ID: id, OwnerID: u.ID, LearnerID: l.ID, RequirementID: req.ID, TutorID: t.ID, MentorID: t.AssessorID, LearnerName: l.Name, Subject: req.Subject, Class: l.Class, Start: in.Start.UTC(), End: in.Start.UTC().Add(time.Hour), Status: "requested", FeePaise: 0, TermsVersion: "development-trial-v1", Terms: "Development only. One online Mathematics trial, 60 minutes, INR 0. No payment or tuition enrollment. Either party can cancel before completion. Mentor review included. No service availability guarantee.", CreatedAt: a.Now()}
+		v = domain.Trial{ID: id, OwnerID: u.ID, LearnerID: l.ID, RequirementID: req.ID, TutorID: t.ID, MentorID: t.AcademicMentor(), LearnerName: l.Name, Subject: req.Subject, Class: l.Class, Start: in.Start.UTC(), End: in.Start.UTC().Add(time.Hour), Status: "requested", FeePaise: 0, TermsVersion: "development-trial-v1", Terms: "Development only. One online Mathematics trial, 60 minutes, INR 0. No payment or tuition enrollment. Either party can cancel before completion. Mentor review included. No service availability guarantee.", CreatedAt: a.Now()}
+		var av domain.Availability
+		er = a.Store.C("availability").FindOneAndUpdate(ctx, bson.M{"_id": t.ID}, bson.M{"$inc": bson.M{"bookingRevision": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&av)
+		if er != nil && er != mongo.ErrNoDocuments {
+			return er
+		}
+		if er == nil && !available(av, v.Start, v.End) {
+			return domain.Fail(409, "availability", "The tutor is not available at this time.")
+		}
 		if _, er = a.Store.C("trials").InsertOne(ctx, v); er != nil {
 			return er
 		}
@@ -192,6 +190,18 @@ func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 			}
 			if !domain.Eligible(t, v.Class, a.Now()) {
 				return domain.Fail(409, "scope_unavailable", "Your approval does not cover this trial.")
+			}
+			av, availabilityErr := storage.One[domain.Availability](ctx, a.Store, "availability", bson.M{"_id": v.TutorID})
+			if availabilityErr != nil && availabilityErr != mongo.ErrNoDocuments {
+				return availabilityErr
+			}
+			v.ScheduleTimezone = "Asia/Kolkata"
+			if availabilityErr == nil {
+				v.ScheduleTimezone = av.Timezone
+				v.BufferMinutes = av.BufferMinutes
+			}
+			if v.End.After(t.Scope.ExpiresAt) {
+				return domain.Fail(409, "scope_unavailable", "Approval expires before this trial ends.")
 			}
 			if e = a.reserve(ctx, v, false); e != nil {
 				return e

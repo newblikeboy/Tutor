@@ -26,3 +26,19 @@ export function useDashboard() {
     retry: false,
   })
 }
+
+export function useTutorApplication() {
+  const auth = useAuth()
+  return useQuery({
+    queryKey: ['application', 'own'],
+    queryFn: ({ signal }) => api<Schema['OwnApplication']>('/application', { signal }),
+    enabled: auth.data?.user.role === 'tutor',
+    refetchInterval: (query) => {
+      const app = query.state.data?.application
+      return app && !['draft', 'improvement_required', 'approved'].includes(app.status)
+        ? 5000
+        : false
+    },
+    refetchOnWindowFocus: true,
+  })
+}

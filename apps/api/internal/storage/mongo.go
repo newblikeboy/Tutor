@@ -61,6 +61,27 @@ func (s *Store) Tx(ctx context.Context, fn func(context.Context) error) error {
 func (s *Store) Migrate(ctx context.Context) error {
 	required := map[string][]string{"users": {"name", "role", "sample"}, "applications": {"status", "scope", "sample"}, "learners": {"ownerId", "name", "kind"}, "consents": {"ownerId", "version", "verification"}, "requirements": {"ownerId", "learnerId", "status"}, "trials": {"ownerId", "tutorId", "learnerId", "status", "start", "end"}, "sessions": {"userId", "expiresAt"}, "audit": {"actor", "action", "at"}, "guards": {"version"}, "requests": {"ownerId", "fingerprint", "resultId"}, "drafts": {"step"}, "rate_limits": {"expiresAt", "count"}, "outbox": {"status", "attempts", "availableAt"}}
 	required["credentials"] = []string{"userId", "passwordHash"}
+	required["preferences"] = []string{"language", "version"}
+	required["files"] = []string{"targetKind", "targetId", "uploaderId", "objectKey", "checksum", "status", "size", "createdAt"}
+	required["cases"] = []string{"ownerId", "kind", "title", "body", "status", "assignedTo", "version", "createdAt"}
+	required["case_messages"] = []string{"caseId", "authorId", "body", "createdAt"}
+	for c, fields := range map[string][]string{
+		"availability":    {"timezone", "windows", "dailyCapacity", "version"},
+		"enrollments":     {"ownerId", "learnerId", "tutorId", "mentorId", "status", "agreement", "version"},
+		"agreements":      {"enrollmentId", "version", "totalPaise", "currency", "termsVersion"},
+		"classes":         {"enrollmentId", "tutorId", "start", "end", "status", "version"},
+		"learning_plans":  {"enrollmentId", "version", "topics", "authorId", "reviewDate"},
+		"handovers":       {"enrollmentId", "oldTutorId", "newTutorId", "status", "familyConsentAt"},
+		"migrations":      {"appliedAt"},
+		"payment_intents": {"ownerId", "enrollmentId", "amountPaise", "currency", "state"},
+		"refunds":         {"ownerId", "intentId", "amountPaise", "status", "requestedBy"},
+		"ledger":          {"ownerId", "intentId", "amountPaise", "debit", "credit", "reference", "createdAt"},
+		"webhook_events":  {"fingerprint", "kind", "receivedAt"},
+		"messages":        {"enrollmentId", "authorId", "authorName", "authorRole", "body", "createdAt"},
+		"notifications":   {"ownerId", "kind", "targetId", "read", "createdAt"},
+	} {
+		required[c] = fields
+	}
 	names, e := s.DB.ListCollectionNames(ctx, bson.M{})
 	if e != nil {
 		return e
@@ -89,10 +110,28 @@ func (s *Store) Migrate(ctx context.Context) error {
 		"audit":  {{Keys: bson.D{{Key: "target", Value: 1}, {Key: "at", Value: 1}}}}, "outbox": {{Keys: bson.D{{Key: "status", Value: 1}, {Key: "availableAt", Value: 1}}}},
 	}
 	indexes["credentials"] = []mongo.IndexModel{{Keys: bson.D{{Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)}}
+	indexes["files"] = []mongo.IndexModel{{Keys: bson.D{{Key: "targetKind", Value: 1}, {Key: "targetId", Value: 1}, {Key: "_id", Value: 1}}}, {Keys: bson.D{{Key: "objectKey", Value: 1}}, Options: options.Index().SetUnique(true)}}
+	indexes["cases"] = []mongo.IndexModel{{Keys: bson.D{{Key: "ownerId", Value: 1}, {Key: "_id", Value: 1}}}, {Keys: bson.D{{Key: "assignedTo", Value: 1}, {Key: "kind", Value: 1}, {Key: "_id", Value: 1}}}}
+	indexes["case_messages"] = []mongo.IndexModel{{Keys: bson.D{{Key: "caseId", Value: 1}, {Key: "_id", Value: 1}}}}
+	indexes["messages"] = []mongo.IndexModel{{Keys: bson.D{{Key: "enrollmentId", Value: 1}, {Key: "_id", Value: 1}}}}
+	indexes["notifications"] = []mongo.IndexModel{{Keys: bson.D{{Key: "ownerId", Value: 1}, {Key: "_id", Value: 1}}}}
+	indexes["enrollments"] = []mongo.IndexModel{{Keys: bson.D{{Key: "ownerId", Value: 1}, {Key: "_id", Value: 1}}}, {Keys: bson.D{{Key: "tutorId", Value: 1}, {Key: "status", Value: 1}, {Key: "_id", Value: 1}}}, {Keys: bson.D{{Key: "mentorId", Value: 1}, {Key: "_id", Value: 1}}}, {Keys: bson.D{{Key: "status", Value: 1}, {Key: "holdUntil", Value: 1}}}}
+	indexes["classes"] = []mongo.IndexModel{{Keys: bson.D{{Key: "enrollmentId", Value: 1}, {Key: "status", Value: 1}, {Key: "start", Value: 1}}}, {Keys: bson.D{{Key: "tutorId", Value: 1}, {Key: "start", Value: 1}}}}
+	indexes["payment_intents"] = []mongo.IndexModel{{Keys: bson.D{{Key: "ownerId", Value: 1}, {Key: "_id", Value: 1}}}, {Keys: bson.D{{Key: "orderId", Value: 1}}, Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.M{"orderId": bson.M{"$gt": ""}})}, {Keys: bson.D{{Key: "paymentId", Value: 1}}, Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.M{"paymentId": bson.M{"$gt": ""}})}}
+	indexes["refunds"] = []mongo.IndexModel{{Keys: bson.D{{Key: "intentId", Value: 1}, {Key: "status", Value: 1}}}}
+	indexes["ledger"] = []mongo.IndexModel{{Keys: bson.D{{Key: "intentId", Value: 1}, {Key: "createdAt", Value: 1}}}}
+	for _, c := range []string{"agreements", "learning_plans"} {
+		indexes[c] = []mongo.IndexModel{{Keys: bson.D{{Key: "enrollmentId", Value: 1}, {Key: "version", Value: 1}}, Options: options.Index().SetUnique(true)}}
+	}
+	indexes["handovers"] = []mongo.IndexModel{{Keys: bson.D{{Key: "enrollmentId", Value: 1}, {Key: "status", Value: 1}}}, {Keys: bson.D{{Key: "newTutorId", Value: 1}, {Key: "status", Value: 1}}}}
 	for c, idx := range indexes {
 		if _, e = s.C(c).Indexes().CreateMany(ctx, idx); e != nil {
 			return e
 		}
 	}
-	return nil
+	_, e = s.C("migrations").UpdateOne(ctx, bson.M{"_id": "002-tuition-continuity"}, bson.M{"$setOnInsert": bson.M{"appliedAt": time.Now().UTC()}}, options.UpdateOne().SetUpsert(true))
+	if e != nil {
+		return e
+	}
+	return s.MigrateStaff(ctx)
 }

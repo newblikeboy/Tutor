@@ -18,22 +18,31 @@ type Scope struct {
 	ExpiresAt time.Time `json:"expiresAt" bson:"expiresAt"`
 }
 type Application struct {
-	ID           string    `json:"id" bson:"_id"`
-	Name         string    `json:"name" bson:"name"`
-	Education    string    `json:"education" bson:"education"`
-	Approach     string    `json:"approach" bson:"approach"`
-	Language     string    `json:"language" bson:"language"`
-	Experience   int       `json:"experience" bson:"experience"`
-	Status       string    `json:"status" bson:"status"`
-	Scope        Scope     `json:"scope" bson:"scope"`
-	AssessorID   string    `json:"assessorId" bson:"assessorId"`
-	AssessmentAt time.Time `json:"assessmentAt" bson:"assessmentAt"`
-	Scores       []int     `json:"scores" bson:"scores"`
-	Reason       string    `json:"reason" bson:"reason"`
-	Evidence     string    `json:"evidence" bson:"evidence"`
-	Sample       bool      `json:"sample" bson:"sample"`
-	UpdatedAt    time.Time `json:"updatedAt" bson:"updatedAt"`
-	Version      int       `json:"version" bson:"version"`
+	ID            string              `json:"id" bson:"_id"`
+	Name          string              `json:"name" bson:"name"`
+	Education     string              `json:"education" bson:"education"`
+	Approach      string              `json:"approach" bson:"approach"`
+	Language      string              `json:"language" bson:"language"`
+	Experience    int                 `json:"experience" bson:"experience"`
+	Status        string              `json:"status" bson:"status"`
+	Scope         Scope               `json:"scope" bson:"scope"`
+	AssessorID    string              `json:"assessorId" bson:"assessorId"`
+	MentorID      string              `json:"mentorId" bson:"mentorId"`
+	AssessmentAt  time.Time           `json:"assessmentAt" bson:"assessmentAt"`
+	Scores        []int               `json:"scores" bson:"scores"`
+	Reason        string              `json:"reason" bson:"reason"`
+	Evidence      string              `json:"evidence" bson:"evidence"`
+	Sample        bool                `json:"sample" bson:"sample"`
+	UpdatedAt     time.Time           `json:"updatedAt" bson:"updatedAt"`
+	Version       int                 `json:"version" bson:"version"`
+	Interview     *Interview          `json:"interview" bson:"interview,omitempty"`
+	ConflictClear bool                `json:"conflictClear" bson:"conflictClear"`
+	Profile       *TutorApplication   `json:"profile" bson:"profile,omitempty"`
+	FormVersion   int                 `json:"formVersion" bson:"formVersion"`
+	FormStep      int                 `json:"formStep" bson:"formStep"`
+	Submission    *ApplicationReceipt `json:"submission" bson:"submission,omitempty"`
+	Eligibility   *EligibilityReview  `json:"eligibility" bson:"eligibility,omitempty"`
+	Attachments   []PrivateFile       `json:"-" bson:"attachments,omitempty"`
 }
 type PublicTutor struct {
 	ID           string    `json:"id"`
@@ -79,26 +88,28 @@ type Requirement struct {
 	CreatedAt time.Time `json:"createdAt" bson:"createdAt"`
 }
 type Trial struct {
-	ID            string     `json:"id" bson:"_id"`
-	OwnerID       string     `json:"-" bson:"ownerId"`
-	LearnerID     string     `json:"learnerId" bson:"learnerId"`
-	RequirementID string     `json:"requirementId" bson:"requirementId"`
-	TutorID       string     `json:"tutorId" bson:"tutorId"`
-	MentorID      string     `json:"mentorId" bson:"mentorId"`
-	LearnerName   string     `json:"learnerName" bson:"learnerName"`
-	Subject       string     `json:"subject" bson:"subject"`
-	Class         int        `json:"class" bson:"class"`
-	Start         time.Time  `json:"start" bson:"start"`
-	End           time.Time  `json:"end" bson:"end"`
-	Status        string     `json:"status" bson:"status"`
-	FeePaise      int64      `json:"feePaise" bson:"feePaise"`
-	TermsVersion  string     `json:"termsVersion" bson:"termsVersion"`
-	Terms         string     `json:"terms" bson:"terms"`
-	Notes         string     `json:"notes" bson:"notes"`
-	NextSteps     string     `json:"nextSteps" bson:"nextSteps"`
-	Review        string     `json:"review" bson:"review"`
-	ReviewAt      *time.Time `json:"reviewAt,omitempty" bson:"reviewAt,omitempty"`
-	CreatedAt     time.Time  `json:"createdAt" bson:"createdAt"`
+	ScheduleTimezone string     `json:"-" bson:"scheduleTimezone,omitempty"`
+	BufferMinutes    int        `json:"-" bson:"bufferMinutes,omitempty"`
+	ID               string     `json:"id" bson:"_id"`
+	OwnerID          string     `json:"-" bson:"ownerId"`
+	LearnerID        string     `json:"learnerId" bson:"learnerId"`
+	RequirementID    string     `json:"requirementId" bson:"requirementId"`
+	TutorID          string     `json:"tutorId" bson:"tutorId"`
+	MentorID         string     `json:"mentorId" bson:"mentorId"`
+	LearnerName      string     `json:"learnerName" bson:"learnerName"`
+	Subject          string     `json:"subject" bson:"subject"`
+	Class            int        `json:"class" bson:"class"`
+	Start            time.Time  `json:"start" bson:"start"`
+	End              time.Time  `json:"end" bson:"end"`
+	Status           string     `json:"status" bson:"status"`
+	FeePaise         int64      `json:"feePaise" bson:"feePaise"`
+	TermsVersion     string     `json:"termsVersion" bson:"termsVersion"`
+	Terms            string     `json:"terms" bson:"terms"`
+	Notes            string     `json:"notes" bson:"notes"`
+	NextSteps        string     `json:"nextSteps" bson:"nextSteps"`
+	Review           string     `json:"review" bson:"review"`
+	ReviewAt         *time.Time `json:"reviewAt,omitempty" bson:"reviewAt,omitempty"`
+	CreatedAt        time.Time  `json:"createdAt" bson:"createdAt"`
 }
 type Draft struct {
 	ID        string `json:"-" bson:"_id"`

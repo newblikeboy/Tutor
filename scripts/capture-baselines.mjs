@@ -21,7 +21,7 @@ for (const [name, path, language, width, fullPage] of cases) {
   await context.addInitScript((lng) => localStorage.setItem('language', lng), language)
   const page = await context.newPage()
   await page.goto(`http://127.0.0.1:5173${path}`)
-  await page.locator('.dev-banner').waitFor()
+  if (path !== '/') await page.locator('.dev-banner').waitFor()
   await page
     .locator(
       path.includes('tutor-meera')

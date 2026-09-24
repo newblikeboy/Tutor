@@ -1,5 +1,7 @@
 # Asset provenance
 
+Landing editorial additions (2026-09-24): the crystal ornaments, three-step notebook/matching/growth illustrations, photo orbit lines and layered learning record are original CSS/HTML compositions using the existing Lucide icons. They are decorative, hidden from assistive technology and contain no claimed results or real learner records. English display accents use the system Georgia serif; Hindi retains the existing self-hosted Devanagari font. No new raster asset, external font request or third-party image was introduced. The existing AI-labelled scene remains unchanged; its `sizes` hints now account for the taller hero crop, selecting a sharper desktop WebP.
+
 - Manrope: self-hosted via `@fontsource/manrope` 5.3.0. Copyright 2019 The Manrope Project Authors (https://github.com/sharanda/manrope), SIL Open Font License 1.1. License inspected in the installed package.
 - Noto Sans Devanagari: self-hosted via `@fontsource/noto-sans-devanagari` 5.3.0. Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari), SIL Open Font License 1.1. License inspected in the installed package.
 - Lucide icons: `lucide-react` 1.47.0, package license ISC. No emoji navigation.

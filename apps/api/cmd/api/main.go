@@ -15,6 +15,10 @@ import (
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	if e := config.LoadDevelopmentEnv(); e != nil {
+		slog.Error(e.Error())
+		os.Exit(1)
+	}
 	c, e := config.Load()
 	if e != nil {
 		slog.Error(e.Error())
@@ -28,7 +32,15 @@ func main() {
 		os.Exit(1)
 	}
 	defer s.Client.Disconnect(context.Background())
-	srv := &http.Server{Addr: c.Addr, Handler: app.New(s, c).Routes(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
+	application := app.New(s, c)
+	if e = application.ConfigureMedia(); e != nil {
+		slog.Error("Private storage could not be initialised; check directory permissions and configuration")
+		os.Exit(1)
+	}
+	jobsContext, stopJobs := context.WithCancel(context.Background())
+	defer stopJobs()
+	go application.RunJobs(jobsContext)
+	srv := &http.Server{Addr: c.Addr, Handler: application.Routes(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -39,6 +51,7 @@ func main() {
 		}
 	}()
 	<-done
+	stopJobs()
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(ctx)

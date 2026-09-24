@@ -1,0 +1,224 @@
+/* Compact shared tasks; readable forms keep a comfortable line length. */
+.desk-shell[data-role='parent'] .desk-page-heading,
+.desk-shell[data-role='tutor'] .desk-page-heading {
+  margin-bottom: 24px;
+}
+.desk-shell[data-role='parent'] .tu-heading h1,
+.desk-shell[data-role='tutor'] .tu-heading h1 {
+  font-size: clamp(26px, 2.5vw, 32px);
+  margin: 0;
+}
+.desk-shell[data-role='parent'] .tu-page,
+.desk-shell[data-role='tutor'] .tu-page {
+  gap: 24px;
+}
+.tu-page.account-page {
+  max-width: 860px;
+  margin-inline: 0;
+}
+.account-page .tu-heading {
+  flex-direction: row;
+  align-items: center;
+}
+.tu-page > .workspace-tabs,
+.af-submitted > .workspace-tabs {
+  margin-bottom: 0;
+}
+.account-page .workspace-tab-panel > .alert {
+  margin-bottom: 18px;
+}
+.account-help {
+  justify-self: start;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.account-page .tu-session-list .tu-panel {
+  padding: 18px;
+  border-radius: 12px;
+}
+.account-page .tu-card-top h3 {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 16px;
+}
+.tu-timezone {
+  font-size: 14px;
+  margin-block: -6px 18px;
+}
+.tu-timezone summary {
+  cursor: pointer;
+  width: fit-content;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tu-timezone summary::after {
+  content: '⌄';
+}
+.tu-timezone .field {
+  max-width: 360px;
+}
+.tu-leave {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 24px 0 0;
+  padding: 20px 0 0;
+  min-width: 0;
+}
+.tu-leave legend {
+  font-size: 17px;
+  font-weight: 600;
+  padding: 0 10px 0 0;
+}
+.tu-leave-add {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+}
+.tu-leave-add .field {
+  margin: 0;
+  flex: 1;
+}
+.tu-leave-add > .btn {
+  flex-shrink: 0;
+}
+.tu-leave-dates {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+}
+.tu-leave-dates li {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding-left: 12px;
+  border-radius: 10px;
+  background: #edf2e4;
+  border: 1px solid #d5dfc8;
+  font-size: 14px;
+}
+.conversation-empty {
+  padding: 12px 0;
+  margin: 0;
+  color: var(--muted);
+}
+.af-mobile-section {
+  display: none;
+}
+.af-submitted .workspace-tab-panel {
+  display: grid;
+  gap: 20px;
+}
+.af-submitted .workspace-tab-panel[hidden] {
+  display: none;
+}
+.af-page .af-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: #fafcf8f5;
+  backdrop-filter: blur(8px);
+  padding-block: 16px;
+}
+.af-fields :is(input, select, textarea) {
+  scroll-margin-bottom: 100px;
+}
+.af-page .af-fields > .form-grid {
+  margin-top: 0;
+}
+.tu-windows:empty {
+  margin: 0 0 16px;
+}
+.tu-page .tu-panel-title h2 {
+  font-size: 20px;
+  line-height: 1.5;
+}
+.tu-stack > .tu-panel-title {
+  margin-bottom: 0;
+}
+.tu-actions:empty {
+  display: none;
+}
+.teacher-secondary {
+  gap: 18px;
+}
+.teacher-application .badge {
+  margin-top: 16px;
+}
+.teacher-application h3 {
+  margin-top: 12px;
+}
+@media (max-width: 760px) {
+  .desk-shell[data-role='parent'] .desk-page-heading,
+  .desk-shell[data-role='tutor'] .desk-page-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+  }
+  .desk-shell[data-role='parent'] .desk-page-heading > div:first-child,
+  .desk-shell[data-role='tutor'] .desk-page-heading > div:first-child {
+    flex: 1;
+  }
+  .desk-shell[data-role='parent'] .desk-page-actions,
+  .desk-shell[data-role='tutor'] .desk-page-actions {
+    margin-top: 0;
+  }
+  .desk-shell[data-role='parent'] .desk-main,
+  .desk-shell[data-role='tutor'] .desk-main {
+    padding: 22px 16px 30px;
+  }
+  .desk-shell .af-page .page-heading {
+    margin-bottom: 20px;
+  }
+  .af-mobile-section {
+    display: block;
+  }
+  .af-mobile-section .field {
+    margin: 0;
+  }
+  .af-mobile-section label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+  }
+  .af-page .af-progress ol {
+    display: none;
+  }
+  .af-page .af-save-state:empty {
+    display: none;
+  }
+  .af-page .af-progress {
+    padding-bottom: 16px;
+  }
+  .af-page .af-card-heading {
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+  .af-footer {
+    gap: 8px;
+  }
+  .af-footer .btn {
+    padding-inline: 12px;
+    font-size: 13px;
+  }
+  .tu-page .tu-panel,
+  .tu-page .tu-enrollment {
+    padding: 20px;
+    border-radius: 16px;
+  }
+  .tu-page .tu-heading {
+    padding: 0;
+  }
+  .tu-form-grid {
+    gap: 14px;
+  }
+}

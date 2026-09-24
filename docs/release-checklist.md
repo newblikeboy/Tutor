@@ -1,29 +1,42 @@
 # Release blockers — not production ready
 
-## Required operator inputs and reviews
+## Implemented development capabilities
 
-- [ ] Real name/wordmark, founder biography, lawful contact details, actual service area and eligibility criteria. APP_NAME remains provisional.
-- [ ] Approved live guardian-verification procedure before real minor data collection. A declaration or phone OTP is not verification.
-- [ ] Reviewed email ownership/recovery policy, actual recovery delivery, breached-password screening, password change/session revocation and distributed abuse/proxy review. OTP was removed at the user's request; no SMS provider is required for password login.
-- [ ] Staff invite/provisioning and production MFA, recovery and privilege-change operations.
-- [ ] Qualified review of draft child-data/privacy/consent, retention/deletion, teacher eligibility, consumer/refund, tax/invoice policies.
-- [ ] Safeguarding workflow, protective controls, external escalation and staffing; never claim 24/7 emergency response or automated authority contact.
-- [ ] Actual prices, travel rules, cancellation/makeup rules, platform shares and merchant-approved payment/refund/settlement arrangement. No payment adapter is currently enabled.
-- [ ] GitHub remote, domain, DigitalOcean access, TLS, production Atlas user/network restrictions, backups and restore rehearsal.
-- [ ] Operator review of all actual tutor scope/evidence and production records. Sample accounts must never be republished as genuine.
+- [x] Email/password accounts, Argon2id protection, opaque sessions, Origin/CSRF, ownership and scoped academic approval.
+- [x] Availability, recurring agreements/classes, authoritative tutor/learner scheduling, holds/expiry, rescheduling/makeup and reviewed lesson evidence.
+- [x] Versioned plans and consented handover with old-tutor access revocation.
+- [x] Family-visible conversation, in-app updates and assigned support/privacy/restricted safeguarding cases.
+- [x] Private file disk/S3 interfaces, bounded validation, quarantine, scan jobs and authorised integrity-checked downloads. Actual external storage/scanning remains a launch gate.
+- [x] Razorpay test adapter, verified raw webhooks, capture/refund reservations and journals, finance review/reconciliation and leased jobs. Actual provider sandbox acceptance remains a launch gate.
+- [x] Account preferences, password change, session revocation and audited staff bootstrap CLI with hidden password entry. No staff MFA claim.
+- [x] Go/database security and targeted browser verification described in progress.md. These checks apply to the exercised development scope only.
 
-## Required implementation and verification
+## Required operator inputs and external checks
 
-- [ ] Milestone C ongoing tuition agreements/enrollment, recurring availability, capacity/travel/holds/rescheduling and package balances.
-- [ ] Versioned learning plans/reviews, tutor-change handover and access expiry; full mentor conflicts and specialist assignment.
-- [ ] Private file storage/signature/size checks, quarantine/download authorisation; no malware-scanning claims until an actual provider runs.
-- [ ] Parent-visible messaging, support/privacy queues, restricted safeguarding, CMS, reviews from genuine tuition relationships.
-- [ ] Persisted outbox processing with leases/retries/failed visibility; actual notification delivery only when configured/authorised.
-- [ ] Payment domain and sandbox provider tests: verified signatures/order/amount/currency, dedup/out-of-order/late events, refund retries, ledger vs settlement.
-- [ ] Complete API schemas, indexes, migrations/version ledger and bounded pagination for remaining modules.
-- [ ] Full localisation of all future workflows, all showcase primitives, longer-name/expanded-text cases and broader browser/manual assistive-technology checks.
-- [ ] Marketing pre-rendering, public dynamic SEO decision, reproducible mobile Lighthouse and actual field-vitals plan.
-- [ ] Full release security review, role/ownership/file/message matrix, recurring/day-boundary concurrency, backup/restore and operator walkthrough.
-- [ ] Validate Nginx/systemd configuration on the actual droplet and run CI in the target GitHub repository.
+- [ ] Resolve Atlas's collection limit by approving the exact retained-test cleanup manifest or supplying additional capacity. No automatic deletion or database fallback.
+- [ ] Real name/wordmark, founder biography, lawful contact details, actual service area and eligibility criteria; provisional content must be reviewed.
+- [ ] Live guardian-verification procedure before real minor data collection. A development declaration is not verification.
+- [ ] Reviewed email ownership/recovery and breached-password policy, trusted proxy/abuse controls and production staff MFA/recovery process.
+- [ ] Qualified review of child-data/privacy/consent, retention/deletion/legal holds, teacher eligibility, consumer/refund and tax/invoice policies.
+- [ ] Safeguarding staffing, protective actions and external escalation procedure; no 24/7/emergency authority-contact claims.
+- [ ] Reviewed fees, cancellation/makeup/travel rules, platform share and merchant-approved collection/refund/settlement arrangement. User reports an approved Razorpay account; test keys and webhook secret are absent in the private environment, and Route/payout approval is separate.
+- [ ] Real Razorpay sandbox checkout, webhook delivery/retries, refunds and reconciliation with an operator-controlled HTTPS endpoint. Review the restrictive Nginx CSP before enabling hosted checkout.
+- [ ] Private bucket/access policy, encryption/backup, actual ClamAV daemon/signature updates/resource limits and scanning/retention/restore rehearsal.
+- [ ] GitHub remote/CI run, DigitalOcean SSH/domain/TLS, restricted Atlas credentials/network, monitoring and isolated restore rehearsal.
+- [ ] Operator audit of actual tutors/scopes/evidence and production records. Fictional samples must never be published as genuine.
 
-Atlas development connectivity and the first slice's acceptance evidence do not resolve these live-launch gates. Production deliberately rejects demo authentication and seeding; authenticated production operations remain disabled.
+## Remaining implementation and verification
+
+- [ ] Expanded discovery filters, scoped locality aliases, shortlist/comparison, callback/waitlist and operator matching.
+- [ ] Complete application declarations/multi-scope service offerings, real assessment appointments/reassessment, reviewed material profile changes and specialist conflict/assignment workflows.
+- [ ] Renewal approvals and continuity across renewed packages, home-address/guardian-space workflow when home tuition is approved, broader attendance/dispute operations.
+- [ ] Relationship-backed reviews, moderation/reporting/tutor response, CMS publication, staff permission operations and actual operational reports.
+- [ ] Password recovery/email delivery and staff MFA enrollment/recovery; provisioning alone does not establish production authentication readiness.
+- [ ] Approved commissions, tutor expected/pending/payable/settled earnings, invoices, disputes/chargebacks and provider-approved payout reconciliation.
+- [ ] Richer MongoDB schemas and migration history, remaining legacy pagination/history bounds, orphan/quota lifecycle and retention/deletion execution.
+- [ ] Public pre-rendering/SEO, reproducible mobile Lighthouse/performance budgets and field-vitals plan.
+- [x] Full implemented-scope Chromium regression: 39/39 passed, including all 12 reviewed pixel baselines, sampled axe, bilingual widths, keyboard, errors/retry and real multi-step persistence. See progress.md for the final affected-flow rerun after admin refinement.
+- [ ] Expanded manual text/keyboard/reflow, native zoom, assistive technology and cross-browser/device review.
+- [ ] Full release security/access matrix, restore exercise and [independent operator walkthrough](operator-walkthrough.md) on the intended deployment.
+
+Production authenticated operations and real payments remain closed. Local replica-set testing is not a completed Atlas rerun, an actual provider trial, or a production-readiness certification.

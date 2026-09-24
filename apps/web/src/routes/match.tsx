@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, LockKeyhole } from 'lucide-react'
+import { ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { z } from 'zod'
 import { api, queryClient, send } from '../lib/api'
 import type { Dashboard, Learner, Requirement, Schema, Tutor } from '../lib/api'
 import { useAuth, useDashboard } from '../lib/session'
+import { workspaceLink } from '../lib/workspace'
+import { TrialCard } from '../components/trial-card'
+import '../styles/parent.css'
 import {
   Alert,
   Button,
@@ -23,12 +26,15 @@ export default function Match() {
   const [params] = useSearchParams()
   const returnTo = `/match${params.toString() ? `?${params}` : ''}`
   return (
-    <div className="container section wizard-container">
-      <PageHeading
-        eyebrow={t('learningSpace')}
-        title={t('requirementHeading')}
-        body={t('requirementSub')}
-      />
+    <div className="container section wizard-container parent-match">
+      <Link
+        className="text-link parent-match-back"
+        to={workspaceLink('overview', params.get('learner'))}
+      >
+        <ArrowLeft size={16} aria-hidden="true" />
+        {t('parent.back')}
+      </Link>
+      <PageHeading title={t('parent.start')} />
       {auth.isPending ? (
         <Loading />
       ) : !auth.data ? (
@@ -48,23 +54,29 @@ export default function Match() {
 }
 function MatchData() {
   const q = useDashboard()
+  const [params] = useSearchParams()
   if (q.isPending) return <Loading />
   if (q.isError) return <LoadError retry={() => void q.refetch()} />
-  return <Wizard initial={q.data} />
+  return <Wizard key={params.toString()} initial={q.data} />
 }
 function Wizard({ initial }: { initial: Dashboard }) {
   const { t } = useTranslation()
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const existingRequest = initial.requirements.find((r) => r.id === params.get('requirement'))
-  const [requirement, setRequirement] = useState<Requirement | undefined>(existingRequest)
-  const [step, setStep] = useState(initial.draft?.step ?? 1)
-  const [learnerId, setLearnerId] = useState(
-    initial.draft?.learnerId ?? initial.learners[0]?.id ?? '',
-  )
+  const addingLearner = params.get('new') === '1'
+  const requestedLearner = initial.learners.find((item) => item.id === params.get('learner'))
+  const draft =
+    !addingLearner && (!params.has('learner') || initial.draft?.learnerId === requestedLearner?.id)
+      ? initial.draft
+      : undefined
+  const initialLearnerId = addingLearner
+    ? ''
+    : (requestedLearner?.id ?? draft?.learnerId ?? initial.learners[0]?.id ?? '')
+  // A new minor's consent is intentionally never recovered from browser storage.
+  const [step, setStep] = useState(draft?.learnerId ? draft.step : requestedLearner ? 2 : 1)
+  const [learnerId, setLearnerId] = useState(initialLearnerId)
   const [learners, setLearners] = useState(initial.learners)
-  const [kind, setKind] = useState<'minor' | 'adult_self'>(
-    initial.user.id === 'adult-a' ? 'adult_self' : 'minor',
-  )
+  const [kind, setKind] = useState<'minor' | 'adult_self'>('minor')
   const [guardian, setGuardian] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [consentId, setConsentId] = useState('')
@@ -72,14 +84,20 @@ function Wizard({ initial }: { initial: Dashboard }) {
   const [classNumber, setClassNumber] = useState(8)
   const [board, setBoard] = useState('CBSE')
   const [language, setLanguage] = useState('Hindi')
-  const [goal, setGoal] = useState(initial.draft?.goal ?? '')
-  const [locality, setLocality] = useState(initial.draft?.locality ?? 'Purnea')
+  const [goal, setGoal] = useState(draft?.goal ?? '')
+  const [locality, setLocality] = useState(draft?.locality ?? 'Purnea')
   const [validation, setValidation] = useState(false)
   const errorRef = useRef<HTMLDivElement>(null)
   const saveDraft = async (next: number, id = learnerId) => {
     await send('/draft', { step: next, learnerId: id, goal, locality }, 'PUT')
     setStep(next)
-    void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    if (id) {
+      const updated = new URLSearchParams(params)
+      updated.delete('new')
+      updated.set('learner', id)
+      setParams(updated, { replace: true })
+    }
   }
   const next = useMutation({
     mutationFn: async () => {
@@ -92,6 +110,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
         if (kind === 'minor') {
           if (!guardian || !accepted) {
             setValidation(true)
+            requestAnimationFrame(() => errorRef.current?.focus())
             return
           }
           if (!consentId) {
@@ -138,44 +157,57 @@ function Wizard({ initial }: { initial: Dashboard }) {
         return
       }
       const result = await send<Requirement>('/requirements', { learnerId, goal, locality })
-      setRequirement(result)
-      void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      const updated = new URLSearchParams(params)
+      updated.delete('new')
+      updated.set('learner', learnerId)
+      updated.set('requirement', result.id)
+      setParams(updated, { replace: true })
     },
   })
   const previous = useMutation({ mutationFn: () => saveDraft(step - 1) })
   const learner = learners.find((l) => l.id === learnerId)
-  if (requirement)
+  if (params.has('requirement') && !existingRequest)
+    return <Alert>{t('parent.requestMissing')}</Alert>
+  const currentTrial =
+    existingRequest &&
+    initial.trials
+      .filter(
+        (trial) =>
+          trial.requirementId === existingRequest.id &&
+          !['cancelled', 'declined'].includes(trial.status),
+      )
+      .sort((a, b) => b.start.localeCompare(a.start))[0]
+  if (currentTrial)
+    return (
+      <div className="form-stack">
+        <h2>{t('parent.nav.sessions')}</h2>
+        <TrialCard trial={currentTrial} role="parent" />
+        <LinkButton
+          to={`${workspaceLink('sessions', currentTrial.learnerId)}&tab=${['completed', 'reviewed'].includes(currentTrial.status) ? 'completed' : 'upcoming'}`}
+        >
+          {t('parent.allTrials')}
+        </LinkButton>
+      </div>
+    )
+  if (existingRequest)
     return (
       <>
-        <Alert kind="success">
-          <strong>{t('requirementSent')}</strong>
-          <p>{t('requirementSentBody')}</p>
-        </Alert>
+        <MatchSteps step={4} />
         <TrialRequest
-          requirement={requirement}
-          learner={learners.find((l) => l.id === requirement.learnerId)}
+          requirement={existingRequest}
+          learner={learners.find((l) => l.id === existingRequest.learnerId)}
           selectedTutor={params.get('tutor') ?? ''}
         />
       </>
     )
   return (
     <>
-      <ol className="stepper" aria-label={t('requirementHeading')}>
-        {['guardianStep', 'learnerStep', 'reviewStep'].map((key, index) => (
-          <li
-            key={key}
-            className={step === index + 1 ? 'active' : ''}
-            aria-current={step === index + 1 ? 'step' : undefined}
-          >
-            <span>{index + 1}</span>
-            {t(key)}
-          </li>
-        ))}
-      </ol>
-      {initial.draft && (
+      <MatchSteps step={step} />
+      {draft && (
         <p className="saved-indicator">
           <CheckCircle2 size={16} />
-          {t('resumeDraft')}
+          {t('parent.saved')}
         </p>
       )}
       <div className="wizard-layout">
@@ -186,7 +218,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
             next.mutate()
           }}
         >
-          <h2>{t(['guardianStep', 'learnerStep', 'reviewStep'][step - 1])}</h2>
+          <h2>{t(['parent.who', 'parent.details', 'parent.check'][step - 1])}</h2>
           {validation && (
             <div tabIndex={-1} ref={errorRef}>
               <Alert kind="error">{t(step === 1 ? 'consentHelp' : 'invalidFields')}</Alert>
@@ -271,7 +303,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
               {!learnerId ? (
                 <>
                   <Field
-                    label={t('learnerName')}
+                    label={t('parent.name')}
                     error={validation && !name.trim() ? t('required') : undefined}
                   >
                     <input
@@ -318,21 +350,25 @@ function Wizard({ initial }: { initial: Dashboard }) {
               )}
               <Field
                 label={t('goal')}
-                error={validation && goal.trim().length < 10 ? t('required') : undefined}
+                error={validation && goal.trim().length < 10 ? t('parent.goalError') : undefined}
               >
                 <textarea
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
-                  placeholder={t('goalPlaceholder')}
+                  placeholder={t('parent.goalHint')}
                   maxLength={1200}
                   aria-invalid={validation && goal.trim().length < 10}
                 />
               </Field>
-              <Field label={t('locality')} hint={t('localityHelp')}>
+              <Field
+                label={t('locality')}
+                error={validation && locality.trim().length < 2 ? t('parent.cityError') : undefined}
+              >
                 <input
                   value={locality}
                   onChange={(e) => setLocality(e.target.value)}
                   maxLength={120}
+                  aria-invalid={validation && locality.trim().length < 2}
                 />
               </Field>
             </>
@@ -354,7 +390,6 @@ function Wizard({ initial }: { initial: Dashboard }) {
                 <dt>{t('locality')}</dt>
                 <dd>{locality}</dd>
               </dl>
-              <Alert>{t('privacyNote')}</Alert>
             </>
           )}
           <MutationError error={next.error ?? previous.error} />
@@ -371,18 +406,29 @@ function Wizard({ initial }: { initial: Dashboard }) {
               </Button>
             )}
             <Button type="submit" busy={next.isPending} disabled={previous.isPending}>
-              {t(step === 3 ? 'submitRequirement' : step === 1 ? 'confirmGuardian' : 'next')}
+              {t(step === 3 ? 'parent.save' : 'next')}
             </Button>
           </div>
         </form>
-        <aside className="wizard-aside">
-          <LockKeyhole size={28} />
-          <h3>{t('privacyNote')}</h3>
-          <p>{t('consentHelp')}</p>
-          <p>{t('freeTrialBody')}</p>
-        </aside>
       </div>
     </>
+  )
+}
+function MatchSteps({ step }: { step: number }) {
+  const { t } = useTranslation()
+  return (
+    <ol className="stepper" aria-label={t('parent.start')}>
+      {['parent.who', 'parent.details', 'parent.check', 'parent.tutor'].map((key, index) => (
+        <li
+          key={key}
+          className={step === index + 1 ? 'active' : ''}
+          aria-current={step === index + 1 ? 'step' : undefined}
+        >
+          <span>{index + 1}</span>
+          {t(key)}
+        </li>
+      ))}
+    </ol>
   )
 }
 function TrialRequest({
@@ -405,7 +451,7 @@ function TrialRequest({
   const key = useRef(crypto.randomUUID())
   const request = useMutation({
     mutationFn: () =>
-      send(
+      send<Schema['Trial']>(
         '/trials',
         {
           requirementId: requirement.id,
@@ -416,15 +462,18 @@ function TrialRequest({
         'POST',
         { 'Idempotency-Key': key.current },
       ),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+    onSuccess: (trial) => {
+      queryClient.setQueryData<Dashboard>(
+        ['dashboard'],
+        (dashboard) =>
+          dashboard && {
+            ...dashboard,
+            trials: [...dashboard.trials.filter((item) => item.id !== trial.id), trial],
+          },
+      )
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
-  if (request.isSuccess)
-    return (
-      <div className="panel">
-        <Alert kind="success">{t('requestSent')}</Alert>
-        <LinkButton to="/workspace">{t('viewWorkspace')}</LinkButton>
-      </div>
-    )
   if (tutors.isPending) return <Loading />
   if (tutors.isError) return <LoadError retry={() => void tutors.refetch()} />
   const suitable = tutors.data.filter(

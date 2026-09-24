@@ -5,7 +5,7 @@
   --auth-line: #d9dedb;
   min-height: 100svh;
   background: var(--auth-paper);
-  padding: 0 40px;
+  padding: 0 40px 40px;
 }
 .auth-header {
   max-width: 1360px;
@@ -377,6 +377,75 @@
   flex-direction: column;
   gap: 18px;
 }
+.auth-form-content h1 + .auth-form {
+  margin-top: 32px;
+}
+.auth-login-roles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  margin-bottom: 32px;
+  border: 1px solid #d5dfd7;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff, #eef2e9 55%, #f8faf5);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 4px 12px #15353b06;
+}
+.auth-login-roles a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 66px;
+  padding: 10px 4px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 650;
+  color: #50645e;
+  text-align: center;
+}
+.auth-login-roles a:hover {
+  background: #ffffffb3;
+  color: var(--auth-ink);
+}
+.auth-login-roles a[aria-current='page'] {
+  color: #153f43;
+  border-color: #709480;
+  background: linear-gradient(145deg, #fff 0%, #edf3dd 48%, #dfe8bc 100%);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 2px 5px #15353b12;
+}
+.auth-login-roles a:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 3px;
+}
+.auth-login-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 32px;
+}
+.auth-login-heading .auth-form-symbol {
+  flex-shrink: 0;
+  margin: 0;
+  background: linear-gradient(140deg, #fff, #edf3df);
+  box-shadow: inset 0 1px 0 #fff;
+}
+.auth-login-heading h1 {
+  min-width: 0;
+  font-size: 32px;
+  letter-spacing: -1px;
+}
+.auth-login-stage .auth-form-content {
+  margin-block: auto;
+  padding-block: 36px;
+}
 .auth-form .field {
   margin: 0;
 }
@@ -431,7 +500,7 @@
 .auth-help-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   margin-top: -3px;
   font-size: 11px;
@@ -496,7 +565,7 @@
 .auth-form-bottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   border-top: 1px solid #eef0eb;
   margin-top: auto;

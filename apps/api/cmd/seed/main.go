@@ -9,6 +9,9 @@ import (
 )
 
 func main() {
+	if e := config.LoadDevelopmentEnv(); e != nil {
+		log.Fatal(e)
+	}
 	c, e := config.Load()
 	if e != nil {
 		log.Fatal(e)

@@ -8,6 +8,10 @@ test('photo homepage keeps its bilingual layout, keyboard access and real entry 
   page.on('pageerror', (error) => errors.push(error.message))
   await page.goto('/')
   await page.locator('.home-tutors .tutor-card').first().waitFor()
+  await expect(page.getByRole('region', { name: 'Development preview', exact: true })).toHaveCount(
+    0,
+  )
+  await expect(page.locator('.home-image-credit')).toHaveText('AI-generated illustrative scene')
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused()
   await page.keyboard.press('Enter')
@@ -32,12 +36,16 @@ test('photo homepage keeps its bilingual layout, keyboard access and real entry 
           right: figure.right,
           heroLeft: rect.left,
           heroRight: rect.right,
-          widths: Math.abs(copy.width - figure.width),
+          copyRight: copy.right,
+          figureLeft: figure.left,
+          copyBottom: copy.bottom,
+          figureTop: figure.top,
         }
       })
       expect(bounds.left).toBeCloseTo(bounds.heroLeft, 0)
-      expect(bounds.right).toBeCloseTo(bounds.heroRight, 0)
-      if (width >= 1024) expect(bounds.widths).toBeLessThan(1)
+      expect(bounds.right).toBeLessThanOrEqual(bounds.heroRight + 1)
+      if (width >= 1024) expect(bounds.copyRight).toBeLessThan(bounds.figureLeft)
+      else expect(bounds.copyBottom).toBeLessThan(bounds.figureTop)
       if (width === 390 || width === 1440) {
         const accessibility = await new AxeBuilder({ page })
           .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
@@ -114,4 +122,29 @@ test('homepage remains usable while tutors load and recovers from a failed reque
   await page.getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(page.locator('.home-tutors .tutor-card').first()).toBeVisible()
   await expect(page.locator('.home-tutors').getByRole('alert')).toHaveCount(0)
+})
+
+test('landing section link works with reduced motion and high contrast', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+  await expect(page.locator('.home-hero-image')).toBeVisible()
+  expect(
+    await page
+      .locator('.home-hero')
+      .evaluate((hero) => hero.getAnimations({ subtree: true }).length),
+  ).toBe(0)
+  await page.locator('.home-discover').focus()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/#home-process-title$/)
+  await expect(page.locator('#home-process-title')).toBeInViewport()
+  await page.emulateMedia({ forcedColors: 'active' })
+  await page.goto('/')
+  await expect(page.locator('.home-actions .btn')).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({
+    path: 'docs/visual-qa/landing-editorial/high-contrast.png',
+    animations: 'disabled',
+  })
+  await page.locator('.home-actions .text-link').click()
+  await expect(page).toHaveURL(/\/tutors$/)
 })

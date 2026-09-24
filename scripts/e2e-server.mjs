@@ -17,6 +17,16 @@ Object.assign(env, {
   AUTH_PROVIDER: 'password',
   SEED_PASSWORD: 'E2E-only learning passphrase 426!',
   PAYMENT_PROVIDER: 'disabled',
+  MEDIA_PROVIDER: 'disk',
+  VIDEO_PROVIDER: 'disk',
+  MEETING_PROVIDER: 'zoom',
+  ZOOM_ACCOUNT_ID: 'test-account',
+  ZOOM_CLIENT_ID: 'test-client',
+  ZOOM_CLIENT_SECRET: 'test-secret',
+  ZOOM_HOST_USER_ID: 'test-host',
+  TEST_ZOOM_ENDPOINT: 'http://127.0.0.1:7999',
+  MEDIA_ROOT: resolve(`.local/e2e-files-${Date.now()}`),
+  CLAMAV_ADDRESS: '',
   TRIAL_FEE_PAISE: '0',
   MONGODB_DATABASE: `tutor_e2e_${Date.now()}`,
   HTTP_ADDR: '127.0.0.1:8081',
@@ -39,6 +49,7 @@ const run = (command, args, cwd) =>
     )
   })
 await mkdir('.local', { recursive: true })
+start(process.execPath, [resolve('scripts/zoom-test-server.mjs')], resolve('.'))
 await run('go', ['run', './cmd/migrate'], resolve('apps/api'))
 await run('go', ['run', './cmd/seed'], resolve('apps/api'))
 const binary = resolve(`.local/e2e-api${process.platform === 'win32' ? '.exe' : ''}`)

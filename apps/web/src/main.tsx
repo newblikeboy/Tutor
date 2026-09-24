@@ -22,6 +22,14 @@ const WorkspaceShell = lazy(() => import('./components/workspace-shell'))
 const Workspace = lazy(() => import('./routes/workspace'))
 const Match = lazy(() => import('./routes/match'))
 const Apply = lazy(() => import('./routes/apply'))
+const Tuition = lazy(() => import('./routes/tuition'))
+const Billing = lazy(() => import('./routes/billing'))
+const Notifications = lazy(() => import('./routes/conversations'))
+const Cases = lazy(() => import('./routes/cases'))
+const Account = lazy(() => import('./routes/account'))
+const Availability = lazy(() =>
+  import('./routes/tuition').then((m) => ({ default: m.AvailabilityPage })),
+)
 function ScrollReset() {
   const { pathname, search } = useLocation()
   const view = pathname === '/workspace' ? new URLSearchParams(search).get('view') : null
@@ -40,6 +48,15 @@ function SiteRoutes() {
       <Route path="/workspace" element={<Workspace />} />
       <Route path="/match" element={<Match />} />
       <Route path="/apply" element={<Apply />} />
+      <Route path="/tuition" element={<Tuition />} />
+      <Route path="/tuition/:id" element={<Tuition />} />
+      <Route path="/billing" element={<Billing />} />
+      <Route path="/billing/:id" element={<Billing />} />
+      <Route path="/notifications" element={<Notifications />} />
+      <Route path="/cases" element={<Cases />} />
+      <Route path="/account" element={<Account />} />
+      <Route path="/cases/:id" element={<Cases />} />
+      <Route path="/availability" element={<Availability />} />
       <Route path="/components" element={<Showcase />} />
       {['approach', 'standards', 'privacy', 'support', 'how-it-works'].map((path) => (
         <Route key={path} path={`/${path}`} element={<Info page={path} />} />
@@ -81,7 +98,17 @@ function Layout() {
       </Suspense>
     )
   }
-  if (['/workspace', '/match', '/apply'].includes(location.pathname.replace(/\/+$/, ''))) {
+  if (
+    ['/workspace', '/match', '/apply', '/tuition', '/availability', '/account'].includes(
+      location.pathname.replace(/\/+$/, ''),
+    ) ||
+    location.pathname.startsWith('/tuition/') ||
+    location.pathname === '/billing' ||
+    location.pathname === '/notifications' ||
+    location.pathname.startsWith('/billing/') ||
+    location.pathname === '/cases' ||
+    location.pathname.startsWith('/cases/')
+  ) {
     return (
       <Suspense
         fallback={
@@ -102,7 +129,7 @@ function Layout() {
       <a className="skip-link" href="#main">
         {t('skip')}
       </a>
-      {config.data?.development && (
+      {config.data?.development && location.pathname !== '/' && (
         <div className="dev-banner" role="region" aria-label={t('dev')}>
           <strong>{t('dev')}</strong>
           <span>{t('devDetail')}</span>
@@ -170,14 +197,16 @@ function Layout() {
               {config.data?.appName ?? t('brand')}.
             </Link>
             <p>{t('footer')}</p>
-            <small>{t('noFounder')}</small>
+            {location.pathname !== '/' && <small>{t('noFounder')}</small>}
           </div>
           <nav aria-label="Footer">
             <Link to="/standards">{t('standards')}</Link>
             <Link to="/privacy">{t('privacy')}</Link>
             <Link to="/support">{t('support')}</Link>
             <Link to="/login?staff=1">{t('staff')}</Link>
-            {config.data?.development && <Link to="/components">{t('components')}</Link>}
+            {config.data?.development && location.pathname !== '/' && (
+              <Link to="/components">{t('components')}</Link>
+            )}
           </nav>
         </div>
         {auth.data && (

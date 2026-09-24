@@ -612,9 +612,19 @@ const hi: Record<keyof typeof en, string | string[]> = {
   loadingSave: 'सर्वर की पुष्टि की प्रतीक्षा करें।',
   welcome: 'आपकी पढ़ाई, केंद्र में',
 }
+import { parentEN, parentHI } from './parent'
+import { experienceEN, experienceHI } from './experience'
 import { authEN, authHI } from './auth'
 import { homeEN, homeHI } from './home'
 import { workspaceEN, workspaceHI } from './workspace'
+import { tuitionEN, tuitionHI } from './tuition'
+import { billingEN, billingHI } from './billing'
+import { casesEN, casesHI } from './cases'
+import { accountEN, accountHI } from './account'
+import { filesEN, filesHI } from './files'
+import { auditEN, auditHI } from './audit'
+import { staffEN, staffHI } from './staff'
+import { applicationEN, applicationHI } from './application'
 let language = 'en'
 try {
   language = localStorage.getItem('language') === 'hi' ? 'hi' : 'en'
@@ -623,8 +633,42 @@ try {
 }
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { translation: { ...en, ...authEN, ...homeEN, ...workspaceEN } },
-    hi: { translation: { ...hi, ...authHI, ...homeHI, ...workspaceHI } },
+    en: {
+      translation: {
+        ...en,
+        ...authEN,
+        ...homeEN,
+        ...workspaceEN,
+        ...tuitionEN,
+        ...billingEN,
+        ...casesEN,
+        ...accountEN,
+        ...filesEN,
+        ...auditEN,
+        ...staffEN,
+        ...applicationEN,
+        ...parentEN,
+        ...experienceEN,
+      },
+    },
+    hi: {
+      translation: {
+        ...hi,
+        ...authHI,
+        ...homeHI,
+        ...workspaceHI,
+        ...tuitionHI,
+        ...billingHI,
+        ...casesHI,
+        ...accountHI,
+        ...filesHI,
+        ...auditHI,
+        ...staffHI,
+        ...applicationHI,
+        ...parentHI,
+        ...experienceHI,
+      },
+    },
   },
   lng: language,
   fallbackLng: 'en',

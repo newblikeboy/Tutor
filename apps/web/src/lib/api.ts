@@ -20,6 +20,7 @@ export class APIError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public fieldErrors: Record<string, string> = {},
   ) {
     super(message)
   }
@@ -45,6 +46,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       response.status,
       data.code ?? 'unavailable',
       data.message ?? 'Request failed',
+      data.fieldErrors,
     )
   }
   return response.json() as Promise<T>
@@ -61,18 +63,47 @@ export function errorKey(error: unknown): string {
     (
       {
         schedule_conflict: 'failureConflict',
+        interview_conflict: 'staffOps.failureOverlap',
+        interview_validation: 'staffOps.failureInterview',
+        meeting_unconfigured: 'staffOps.zoomUnconfigured',
+        meeting_pending: 'staffOps.zoomBusy',
+        meeting_unavailable: 'staffOps.zoomFailed',
+        video_unconfigured: 'applicationForm.videoUnavailable',
+        stale: 'staffOps.failureStale',
+        tutor_restricted: 'staffOps.restriction',
         scope_unavailable: 'failureScope',
         invalid_credentials: 'authInvalidCredentials',
         signup_unavailable: 'authSignupUnavailable',
         weak_password: 'authWeakPassword',
         rate_limited: 'failureLimit',
         validation: 'failureValidation',
+        application_validation: 'invalidFields',
+        application_file: 'applicationForm.fileError',
+        eligibility_pending: 'applicationForm.eligibilityPending',
+        requested_scope: 'applicationForm.scopeBoundary',
         guardian_required: 'consentHelp',
         unauthenticated: 'authRequired',
         forbidden: 'permission',
         origin: 'actionError',
         csrf: 'actionError',
         invalid_transition: 'actionError',
+        availability: 'tuition.failureAvailability',
+        availability_required: 'tuition.noAvailabilityBody',
+        stale_version: 'tuition.failureStale',
+        capacity: 'tuition.failureCapacity',
+        not_finished: 'tuition.failureTiming',
+        attendance_dispute: 'tuition.failureDispute',
+        hold_expired: 'billing.failureHold',
+        payment_pending: 'billing.failurePending',
+        signature: 'billing.failureSignature',
+        refund_amount: 'billing.failureRefund',
+        reconciliation_required: 'billing.reconcileBody',
+        file_type: 'files.failureType',
+        file_quota: 'files.failureQuota',
+        file_quarantined: 'files.failureQuarantine',
+        storage_unavailable: 'files.failureStorage',
+        storage_unconfigured: 'files.disabled',
+        scanner_unconfigured: 'files.scanner',
       } as Record<string, string>
     )[code] ?? 'actionError'
   )

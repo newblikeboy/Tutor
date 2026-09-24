@@ -1,3 +1,4 @@
+import { fillApplication } from './helpers/application'
 import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -10,10 +11,10 @@ async function login(page: Page, id: string, staff = false) {
   await expect(page).toHaveURL(/workspace/)
 }
 async function capture(page: Page, name: string) {
-  await mkdir('docs/visual-qa', { recursive: true })
+  await mkdir('docs/visual-qa/parent-ux/journey', { recursive: true })
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => window.scrollTo(0, 0))
-  await page.screenshot({ path: `docs/visual-qa/${name}.png`, fullPage: true })
+  await page.screenshot({ path: `docs/visual-qa/parent-ux/journey/${name}.png`, fullPage: true })
 }
 async function axe(page: Page) {
   const result = await new AxeBuilder({ page })
@@ -62,27 +63,22 @@ test('complete application → scoped approval → requirement → trial → rev
   const [tutor, mentor, parent, admin] = await Promise.all(contexts.map((c) => c.newPage()))
   await login(tutor, 'tutor-a')
   await tutor.goto('/apply')
-  await tutor.getByLabel('Name', { exact: true }).fill('Kavya · fictional tutor')
-  await tutor
-    .getByLabel('Education and relevant experience')
-    .fill('Fictional BSc Mathematics for development assessment.')
-  await tutor.getByLabel('Years of teaching experience').fill('4')
-  await tutor
-    .getByLabel('Your teaching approach')
-    .fill(
-      'I use number lines, ask learners to explain their thinking, and adapt practice to observed misconceptions.',
-    )
-  await tutor.getByRole('button', { name: 'Submit for assessment' }).click()
+  await fillApplication(tutor, 'Kavya · fictional tutor')
   await expect(tutor.getByText('Submitted', { exact: true })).toBeVisible()
   await capture(tutor, 'application-submitted-en-desktop')
   const publicResponse = await tutor.request.get('/api/v1/tutors')
   expect((await publicResponse.json()).some((v: { id: string }) => v.id === 'tutor-a')).toBe(false)
   await login(mentor, 'mentor-a', true)
-  const application = mentor
-    .locator('article')
-    .filter({ has: mentor.getByRole('heading', { name: 'Kavya · fictional tutor' }) })
-  await application.getByRole('button', { name: 'Take this assessment' }).click()
-  await application.getByRole('button', { name: 'Record assessment session' }).click()
+  await mentor.locator('.staff-row').filter({ hasText: 'Kavya · fictional tutor' }).click()
+  const application = mentor.locator('article.staff-detail')
+  await application.getByRole('tab', { name: 'Review & decision', exact: true }).click()
+  await application.getByRole('checkbox', { name: 'I have no conflict of interest' }).check()
+  await application.getByRole('button', { name: 'Start review', exact: true }).click()
+  await application
+    .getByLabel('Interview date and time (IST)')
+    .fill(new Date(Date.now() - 60_000 + 19_800_000).toISOString().slice(0, 16))
+  await application.getByRole('button', { name: 'Create Zoom meeting', exact: true }).click()
+  await expect(application.getByRole('link', { name: 'Join Zoom meeting' })).toBeVisible()
   for (const label of [
     'Subject knowledge',
     'Explanation',
@@ -106,30 +102,30 @@ test('complete application → scoped approval → requirement → trial → rev
   await axe(mentor)
   await mentor.locator('.language-button').click()
   await mentor.setViewportSize({ width: 1440, height: 1000 })
-  await application.getByRole('button', { name: 'Save assessment evidence' }).click()
+  await application.getByRole('button', { name: 'Save assessment', exact: true }).click()
   await application.getByLabel('From class').fill('8')
   await application.getByLabel('To class').fill('8')
   await application
-    .getByLabel('Decision reason')
+    .getByLabel('Reason / feedback', { exact: true })
     .fill('The observed explanation and learner checks support class eight online Mathematics.')
-  await application.getByRole('button', { name: 'Approve this scope' }).click()
+  await application.getByRole('button', { name: 'Approve tutor', exact: true }).click()
   await expect(application.getByText('Approved', { exact: true })).toBeVisible()
   await login(parent, 'parent-a')
   await parent.goto('/match?tutor=tutor-a')
-  await parent.getByRole('button', { name: 'Confirm and continue' }).click()
+  await parent.getByRole('button', { name: 'Continue', exact: true }).click()
   await expect(parent.getByRole('alert')).toBeVisible()
-  await expect(parent.getByLabel('Learner’s first name or nickname')).toHaveCount(0)
+  await expect(parent.getByLabel('First name or nickname')).toHaveCount(0)
   await parent.getByLabel('I am the parent or legal guardian').check()
   await parent.getByLabel('I agree to the draft privacy notice').check()
-  await parent.getByRole('button', { name: 'Confirm and continue' }).click()
-  await parent.getByLabel('Learner’s first name or nickname').fill('Aarohi · sample')
+  await parent.getByRole('button', { name: 'Continue', exact: true }).click()
+  await parent.getByLabel('First name or nickname').fill('Aarohi · sample')
   await parent
     .getByLabel('What would you like help with?')
     .fill('Build understanding of equivalent fractions and explain each step with confidence.')
   await parent.getByRole('button', { name: 'Continue', exact: true }).click()
-  await expect(parent.getByRole('button', { name: 'Send learning requirement' })).toBeVisible()
+  await expect(parent.getByRole('button', { name: 'Choose a tutor', exact: true })).toBeVisible()
   await parent.reload()
-  await expect(parent.getByText('Your saved draft is ready to continue.')).toBeVisible()
+  await expect(parent.getByText('Saved', { exact: true })).toBeVisible()
   await capture(parent, 'requirement-review-en-desktop')
   await axe(parent)
   await parent.getByRole('button', { name: 'Back', exact: true }).click()
@@ -137,8 +133,8 @@ test('complete application → scoped approval → requirement → trial → rev
     /equivalent fractions/,
   )
   await parent.getByRole('button', { name: 'Continue', exact: true }).click()
-  await parent.getByRole('button', { name: 'Send learning requirement' }).click()
-  await expect(parent.getByText('Your requirement is saved.')).toBeVisible()
+  await parent.getByRole('button', { name: 'Choose a tutor', exact: true }).click()
+  await expect(parent.getByLabel('Select a tutor')).toBeVisible()
   await parent.getByLabel('Select a tutor').selectOption('tutor-a')
   const start = new Date(Date.now() + 24 * 60 * 60 * 1000)
   start.setMinutes(0, 0, 0)
@@ -148,12 +144,21 @@ test('complete application → scoped approval → requirement → trial → rev
   await parent.getByLabel('Preferred date & time').fill(local)
   await parent.getByLabel('I accept the development trial terms.').check()
   await parent.getByRole('button', { name: 'Request a trial', exact: true }).click()
-  await expect(parent.getByText('Trial requested — waiting for tutor acceptance')).toBeVisible()
-  await parent.getByRole('link', { name: 'Open my workspace' }).click()
+  await expect(parent.getByText('Waiting for tutor', { exact: true })).toBeVisible()
+  await parent.getByRole('link', { name: 'View all trials' }).click()
   await capture(parent, 'parent-requested-en-desktop')
   await tutor.goto('/workspace')
-  await tutor.getByRole('button', { name: 'Accept & confirm time' }).click()
-  await expect(tutor.getByText('Confirmed', { exact: true })).toBeVisible()
+  const teachingTrial = tutor.getByRole('article').filter({
+    has: tutor.getByRole('heading', { name: 'Aarohi · sample · Mathematics', exact: true }),
+  })
+  await teachingTrial.getByRole('button', { name: 'Accept & confirm time' }).click()
+  await expect(tutor.locator('.teacher-next')).toContainText('Aarohi · sample')
+  await capture(tutor, 'polish/teacher-populated-en-desktop')
+  await tutor.setViewportSize({ width: 390, height: 844 })
+  await capture(tutor, 'polish/teacher-populated-en-mobile')
+  await tutor.setViewportSize({ width: 1440, height: 1000 })
+  await tutor.getByRole('link', { name: 'Open trial', exact: true }).click()
+  await expect(teachingTrial.getByText('Confirmed', { exact: true })).toBeVisible()
   await capture(tutor, 'tutor-confirmed-en-desktop')
   await axe(tutor)
   await tutor.setViewportSize({ width: 390, height: 844 })
@@ -163,24 +168,31 @@ test('complete application → scoped approval → requirement → trial → rev
   await axe(tutor)
   await tutor.locator('.language-button').click()
   await tutor.setViewportSize({ width: 1440, height: 1000 })
-  await tutor
+  await teachingTrial
     .getByLabel('What did the learner work through?')
     .fill(
       'Aarohi used a number line to show why one half and two quarters represent the same amount.',
     )
-  await tutor
+  await teachingTrial
     .getByLabel('Practice and next teaching steps')
     .fill('Practise comparing thirds and sixths using a number line, then explain the denominator.')
-  await tutor.getByRole('button', { name: 'Record development lesson' }).click()
-  await expect(tutor.getByText('Awaiting academic review', { exact: true })).toBeVisible()
-  await mentor.reload()
-  await mentor
+  await teachingTrial.getByRole('button', { name: 'Record development lesson' }).click()
+  await tutor
+    .locator('.teacher-filters')
+    .getByRole('link', { name: /Awaiting review/ })
+    .click()
+  await expect(teachingTrial.getByText('Awaiting academic review', { exact: true })).toBeVisible()
+  await mentor.goto('/workspace?view=reviews')
+  const mentoredTrial = mentor.getByRole('article').filter({
+    has: mentor.getByRole('heading', { name: 'Aarohi · sample · Mathematics', exact: true }),
+  })
+  await mentoredTrial
     .getByLabel('Academic review and evidence')
     .fill(
       'The worked examples support continued practice with equivalent fractions. Review thirds and sixths next.',
     )
-  await mentor.getByRole('button', { name: 'Share reviewed progress with family' }).click()
-  await expect(mentor.getByText('Reviewed', { exact: true })).toBeVisible()
+  await mentoredTrial.getByRole('button', { name: 'Share reviewed progress with family' }).click()
+  await expect(mentoredTrial.getByText('Reviewed', { exact: true })).toBeVisible()
   await parent.reload()
   await expect(
     parent.getByText(
@@ -203,7 +215,8 @@ test('complete application → scoped approval → requirement → trial → rev
   await capture(admin, 'admin-hi-mobile')
   await axe(admin)
   await admin.locator('.language-button').click()
-  const trigger = admin.getByRole('button', { name: 'Suspend new bookings' }).first()
+  await admin.goto('/workspace?view=tutors&application=tutor-a')
+  const trigger = admin.getByRole('button', { name: 'Suspend tutor', exact: true })
   await trigger.click()
   await expect(admin.getByRole('dialog')).toBeVisible()
   await admin.keyboard.press('Escape')
@@ -321,9 +334,9 @@ test('Hindi adult learner completes the saved requirement flow', async ({ page }
   await login(page, 'adult-a')
   await page.locator('.language-button').click()
   await page.goto('/match')
-  await expect(page.getByLabel('मेरे लिए, मेरी उम्र 18 वर्ष या अधिक है')).toBeChecked()
-  await page.getByRole('button', { name: 'पुष्टि करें और आगे बढ़ें' }).click()
-  await page.getByLabel('विद्यार्थी का पहला नाम या घर का नाम').fill('काल्पनिक वयस्क विद्यार्थी')
+  await page.getByLabel('मेरे लिए, मेरी उम्र 18 वर्ष या अधिक है').check()
+  await page.getByRole('button', { name: 'आगे बढ़ें', exact: true }).click()
+  await page.getByLabel('पहला नाम या घर का नाम').fill('काल्पनिक वयस्क विद्यार्थी')
   await page
     .getByLabel('किस चीज़ में मदद चाहिए?')
     .fill('भिन्न और अनुपात को रोज़मर्रा के उदाहरणों से समझना और अभ्यास करना।')
@@ -332,11 +345,11 @@ test('Hindi adult learner completes the saved requirement flow', async ({ page }
   await capture(page, 'adult-requirement-hi-mobile')
   await axe(page)
   await page.getByRole('button', { name: 'आगे बढ़ें', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'सीखने की ज़रूरत भेजें' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'ट्यूटर चुनें', exact: true })).toBeVisible()
   await page.reload()
-  await expect(page.getByText('आपका सहेजा मसौदा तैयार है।')).toBeVisible()
-  await page.getByRole('button', { name: 'सीखने की ज़रूरत भेजें' }).click()
-  await expect(page.getByText('आपकी ज़रूरत सहेज ली गई है।')).toBeVisible()
+  await expect(page.getByText('सहेज लिया', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'ट्यूटर चुनें', exact: true }).click()
+  await expect(page.getByLabel('ट्यूटर चुनें', { exact: true })).toBeVisible()
   const result = await page.request.get('/api/v1/dashboard')
   expect((await result.json()).learners[0].kind).toBe('adult_self')
 })

@@ -15,6 +15,7 @@ Review a supported Linux droplet image, sizing, firewall/SSH policy, backups and
 ```text
 /srv/tutor/releases/<reviewed-commit>/tutor-api
 /srv/tutor/releases/<reviewed-commit>/tutor-migrate
+/srv/tutor/releases/<reviewed-commit>/tutor-staff
 /srv/tutor/releases/<reviewed-commit>/web/index.html
 /srv/tutor/releases/<reviewed-commit>/web/assets/...
 /srv/tutor/current -> releases/<reviewed-commit>
@@ -42,6 +43,16 @@ Do not put secrets in `VITE_*`, deployment logs, shell history or frontend artif
 Install the reviewed `infra/tutor-api.service`, provide the environment file, and validate its resolved paths. For an authorised release: run the idempotent `tutor-migrate` binary with the same private environment, switch the `current` symlink to the release, then `systemctl daemon-reload` and `systemctl restart tutor-api`. Never run the sample seed in production. These operator commands have **not** been run on a droplet.
 
 Replace the example domain/certificate paths in `infra/nginx.conf`. Obtain a valid TLS certificate using the operator-approved mechanism; then run `nginx -t` before enabling/reloading the site. The proxy preserves `/api/v1`. HTML is not cached indefinitely, private API responses use `no-store`, hashed assets can be cached, and no public service worker stores private pages. Headers limit embedding, location/camera use and cross-origin scripts. The template is not a security certification.
+
+### Additional services for the new workflows
+
+The Go process also runs the persisted job worker. Multiple instances can contend for jobs using MongoDB leases; no Node worker or extra application API is needed. Application startup does not run migrations automatically. Resolve the reported Atlas collection limit before installing this extension, then run the reviewed migration explicitly. The private development environment has not been changed and the latest extension has only been verified on the isolated local replica set.
+
+Keep `MEDIA_PROVIDER=disabled` until private storage is ready. The optional `disk` adapter is development-only and requires an absolute directory outside public assets. Staging/production files use an operator-configured private S3-compatible bucket; see [private-files.md](private-files.md) for endpoint, bucket, credential and ClamAV settings. Run ClamAV separately with loopback-only access, current signatures and resource limits; no Docker is required. The Nginx request limit is 5 MiB for the 3 MiB base64 file envelope, while Go retains smaller limits on other routes. Files remain quarantined if scanning is unavailable. An actual bucket/scanner/restore exercise is still required.
+
+Razorpay sandbox configuration uses backend-only test keys and a separate webhook secret; see [payments.md](payments.md). The currently supplied Nginx CSP intentionally does not permit hosted checkout. Verify the provider's actual script/frame/connect requirements on an authorised HTTPS staging origin before changing it. Do not weaken the CSP to a wildcard or enable live payments merely because the merchant account is approved. Production payment activation remains blocked in code.
+
+`tutor-staff` provisions an audited staff identity with a hidden terminal password; it neither sends an invitation nor bypasses the production MFA gate. Run it only under the reviewed operator procedure in [staff-provisioning.md](staff-provisioning.md). Staff bootstrap credentials are never frontend configuration or default sample passwords.
 
 ## Verify and rollback
 

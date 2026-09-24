@@ -190,7 +190,20 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	raw, csrf := token(), token()
-	e = a.Store.Tx(r.Context(), func(ctx context.Context) error { return a.saveSession(ctx, r, u, raw, csrf) })
+	e = a.Store.Tx(r.Context(), func(ctx context.Context) error {
+		fresh, err := storage.One[credential](ctx, a.Store, "credentials", bson.M{"_id": email, "passwordHash": c.Hash})
+		if err == mongo.ErrNoDocuments {
+			return domain.Fail(401, "invalid_credentials", "Email or password is incorrect.")
+		}
+		if err != nil {
+			return err
+		}
+		u, err = storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": fresh.UserID})
+		if err != nil {
+			return err
+		}
+		return a.saveSession(ctx, r, u, raw, csrf)
+	})
 	if e != nil {
 		a.error(w, r, e)
 		return
@@ -233,6 +246,17 @@ func (a *App) authenticated(next http.Handler) http.Handler {
 		if r.Method != "GET" && r.Method != "HEAD" && !hmac.Equal([]byte(s.CSRF), []byte(r.Header.Get("X-CSRF-Token"))) {
 			a.error(w, r, domain.Fail(403, "csrf", "Refresh the page and try again."))
 			return
+		}
+		if u.Role == "tutor" {
+			app, er := storage.One[domain.Application](r.Context(), a.Store, "applications", bson.M{"_id": u.ID})
+			if er != nil && er != mongo.ErrNoDocuments {
+				a.error(w, r, er)
+				return
+			}
+			if (er == mongo.ErrNoDocuments || app.Status != "approved" || !app.Scope.ExpiresAt.After(a.Now())) && !restrictedTutorRoute(r.URL.Path, u.ID) {
+				a.error(w, r, domain.Fail(403, "tutor_restricted", "Teaching access is restricted. Check your application for the decision."))
+				return
+			}
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, u)))
 	})

@@ -2,14 +2,18 @@
 // Only the explicitly fictional, empty parent-b fixture is allowed. No credentials are captured.
 import { chromium } from '@playwright/test'
 import { readFile, mkdir } from 'node:fs/promises'
-const env = await readFile('.env', 'utf8')
-const line = env.split(/\r?\n/).find((value) => value.startsWith('SEED_PASSWORD='))
-if (!line) throw new Error('Private development fixture password is required in .env')
-const password = line
-  .slice(line.indexOf('=') + 1)
-  .trim()
-  .replace(/^['"]|['"]$/g, '')
-const origin = 'http://127.0.0.1:5173'
+const e2e = process.env.E2E_CAPTURE === '1'
+let password = 'E2E-only learning passphrase 426!'
+if (!e2e) {
+  const env = await readFile('.env', 'utf8')
+  const line = env.split(/\r?\n/).find((value) => value.startsWith('SEED_PASSWORD='))
+  if (!line) throw new Error('Private development fixture password is required in .env')
+  password = line
+    .slice(line.indexOf('=') + 1)
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+}
+const origin = e2e ? 'http://127.0.0.1:5174' : 'http://127.0.0.1:5173'
 await mkdir('docs/visual-qa/candidates', { recursive: true })
 const browser = await chromium.launch()
 try {

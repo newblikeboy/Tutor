@@ -65,6 +65,13 @@ func (tc *testClient) login(id string) {
 	tc.csrf = v["csrf"].(string)
 }
 
+func (tc *testClient) decide(id string, input map[string]any, status int) map[string]any {
+	tc.t.Helper()
+	detail := tc.ok("GET", "/staff/applications/"+id, nil, 200)
+	input["version"] = detail["application"].(map[string]any)["version"]
+	return tc.ok("POST", "/applications/"+id+"/decision", input, status)
+}
+
 const testPassword = "Integration-only learning passphrase 426!"
 
 func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
@@ -207,19 +214,19 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		}
 	})
 	t.Run("registration and application never approve", func(t *testing.T) {
-		tutor.ok("PUT", "/application", map[string]any{"name": "Fictional assessed tutor", "education": "Fictional BSc for test", "approach": "Use concrete examples to explain fractions and check understanding.", "language": "Hindi", "experience": 3, "submit": true}, 200)
+		tutor.ok("PUT", "/application", applicationTestInput("Fictional assessed tutor", time.Now()), 200)
 		_, _, raw := parent.call("GET", "/tutors", nil, nil)
 		if bytes.Contains(raw, []byte("tutor-a\"")) {
 			t.Fatal("unapproved tutor published")
 		}
 		tutor.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "approve"}, 403)
-		mentor.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "approve", "reason": "Not assessed yet"}, 409)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "reason": "Not assessed yet"}, 403)
 	})
 	t.Run("assigned evidence based approval", func(t *testing.T) {
-		mentor.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "review"}, 200)
-		mentor.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "schedule"}, 200)
-		mentor.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Explained equivalent fractions and identified denominator misconception."}, 200)
-		mentor.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "reason": "Observed subject explanation supports class eight online Mathematics."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "review", "conflictClear": true}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": domain.Interview{Start: a.Now().Add(-time.Minute), End: a.Now().Add(29 * time.Minute), Timezone: "Asia/Kolkata", JoinURL: "https://zoom.us/j/12345678901"}}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Explained equivalent fractions and identified denominator misconception."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "reason": "Observed subject explanation supports class eight online Mathematics."}, 200)
 		v := parent.ok("GET", "/tutors/tutor-a", nil, 200)
 		if v["scope"].(map[string]any)["minClass"] != float64(8) {
 			t.Fatal("scope not persisted")
@@ -365,7 +372,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		parent.ok("POST", "/trials/"+id+"/action", map[string]any{"action": "cancel"}, 200)
 	})
 	t.Run("suspension removes discovery and new booking eligibility", func(t *testing.T) {
-		admin.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "suspend", "reason": "Development suspension to review current teaching arrangements."}, 200)
+		admin.decide("tutor-a", map[string]any{"action": "suspend", "reason": "Development suspension to review current teaching arrangements."}, 200)
 		parent.ok("GET", "/tutors/tutor-a", nil, 404)
 		status, _, _ := parent.call("POST", "/trials", map[string]any{"requirementId": reqID, "tutorId": "tutor-a", "start": start.Add(4 * time.Hour), "termsAccepted": true}, map[string]string{"Idempotency-Key": "suspended-request"})
 		if status != 409 {

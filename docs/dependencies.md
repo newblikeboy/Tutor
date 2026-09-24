@@ -45,10 +45,16 @@ Official documentation and package registries were consulted on 2026-09-23 befor
 | github.com/go-chi/chi/v5 | 5.3.2 |
 | go.mongodb.org/mongo-driver/v2 | 2.9.1 |
 | golang.org/x/crypto | 0.53.0 (existing pin, now direct for Argon2id) |
-| golang.org/x/sys | 0.46.0 (transitive Argon2 dependency) |
+| golang.org/x/term | 0.46.0 (hidden staff password input) |
+| golang.org/x/sys | 0.48.0 (transitive Go dependency) |
+| github.com/aws/aws-sdk-go-v2 | 1.47.0 |
+| github.com/aws/aws-sdk-go-v2/credentials | 1.20.5 |
+| github.com/aws/aws-sdk-go-v2/service/s3 | 1.113.2 |
 
 Sources: [React](https://react.dev/learn/build-a-react-app-from-scratch), [Vite](https://vite.dev/guide/), [Tailwind](https://tailwindcss.com/docs/installation/using-vite), [React Router](https://reactrouter.com/start/declarative/installation), [TanStack Query](https://tanstack.com/query/latest/docs/framework/react/installation), [Zod](https://zod.dev/), [react-i18next](https://react.i18next.com/latest/using-with-hooks), [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog), [Vitest](https://vitest.dev/guide/), [Playwright snapshots](https://playwright.dev/docs/test-snapshots), [Go driver](https://www.mongodb.com/docs/drivers/go/current/), [Go transactions](https://www.mongodb.com/docs/drivers/go/current/crud/transactions/), [chi](https://pkg.go.dev/github.com/go-chi/chi/v5). React Hook Form site initially returned an internal error; its current package/resolver versions were verified in the npm registry and used successfully in the compiled/tested integration.
 
 Node 22.17.1 meets the Vite/Vitest >=22.12 requirement on the Node 22 line. The optional local test replica-set binary is MongoDB Community 8.2.6. It is not an application backend implemented in Node.
+
+The private-storage and staff-bootstrap additions use the official Go SDK/terminal packages above, locked in `go.mod` and `go.sum`. API references: [S3 Go client](https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/s3), [AWS endpoint configuration](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/configure-endpoints.html), [terminal password input](https://pkg.go.dev/golang.org/x/term#ReadPassword). Compilation, race tests and vet passed on the installed Go version. This does not establish compatibility with a particular operator's S3 bucket; actual provider verification remains pending.
 
 GitHub Actions official latest releases checked: checkout 7.0.1, setup-go 7.0.0, setup-node 7.0.0, upload-artifact 7.0.1. The workflow has not yet run on GitHub.

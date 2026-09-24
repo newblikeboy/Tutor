@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowRight,
+  ArrowUpRight,
   BookOpen,
   Check,
   CheckCircle2,
@@ -144,54 +145,67 @@ export function Home() {
   const pillars = [ShieldCheck, Compass, Sprout]
   return (
     <div className="home-page">
-      <section className="container hero home-hero" aria-labelledby="home-title">
-        <div className="hero-copy">
-          <p className="eyebrow home-location">
-            <span className="home-location-dot" aria-hidden="true" />
-            {t('landing.place')}
-          </p>
-          <h1 id="home-title">
-            {t('landing.title')}
-            <span>{t('landing.titleAccent')}</span>
-          </h1>
-          <p className="home-intro">{t('landing.intro')}</p>
-          <div className="home-actions">
-            <LinkButton to="/match">{t('landing.start')}</LinkButton>
-            <Link to="/tutors" className="text-link">
-              {t('landing.explore')} <ArrowRight size={17} />
-            </Link>
+      <div className="home-hero-wrap">
+        <section className="container hero home-hero" aria-labelledby="home-title">
+          <div className="hero-copy">
+            <p className="eyebrow home-location">
+              <span className="home-location-dot" aria-hidden="true" />
+              {t('landing.place')}
+            </p>
+            <h1 id="home-title">
+              {t('landing.title')}
+              <span>{t('landing.titleAccent')}</span>
+            </h1>
+            <p className="home-intro">{t('landing.intro')}</p>
+            <div className="home-actions">
+              <LinkButton to="/match">{t('landing.start')}</LinkButton>
+              <Link to="/tutors" className="text-link">
+                {t('landing.explore')} <ArrowRight size={17} />
+              </Link>
+            </div>
+            <a href="#home-process-title" className="home-discover">
+              <span aria-hidden="true">↓</span>
+              {t('landing.processLink')}
+            </a>
           </div>
-          <p className="home-reassurance">
-            <ShieldCheck size={16} aria-hidden="true" />
-            {t('landing.reassurance')}
-          </p>
-        </div>
-        <figure className="home-hero-figure">
-          <div className="home-photo-frame">
-            <img
-              className="home-hero-image"
-              src="/images/purnea-learning-1200.webp"
-              srcSet="/images/purnea-learning-640.webp 640w, /images/purnea-learning-960.webp 960w, /images/purnea-learning-1200.webp 1200w, /images/purnea-learning-1536.webp 1536w"
-              sizes="(max-width: 760px) calc(114vw - 46px), (max-width: 1000px) calc(100vw - 80px), (max-width: 1328px) calc(61.5vw - 84px), 733px"
-              width={1536}
-              height={1024}
-              fetchPriority="high"
-              alt={t('landing.imageAlt')}
-            />
-          </div>
-          <figcaption className="home-photo-caption">
-            <span className="home-photo-icon">
-              <BookOpen size={23} strokeWidth={1.5} aria-hidden="true" />
-            </span>
-            <span>
-              <strong>{t('landing.photoTitle')}</strong>
-              <span>{t('landing.photoBody')}</span>
-            </span>
-            <Sprout className="home-photo-sprout" size={32} strokeWidth={1.3} aria-hidden="true" />
-          </figcaption>
-          <small className="home-image-credit">{t('landing.imageCredit')}</small>
-        </figure>
-      </section>
+          <figure className="home-hero-figure">
+            <div className="home-photo-orbit" aria-hidden="true" />
+            <div className="home-crystal" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className="home-photo-frame">
+              <img
+                className="home-hero-image"
+                src="/images/purnea-learning-1200.webp"
+                srcSet="/images/purnea-learning-640.webp 640w, /images/purnea-learning-960.webp 960w, /images/purnea-learning-1200.webp 1200w, /images/purnea-learning-1536.webp 1536w"
+                sizes="(max-width: 760px) calc(140vw - 56px), (max-width: 1000px) 800px, (max-width: 1190px) 75vw, (max-width: 1400px) 70vw, 900px"
+                width={1536}
+                height={1024}
+                fetchPriority="high"
+                alt={t('landing.imageAlt')}
+              />
+            </div>
+            <figcaption className="home-photo-caption">
+              <span className="home-photo-icon">
+                <BookOpen size={23} strokeWidth={1.5} aria-hidden="true" />
+              </span>
+              <span>
+                <strong>{t('landing.photoTitle')}</strong>
+              </span>
+              <Sprout
+                className="home-photo-sprout"
+                size={32}
+                strokeWidth={1.3}
+                aria-hidden="true"
+              />
+            </figcaption>
+            <small className="home-image-credit">{t('landing.imageCredit')}</small>
+          </figure>
+        </section>
+      </div>
 
       <section className="container home-pillars" aria-label={t('landing.pillars')}>
         {pillars.map((Icon, i) => (
@@ -214,7 +228,9 @@ export function Home() {
               <p className="eyebrow">{t('landing.processEyebrow')}</p>
               <h2 id="home-process-title">{t('landing.processTitle')}</h2>
             </div>
-            <p className="home-section-intro">{t('landing.processBody')}</p>
+            <Link to="/how-it-works" className="text-link">
+              {t('landing.processLink')} <ArrowUpRight size={19} />
+            </Link>
           </div>
           <ol className="home-steps">
             {[1, 2, 3].map((n) => (
@@ -224,16 +240,43 @@ export function Home() {
                     0{n}
                   </span>
                   <span className="eyebrow">{t(`landing.step${n}Label`)}</span>
-                  <ArrowRight size={20} aria-hidden="true" />
                 </div>
-                <h3>{t(`step${n}`)}</h3>
-                <p>{t(`step${n}Body`)}</p>
+                <div className={`home-step-art home-step-art-${n}`} aria-hidden="true">
+                  {n === 1 ? (
+                    <div className="home-note-art">
+                      <span />
+                      <i />
+                      <i />
+                      <i />
+                      <Check size={26} />
+                    </div>
+                  ) : n === 2 ? (
+                    <>
+                      <span className="home-person-art">
+                        <GraduationCap size={34} strokeWidth={1.3} />
+                      </span>
+                      <span className="home-match-line" />
+                      <span className="home-person-art">
+                        <BookOpen size={31} strokeWidth={1.3} />
+                      </span>
+                      <span className="home-match-seal">
+                        <Check size={18} />
+                      </span>
+                    </>
+                  ) : (
+                    <div className="home-growth-art">
+                      <i />
+                      <i />
+                      <i />
+                      <Sprout size={45} strokeWidth={1.2} />
+                    </div>
+                  )}
+                </div>
+                <h3>{t(`landing.step${n}Title`)}</h3>
+                <p>{t(`landing.step${n}Body`)}</p>
               </li>
             ))}
           </ol>
-          <Link to="/how-it-works" className="text-link home-process-link">
-            {t('landing.processLink')} <ArrowRight size={17} />
-          </Link>
         </div>
       </section>
 
@@ -271,12 +314,11 @@ export function Home() {
 
       <section className="container home-story" aria-labelledby="home-story-title">
         <div className="home-story-copy">
-          <span className="home-story-icon">
-            <Sprout size={30} strokeWidth={1.3} aria-hidden="true" />
-          </span>
-          <p className="eyebrow">{t('continuity')}</p>
-          <h2 id="home-story-title">{t('continuousTitle')}</h2>
-          <p>{t('continuousBody')}</p>
+          <p className="eyebrow">{t('landing.storyEyebrow')}</p>
+          <h2 id="home-story-title">
+            {t('landing.storyTitle')} <em>{t('landing.storyAccent')}</em>
+          </h2>
+          <p>{t('landing.storyBody')}</p>
           <Link className="text-link" to="/approach">
             {t('viewApproach')} <ArrowRight size={18} />
           </Link>
@@ -311,7 +353,6 @@ export function Home() {
         <div>
           <p className="eyebrow">{t('landing.faqEyebrow')}</p>
           <h2 id="home-faq-title">{t('faqTitle')}</h2>
-          <p className="home-section-intro">{t('landing.faqIntro')}</p>
         </div>
         <div className="home-faq-list">
           {[1, 2, 3].map((n) => (
@@ -327,15 +368,26 @@ export function Home() {
       </section>
 
       <section className="container home-closing" aria-labelledby="home-closing-title">
-        <p className="eyebrow">{t('landing.finalEyebrow')}</p>
-        <h2 id="home-closing-title">{t('landing.finalTitle')}</h2>
-        <p>{t('landing.finalBody')}</p>
-        <LinkButton to="/match">{t('landing.start')}</LinkButton>
-        <div className="home-teach-link">
-          <span>{t('landing.teach')}</span>
-          <Link to="/apply">
-            {t('landing.teachLink')} <ArrowRight size={15} />
-          </Link>
+        <div className="home-closing-art" aria-hidden="true">
+          <div className="home-crystal">
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+        </div>
+        <div className="home-closing-copy">
+          <p className="eyebrow">{t('landing.finalEyebrow')}</p>
+          <h2 id="home-closing-title">{t('landing.finalTitle')}</h2>
+        </div>
+        <div className="home-closing-actions">
+          <LinkButton to="/match">{t('landing.start')}</LinkButton>
+          <div className="home-teach-link">
+            <span>{t('landing.teach')}</span>
+            <Link to="/apply">
+              {t('landing.teachLink')} <ArrowRight size={15} />
+            </Link>
+          </div>
         </div>
       </section>
     </div>

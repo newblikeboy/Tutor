@@ -8,6 +8,8 @@
   --border: #dfe4db;
   --paper: #f5f3ed;
   --desk-sage: #dfe8bc;
+  --desk-surface: #fffefa;
+  --desk-elevation: 0 8px 28px #15353b08, inset 0 1px 0 #ffffff;
   --radius: 14px;
   --shadow: 0 4px 20px #15353b04;
   color: var(--navy);
@@ -32,7 +34,8 @@
   display: flex;
   flex-direction: column;
   padding: 30px 18px 20px;
-  background: #15353b;
+  background: linear-gradient(155deg, #23494d 0%, #15353b 40%, #102e33 100%);
+  border-right: 1px solid #ffffff16;
   color: #f5f3ed;
 }
 .desk-brand {
@@ -93,7 +96,10 @@
   color: #fff;
 }
 .desk-nav a.active {
-  background: #dfe8bc;
+  background: linear-gradient(120deg, #edf3d6, #dfe8bc);
+  box-shadow:
+    inset 0 1px 0 #ffffffaa,
+    0 4px 16px #081d2926;
   color: #15353b;
   font-weight: 700;
 }
@@ -158,7 +164,7 @@
   outline-color: #dfe8bc;
 }
 .desk-frame {
-  background: var(--paper);
+  background: linear-gradient(135deg, #fcfbf7 0%, var(--paper) 55%, #eef1e5 100%);
   min-width: 0;
   min-height: 100dvh;
   display: flex;
@@ -169,7 +175,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 20px;
-  min-height: 83px;
+  min-height: 76px;
   padding: 14px 36px;
   border-bottom: 1px solid var(--border);
   background: #fffefa;
@@ -332,7 +338,10 @@
 }
 .desk-shell .btn.primary,
 .desk-gate .btn.primary {
-  background: #15353b;
+  background: linear-gradient(140deg, #2b5355, #15353b);
+  box-shadow:
+    inset 0 1px 0 #ffffff26,
+    0 3px 8px #15353b12;
   color: #fff;
 }
 .desk-shell .btn.primary:hover,

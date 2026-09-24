@@ -36,7 +36,8 @@ for (const scenario of cases)
     await page.setViewportSize({ width: scenario.width, height: 1000 })
     await page.addInitScript((lng) => localStorage.setItem('language', lng), scenario.language)
     await page.goto(scenario.path)
-    await page.locator('.dev-banner').waitFor()
+    if (scenario.path === '/') await expect(page.locator('.dev-banner')).toHaveCount(0)
+    else await page.locator('.dev-banner').waitFor()
     await page
       .locator(
         scenario.path.includes('tutor-meera')

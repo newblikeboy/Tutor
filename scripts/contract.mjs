@@ -1,5 +1,12 @@
 // Contract authoring tool. Generates JSON-compatible YAML; never serves API requests.
 import { mkdir, writeFile } from 'node:fs/promises'
+import { tuitionContract } from './tuition-contract.mjs'
+import { billingContract } from './billing-contract.mjs'
+import { casesContract } from './cases-contract.mjs'
+import { accountContract } from './account-contract.mjs'
+import { mediaContract } from './media-contract.mjs'
+import { staffContract } from './staff-contract.mjs'
+import { applicationContract } from './application-contract.mjs'
 const str = { type: 'string' },
   num = { type: 'integer' },
   bool = { type: 'boolean' },
@@ -96,6 +103,8 @@ const schemas = {
     trialFeePaise: num,
     payments: str,
     timezone: str,
+    uploadsEnabled: bool,
+    scannerConfigured: bool,
   }),
   Auth: obj({ user: ref('User'), csrf: str }),
   AuthSession: { anyOf: [ref('Auth'), { type: 'null' }] },
@@ -176,7 +185,21 @@ function route(path, method, response, request, publicRoute = false, isArray = f
     security: publicRoute ? [] : [{ session: [] }],
     responses: {
       [method === 'post' &&
-      ['/auth/signup', '/consents', '/learners', '/requirements', '/trials'].includes(path)
+      [
+        '/auth/signup',
+        '/consents',
+        '/learners',
+        '/requirements',
+        '/trials',
+        '/enrollments',
+        '/enrollments/{id}/plans',
+        '/enrollments/{id}/handovers',
+        '/billing/{id}/refunds',
+        '/cases',
+        '/enrollments/{id}/messages',
+        '/enrollments/{id}/files',
+        '/applications/{id}/files',
+      ].includes(path)
         ? '201'
         : '200']: {
         description: 'Success',
@@ -195,11 +218,38 @@ function route(path, method, response, request, publicRoute = false, isArray = f
   if (path === '/tutors')
     for (const name of ['subject', 'language'])
       operation.parameters.push({ name, in: 'query', schema: str })
+  if (
+    [
+      '/enrollments',
+      '/billing',
+      '/jobs',
+      '/notifications',
+      '/enrollments/{id}/messages',
+      '/cases',
+      '/cases/{id}',
+      '/account/sessions',
+      '/enrollments/{id}/files',
+      '/applications/{id}/files',
+    ].includes(path) &&
+    method === 'get'
+  )
+    operation.parameters.push({ name: 'cursor', in: 'query', schema: str })
   if (method !== 'get') {
     operation.parameters.push({ name: 'Origin', in: 'header', required: true, schema: str })
     if (!publicRoute)
       operation.parameters.push({ name: 'X-CSRF-Token', in: 'header', required: true, schema: str })
-    if (path === '/trials')
+    if (
+      [
+        '/trials',
+        '/cases',
+        '/enrollments',
+        '/enrollments/{id}/payment',
+        '/billing/{id}/refunds',
+        '/enrollments/{id}/messages',
+        '/enrollments/{id}/files',
+        '/applications/{id}/files',
+      ].includes(path)
+    )
       operation.parameters.push({
         name: 'Idempotency-Key',
         in: 'header',
@@ -234,6 +284,49 @@ route('/draft', 'put', 'Draft', 'Draft')
 route('/requirements', 'post', 'Requirement', 'RequirementInput')
 route('/trials', 'post', 'Trial', 'TrialInput')
 route('/trials/{id}/action', 'post', 'OK', 'ActionInput')
+tuitionContract(schemas, route)
+billingContract(schemas, route)
+casesContract(schemas, route)
+accountContract(schemas, route)
+mediaContract(schemas, route, paths)
+staffContract(schemas, route, paths)
+applicationContract(schemas, route)
+paths['/webhooks/razorpay'] = {
+  post: {
+    operationId: 'razorpayWebhook',
+    summary:
+      'Verify exact raw-body HMAC, deduplicate the event, and durably queue provider reconciliation',
+    security: [],
+    parameters: [
+      {
+        name: 'X-Razorpay-Signature',
+        in: 'header',
+        required: true,
+        schema: { type: 'string', minLength: 64, maxLength: 64 },
+      },
+      {
+        name: 'X-Razorpay-Event-Id',
+        in: 'header',
+        required: true,
+        schema: { type: 'string', minLength: 1, maxLength: 128 },
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } },
+    },
+    responses: {
+      200: {
+        description: 'Accepted or already stored; this is not a payment-success assertion',
+        content: { 'application/json': { schema: ref('OK') } },
+      },
+      default: {
+        description: 'Invalid signature, malformed or conflicting event, or storage unavailable',
+        content: { 'application/json': { schema: ref('Error') } },
+      },
+    },
+  },
+}
 await mkdir('contracts', { recursive: true })
 await writeFile(
   'contracts/openapi.yaml',
@@ -244,7 +337,7 @@ await writeFile(
         title: 'Tutor Platform API',
         version: '0.1.0',
         description:
-          'Email/password signup and login with opaque sessions. Public signup creates only parent/tutor roles. Production access remains gated pending operator review; no email verification, recovery delivery or SMS is claimed. Payments and other milestone C APIs are not exposed.',
+          'Email/password accounts, supervised trials, ongoing tuition and learning continuity, and explicitly configured Razorpay sandbox billing. Production access remains gated pending operator review. Public registration never grants academic approval. No delivery, live charge or bank settlement is implied by local records.',
       },
       servers: [{ url: '/api/v1' }],
       paths,
@@ -257,3 +350,5 @@ await writeFile(
     2,
   ) + '\n',
 )
+// Apply recruitment additions every time the base contract is regenerated.
+await import('./recruitment-contract.mjs')

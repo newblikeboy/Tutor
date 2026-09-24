@@ -3,7 +3,6 @@ import { useMutation } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpen,
   Check,
@@ -11,8 +10,6 @@ import {
   EyeOff,
   GraduationCap,
   Languages,
-  LockKeyhole,
-  Mail,
   ShieldCheck,
   UsersRound,
 } from 'lucide-react'
@@ -33,6 +30,13 @@ const accountSchema = z.object({
   adult: z.boolean(),
 })
 type AccountValues = z.infer<typeof accountSchema>
+type LoginRole = 'parent' | 'tutor' | 'staff'
+
+const loginRoles = [
+  { value: 'parent', label: 'authParentLogin', title: 'authParentLoginTitle', icon: UsersRound },
+  { value: 'tutor', label: 'authTutor', title: 'authTutorLoginTitle', icon: GraduationCap },
+  { value: 'staff', label: 'authStaffLogin', title: 'authStaffTitle', icon: ShieldCheck },
+] as const
 
 export default function Login() {
   const { t, i18n } = useTranslation()
@@ -42,6 +46,21 @@ export default function Login() {
   const signup = pathname.replace(/\/+$/, '') === '/signup'
   const [params] = useSearchParams()
   const staff = !signup && params.get('staff') === '1'
+  const initialRole =
+    params.get('role') === 'tutor' ||
+    (!params.has('role') && /^\/(apply|availability)(\?|$)/.test(params.get('return') ?? ''))
+      ? 'tutor'
+      : 'parent'
+  const signedInRole = auth.data?.user.role
+  const loginRole: LoginRole = signedInRole
+    ? signedInRole === 'parent' || signedInRole === 'tutor'
+      ? signedInRole
+      : 'staff'
+    : staff
+      ? 'staff'
+      : initialRole
+  const loginIdentity = loginRoles.find((item) => item.value === loginRole)!
+  const LoginIcon = loginIdentity.icon
   const [visible, setVisible] = useState(false)
   const navigate = useNavigate()
   const form = useForm<AccountValues>({
@@ -50,21 +69,27 @@ export default function Login() {
       name: '',
       email: '',
       password: '',
-      role:
-        params.get('role') === 'tutor' || params.get('return')?.startsWith('/apply')
-          ? 'tutor'
-          : 'parent',
+      role: initialRole,
       adult: false,
     },
   })
   const role = useWatch({ control: form.control, name: 'role' })
   const rawReturn = params.get('return')
   const returnPath =
-    rawReturn && /^\/(workspace|apply|match)(\?|$)/.test(rawReturn) ? rawReturn : undefined
-  const nextParams = new URLSearchParams()
-  if (returnPath) nextParams.set('return', returnPath)
-  const switchPath =
-    (signup ? '/login' : '/signup') + (nextParams.size ? '?' + nextParams.toString() : '')
+    rawReturn &&
+    /^\/(workspace|apply|match|availability|notifications|account|tuition(?:\/[a-zA-Z0-9_-]+)?|billing(?:\/[a-zA-Z0-9_-]+)?|cases(?:\/[a-zA-Z0-9_-]+)?)(\?|$)/.test(
+      rawReturn,
+    )
+      ? rawReturn
+      : undefined
+  const accountPath = (accountRole: LoginRole, create = false) => {
+    const nextParams = new URLSearchParams()
+    if (accountRole === 'staff') nextParams.set('staff', '1')
+    else nextParams.set('role', accountRole)
+    if (returnPath) nextParams.set('return', returnPath)
+    return `${create ? '/signup' : '/login'}?${nextParams.toString()}`
+  }
+  const switchPath = accountPath(role, !signup)
   const mutation = useMutation({
     mutationFn: (values: AccountValues) =>
       send<Schema['Auth']>(
@@ -107,16 +132,12 @@ export default function Login() {
         {t('skip')}
       </a>
       <header className="auth-header">
-        <Link to="/" className="auth-wordmark">
+        <div className="auth-wordmark">
           {config.data?.appName ?? t('brand')}
           <span>.</span>
           <small>{t('authBrandLine')}</small>
-        </Link>
+        </div>
         <nav aria-label={t('menu')}>
-          <Link to="/tutors" className="auth-browse">
-            <ArrowLeft size={16} />
-            {t('authExplore')}
-          </Link>
           <button
             className="auth-language"
             onClick={() => void i18n.changeLanguage(i18n.language === 'en' ? 'hi' : 'en')}
@@ -127,7 +148,7 @@ export default function Login() {
         </nav>
       </header>
       <main
-        className={`auth-stage ${signup ? 'auth-signup-stage' : ''}`}
+        className={`auth-stage ${signup ? 'auth-signup-stage' : 'auth-login-stage'}`}
         id="auth-main"
         tabIndex={-1}
       >
@@ -189,32 +210,47 @@ export default function Login() {
           </div>
         </aside>
         <section className="auth-form-side" aria-labelledby="auth-title">
-          <div className="auth-form-top">
-            <span>{t(staff ? 'authStaffKicker' : signup ? 'authAlready' : 'authNewHere')}</span>
-            <Link to={staff ? '/login' : switchPath}>
-              {t(staff ? 'authBackFamily' : signup ? 'authSignIn' : 'authCreate')}
-              <ArrowRight size={14} />
-            </Link>
-          </div>
-          <div className="auth-form-content">
-            <div className="auth-form-symbol">
-              {staff ? (
-                <ShieldCheck size={23} />
-              ) : signup ? (
-                <BookOpen size={23} />
-              ) : (
-                <LockKeyhole size={23} />
-              )}
+          {!staff && !auth.data && (
+            <div className="auth-form-top">
+              <span>{t(signup ? 'authAlready' : 'authNewHere')}</span>
+              <Link to={switchPath}>
+                {t(signup ? 'authSignIn' : 'authCreate')}
+                <ArrowRight size={14} />
+              </Link>
             </div>
-            <p className="auth-kicker">
-              {t(staff ? 'authStaffKicker' : signup ? 'authSignupKicker' : 'authWelcomeKicker')}
-            </p>
-            <h1 id="auth-title">
-              {t(staff ? 'authStaffTitle' : signup ? 'authSignupTitle' : 'authLoginTitle')}
-            </h1>
-            <p className="auth-subtitle">
-              {t(staff ? 'authStaffBody' : signup ? 'authSignupBody' : 'authLoginBody')}
-            </p>
+          )}
+          <div className="auth-form-content">
+            {!signup && !auth.data && (
+              <nav className="auth-login-roles" aria-label={t('authAccountType')}>
+                {loginRoles.map(({ value, label, icon: Icon }) => (
+                  <Link
+                    key={value}
+                    to={accountPath(value)}
+                    aria-current={loginRole === value ? 'page' : undefined}
+                  >
+                    <Icon size={18} aria-hidden="true" />
+                    <span>{t(label)}</span>
+                  </Link>
+                ))}
+              </nav>
+            )}
+            {signup ? (
+              <>
+                <div className="auth-form-symbol">
+                  <BookOpen size={23} />
+                </div>
+                <p className="auth-kicker">{t('authSignupKicker')}</p>
+                <h1 id="auth-title">{t('authSignupTitle')}</h1>
+                <p className="auth-subtitle">{t('authSignupBody')}</p>
+              </>
+            ) : (
+              <div className="auth-login-heading">
+                <div className="auth-form-symbol">
+                  <LoginIcon size={23} aria-hidden="true" />
+                </div>
+                <h1 id="auth-title">{t(loginIdentity.title)}</h1>
+              </div>
+            )}
             {config.isPending || auth.isPending ? (
               <Loading />
             ) : config.isError ? (
@@ -337,10 +373,6 @@ export default function Login() {
                   </div>
                 ) : (
                   <div className="auth-help-row">
-                    <span>
-                      <LockKeyhole size={13} />
-                      {t('authPrivate')}
-                    </span>
                     <Modal
                       title={t('authHelpTitle')}
                       description={t('authHelpBody')}
@@ -366,38 +398,17 @@ export default function Login() {
                 )}
               </form>
             )}
-            <div className="auth-form-divider">
-              <span />
-              {t('authCare')}
-              <span />
-            </div>
-            <div className="auth-trust-points">
-              <span>
-                <ShieldCheck size={16} />
-                {t('authTrustAssessment')}
-              </span>
-              <span>
-                <BookOpen size={16} />
-                {t('authTrustContinuity')}
-              </span>
-            </div>
           </div>
-          <div className="auth-form-bottom">
-            <span>{config.data?.development ? t('authPreview') : t('authBrandLine')}</span>
-            <Link to={staff ? '/login' : '/login?staff=1'}>
-              {t(staff ? 'authBackFamily' : 'staff')}
-              <ArrowRight size={13} />
-            </Link>
-          </div>
+          {signup && (
+            <div className="auth-form-bottom">
+              <Link to={accountPath('staff')}>
+                {t('staff')}
+                <ArrowRight size={13} />
+              </Link>
+            </div>
+          )}
         </section>
       </main>
-      <footer className="auth-footer">
-        <p>{t('authFooter')}</p>
-        <Link to="/support">
-          <Mail size={14} />
-          {t('authNeedHand')}
-        </Link>
-      </footer>
     </div>
   )
 }
