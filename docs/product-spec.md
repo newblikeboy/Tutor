@@ -1,4 +1,6 @@
 # CODEX MASTER BUILD PROMPT
+> User media override (2026-09-25): direct browser uploads to authenticated Cloudinary for images, PDFs and videos; MongoDB stores the provider URL and ownership/file metadata only. Cloudinary delivery handles viewing and MP4 streaming. Remove the local ClamAV requirement for this flow, retain scoped authorisation, and never label unscanned files as scanned. This overrides the earlier mandatory-quarantine language for Cloudinary.
+
 ## Trusted tutor platform for Purnea | Go + React + MongoDB Atlas
 
 You are the product designer and senior full-stack engineer responsible for building this application in the current repository. Implement working software, not just a proposal, static mockup, or folder scaffold.

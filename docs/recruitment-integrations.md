@@ -1,5 +1,8 @@
 # Tutor applications: Cloudinary and Zoom
 
+> Current media override (2026-09-25): use direct browser-to-Cloudinary uploads and authenticated Cloudinary viewing. No local ClamAV requirement applies to Cloudinary. The API verifies references and marks them `ready`, not scanned. See [private-files.md](private-files.md) for the current implementation. The scanner/proxy descriptions and recorded-demo controls below document the earlier implementation; Teaching approach no longer includes demo-choice/video/worksheet controls. Zoom configuration and scheduling remain current.
+
+
 New tutors land on `/apply` with four stages: Complete application → Staff review → Zoom interview → Approval. They retain account, support and updates access. The seven application sections save through Go to MongoDB. Teaching navigation and APIs unlock only for an approved, unexpired scope; suspension, termination and expiry close that access again. Registration never grants approval.
 
 ## Private backend configuration

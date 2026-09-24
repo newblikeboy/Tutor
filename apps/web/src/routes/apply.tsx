@@ -1,3 +1,4 @@
+import { uploadFile } from '../lib/uploads'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
   FormProvider,
@@ -300,17 +301,11 @@ function Attachment({
       if (overLimit) throw new Error(c('educationDocumentsHint'))
       await ensureDraft()
       for (const { file, key: uploadKey } of pending) {
-        const content = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onerror = reject
-          reader.onload = () => resolve(String(reader.result).split(',')[1])
-          reader.readAsDataURL(file)
-        })
-        const saved = await send<Schema['PrivateFile']>(
+        const saved = await uploadFile(
           `/applications/${auth.data!.user.id}/files`,
-          { name: file.name, content },
-          'POST',
-          { 'Idempotency-Key': uploadKey },
+          file,
+          uploadKey,
+          (video ? config.data?.videoProvider : config.data?.mediaProvider) === 'cloudinary',
         )
         if (name === 'education.educationFileIds') {
           setPending((items) =>

@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-09-25: direct Cloudinary uploads and viewing
+
+User override replaces the Cloudinary quarantine/scanner flow: photos, PDFs and MP4s upload from the browser directly to authenticated Cloudinary assets. Go issues bounded, non-overwritable signed intents after ownership/draft/quota checks, then verifies the exact provider resource using backend credentials before marking it ready. MongoDB stores canonical URLs, immutable asset references and access metadata only. Idempotent retries preserve the reserved object; expired intents, forged completion fields, mismatched metadata and closed drafts are rejected. Application photo/document selections continue to save immediately.
+
+Authorised image/PDF viewing, downloads and MP4 playback redirect to five-minute signed Cloudinary URLs. The browser receives file bytes directly from Cloudinary. List DTOs omit stored URLs and provider object identifiers. New links recheck assignment; a link already issued remains usable until its short expiry. Native video has a fresh-link reload action. No ClamAV dependency or malware-scan claim applies to Cloudinary. Legacy disk/S3 behavior and production auth/payment restrictions remain intact. Zoom is unchanged. Existing Cloudinary evidence is verified lazily on view; nothing is deleted or publicly published.
+
+Validation: full local-replica-set Go race suite passed (app 46.805s), Go vet passed, production web build/strict TypeScript/lint and all 3 component tests passed. Focused API security/config tests passed after the final strict completion-body changes (app 7.886s). Browser direct-upload test passed 1/1 in 1.1m with a real Go API/MongoDB and an explicitly isolated Cloudinary HTTP fixture, covering direct multipart uploads, reload persistence, ready references, inline image, PDF bytes, actual browser-generated MP4 playback/range delivery, logout access denial, mobile/desktop axe and overflow. Earlier protocol-only run also passed. Legacy private-file browser regression passed 1/1 in 1.5m. Desktop/mobile screenshots were individually inspected in `visual-qa/cloudinary-direct`; no baseline replaced.
+
+Live read-only provider check: existing private Cloudinary PDF metadata lookup returned 200 with asset ID/version/size; the generated inline delivery URL returned 200 application/pdf. No new files were uploaded to the real account, no Zoom meeting was created, and the droplet was not changed by these tools. Actual direct browser uploads/playback from the droplet's HTTPS origin still need operator verification. No new collection/schema migration or private environment changes. Test databases and artifacts retained. New Linux deployment instructions no longer require ClamAV for Cloudinary.
+
+A restart of the existing local API was rejected by automatic approval review with "blocked by policy". The old API remains healthy on 8080; a new binary was built in `.local/cloudinary-direct-api.exe`. Source/build changes must be deployed/restarted to use the new flow. Other local services were not replaced.
+
+
 ## 2026-09-24: TheGyanSetu rebrand
 
 Replaced the provisional Tutor Platform name with the user-selected **TheGyanSetu** in public/auth/private wordmarks, fallback copy, checkout branding, calendar producer metadata, HTML title/description/application name, API defaults, deployment examples and project/API documentation. Added a paper/ink/sage book favicon using the established icon direction. The application step title now includes the brand and restores the previous page title when leaving the form. Only APP_NAME was changed in the private local environment; the local API was rebuilt/restarted and its live config endpoint confirms TheGyanSetu. Existing technical identifiers and calendar event UIDs remain stable.

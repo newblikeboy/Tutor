@@ -861,6 +861,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/enrollments/{id}/files/upload-intent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /enrollments/{id}/files/upload-intent */
+        post: operations["post__enrollments__id__files_upload_intent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/applications/{id}/files": {
         parameters: {
             query?: never;
@@ -879,6 +896,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/applications/{id}/files/upload-intent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /applications/{id}/files/upload-intent */
+        post: operations["post__applications__id__files_upload_intent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/files/{id}/download": {
         parameters: {
             query?: never;
@@ -888,6 +922,40 @@ export interface paths {
         };
         /** GET /files/{id}/download */
         get: operations["get__files__id__download"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /files/{id}/complete */
+        post: operations["post__files__id__complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/{id}/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /files/{id}/view */
+        get: operations["get__files__id__view"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1056,7 +1124,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Play a scanned private MP4 with current ownership/assignment checks */
+        /** Play an authorised Cloudinary MP4 or a scanned legacy file */
         get: operations["get__files__id__download"];
         put?: never;
         post?: never;
@@ -1270,6 +1338,7 @@ export interface components {
             timezone: string;
             uploadsEnabled: boolean;
             scannerConfigured: boolean;
+            mediaProvider: string;
             videoUploadsEnabled: boolean;
             videoProvider: string;
             meetingsEnabled: boolean;
@@ -1762,12 +1831,27 @@ export interface components {
             contentType: string;
             size: number;
             /** @enum {string} */
-            status: "uploading" | "quarantined" | "clean" | "rejected" | "archived";
+            status: "uploading" | "quarantined" | "clean" | "ready" | "rejected" | "archived";
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             scannedAt?: string;
             provider?: string;
+        };
+        DirectFileInput: {
+            name: string;
+            contentType: string;
+            size: number;
+        };
+        DirectUpload: {
+            file: components["schemas"]["PrivateFile"];
+            resume?: boolean;
+            upload?: {
+                url: string;
+                fields: {
+                    [key: string]: string;
+                };
+            };
         };
         FilePage: {
             items: components["schemas"]["PrivateFile"][];
@@ -1783,6 +1867,7 @@ export interface components {
             /** Format: byte */
             content: string;
         };
+        DirectCompleteInput: Record<string, never>;
         Interview: {
             /** Format: date-time */
             start: string;
@@ -3985,6 +4070,45 @@ export interface operations {
             };
         };
     };
+    post__enrollments__id__files_upload_intent: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectFileInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectUpload"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     get__applications__id__files: {
         parameters: {
             query?: {
@@ -4057,6 +4181,45 @@ export interface operations {
             };
         };
     };
+    post__applications__id__files_upload_intent: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectFileInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectUpload"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     get__files__id__download: {
         parameters: {
             query?: never;
@@ -4076,6 +4239,82 @@ export interface operations {
                 content: {
                     "application/octet-stream": string;
                 };
+            };
+            /** @description Authorised, short-lived Cloudinary delivery URL */
+            302: {
+                headers: {
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__files__id__complete: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectCompleteInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateFile"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__files__id__view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorised, short-lived Cloudinary delivery URL */
+            302: {
+                headers: {
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
             default: {
@@ -4423,6 +4662,14 @@ export interface operations {
                 content: {
                     "video/mp4": string;
                 };
+            };
+            /** @description Authorised, short-lived Cloudinary delivery URL */
+            302: {
+                headers: {
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Requested byte range is not satisfiable */
             416: {

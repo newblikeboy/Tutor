@@ -53,8 +53,8 @@ func TestRecruitmentProviderConfiguration(t *testing.T) {
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("AUTH_PROVIDER", "disabled")
 	t.Setenv("WEB_ORIGIN", "https://example.test")
-	if _, e := Load(); e == nil {
-		t.Fatal("production Cloudinary without scanner accepted")
+	if _, e := Load(); e != nil {
+		t.Fatal("Cloudinary must not require a local scanner:", e)
 	}
 }
 
@@ -110,5 +110,25 @@ func TestIntegrationConfigurationFailsClosed(t *testing.T) {
 	t.Setenv("S3_ENDPOINT", "http://storage.example.invalid")
 	if _, e := Load(); e == nil {
 		t.Fatal("insecure object storage accepted")
+	}
+}
+
+func TestCloudinaryFixtureRestrictedToTests(t *testing.T) {
+	for k, v := range map[string]string{"MONGODB_URI": "mongodb://localhost", "APP_ENV": "test", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "CLAMAV_ADDRESS": "", "TEST_ZOOM_ENDPOINT": "", "TRIAL_FEE_PAISE": "0"} {
+		t.Setenv(k, v)
+	}
+	for _, endpoint := range []string{"https://cloudinary.example", "http://localhost:7998", "http://127.0.0.1:7998/path", "http://127.0.0.1:7998?key=x", "http://user:password@127.0.0.1:7998"} {
+		t.Setenv("TEST_CLOUDINARY_ENDPOINT", endpoint)
+		if _, e := Load(); e == nil {
+			t.Fatal("invalid provider override accepted")
+		}
+	}
+	t.Setenv("TEST_CLOUDINARY_ENDPOINT", "http://127.0.0.1:7998")
+	if _, e := Load(); e != nil {
+		t.Fatal(e)
+	}
+	t.Setenv("APP_ENV", "development")
+	if _, e := Load(); e == nil {
+		t.Fatal("test override accepted in development")
 	}
 }

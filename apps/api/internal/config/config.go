@@ -12,6 +12,7 @@ import (
 
 type Config struct {
 	TestZoomURL                                                                               string
+	TestCloudinaryURL                                                                         string
 	Env, Name, Addr, Origin, URI, Database, AuthProvider                                      string
 	PaymentProvider, RazorpayKeyID, RazorpaySecret, RazorpayWebhookSecret                     string
 	MediaProvider, MediaRoot, S3Endpoint, S3Region, S3Bucket, S3Key, S3Secret, ScannerAddress string
@@ -41,6 +42,13 @@ func Load() (Config, error) {
 	c.MeetingProvider = env("MEETING_PROVIDER", "disabled")
 	c.ZoomAccountID, c.ZoomClientID, c.ZoomSecret, c.ZoomHostID = os.Getenv("ZOOM_ACCOUNT_ID"), os.Getenv("ZOOM_CLIENT_ID"), os.Getenv("ZOOM_CLIENT_SECRET"), os.Getenv("ZOOM_HOST_USER_ID")
 	c.TestZoomURL = os.Getenv("TEST_ZOOM_ENDPOINT")
+	c.TestCloudinaryURL = os.Getenv("TEST_CLOUDINARY_ENDPOINT")
+	if c.TestCloudinaryURL != "" {
+		u, e := url.Parse(c.TestCloudinaryURL)
+		if e != nil || c.Env != "test" || u.Scheme != "http" || u.Hostname() != "127.0.0.1" || u.Port() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+			return c, errors.New("Cloudinary fixture endpoint is restricted to loopback in APP_ENV=test")
+		}
+	}
 	if c.TestZoomURL != "" {
 		u, e := url.Parse(c.TestZoomURL)
 		if e != nil || c.Env != "test" || u.Scheme != "http" || u.Hostname() != "127.0.0.1" || u.Port() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
@@ -86,7 +94,7 @@ func Load() (Config, error) {
 			return c, errors.New("ClamAV must use a private loopback TCP address")
 		}
 	}
-	if c.Env == "production" && (c.MediaProvider != "disabled" || c.VideoProvider != "disabled") && c.ScannerAddress == "" {
+	if c.Env == "production" && c.MediaProvider == "s3" && c.ScannerAddress == "" {
 		return c, errors.New("production uploads require the configured private scanner")
 	}
 	if c.Env == "production" && (c.AuthProvider != "disabled" || !strings.HasPrefix(c.Origin, "https://")) {

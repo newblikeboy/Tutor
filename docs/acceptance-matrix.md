@@ -1,5 +1,8 @@
 # Requirement → implementation → acceptance evidence
 
+Direct Cloudinary media (2026-09-25): user override implemented for browser-to-provider signed uploads, reference-only MongoDB records, provider confirmation, scoped expiring delivery links, image/PDF viewing and progressive MP4 playback. Cloudinary no longer depends on ClamAV. Full Go race/vet, web build/lint/3 unit checks, direct browser flow and legacy file regression passed; desktop/mobile captures reviewed. Live read-only private PDF lookup/delivery returned 200. New real-account uploads and droplet-origin playback remain unverified; auth/payment production gates remain. See [progress](progress.md) and [media architecture](private-files.md).
+
+
 TheGyanSetu rebrand (2026-09-24): the user-selected name replaces the provisional wordmark across public/auth/private screens, browser metadata, checkout/calendar branding, API defaults and operational documentation. Existing book icon adapted as favicon; local API name verified. Build/strict TypeScript, lint, Go config tests/API compilation and all 11 reviewed visual comparisons pass (2.3m). Fourteen desktop/mobile captures inspected; additional title/drawer/favicon smoke checks pass. See [progress](progress.md).
 
 Direct private-route sign-in (2026-09-24): the intermediate privacy invitation is removed. Signed-out visitors go directly to login, preserving their requested path/query through login and signup navigation. Loading/retry and server access gates remain intact. Build/strict TypeScript, lint and three focused browser cases pass across the initial run and corrected rerun; desktop/mobile screenshots inspected. See [progress](progress.md).

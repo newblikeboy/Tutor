@@ -33,6 +33,16 @@ Object.assign(env, {
   WEB_ORIGIN: 'http://127.0.0.1:5174',
   API_TARGET: 'http://127.0.0.1:8081',
 })
+if (process.env.E2E_CLOUDINARY === '1')
+  Object.assign(env, {
+    MEDIA_PROVIDER: 'cloudinary',
+    VIDEO_PROVIDER: 'cloudinary',
+    CLOUDINARY_CLOUD_NAME: 'fixture-cloud',
+    CLOUDINARY_API_KEY: 'fixture-cloudinary-key',
+    CLOUDINARY_API_SECRET: 'fixture-cloudinary-secret',
+    TEST_CLOUDINARY_ENDPOINT: 'http://127.0.0.1:7998',
+  })
+else env.TEST_CLOUDINARY_ENDPOINT = ''
 console.log('E2E database:', env.MONGODB_DATABASE, '(isolated, retained for review)')
 const children = []
 function start(command, args, cwd) {
@@ -50,6 +60,8 @@ const run = (command, args, cwd) =>
   })
 await mkdir('.local', { recursive: true })
 start(process.execPath, [resolve('scripts/zoom-test-server.mjs')], resolve('.'))
+if (process.env.E2E_CLOUDINARY === '1')
+  start(process.execPath, [resolve('scripts/cloudinary-test-server.mjs')], resolve('.'))
 await run('go', ['run', './cmd/migrate'], resolve('apps/api'))
 await run('go', ['run', './cmd/seed'], resolve('apps/api'))
 const binary = resolve(`.local/e2e-api${process.platform === 'win32' ? '.exe' : ''}`)

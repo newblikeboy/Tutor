@@ -41,6 +41,10 @@ jobs:
       - run: go vet ./... && go test -race -count=1 ./...
         working-directory: apps/api
       - run: npm run e2e
+      - name: Verify direct Cloudinary protocol with isolated local fixture
+        run: npm run e2e -- tests/e2e/cloudinary-files.spec.ts
+        env:
+          E2E_CLOUDINARY: '1'
       - uses: actions/upload-artifact@v7.0.1
         if: always()
         with:

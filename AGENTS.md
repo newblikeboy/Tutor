@@ -1,5 +1,6 @@
 # Project instructions
 
+- Media override (2026-09-25): photos, PDFs and MP4s upload directly from the browser to authenticated Cloudinary storage. MongoDB saves URLs and access-control metadata, never file bytes. Verify provider metadata before marking files ready; authorise every short-lived viewing link. Cloudinary files do not require ClamAV or claim a malware scan. Retain legacy disk/S3 access checks. Zoom remains the meeting provider.
 - Brand name (2026-09-24): **TheGyanSetu**. Preserve this exact spelling/casing throughout visible branding, metadata and configuration defaults.
 - Signed-out private routes (2026-09-24): go directly to sign-in with the requested destination preserved; do not restore the intermediate privacy/sign-in invitation page.
 - User preference (2026-09-23): never use the `update-design` skill. Make requested interface changes directly in this project.
@@ -25,4 +26,4 @@ Read `docs/product-spec.md` in full before extending product scope. Read `docs/p
 - Local browser pages canonicalize `localhost` to `127.0.0.1` in Vite; keep Go's exact Origin/CSRF checks. Cover login from both addresses when changing startup/auth tooling.
 - See `docs/architecture.md`, `docs/design-system.md`, `docs/state-machines.md`, `docs/release-checklist.md`, and `docs/deployment.md`.
 - Pending completion batches are in `docs/completion-plan.md`; tuition routes share the private shell. Shared tutor/learner guards cover trials and recurring classes; retain immutable agreements/plans and revoke old-tutor access after consented handover. Atlas reached 500 collections during tests; read-only `scripts/db-diagnostics.mjs` writes a cleanup review manifest. Never delete retained test databases without explicit approval.
-- Payments require real test configuration; no client callback alone activates tuition. Files remain quarantined without an actual successful configured scan; recheck assignment for every download. See `docs/payments.md` and `docs/private-files.md`. Staff bootstrap reads a hidden terminal/secret-manager input, never a command-line password or default credential.
+- Payments require real test configuration; no client callback alone activates tuition. Cloudinary files follow the direct-upload override above; only legacy disk/S3 files require quarantine/scanning. Recheck assignment before issuing any viewing or download link. See `docs/payments.md` and `docs/private-files.md`. Staff bootstrap reads a hidden terminal/secret-manager input, never a command-line password or default credential.

@@ -29,6 +29,7 @@ type App struct {
 	Payments      payments.Gateway
 	Files         media.Store
 	Videos        media.Store
+	DirectFiles   media.DirectStore
 	Meetings      meetings.Gateway
 	Scanner       media.Scanner
 	FileSlots     chan struct{}
@@ -129,7 +130,7 @@ func (a *App) Routes() http.Handler {
 		if a.Payments != nil {
 			provider = "razorpay_sandbox"
 		}
-		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password" && a.Config.Env != "production", "trialFeePaise": 0, "payments": provider, "timezone": "Asia/Kolkata", "uploadsEnabled": a.Files != nil, "videoUploadsEnabled": a.Videos != nil, "videoProvider": a.Config.VideoProvider, "meetingsEnabled": a.Meetings != nil, "scannerConfigured": a.Scanner != nil})
+		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password" && a.Config.Env != "production", "trialFeePaise": 0, "payments": provider, "timezone": "Asia/Kolkata", "uploadsEnabled": a.Files != nil, "videoUploadsEnabled": a.Videos != nil, "videoProvider": a.Config.VideoProvider, "mediaProvider": a.Config.MediaProvider, "meetingsEnabled": a.Meetings != nil, "scannerConfigured": a.Scanner != nil})
 	})
 	r.Get("/api/v1/tutors", a.tutors)
 	r.Post("/api/v1/webhooks/razorpay", a.razorpayWebhook)
@@ -198,6 +199,10 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/enrollments/{id}/files", a.uploadFile)
 		r.Get("/api/v1/applications/{id}/files", a.privateFiles)
 		r.Post("/api/v1/applications/{id}/files", a.uploadFile)
+		r.Post("/api/v1/applications/{id}/files/upload-intent", a.createUploadIntent)
+		r.Post("/api/v1/enrollments/{id}/files/upload-intent", a.createUploadIntent)
+		r.Post("/api/v1/files/{id}/complete", a.completeDirectUpload)
+		r.Get("/api/v1/files/{id}/view", a.viewDirectFile)
 		r.Get("/api/v1/files/{id}/download", a.downloadFile)
 		r.Get("/api/v1/files/{id}/play", a.downloadFile)
 		r.Post("/api/v1/files/{id}/scan", a.retryFileScan)

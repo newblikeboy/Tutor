@@ -1,3 +1,4 @@
+import { uploadFile } from '../lib/uploads'
 import { useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -16,6 +17,45 @@ import {
 } from '../components/ui'
 import '../styles/tuition.css'
 import { useActivePanel } from '../components/workspace-tabs'
+function FileVideo({ file }: { file: Schema['PrivateFile'] }) {
+  const { t } = useTranslation()
+  const [attempt, setAttempt] = useState(0)
+  const [failed, setFailed] = useState(false)
+  const position = useRef(0)
+  return (
+    <>
+      <video
+        key={attempt}
+        controls
+        preload="metadata"
+        src={`/api/v1/files/${file.id}/play?attempt=${attempt}`}
+        aria-label={file.name}
+        onTimeUpdate={(e) => {
+          position.current = e.currentTarget.currentTime
+        }}
+        onLoadedMetadata={(e) => {
+          if (position.current > 0) e.currentTarget.currentTime = position.current
+        }}
+        onError={() => setFailed(true)}
+        style={{ width: '100%', maxHeight: 400, background: '#132f31', borderRadius: 12 }}
+      />
+      {failed && (
+        <Alert>
+          <p>{t('files.videoError')}</p>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setFailed(false)
+              setAttempt((value) => value + 1)
+            }}
+          >
+            {t('files.reloadVideo')}
+          </Button>
+        </Alert>
+      )}
+    </>
+  )
+}
 export function PrivateFiles({
   target,
   id,
@@ -49,15 +89,7 @@ export function PrivateFiles({
     mutationFn: async () => {
       if (!file || file.size > 3 * 1024 * 1024 || file.size === 0)
         throw new APIError(422, 'file_type', 'Invalid file')
-      const content = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onerror = () => reject(new Error('File could not be read'))
-        reader.onload = () => resolve(String(reader.result).split(',')[1])
-        reader.readAsDataURL(file)
-      })
-      return send<Schema['PrivateFile']>(path, { name: file.name, content }, 'POST', {
-        'Idempotency-Key': key,
-      })
+      return uploadFile(path, file, key, config.data?.mediaProvider === 'cloudinary')
     },
     onSuccess: async () => {
       setFile(null)
@@ -105,7 +137,9 @@ export function PrivateFiles({
         <Alert>{t('files.disabled')}</Alert>
       ) : (
         <>
-          {!config.data.scannerConfigured && <Alert>{t('files.scanner')}</Alert>}
+          {config.data.mediaProvider !== 'cloudinary' && !config.data.scannerConfigured && (
+            <Alert>{t('files.scanner')}</Alert>
+          )}
           {canUpload && config.data.uploadsEnabled && (
             <form
               className="tu-stack"
@@ -151,7 +185,7 @@ export function PrivateFiles({
             <article className="tu-policy" key={f.id}>
               <div className="tu-card-top">
                 <h3 className="file-name">{f.name}</h3>
-                <Badge tone={f.status === 'clean' ? 'teal' : 'neutral'}>
+                <Badge tone={['clean', 'ready'].includes(f.status) ? 'teal' : 'neutral'}>
                   {t(`files.${f.status}`)}
                 </Badge>
               </div>
@@ -159,17 +193,45 @@ export function PrivateFiles({
                 {f.uploaderName} · {Math.ceil(f.size / 1024)} KiB ·{' '}
                 {indiaDate(f.createdAt, i18n.language)}
               </p>
-              {f.status === 'clean' && f.contentType === 'video/mp4' && (
-                <video
-                  controls
-                  preload="metadata"
-                  src={`/api/v1/files/${f.id}/play`}
-                  aria-label={f.name}
-                  style={{ width: '100%', maxHeight: 400, background: '#132f31', borderRadius: 12 }}
+              {['clean', 'ready'].includes(f.status) && f.contentType === 'video/mp4' && (
+                <FileVideo file={f} />
+              )}
+              {f.status === 'ready' && f.contentType.startsWith('image/') && (
+                <img
+                  src={`/api/v1/files/${f.id}/view`}
+                  alt={f.name}
+                  loading="lazy"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: 260,
+                    objectFit: 'contain',
+                    borderRadius: 12,
+                  }}
                 />
               )}
               <div className="tu-actions">
-                {f.status === 'clean' && (
+                {(f.status === 'ready' ||
+                  (f.provider === 'cloudinary' && ['quarantined', 'clean'].includes(f.status))) && (
+                  <>
+                    <a
+                      className="btn secondary"
+                      href={`/api/v1/files/${f.id}/view`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t('files.view')}
+                    </a>
+                    <a
+                      className="btn secondary"
+                      href={`/api/v1/files/${f.id}/download`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t('files.download')}
+                    </a>
+                  </>
+                )}
+                {f.status === 'clean' && f.provider !== 'cloudinary' && (
                   <Button
                     variant="secondary"
                     busy={download.isPending}
@@ -179,11 +241,17 @@ export function PrivateFiles({
                     {t('files.download')}
                   </Button>
                 )}
-                {f.status === 'quarantined' && config.data?.scannerConfigured && (
-                  <Button variant="text" busy={retry.isPending} onClick={() => retry.mutate(f.id)}>
-                    {t('files.retry')}
-                  </Button>
-                )}
+                {f.status === 'quarantined' &&
+                  f.provider !== 'cloudinary' &&
+                  config.data?.scannerConfigured && (
+                    <Button
+                      variant="text"
+                      busy={retry.isPending}
+                      onClick={() => retry.mutate(f.id)}
+                    >
+                      {t('files.retry')}
+                    </Button>
+                  )}
               </div>
             </article>
           ))}

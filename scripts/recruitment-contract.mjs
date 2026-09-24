@@ -16,7 +16,7 @@ Object.assign(schemas.Interview.properties, {
 schemas.PrivateFile.properties.provider = { type: 'string' }
 spec.paths['/files/{id}/play'] = structuredClone(spec.paths['/files/{id}/download'])
 spec.paths['/files/{id}/play'].get.summary =
-  'Play a scanned private MP4 with current ownership/assignment checks'
+  'Play an authorised Cloudinary MP4 or a scanned legacy file'
 const playback = spec.paths['/files/{id}/play'].get
 playback.parameters.push({ name: 'Range', in: 'header', schema: { type: 'string' } })
 playback.responses['200'].content = {

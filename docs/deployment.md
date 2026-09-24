@@ -48,7 +48,11 @@ Replace the example domain/certificate paths in `infra/nginx.conf`. Obtain a val
 
 The Go process also runs the persisted job worker. Multiple instances can contend for jobs using MongoDB leases; no Node worker or extra application API is needed. Application startup does not run migrations automatically. Resolve the reported Atlas collection limit before installing this extension, then run the reviewed migration explicitly. The private development environment has not been changed and the latest extension has only been verified on the isolated local replica set.
 
-Keep `MEDIA_PROVIDER=disabled` until private storage is ready. The optional `disk` adapter is development-only and requires an absolute directory outside public assets. Staging/production files use an operator-configured private S3-compatible bucket; see [private-files.md](private-files.md) for endpoint, bucket, credential and ClamAV settings. Run ClamAV separately with loopback-only access, current signatures and resource limits; no Docker is required. The Nginx request limit is 5 MiB for the 3 MiB base64 file envelope, while Go retains smaller limits on other routes. Files remain quarantined if scanning is unavailable. An actual bucket/scanner/restore exercise is still required.
+For the selected Cloudinary deployment, set `MEDIA_PROVIDER=cloudinary`, `VIDEO_PROVIDER=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in `/etc/tutor/api.env`. Set `MEETING_PROVIDER=zoom` with the four Zoom settings in `.env.example`. Do not configure/install ClamAV for Cloudinary: browser uploads go directly to Cloudinary and Go verifies provider metadata before saving ready references. Remove `CLAMAV_ADDRESS` from this deployment's environment. Existing production authentication/payment restrictions remain independent.
+
+Use the updated Nginx CSP: browser uploads require `connect-src https://api.cloudinary.com`; image/video delivery allows the exact Cloudinary API and media domains. No wildcard sources are required. Documents and videos remain authenticated assets, with five-minute signed viewing/download URLs issued after access checks. Do not copy their delivery URLs into public pages or logs. See [private-files.md](private-files.md) for the upload/confirmation flow and account delivery checks.
+
+The old disk adapter is development-only. Legacy S3 deployments still require a loopback scanner. The 35 MiB Nginx envelope limit applies to legacy API uploads; direct Cloudinary uploads do not send file bytes through Nginx or Go. No existing disk/S3 object is migrated or deleted automatically.
 
 Razorpay sandbox configuration uses backend-only test keys and a separate webhook secret; see [payments.md](payments.md). The currently supplied Nginx CSP intentionally does not permit hosted checkout. Verify the provider's actual script/frame/connect requirements on an authorised HTTPS staging origin before changing it. Do not weaken the CSP to a wildcard or enable live payments merely because the merchant account is approved. Production payment activation remains blocked in code.
 
@@ -56,7 +60,7 @@ Razorpay sandbox configuration uses backend-only test keys and a separate webhoo
 
 ## Verify and rollback
 
-After authorization and deployment, verify TLS, `/api/v1/health`, `/api/v1/ready`, hard reloads on routed URLs, actual Secure/HttpOnly cookies once live auth exists, Origin/CSRF handling, both languages, private cache isolation, mobile performance and operator workflows. Never publish sample identities as genuine tutor credentials. Re-run browser and access tests against a separate staging database first.
+After authorization and deployment, verify TLS, `/api/v1/health`, `/api/v1/ready`, hard reloads on routed URLs, actual Secure/HttpOnly cookies once live auth exists, Origin/CSRF handling, English interface, private cache isolation, mobile performance and operator workflows. Never publish sample identities as genuine tutor credentials. Re-run browser and access tests against a separate staging database first.
 
 Retain the previous application release for a reversible symlink rollback. Do not automatically reverse schema/data migrations; review compatibility and restore strategy before each migration. Health failures should alert an operator without logging credentials or learner details.
 

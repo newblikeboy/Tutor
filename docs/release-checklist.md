@@ -6,7 +6,7 @@
 - [x] Availability, recurring agreements/classes, authoritative tutor/learner scheduling, holds/expiry, rescheduling/makeup and reviewed lesson evidence.
 - [x] Versioned plans and consented handover with old-tutor access revocation.
 - [x] Family-visible conversation, in-app updates and assigned support/privacy/restricted safeguarding cases.
-- [x] Private file disk/S3 interfaces, bounded validation, quarantine, scan jobs and authorised integrity-checked downloads. Actual external storage/scanning remains a launch gate.
+- [x] Direct Cloudinary uploads with provider verification, reference-only persistence and authorised expiring delivery links. Legacy disk/S3 retains quarantine and scan jobs. Cloudinary files are not represented as malware-scanned.
 - [x] Razorpay test adapter, verified raw webhooks, capture/refund reservations and journals, finance review/reconciliation and leased jobs. Actual provider sandbox acceptance remains a launch gate.
 - [x] Account preferences, password change, session revocation and audited staff bootstrap CLI with hidden password entry. No staff MFA claim.
 - [x] Go/database security and targeted browser verification described in progress.md. These checks apply to the exercised development scope only.
@@ -21,7 +21,7 @@
 - [ ] Safeguarding staffing, protective actions and external escalation procedure; no 24/7/emergency authority-contact claims.
 - [ ] Reviewed fees, cancellation/makeup/travel rules, platform share and merchant-approved collection/refund/settlement arrangement. User reports an approved Razorpay account; test keys and webhook secret are absent in the private environment, and Route/payout approval is separate.
 - [ ] Real Razorpay sandbox checkout, webhook delivery/retries, refunds and reconciliation with an operator-controlled HTTPS endpoint. Review the restrictive Nginx CSP before enabling hosted checkout.
-- [ ] Private bucket/access policy, encryption/backup, actual ClamAV daemon/signature updates/resource limits and scanning/retention/restore rehearsal.
+- [ ] Cloudinary account delivery/access policy, browser upload/playback from the actual HTTPS origin, account size restrictions, retention and restore rehearsal. ClamAV is required only for legacy disk/S3 deployments, not the selected Cloudinary flow.
 - [ ] GitHub remote/CI run, DigitalOcean SSH/domain/TLS, restricted Atlas credentials/network, monitoring and isolated restore rehearsal.
 - [ ] Operator audit of actual tutors/scopes/evidence and production records. Fictional samples must never be published as genuine.
 

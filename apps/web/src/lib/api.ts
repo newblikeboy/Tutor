@@ -103,6 +103,8 @@ export function errorKey(error: unknown): string {
         refund_amount: 'billing.failureRefund',
         reconciliation_required: 'billing.reconcileBody',
         file_type: 'files.failureType',
+        upload_expired: 'files.failureExpired',
+        file_unavailable: 'files.failureUnavailable',
         file_quota: 'files.failureQuota',
         file_quarantined: 'files.failureQuarantine',
         storage_unavailable: 'files.failureStorage',

@@ -3135,6 +3135,85 @@
         }
       }
     },
+    "/enrollments/{id}/files/upload-intent": {
+      "post": {
+        "operationId": "post__enrollments__id__files_upload_intent",
+        "summary": "POST /enrollments/{id}/files/upload-intent",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectUpload"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectFileInput"
+              }
+            }
+          }
+        }
+      }
+    },
     "/applications/{id}/files": {
       "get": {
         "operationId": "get__applications__id__files",
@@ -3262,6 +3341,85 @@
         }
       }
     },
+    "/applications/{id}/files/upload-intent": {
+      "post": {
+        "operationId": "post__applications__id__files_upload_intent",
+        "summary": "POST /applications/{id}/files/upload-intent",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectUpload"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectFileInput"
+              }
+            }
+          }
+        }
+      }
+    },
     "/files/{id}/download": {
       "get": {
         "operationId": "get__files__id__download",
@@ -3279,6 +3437,128 @@
                 "schema": {
                   "type": "string",
                   "format": "binary"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Authorised, short-lived Cloudinary delivery URL",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/files/{id}/complete": {
+      "post": {
+        "operationId": "post__files__id__complete",
+        "summary": "POST /files/{id}/complete",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateFile"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectCompleteInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/{id}/view": {
+      "get": {
+        "operationId": "get__files__id__view",
+        "summary": "GET /files/{id}/view",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Authorised, short-lived Cloudinary delivery URL",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -3809,7 +4089,7 @@
     "/files/{id}/play": {
       "get": {
         "operationId": "get__files__id__download",
-        "summary": "Play a scanned private MP4 with current ownership/assignment checks",
+        "summary": "Play an authorised Cloudinary MP4 or a scanned legacy file",
         "security": [
           {
             "session": []
@@ -3841,6 +4121,16 @@
                 "schema": {
                   "type": "string",
                   "format": "binary"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Authorised, short-lived Cloudinary delivery URL",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -4498,6 +4788,7 @@
           "timezone",
           "uploadsEnabled",
           "scannerConfigured",
+          "mediaProvider",
           "videoUploadsEnabled",
           "videoProvider",
           "meetingsEnabled"
@@ -4526,6 +4817,9 @@
           },
           "scannerConfigured": {
             "type": "boolean"
+          },
+          "mediaProvider": {
+            "type": "string"
           },
           "videoUploadsEnabled": {
             "type": "boolean"
@@ -6527,6 +6821,7 @@
               "uploading",
               "quarantined",
               "clean",
+              "ready",
               "rejected",
               "archived"
             ]
@@ -6541,6 +6836,63 @@
           },
           "provider": {
             "type": "string"
+          }
+        }
+      },
+      "DirectFileInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "contentType",
+          "size"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 180
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 26214400
+          }
+        }
+      },
+      "DirectUpload": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file"
+        ],
+        "properties": {
+          "file": {
+            "$ref": "#/components/schemas/PrivateFile"
+          },
+          "resume": {
+            "type": "boolean"
+          },
+          "upload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "url",
+              "fields"
+            ],
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "fields": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       },
@@ -6600,6 +6952,12 @@
             "maxLength": 34952536
           }
         }
+      },
+      "DirectCompleteInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {}
       },
       "Interview": {
         "type": "object",

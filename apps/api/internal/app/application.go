@@ -160,7 +160,7 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 					}
 					return domain.Fail(422, "application_file", "Choose a saved, permitted application file.")
 				}
-				if f.TargetKind != "application" || f.TargetID != u.ID || f.UploaderID != u.ID || !enum(f.Status, "quarantined", "clean") || (linked.kind == "video") != (f.ContentType == "video/mp4") {
+				if f.TargetKind != "application" || f.TargetID != u.ID || f.UploaderID != u.ID || !enum(f.Status, "quarantined", "clean", "ready") || (linked.kind == "video") != (f.ContentType == "video/mp4") {
 					return domain.Fail(422, "application_file", "Choose the correct file type for this application field.")
 				}
 				if linked.kind == "photo" && !enum(f.ContentType, "image/jpeg", "image/png") {

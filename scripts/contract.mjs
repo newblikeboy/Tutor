@@ -106,6 +106,7 @@ const schemas = {
     timezone: str,
     uploadsEnabled: bool,
     scannerConfigured: bool,
+    mediaProvider: { type: 'string' },
   }),
   Auth: obj({ user: ref('User'), csrf: str }),
   AuthSession: { anyOf: [ref('Auth'), { type: 'null' }] },

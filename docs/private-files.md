@@ -1,21 +1,43 @@
-# Private learning and application files
+﻿# Cloudinary uploads and private viewing
 
-`MEDIA_PROVIDER=cloudinary` sends every supported document upload (applications and tuition files) to authenticated Cloudinary raw storage. `VIDEO_PROVIDER=cloudinary` sends application MP4s to authenticated video storage. Both use the same backend-only account credentials. Raw objects use opaque IDs with a validated `.pdf`, `.jpg` or `.png` extension and retain exact original bytes; retrieval is signed for 60 seconds on the server and never exposes a provider URL. Each new metadata record saves its provider so provider changes fail closed rather than looking in the wrong store. Existing disk/S3 objects require an explicit migration before changing their provider; the main database had no existing uploads when Cloudinary documents were enabled on 2026-09-24.
+User direction, 2026-09-25: images, PDFs and videos upload directly to Cloudinary. MongoDB stores the provider URL and essential metadata, never file contents. This replaces the local scanner requirement for Cloudinary. Zoom remains the meeting provider.
 
-About you includes an optional passport-size photo (JPG/PNG, up to 3 MiB), stored through the same authenticated Cloudinary raw adapter. Education and experience includes a résumé and up to six education documents (degree, marksheets or certificates). Each successful upload saves its selected ID in the MongoDB application immediately. Batch retries retain successful links and reuse each pending upload's idempotency key. Removal unlinks a selection on the next draft save; it does not delete the retained private evidence. Server checks ownership, application target, document type and permitted scan status on every draft save and submission; the photo field rejects PDF and video links. Staff see the attachment in the application summary and existing Documents tab. New uploads remain quarantined until an actual configured scanner approves them. Photos remain private and are not automatically used in public tutor profiles.
+## Upload flow
 
-Uploads are handled by Go; metadata and idempotency receipts live in MongoDB. The local disk adapter is development-only. The S3-compatible adapter uses AWS's official Go v2 SDK, HTTPS, server-side AES256 encryption, opaque random object keys and no public URLs. Configure a private bucket with public access blocked and least-privilege credentials; bucket policies and an actual DigitalOcean Spaces deployment have **not** been verified here.
+1. The signed-in browser requests an upload intent from Go. Go checks ownership, draft/enrollment state, filename/type, size, quota and an idempotency key.
+2. Go reserves a reference and returns a signed form for an opaque, non-overwritable, authenticated Cloudinary asset. The API secret stays on the server.
+3. The browser sends the File directly to Cloudinary with multipart/form-data. No file bytes/base64 pass through Go, Nginx or MongoDB in this flow.
+4. The browser asks Go to complete the upload. Go independently queries Cloudinary with backend credentials and checks the exact public ID, authenticated type, resource type, format and byte count. Client-provided URLs/statuses are never trusted.
+5. Go saves the canonical URL, public ID, asset ID/version, type, size, display name, uploader and target ownership. The state becomes `ready`; it is not called `clean` or malware-scanned. The form saves the selected reference through its existing draft API.
 
-Application introduction videos now have a separate `VIDEO_PROVIDER=cloudinary` adapter using authenticated assets and backend-only signatures. New application metadata is embedded in its MongoDB application document, bounded to 20 attachments; legacy records remain readable. `GET /files/{id}/play` streams only clean MP4s with guarded byte-range access and `no-store`. The actual scanner requirement below also applies to Cloudinary. See [recruitment integration setup](recruitment-integrations.md).
+Images use Cloudinary `image`; PDFs use `raw` to preserve originals; MP4s use `video`. Existing limits remain: JPG/PNG/PDF up to 3 MiB and application MP4 up to 25 MiB. MP4 support does not restore the removed demo/video field in Teaching approach. The generic document picker still accepts images/PDFs only.
 
-`MEDIA_PROVIDER=disabled` is the default. For development, choose `disk` and set `MEDIA_ROOT` to an absolute directory outside the public/web directory. E2E uses its own ignored `.local/e2e-files-*` directory. For an operator-managed private bucket choose `s3` with `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` in the private environment. Never put these values in Vite variables.
+Intents expire after one hour; retries retain the public ID and original timestamp. Repeated completion is idempotent. Lost upload responses can be recovered by provider lookup. Confirmed references survive refresh/API restarts. Reserved uploads count toward the existing 100 MiB allowance and application attachment limit; expired/unlinked assets are retained, not automatically deleted. Quota reclamation/orphan retention remains lifecycle work.
 
-The API accepts JPEG, PNG and PDF, maximum 3 MiB. Application evidence additionally accepts MP4 up to 25 MiB, with signature, extension and bounded container-box framing checks; playback, duration and content are not certified. Documents retain image decoding/dimension and bounded PDF checks. These checks are not a malware scan. Names are sanitised, while storage uses server-generated keys and Go `os.Root` confinement. Each uploader has a conservative 100 MiB development allowance; quota reservations and metadata are transactional. Interrupted uploads retain their receipt for an identical retry. Payloads and filenames are not logged. Nginx permits a 35 MiB envelope; Go limits application file JSON to 35 MiB, other file JSON to 4 MiB plus envelope, and ordinary routes to 16 KiB (64 KiB for plans and structured applications). Configured scanner stream limits must accommodate 25 MiB before enabling recorded demos. Unconfigured or failed scanning never releases a file.
+Cloudinary validates image/video formats; raw PDF restrictions are extension-based. No malware scan is performed or claimed. Browser and completion checks enforce app limits, but a modified client can upload a larger asset before completion rejects it. Configure appropriate Cloudinary account/preset limits and monitor storage abuse; post-upload validation does not prevent all provider bandwidth/storage costs. No paid add-on is automatically enabled.
 
-New objects start quarantined. A separately configured, loopback-only `CLAMAV_ADDRESS` (for example `127.0.0.1:3310`) enables the leased scan worker using ClamAV's INSTREAM protocol. Without it, or on scan failure, files remain unavailable for download. A known infected verdict marks a file rejected. There is no manual “mark safe” bypass. Signature updates, sandboxing/resource limits, scanning accuracy and the actual daemon require operator testing; protocol tests use a local test server, and application tests inject test-only scanner verdicts.
+## Viewing and downloading
 
-Every list/download checks the current enrollment owner/tutor/assigned mentor, or applicant/assigned assessor/admin. Finance and ordinary support do not gain academic file access. Handover revokes the old tutor; the family retains the record. Approved downloads are integrity-checked against the saved digest, served as attachments with `no-store`, `nosniff` and a sandbox policy. No long-lived unrestricted link is issued. Successful scanning is not a guarantee that arbitrary documents are harmless.
+The browser requests `/files/{id}/view`, `/download` or video `/play`. Go checks current household/tutor/reviewer access and returns a no-store redirect to an authenticated Cloudinary download URL valid for five minutes. Images render inline, PDFs open via their viewing link, and the native video player receives MP4 bytes/range requests directly from Cloudinary. This is progressive MP4 delivery, not adaptive HLS/DASH transcoding. Video load failure offers a reload action that obtains a fresh link and retains playback position where supported.
 
-Retention, deletion, legal holds, scan-daemon hardening, object backups/restore and orphan/quota reclamation still require the operator's reviewed lifecycle procedure. The privacy request queue records requests; it does not silently delete files.
+The stored canonical URL is an authenticated reference, not a public URL. Signed URLs are generated on demand, never persisted or included in list responses. An already-issued bearer link can remain usable until its five-minute expiry after logout/reassignment; new link requests always recheck access. Do not log/share temporary URLs. This bounded capability is the tradeoff for direct provider delivery.
 
-References: [OWASP file upload guidance](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html), [Go confined roots](https://pkg.go.dev/os#Root), [ClamAV daemon operation](https://docs.clamav.net/manual/Usage/Scanning.html), [official Go S3 SDK examples](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/go_s3_code_examples.html).
+## Configuration
+
+```dotenv
+MEDIA_PROVIDER=cloudinary
+VIDEO_PROVIDER=cloudinary
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+No `CLAMAV_ADDRESS` is needed for Cloudinary. Private image/PDF/video delivery must be permitted by the actual Cloudinary account. The Nginx CSP permits uploads to `api.cloudinary.com` and media delivery from `api.cloudinary.com` and `res.cloudinary.com`. Keep credentials in the backend environment. Production authentication/payment gates remain separate and unchanged.
+
+## Existing files and compatibility
+
+Existing Cloudinary records are retained. On first authorised view, old `quarantined`/`clean` records are checked with Cloudinary and gain ready metadata; rejected/archived files remain unavailable. Existing disk/S3 files retain guarded legacy download/scanning. Changing providers never migrates or deletes objects automatically. No migration is required for the additive file fields.
+
+Legacy base64 routes remain compatible with older clients and development disk/S3 tests. The current Cloudinary frontend always uses upload-intent/complete. Test provider fixtures are restricted to `APP_ENV=test` and loopback; they are never a production fallback.
+
+References: [Browser uploads](https://cloudinary.com/documentation/client_side_uploading), [Upload parameters](https://cloudinary.com/documentation/image_upload_api_reference), [Authenticated delivery](https://cloudinary.com/documentation/control_access_to_media).

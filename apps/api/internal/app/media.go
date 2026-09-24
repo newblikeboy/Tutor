@@ -18,6 +18,13 @@ import (
 )
 
 func (a *App) ConfigureMedia() error {
+	if a.Config.MediaProvider == "cloudinary" || a.Config.VideoProvider == "cloudinary" {
+		provider := media.NewCloudinaryDirect(a.Config.CloudinaryCloud, a.Config.CloudinaryKey, a.Config.CloudinarySecret)
+		if a.Config.Env == "test" && a.Config.TestCloudinaryURL != "" {
+			provider.UseTestEndpoint(a.Config.TestCloudinaryURL)
+		}
+		a.DirectFiles = provider
+	}
 	if a.Config.MediaProvider == "disk" {
 		s, e := media.NewDisk(a.Config.MediaRoot)
 		if e != nil {
@@ -271,6 +278,10 @@ func (a *App) downloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	if e = a.fileAccess(r.Context(), user(r), f.TargetKind, f.TargetID, false); e != nil {
 		a.error(w, r, e)
+		return
+	}
+	if f.Provider == "cloudinary" && a.DirectFiles != nil {
+		a.deliverDirectFile(w, r, f, !strings.HasSuffix(r.URL.Path, "/play"))
 		return
 	}
 	if f.Status != "clean" || f.ScannedAt == nil {
