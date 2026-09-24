@@ -16,7 +16,7 @@
 - [x] Operator explicitly approved the reviewed 27 test databases; 398 collections removed, 102 preserved. User subsequently confirmed the droplet migration succeeded. No application databases were deleted.
 - [ ] Real name/wordmark, founder biography, lawful contact details, actual service area and eligibility criteria; provisional content must be reviewed.
 - [ ] Live guardian-verification procedure before real minor data collection. A development declaration is not verification.
-- [ ] Reviewed email ownership/recovery and breached-password policy, trusted proxy/abuse controls and production staff MFA/recovery process.
+- [ ] Reviewed email ownership/recovery and breached-password policy, trusted proxy/abuse controls and staff recovery process. Staff MFA is not required under the explicit password-only override.
 - [ ] Qualified review of child-data/privacy/consent, retention/deletion/legal holds, teacher eligibility, consumer/refund and tax/invoice policies.
 - [ ] Safeguarding staffing, protective actions and external escalation procedure; no 24/7/emergency authority-contact claims.
 - [ ] Reviewed fees, cancellation/makeup/travel rules, platform share and merchant-approved collection/refund/settlement arrangement. User reports an approved Razorpay account; test keys and webhook secret are absent in the private environment, and Route/payout approval is separate.
@@ -31,7 +31,7 @@
 - [ ] Complete application declarations/multi-scope service offerings, real assessment appointments/reassessment, reviewed material profile changes and specialist conflict/assignment workflows.
 - [ ] Renewal approvals and continuity across renewed packages, home-address/guardian-space workflow when home tuition is approved, broader attendance/dispute operations.
 - [ ] Relationship-backed reviews, moderation/reporting/tutor response, CMS publication, staff permission operations and actual operational reports.
-- [ ] Password recovery/email delivery and staff MFA enrollment/recovery; provisioning alone does not establish production authentication readiness.
+- [ ] Password recovery/email delivery and staff recovery; MFA is not implemented or required under the user override.
 - [ ] Approved commissions, tutor expected/pending/payable/settled earnings, invoices, disputes/chargebacks and provider-approved payout reconciliation.
 - [ ] Richer MongoDB schemas and migration history, remaining legacy pagination/history bounds, orphan/quota lifecycle and retention/deletion execution.
 - [ ] Public pre-rendering/SEO, reproducible mobile Lighthouse/performance budgets and field-vitals plan.
@@ -39,4 +39,4 @@
 - [ ] Expanded manual text/keyboard/reflow, native zoom, assistive technology and cross-browser/device review.
 - [ ] Full release security/access matrix, restore exercise and [independent operator walkthrough](operator-walkthrough.md) on the intended deployment.
 
-Production non-sample parent/tutor signup and login can be explicitly enabled with `AUTH_PROVIDER=password`; see [production authentication](production-auth.md). Staff authentication, minor guardian verification and real payments remain closed. Email ownership/recovery and the broader launch checks above are still outstanding. Local replica-set testing is not an actual provider trial or a full production-readiness certification.
+Production non-sample parent/tutor signup/login and provisioned staff password login can be explicitly enabled with `AUTH_PROVIDER=password`; see [production authentication](production-auth.md). Minor guardian verification and real payments remain closed. Staff password-only access follows the explicit operator override. Email ownership/recovery and the broader launch checks above are still outstanding. Local replica-set testing is not an actual provider trial or a full production-readiness certification.

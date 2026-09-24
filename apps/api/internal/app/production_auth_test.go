@@ -10,6 +10,7 @@ import (
 	"time"
 	"tutorplatform/internal/config"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/staff"
 	"tutorplatform/internal/storage"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -93,7 +94,32 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 		c.csrf = v["csrf"].(string)
 	}
 	call(tutor, "GET", "/staff/overview", nil, 403)
-	call(parent, "POST", "/auth/signup", map[string]any{"name": "Injected staff", "email": "staff@example.test", "password": testPassword, "role": "admin", "adult": true}, 422)
+	for _, role := range []string{"admin", "mentor", "support", "finance"} {
+		call(parent, "POST", "/auth/signup", map[string]any{"name": "Injected staff", "email": role + "@example.test", "password": testPassword, "role": role, "adult": true}, 422)
+		if err := staff.Provision(ctx, s, staff.Input{Name: "Fictional " + role, Email: role + "@example.test", Role: role, Password: testPassword, Operator: "production-auth-test", Reason: "Verify explicitly provisioned staff password access."}); err != nil {
+			t.Fatal(err)
+		}
+		c := newClient(server)
+		call(c, "POST", "/auth/login", map[string]any{"email": role + "@example.test", "password": "wrong test password"}, 401)
+		v := call(c, "POST", "/auth/login", map[string]any{"email": role + "@example.test", "password": testPassword}, 200)
+		c.csrf = v["csrf"].(string)
+		if v["user"].(map[string]any)["role"] != role {
+			t.Fatal("staff role changed at login")
+		}
+		call(c, "GET", "/account", nil, 200)
+		if call(c, "GET", "/auth/session", nil, 200)["user"].(map[string]any)["role"] != role {
+			t.Fatal("staff session did not persist")
+		}
+		want := 403
+		if role == "admin" || role == "mentor" {
+			want = 200
+		}
+		call(c, "GET", "/dashboard", nil, want)
+		call(c, "GET", "/staff/overview", nil, want)
+		call(c, "GET", "/staff/applications", nil, want)
+		call(c, "POST", "/auth/logout", map[string]any{}, 200)
+		call(c, "GET", "/account", nil, 401)
+	}
 	call(parent, "POST", "/consents", map[string]any{"relationship": "parent", "accepted": true}, 503)
 	if status, _, _ := parent.call("POST", "/auth/logout", map[string]any{}, map[string]string{"Origin": "https://attacker.invalid"}); status != 403 {
 		t.Fatal("foreign origin accepted")
@@ -144,11 +170,11 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 	if call(tutor, "GET", "/auth/session", nil, 200) != nil {
 		t.Fatal("sample session exposed")
 	}
-	updateUser(bson.M{"sample": false, "role": "admin"})
-	call(tutor, "POST", "/auth/login", login, 503)
-	call(tutor, "GET", "/account", nil, 503)
+	updateUser(bson.M{"sample": false, "role": "unrecognised"})
+	call(tutor, "POST", "/auth/login", login, 401)
+	call(tutor, "GET", "/account", nil, 401)
 	if call(tutor, "GET", "/auth/session", nil, 200) != nil {
-		t.Fatal("staff session exposed without MFA")
+		t.Fatal("unknown role session exposed")
 	}
 	updateUser(bson.M{"role": "tutor"})
 	if _, err := s.C("sessions").UpdateMany(ctx, bson.M{"userId": cred.UserID}, bson.M{"$set": bson.M{"expiresAt": time.Now().Add(-time.Hour)}}); err != nil {

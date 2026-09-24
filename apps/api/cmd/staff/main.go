@@ -71,6 +71,6 @@ func main() {
 	if e = staff.Provision(ctx, s, in); e != nil {
 		fail("Staff provisioning failed; check fields/password policy and existing account. No existing account was replaced.")
 	}
-	fmt.Println("Staff account provisioned with an audit record. Production access remains gated until MFA and operator release review. No invitation was sent.")
+	fmt.Println("Staff account provisioned with an audit record. No invitation was sent.")
 }
 func fail(message string) { fmt.Fprintln(os.Stderr, message); os.Exit(1) }

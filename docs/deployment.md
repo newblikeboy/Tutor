@@ -4,7 +4,7 @@ This is a reviewed **target configuration**, not an executed deployment. The use
 
 ## Before deployment
 
-Supply the intended GitHub repository/remote, droplet/SSH access, domain or supported IP TLS configuration. Deploy within the operator-authorized scope. Explicit `AUTH_PROVIDER=password` enables non-sample parent/tutor signup and login in production; omitted/disabled authentication remains closed. Staff MFA, minor guardian verification and real payments remain separate gates. See [production authentication](production-auth.md). Do not expose `APP_ENV=development` or the sample database on the public internet.
+Supply the intended GitHub repository/remote, droplet/SSH access, domain or supported IP TLS configuration. Deploy within the operator-authorized scope. Explicit `AUTH_PROVIDER=password` enables parent/tutor signup and login plus provisioned non-sample staff password login in production; omitted/disabled authentication remains closed. The operator opted for password-only staff access; minor guardian verification and real payments remain separate gates. See [production authentication](production-auth.md). Do not expose `APP_ENV=development` or the sample database on the public internet.
 
 Review a supported Linux droplet image, sizing, firewall/SSH policy, backups and monitoring with the operator. Install Nginx and systemd service configuration using a non-root deployment account plus limited sudo. The application user `tutor` should have no login shell. Only 80/443 and approved SSH access should be reachable; Go binds `127.0.0.1:8080`.
 
@@ -56,7 +56,7 @@ The old disk adapter is development-only. Legacy S3 deployments still require a 
 
 Razorpay sandbox configuration uses backend-only test keys and a separate webhook secret; see [payments.md](payments.md). The currently supplied Nginx CSP intentionally does not permit hosted checkout. Verify the provider's actual script/frame/connect requirements on an authorised HTTPS staging origin before changing it. Do not weaken the CSP to a wildcard or enable live payments merely because the merchant account is approved. Production payment activation remains blocked in code.
 
-`tutor-staff` provisions an audited staff identity with a hidden terminal password; it neither sends an invitation nor bypasses the production MFA gate. Run it only under the reviewed operator procedure in [staff-provisioning.md](staff-provisioning.md). Staff bootstrap credentials are never frontend configuration or default sample passwords.
+`tutor-staff` provisions an audited staff identity with a hidden terminal password; it sends no invitation. The operator chose password-only staff login; a provisioned non-sample account can sign in when AUTH_PROVIDER=password. Run it only under the reviewed operator procedure in [staff-provisioning.md](staff-provisioning.md). Staff bootstrap credentials are never frontend configuration or default sample passwords.
 
 ## Verify and rollback
 

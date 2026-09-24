@@ -112,10 +112,12 @@ func (a *App) accountAccessError(u domain.User) error {
 	if u.Sample {
 		return domain.Fail(401, "invalid_credentials", "Email or password is incorrect.")
 	}
-	if u.Role != "parent" && u.Role != "tutor" {
-		return domain.Fail(503, "staff_auth_unavailable", "Staff sign-in is not enabled yet.")
+	switch u.Role {
+	case "parent", "tutor", "mentor", "admin", "support", "finance":
+		return nil
+	default:
+		return domain.Fail(401, "invalid_credentials", "Email or password is incorrect.")
 	}
-	return nil
 }
 func (a *App) passwordSlot(w http.ResponseWriter, r *http.Request) bool {
 	select {
