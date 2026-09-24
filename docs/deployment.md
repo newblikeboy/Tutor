@@ -4,7 +4,7 @@ This is a reviewed **target configuration**, not an executed deployment. The use
 
 ## Before deployment
 
-Supply the intended GitHub repository/remote, droplet/SSH access, domain and TLS configuration. Complete the release checklist and request explicit operator authorization for public deployment. Current production configuration supports public discovery only; authenticated workflows return 503 pending live auth/MFA/guardian work. Do not expose `APP_ENV=development` or the sample database on the public internet.
+Supply the intended GitHub repository/remote, droplet/SSH access, domain or supported IP TLS configuration. Deploy within the operator-authorized scope. Explicit `AUTH_PROVIDER=password` enables non-sample parent/tutor signup and login in production; omitted/disabled authentication remains closed. Staff MFA, minor guardian verification and real payments remain separate gates. See [production authentication](production-auth.md). Do not expose `APP_ENV=development` or the sample database on the public internet.
 
 Review a supported Linux droplet image, sizing, firewall/SSH policy, backups and monitoring with the operator. Install Nginx and systemd service configuration using a non-root deployment account plus limited sudo. The application user `tutor` should have no login shell. Only 80/443 and approved SSH access should be reachable; Go binds `127.0.0.1:8080`.
 
@@ -33,7 +33,7 @@ HTTP_ADDR=127.0.0.1:8080
 WEB_ORIGIN=https://your-reviewed-domain.example
 MONGODB_URI=<private Atlas SRV connection>
 MONGODB_DATABASE=<separate reviewed production database>
-AUTH_PROVIDER=disabled
+AUTH_PROVIDER=password
 PAYMENT_PROVIDER=disabled
 TRIAL_FEE_PAISE=0
 ```
@@ -60,7 +60,7 @@ Razorpay sandbox configuration uses backend-only test keys and a separate webhoo
 
 ## Verify and rollback
 
-After authorization and deployment, verify TLS, `/api/v1/health`, `/api/v1/ready`, hard reloads on routed URLs, actual Secure/HttpOnly cookies once live auth exists, Origin/CSRF handling, English interface, private cache isolation, mobile performance and operator workflows. Never publish sample identities as genuine tutor credentials. Re-run browser and access tests against a separate staging database first.
+After authorization and deployment, verify TLS, `/api/v1/health`, `/api/v1/ready`, `/api/v1/config` (`authEnabled: true`), hard reloads on routed URLs, Secure/HttpOnly cookies, Origin/CSRF handling, English interface, private cache isolation, mobile performance and operator workflows. Keep `proxy_set_header X-Forwarded-For $remote_addr` in Nginx: the API trusts only one IP supplied by its loopback proxy, never an appended client-supplied chain. Never publish sample identities as genuine tutor credentials. Re-run browser and access tests against a separate staging database first.
 
 Retain the previous application release for a reversible symlink rollback. Do not automatically reverse schema/data migrations; review compatibility and restore strategy before each migration. Health failures should alert an operator without logging credentials or learner details.
 

@@ -69,6 +69,7 @@ export const authEN = {
   authFooter: 'A calmer beginning. A clearer way forward.',
   authNeedHand: 'Need a hand?',
   authUnavailable: 'Account access is currently unavailable. Please try again later.',
+  authStaffUnavailable: 'Staff sign-in is not enabled yet. Contact your administrator.',
   authSignedIn: 'You’re signed in as {{name}}.',
   authInvalidCredentials: 'That email and password don’t match. Please check them and try again.',
   authSignupUnavailable:

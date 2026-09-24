@@ -1,5 +1,7 @@
 # Project instructions
 
+- User deployment override (2026-09-25): enable production email/password signup and login for non-sample parent/tutor accounts with explicit `AUTH_PROVIDER=password`, HTTPS, loopback API binding, Secure cookies and separate production sessions. Staff authentication stays blocked pending MFA; guardian verification and payment gates remain. Do not use development mode as a production workaround. See `docs/production-auth.md`.
+
 - Media override (2026-09-25): photos, PDFs and MP4s upload directly from the browser to authenticated Cloudinary storage. MongoDB saves URLs and access-control metadata, never file bytes. Verify provider metadata before marking files ready; authorise every short-lived viewing link. Cloudinary files do not require ClamAV or claim a malware scan. Retain legacy disk/S3 access checks. Zoom remains the meeting provider.
 - Brand name (2026-09-24): **TheGyanSetu**. Preserve this exact spelling/casing throughout visible branding, metadata and configuration defaults.
 - Signed-out private routes (2026-09-24): go directly to sign-in with the requested destination preserved; do not restore the intermediate privacy/sign-in invitation page.

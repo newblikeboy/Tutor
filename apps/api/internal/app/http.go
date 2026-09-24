@@ -130,7 +130,7 @@ func (a *App) Routes() http.Handler {
 		if a.Payments != nil {
 			provider = "razorpay_sandbox"
 		}
-		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password" && a.Config.Env != "production", "trialFeePaise": 0, "payments": provider, "timezone": "Asia/Kolkata", "uploadsEnabled": a.Files != nil, "videoUploadsEnabled": a.Videos != nil, "videoProvider": a.Config.VideoProvider, "mediaProvider": a.Config.MediaProvider, "meetingsEnabled": a.Meetings != nil, "scannerConfigured": a.Scanner != nil})
+		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password", "trialFeePaise": 0, "payments": provider, "timezone": "Asia/Kolkata", "uploadsEnabled": a.Files != nil, "videoUploadsEnabled": a.Videos != nil, "videoProvider": a.Config.VideoProvider, "mediaProvider": a.Config.MediaProvider, "meetingsEnabled": a.Meetings != nil, "scannerConfigured": a.Scanner != nil})
 	})
 	r.Get("/api/v1/tutors", a.tutors)
 	r.Post("/api/v1/webhooks/razorpay", a.razorpayWebhook)

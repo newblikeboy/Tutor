@@ -58,20 +58,48 @@ func TestRecruitmentProviderConfiguration(t *testing.T) {
 	}
 }
 
-func TestProductionRejectsDemoAuth(t *testing.T) {
+func TestProductionPasswordConfiguration(t *testing.T) {
 	t.Setenv("MEDIA_PROVIDER", "disabled")
 	t.Setenv("PAYMENT_PROVIDER", "disabled")
 	t.Setenv("CLAMAV_ADDRESS", "")
 	t.Setenv("MONGODB_URI", "mongodb://localhost")
 	t.Setenv("APP_ENV", "production")
+	t.Setenv("HTTP_ADDR", "127.0.0.1:8080")
+	t.Setenv("VIDEO_PROVIDER", "disabled")
+	t.Setenv("MEETING_PROVIDER", "disabled")
+	t.Setenv("TEST_ZOOM_ENDPOINT", "")
+	t.Setenv("TEST_CLOUDINARY_ENDPOINT", "")
+	t.Setenv("TRIAL_FEE_PAISE", "0")
 	t.Setenv("WEB_ORIGIN", "https://example.invalid")
 	t.Setenv("AUTH_PROVIDER", "password")
+	if _, e := Load(); e != nil {
+		t.Fatal("production password configuration rejected:", e)
+	}
+	for _, origin := range []string{"http://example.invalid", "https://", "https://user:secret@example.invalid", "https://example.invalid/path", "https://example.invalid?", "https://example.invalid?x=1", "https://example.invalid#fragment"} {
+		t.Setenv("WEB_ORIGIN", origin)
+		if _, e := Load(); e == nil {
+			t.Fatal("invalid production origin accepted", origin)
+		}
+	}
+	t.Setenv("WEB_ORIGIN", "https://143.110.177.39")
+	for _, addr := range []string{"0.0.0.0:8080", ":8080", "[::]:8080", "192.0.2.1:8080"} {
+		t.Setenv("HTTP_ADDR", addr)
+		if _, e := Load(); e == nil {
+			t.Fatal("public API binding accepted", addr)
+		}
+	}
+	t.Setenv("HTTP_ADDR", "127.0.0.1:8080")
+	t.Setenv("AUTH_PROVIDER", "demo")
 	if _, e := Load(); e == nil {
-		t.Fatal("demo auth accepted in production")
+		t.Fatal("demo provider accepted")
 	}
 	t.Setenv("AUTH_PROVIDER", "disabled")
 	if _, e := Load(); e != nil {
 		t.Fatal(e)
+	}
+	t.Setenv("AUTH_PROVIDER", "")
+	if c, e := Load(); e != nil || c.AuthProvider != "disabled" {
+		t.Fatal("production authentication must be explicitly enabled", e)
 	}
 	t.Setenv("TRIAL_FEE_PAISE", "100")
 	if _, e := Load(); e == nil {

@@ -74,7 +74,7 @@ func (a *App) saveAccount(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) accountSessions(w http.ResponseWriter, r *http.Request) {
 	c, _ := r.Cookie("session")
-	page, e := pageRecords[Session](r.Context(), a.Store, "sessions", bson.M{"userId": user(r).ID, "version": user(r).AuthVersion, "method": "password", "expiresAt": bson.M{"$gt": a.Now()}}, r.URL.Query().Get("cursor"))
+	page, e := pageRecords[Session](r.Context(), a.Store, "sessions", bson.M{"userId": user(r).ID, "version": user(r).AuthVersion, "method": a.sessionMethod(), "expiresAt": bson.M{"$gt": a.Now()}}, r.URL.Query().Get("cursor"))
 	if e != nil {
 		a.error(w, r, e)
 		return

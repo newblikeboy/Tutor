@@ -13,7 +13,7 @@
 
 ## Required operator inputs and external checks
 
-- [ ] Resolve Atlas's collection limit by approving the exact retained-test cleanup manifest or supplying additional capacity. No automatic deletion or database fallback.
+- [x] Operator explicitly approved the reviewed 27 test databases; 398 collections removed, 102 preserved. User subsequently confirmed the droplet migration succeeded. No application databases were deleted.
 - [ ] Real name/wordmark, founder biography, lawful contact details, actual service area and eligibility criteria; provisional content must be reviewed.
 - [ ] Live guardian-verification procedure before real minor data collection. A development declaration is not verification.
 - [ ] Reviewed email ownership/recovery and breached-password policy, trusted proxy/abuse controls and production staff MFA/recovery process.
@@ -39,4 +39,4 @@
 - [ ] Expanded manual text/keyboard/reflow, native zoom, assistive technology and cross-browser/device review.
 - [ ] Full release security/access matrix, restore exercise and [independent operator walkthrough](operator-walkthrough.md) on the intended deployment.
 
-Production authenticated operations and real payments remain closed. Local replica-set testing is not a completed Atlas rerun, an actual provider trial, or a production-readiness certification.
+Production non-sample parent/tutor signup and login can be explicitly enabled with `AUTH_PROVIDER=password`; see [production authentication](production-auth.md). Staff authentication, minor guardian verification and real payments remain closed. Email ownership/recovery and the broader launch checks above are still outstanding. Local replica-set testing is not an actual provider trial or a full production-readiness certification.

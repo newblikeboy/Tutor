@@ -73,6 +73,7 @@ export function errorKey(error: unknown): string {
         tutor_restricted: 'staffOps.restriction',
         scope_unavailable: 'failureScope',
         invalid_credentials: 'authInvalidCredentials',
+        staff_auth_unavailable: 'authStaffUnavailable',
         signup_unavailable: 'authSignupUnavailable',
         weak_password: 'authWeakPassword',
         rate_limited: 'failureLimit',

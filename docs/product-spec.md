@@ -1,4 +1,5 @@
 # CODEX MASTER BUILD PROMPT
+> User deployment override (2026-09-25): production email/password signup/login is enabled for non-sample parents and tutors when explicitly configured. This supersedes the blanket production-auth restriction for these roles only. Preserve HTTPS/Secure sessions, Origin/CSRF, rate limits, tutor approval, staff MFA, guardian-verification and payment boundaries. See `production-auth.md`.
 > User media override (2026-09-25): direct browser uploads to authenticated Cloudinary for images, PDFs and videos; MongoDB stores the provider URL and ownership/file metadata only. Cloudinary delivery handles viewing and MP4 streaming. Remove the local ClamAV requirement for this flow, retain scoped authorisation, and never label unscanned files as scanned. This overrides the earlier mandatory-quarantine language for Cloudinary.
 
 ## Trusted tutor platform for Purnea | Go + React + MongoDB Atlas

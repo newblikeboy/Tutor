@@ -1,5 +1,7 @@
 # Requirement → implementation → acceptance evidence
 
+Production account access (2026-09-25): explicit `AUTH_PROVIDER=password` now enables non-sample parent/tutor signup/login while retaining HTTPS, Secure cookies, Origin/CSRF, ownership and approval checks. Production sessions cannot replay development sessions; sample/staff accounts stay blocked and Nginx client IP limits are scoped to its loopback proxy. Full Go race/vet and web build/lint passed; real production-mode HTTPS browser signup/login/logout/reload and cookie checks passed for both roles. Six desktop/mobile screenshots were individually reviewed with axe/reflow checks. Staff MFA, minor guardian verification, email ownership/recovery and live payments remain outside this release. Actual droplet verification follows deployment. See [production-auth.md](production-auth.md).
+
 Direct Cloudinary media (2026-09-25): user override implemented for browser-to-provider signed uploads, reference-only MongoDB records, provider confirmation, scoped expiring delivery links, image/PDF viewing and progressive MP4 playback. Cloudinary no longer depends on ClamAV. Full Go race/vet, web build/lint/3 unit checks, direct browser flow and legacy file regression passed; desktop/mobile captures reviewed. Live read-only private PDF lookup/delivery returned 200. New real-account uploads and droplet-origin playback remain unverified; auth/payment production gates remain. See [progress](progress.md) and [media architecture](private-files.md).
 
 
@@ -79,3 +81,7 @@ Latest refinement evidence: 25/25 selected Chromium tests passed against the act
 | §19 Persistent handoff | AGENTS, full spec, progress, matrix, state machines, payment/files/staff setup and launch checklist | Maintained; unresolved items remain explicit rather than replaced with success toasts or static application data |
 
 Atlas cleanup remains pending explicit approval: `.local/atlas-test-databases.json` proposes only 27 named automated-test databases and excludes the configured app database. No deletion was performed. The additive staff/application updates are installed on existing Atlas collections; the wider tuition/billing/file extension migrations remain blocked by capacity.
+
+## 2026-09-25: operator-approved Atlas test database cleanup
+
+After the droplet migration failed with AtlasError code 8000, a read-only inventory confirmed 500 collections. The user explicitly approved deletion of the 27 reviewed automated-test databases listed in `.local/atlas-test-databases.json`. An exact-name allowlist and pre-deletion count checks constrained the operation; the configured application database was excluded. All 27 databases (398 collections) were deleted. Post-deletion inventory confirmed 102 remaining collections and unchanged collection names/counts in all eight preserved application databases, including `tutor_dev`. The local audit is `.local/atlas-approved-cleanup-20260925.json`. Earlier notes describing this specific cleanup as pending approval are superseded. The droplet migration must still be rerun; this cleanup does not establish deployment or production readiness.

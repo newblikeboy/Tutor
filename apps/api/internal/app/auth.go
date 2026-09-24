@@ -67,14 +67,14 @@ func normalizeEmail(value string) (string, bool) {
 	return value, valid
 }
 func (a *App) passwordAvailable(w http.ResponseWriter, r *http.Request) bool {
-	if a.Config.AuthProvider != "password" || a.Config.Env == "production" {
+	if a.Config.AuthProvider != "password" {
 		a.error(w, r, domain.Fail(503, "provider_unconfigured", "Account access is not enabled for this environment."))
 		return false
 	}
 	return true
 }
 func (a *App) authLimit(r *http.Request, email, action string) error {
-	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ip := a.authClientIP(r)
 	ipLimit, emailLimit := 40, 10
 	if action == "signup" {
 		ipLimit, emailLimit = 8, 3
@@ -83,6 +83,39 @@ func (a *App) authLimit(r *http.Request, email, action string) error {
 		return e
 	}
 	return a.rate(r.Context(), "auth:"+action+":email:"+email, emailLimit)
+}
+
+// Production only accepts traffic through a loopback proxy. Nginx overwrites
+// X-Forwarded-For with $remote_addr; never accept a client-supplied address chain.
+func (a *App) authClientIP(r *http.Request) string {
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	peer := net.ParseIP(host)
+	if a.Config.Env == "production" && peer.IsLoopback() {
+		if forwarded := net.ParseIP(strings.TrimSpace(r.Header.Get("X-Forwarded-For"))); forwarded != nil {
+			return forwarded.String()
+		}
+	}
+	return host
+}
+
+func (a *App) sessionMethod() string {
+	if a.Config.Env == "production" {
+		return "password-production"
+	}
+	return "password"
+}
+
+func (a *App) accountAccessError(u domain.User) error {
+	if a.Config.Env != "production" {
+		return nil
+	}
+	if u.Sample {
+		return domain.Fail(401, "invalid_credentials", "Email or password is incorrect.")
+	}
+	if u.Role != "parent" && u.Role != "tutor" {
+		return domain.Fail(503, "staff_auth_unavailable", "Staff sign-in is not enabled yet.")
+	}
+	return nil
 }
 func (a *App) passwordSlot(w http.ResponseWriter, r *http.Request) bool {
 	select {
@@ -211,12 +244,15 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	a.authResponse(w, u, raw, csrf, 200)
 }
 func (a *App) saveSession(ctx context.Context, r *http.Request, u domain.User, raw, csrf string) error {
+	if e := a.accountAccessError(u); e != nil {
+		return e
+	}
 	if old, e := r.Cookie("session"); e == nil {
 		if _, e = a.Store.C("sessions").DeleteOne(ctx, bson.M{"_id": digest(old.Value)}); e != nil {
 			return e
 		}
 	}
-	_, e := a.Store.C("sessions").InsertOne(ctx, Session{ID: digest(raw), UserID: u.ID, Version: u.AuthVersion, ExpiresAt: a.Now().Add(8 * time.Hour), CSRF: csrf, Method: "password"})
+	_, e := a.Store.C("sessions").InsertOne(ctx, Session{ID: digest(raw), UserID: u.ID, Version: u.AuthVersion, ExpiresAt: a.Now().Add(8 * time.Hour), CSRF: csrf, Method: a.sessionMethod()})
 	return e
 }
 func (a *App) authResponse(w http.ResponseWriter, u domain.User, raw, csrf string, status int) {
@@ -233,7 +269,7 @@ func (a *App) authenticated(next http.Handler) http.Handler {
 			a.error(w, r, domain.Fail(401, "unauthenticated", "Please sign in to continue."))
 			return
 		}
-		s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": "password", "expiresAt": bson.M{"$gt": a.Now()}})
+		s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": a.sessionMethod(), "expiresAt": bson.M{"$gt": a.Now()}})
 		if e != nil {
 			a.error(w, r, domain.Fail(401, "unauthenticated", "Your session has expired."))
 			return
@@ -245,6 +281,10 @@ func (a *App) authenticated(next http.Handler) http.Handler {
 		}
 		if r.Method != "GET" && r.Method != "HEAD" && !hmac.Equal([]byte(s.CSRF), []byte(r.Header.Get("X-CSRF-Token"))) {
 			a.error(w, r, domain.Fail(403, "csrf", "Refresh the page and try again."))
+			return
+		}
+		if e := a.accountAccessError(u); e != nil {
+			a.error(w, r, e)
 			return
 		}
 		if u.Role == "tutor" {
@@ -271,7 +311,7 @@ func (a *App) me(w http.ResponseWriter, r *http.Request) {
 	a.json(w, 200, map[string]any{"user": user(r), "csrf": s.CSRF})
 }
 func (a *App) sessionState(w http.ResponseWriter, r *http.Request) {
-	if a.Config.Env == "production" || a.Config.AuthProvider != "password" {
+	if a.Config.AuthProvider != "password" {
 		a.json(w, 200, nil)
 		return
 	}
@@ -280,7 +320,7 @@ func (a *App) sessionState(w http.ResponseWriter, r *http.Request) {
 		a.json(w, 200, nil)
 		return
 	}
-	s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": "password", "expiresAt": bson.M{"$gt": a.Now()}})
+	s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": a.sessionMethod(), "expiresAt": bson.M{"$gt": a.Now()}})
 	if e == mongo.ErrNoDocuments {
 		a.json(w, 200, nil)
 		return
@@ -296,6 +336,10 @@ func (a *App) sessionState(w http.ResponseWriter, r *http.Request) {
 	}
 	if e != nil {
 		a.error(w, r, e)
+		return
+	}
+	if a.accountAccessError(u) != nil {
+		a.json(w, 200, nil)
 		return
 	}
 	a.json(w, 200, map[string]any{"user": u, "csrf": s.CSRF})

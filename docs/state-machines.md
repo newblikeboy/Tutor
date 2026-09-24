@@ -20,7 +20,7 @@
 | Lesson | confirmed → completed | Assigned tutor, lesson evidence and next steps; scope status remains approved | Save evidence + audit; family cannot read evidence yet |
 | Review | completed → reviewed | Assigned mentor, review evidence | Parent-visible reviewed evidence + timestamp + audit; tutor’s learner access is reduced |
 
-Development permits recording a lesson before its scheduled end solely to exercise the full timeline; the UI explicitly says it does not assert real attendance. Production authenticated workflows are disabled. This shortcut must not become a live attendance path.
+Development permits recording a lesson before its scheduled end solely to exercise the full timeline; the UI explicitly says it does not assert real attendance. Production rejects this shortcut even when parent/tutor authentication is enabled. It must not become a live attendance path.
 
 No illegal transitions are silently coerced. Repeated accepted/cancelled actions are safe; create retries require matching idempotency fingerprints.
 

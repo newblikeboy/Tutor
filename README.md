@@ -94,4 +94,4 @@ These are test-environment overrides, not an application fallback or an edit to 
 
 ## Deployment target
 
-GitHub → DigitalOcean droplet with Nginx and systemd → MongoDB Atlas. See [deployment instructions](docs/deployment.md), [Nginx](infra/nginx.conf) and [systemd](infra/tutor-api.service). No GitHub remote was supplied, no push occurred, and nothing was deployed publicly. Production authenticated workflows intentionally remain disabled until the listed launch gates are implemented and reviewed.
+GitHub → DigitalOcean droplet with Nginx and systemd → MongoDB Atlas. See [deployment instructions](docs/deployment.md), [Nginx](infra/nginx.conf) and [systemd](infra/tutor-api.service). The operator deployed the earlier release to DigitalOcean. This release enables explicitly configured non-sample parent/tutor production accounts; deploy its binary and frontend before setting AUTH_PROVIDER=password. Staff MFA, minor guardian verification and live payments remain gated. See [production account access](docs/production-auth.md).

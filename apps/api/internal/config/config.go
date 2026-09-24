@@ -97,8 +97,18 @@ func Load() (Config, error) {
 	if c.Env == "production" && c.MediaProvider == "s3" && c.ScannerAddress == "" {
 		return c, errors.New("production uploads require the configured private scanner")
 	}
-	if c.Env == "production" && (c.AuthProvider != "disabled" || !strings.HasPrefix(c.Origin, "https://")) {
-		return c, errors.New("production requires HTTPS and AUTH_PROVIDER=disabled until live auth/MFA review")
+	if c.Env == "production" {
+		if os.Getenv("AUTH_PROVIDER") == "" {
+			c.AuthProvider = "disabled"
+		}
+		u, err := url.Parse(c.Origin)
+		if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
+			return c, errors.New("production requires an HTTPS WEB_ORIGIN without credentials, path, query or fragment")
+		}
+		host, _, err := net.SplitHostPort(c.Addr)
+		if err != nil || !net.ParseIP(host).IsLoopback() {
+			return c, errors.New("production HTTP_ADDR must bind to a loopback IP behind the trusted reverse proxy")
+		}
 	}
 	if c.AuthProvider != "password" && c.AuthProvider != "disabled" {
 		return c, errors.New("unconfigured auth provider")

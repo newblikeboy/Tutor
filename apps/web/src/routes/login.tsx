@@ -260,6 +260,8 @@ export default function Login() {
               </div>
             ) : !config.data?.authEnabled ? (
               <Alert>{t('authUnavailable')}</Alert>
+            ) : staff && !config.data.development ? (
+              <Alert>{t('authStaffUnavailable')}</Alert>
             ) : (
               <form onSubmit={submit} noValidate className="auth-form">
                 {signup && (
