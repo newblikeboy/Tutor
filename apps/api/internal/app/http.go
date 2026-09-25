@@ -79,6 +79,9 @@ func (a *App) error(w http.ResponseWriter, r *http.Request, e error) {
 }
 func (a *App) decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	limit := int64(16 * 1024)
+	if r.URL.Path == "/api/v1/inbox" {
+		limit = 24 * 1024
+	}
 	if strings.HasSuffix(r.URL.Path, "/plans") || r.URL.Path == "/api/v1/application" {
 		limit = 64 * 1024
 	}
@@ -190,6 +193,15 @@ func (a *App) Routes() http.Handler {
 		r.Get("/api/v1/enrollments/{id}/messages", a.messages)
 		r.Post("/api/v1/enrollments/{id}/messages", a.sendMessage)
 		r.Get("/api/v1/notifications", a.notifications)
+		r.Get("/api/v1/inbox/key", a.inboxOwnKey)
+		r.Post("/api/v1/inbox/key", a.inboxCreateKey)
+		r.Get("/api/v1/inbox/status", a.inboxStatus)
+		r.Get("/api/v1/inbox/recipients", a.inboxRecipients)
+		r.Get("/api/v1/inbox/recipients/{id}/key", a.inboxRecipientKey)
+		r.Get("/api/v1/inbox", a.inboxList)
+		r.Post("/api/v1/inbox", a.inboxSend)
+		r.Get("/api/v1/inbox/{id}", a.inboxDetail)
+		r.Post("/api/v1/inbox/{id}/read", a.inboxRead)
 		r.Post("/api/v1/notifications/{id}/read", a.readNotification)
 		r.Get("/api/v1/cases", a.cases)
 		r.Post("/api/v1/cases", a.createCase)

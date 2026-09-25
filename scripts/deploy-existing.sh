@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Operator-invoked update for the existing /srv/tutor + systemd deployment.
-# Builds this checked-out commit; does not migrate, seed, or edit private settings.
+# Builds this commit and applies only the additive encrypted-inbox migration.
+# Never seeds, resets data, or edits private settings.
 set -Eeuo pipefail
 umask 022
 cd "$(dirname "$0")/.."
 
 fail() { printf '%s\n' "$*" >&2; exit 1; }
 [[ $(id -u) == 0 ]] || fail 'Run this deployment as root (sudo).'
-for tool in git npm go curl python3 flock nginx systemctl; do
+for tool in git npm go curl python3 flock nginx systemctl systemd-run; do
   command -v "$tool" >/dev/null || fail "Required command is missing: $tool"
 done
 exec 9>/run/lock/gyansetu-deploy.lock
@@ -48,7 +49,7 @@ rollback() {
       printf '\nRollback needs operator attention. Previous release: %s\n' "$previous" >&2
     fi
   else
-    printf '\nBuild failed; the running release was not replaced.\n' >&2
+    printf '\nDeployment stopped; the running release was not replaced.\n' >&2
   fi
   printf 'New build retained for review: %s\n' "$release" >&2
   exit 1
@@ -66,6 +67,13 @@ fi
 cp -a apps/web/dist/. "$release/web/"
 printf '%s\n' "$commit" > "$release/REVISION"
 printf '%s\n' "$previous" > "$release/PREVIOUS_RELEASE"
+
+# systemd reads the private environment without sourcing or printing secrets.
+# This migration only adds inbox collections/indexes; old releases ignore them.
+systemd-run --quiet --wait --pipe --collect \
+  --property=User=tutor --property=Group=tutor \
+  --property=EnvironmentFile=/etc/tutor/api.env \
+  "$release/tutor-migrate" --inbox-only
 
 ln -s "$release" "$next"
 switched=1

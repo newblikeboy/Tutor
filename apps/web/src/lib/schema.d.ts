@@ -1100,6 +1100,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/inbox/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /inbox/key */
+        get: operations["get__inbox_key"];
+        put?: never;
+        /** POST /inbox/key */
+        post: operations["post__inbox_key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /inbox/status */
+        get: operations["get__inbox_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /inbox/recipients */
+        get: operations["get__inbox_recipients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox/recipients/{id}/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /inbox/recipients/{id}/key */
+        get: operations["get__inbox_recipients__id__key"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /inbox */
+        get: operations["get__inbox"];
+        put?: never;
+        /** POST /inbox */
+        post: operations["post__inbox"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /inbox/{id} */
+        get: operations["get__inbox__id_"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /inbox/{id}/read */
+        post: operations["post__inbox__id__read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/razorpay": {
         parameters: {
             query?: never;
@@ -2105,6 +2226,110 @@ export interface components {
             dailyCapacity: number;
             paused: boolean;
             version: number;
+        };
+        InboxPublicKey: {
+            userId: string;
+            encryptionKey: string;
+            signingKey: string;
+            fingerprint: string;
+        };
+        InboxKey: {
+            userId: string;
+            encryptionKey: string;
+            signingKey: string;
+            fingerprint: string;
+            /** @constant */
+            version: 1;
+            salt: string;
+            iv: string;
+            vault: string;
+        };
+        InboxKeyInput: {
+            userId: string;
+            encryptionKey: string;
+            signingKey: string;
+            fingerprint: string;
+            /** @constant */
+            version: 1;
+            salt: string;
+            iv: string;
+            vault: string;
+            proof: string;
+        };
+        InboxKeyResponse: {
+            key: components["schemas"]["InboxKey"] | null;
+        };
+        InboxPerson: {
+            id: string;
+            name: string;
+            role: string;
+            sample: boolean;
+        };
+        InboxRecipient: {
+            id: string;
+            name: string;
+            role: string;
+            sample: boolean;
+            enrollmentId: string;
+            ready: boolean;
+        };
+        InboxRecipientPage: {
+            items: components["schemas"]["InboxRecipient"][];
+            nextCursor: string;
+        };
+        InboxEnvelope: {
+            /** @constant */
+            version: 1;
+            nonce: string;
+            recipientId: string;
+            enrollmentId: string;
+            senderFingerprint: string;
+            recipientFingerprint: string;
+            iv: string;
+            ciphertext: string;
+            senderWrappedKey: string;
+            recipientWrappedKey: string;
+            signature: string;
+        };
+        InboxUpdate: {
+            /** @constant */
+            version: 1;
+            nonce: string;
+            recipientId: string;
+            enrollmentId: string;
+            senderFingerprint: string;
+            recipientFingerprint: string;
+            iv: string;
+            ciphertext: string;
+            senderWrappedKey: string;
+            recipientWrappedKey: string;
+            signature: string;
+            id: string;
+            senderId: string;
+            sender: components["schemas"]["InboxPerson"];
+            recipient: components["schemas"]["InboxPerson"];
+            /** Format: date-time */
+            createdAt: string;
+            readAt: string | null;
+            readSignature: string;
+        };
+        InboxPage: {
+            items: components["schemas"]["InboxUpdate"][];
+            nextCursor: string;
+            keys: {
+                [key: string]: components["schemas"]["InboxPublicKey"];
+            };
+        };
+        InboxDetail: {
+            message: components["schemas"]["InboxUpdate"];
+            senderKey: components["schemas"]["InboxPublicKey"];
+            recipientKey: components["schemas"]["InboxPublicKey"];
+        };
+        InboxReadInput: {
+            signature: string;
+        };
+        InboxStatus: {
+            unreadCount: number;
         };
     };
     responses: never;
@@ -4570,6 +4795,313 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ResolveFollowup"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__inbox_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxKeyResponse"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__inbox_key: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InboxKeyInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxKeyResponse"];
+                };
+            };
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxKeyResponse"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__inbox_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxStatus"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__inbox_recipients: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                search?: string;
+                role?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxRecipientPage"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__inbox_recipients__id__key: {
+        parameters: {
+            query?: {
+                enrollmentId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxPublicKey"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__inbox: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                folder?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxPage"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__inbox: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InboxEnvelope"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxUpdate"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__inbox__id_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxDetail"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__inbox__id__read: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InboxReadInput"];
             };
         };
         responses: {

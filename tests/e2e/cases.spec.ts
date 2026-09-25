@@ -87,7 +87,7 @@ test('requester and assigned operator complete a private support request and pre
       .fill('Please also clarify how the makeup session balance is kept.')
     await parent.getByRole('button', { name: 'Save response', exact: true }).click()
     await expect(parent.getByText('Open', { exact: true })).toBeVisible()
-    await parent.goto('/notifications')
+    await parent.goto('/notifications?folder=activity')
     await expect(
       parent.getByRole('heading', { name: 'Your support request has an update' }).first(),
     ).toBeVisible()

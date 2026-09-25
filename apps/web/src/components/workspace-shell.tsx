@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Suspense } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   BookOpen,
@@ -12,6 +12,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
   ShieldCheck,
   Sprout,
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useAuth, useConfig, useTutorApplication } from '../lib/session'
-import { queryClient, send, setCSRF } from '../lib/api'
+import { api, queryClient, send, setCSRF, type Schema } from '../lib/api'
 import {
   initials,
   workspaceLink,
@@ -51,6 +52,12 @@ const icons: Record<WorkspaceView, typeof BookOpen> = {
 export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const auth = useAuth()
+  const inboxStatus = useQuery({
+    queryKey: ['inbox', 'status', auth.data?.user.id],
+    enabled: !!auth.data && ['parent', 'tutor', 'admin'].includes(auth.data.user.role),
+    queryFn: ({ signal }) => api<Schema['InboxStatus']>('/inbox/status', { signal }),
+    refetchInterval: 15000,
+  })
   const application = useTutorApplication()
   const now = useClock()
   const config = useConfig()
@@ -205,8 +212,16 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           className={pathname === '/notifications' ? 'active' : undefined}
           aria-current={pathname === '/notifications' ? 'page' : undefined}
         >
-          <Sprout size={19} aria-hidden="true" />
+          <Mail size={19} aria-hidden="true" />
           {t('tuition.notifications')}
+          {!!inboxStatus.data?.unreadCount && (
+            <span
+              className="workspace-inbox-count"
+              aria-label={`${inboxStatus.data.unreadCount} ${t('inbox.unread')}`}
+            >
+              {inboxStatus.data.unreadCount}
+            </span>
+          )}
         </Link>
         <Link
           to="/cases"

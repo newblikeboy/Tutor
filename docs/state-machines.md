@@ -41,4 +41,10 @@ No illegal transitions are silently coerced. Repeated accepted/cancelled actions
 | File | uploading → quarantined → clean/rejected | Actual private storage + scanner result; current relationship checks | No scan means no download; family retains evidence through handover |
 | Password | existing hash → new hash | Reauthenticated current password and bounded Argon2 work | Atomic credential update, auth-version increment, all sessions revoked, current opaque session rotated |
 
+| Encrypted inbox identity | absent → activated (immutable) | Authenticated owner supplies public keys, a client-encrypted vault and signed proof; owner-only vault access | No server passphrase, private plaintext key, silent replacement or reset |
+| Encrypted update | composed locally → sent | Admin to parent/tutor, or approved current tutor to assigned parent; both inboxes activated; sender signature, CSRF, rate and transaction guards | Ciphertext + metadata + audit ID + idempotency receipt; one recipient, no replies |
+| Read receipt | unread → read | Recipient client verifies/decrypts the opened update, then signs its exact identity; server verifies recipient signature | First server receipt time/signature retained; sender verifies signature; list/detail fetch alone does not mark read |
+
+See [encrypted Updates](encrypted-inbox.md) for key lifecycle, access revocation and security limits. Existing tuition chat and Activity notifications remain separate.
+
 Privacy deletion, disputes, payout settlement and automated renewal states remain open implementation scope. Case closure records an operator response, not automatic legal fulfillment.

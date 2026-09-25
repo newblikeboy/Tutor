@@ -323,6 +323,7 @@ import { auditEN } from './audit'
 import { staffEN } from './staff'
 import { applicationEN } from './application'
 import { feesEN } from './fees'
+import { inboxEN } from './inbox'
 // Remove obsolete browser preferences; the interface now always uses English.
 try {
   localStorage.removeItem('language')
@@ -346,6 +347,7 @@ void i18n.use(initReactI18next).init({
         ...staffEN,
         ...applicationEN,
         ...feesEN,
+        ...inboxEN,
         ...parentEN,
         ...experienceEN,
       },

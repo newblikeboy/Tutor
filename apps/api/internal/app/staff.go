@@ -22,7 +22,7 @@ func restrictedTutorRoute(path, id string) bool {
 	if enum(path, "/api/v1/me", "/api/v1/dashboard", "/api/v1/application", "/api/v1/auth/logout") {
 		return true
 	}
-	for _, prefix := range []string{"/api/v1/account", "/api/v1/cases", "/api/v1/notifications", "/api/v1/files", "/api/v1/applications/" + id + "/files"} {
+	for _, prefix := range []string{"/api/v1/account", "/api/v1/cases", "/api/v1/notifications", "/api/v1/inbox", "/api/v1/files", "/api/v1/applications/" + id + "/files"} {
 		if path == prefix || strings.HasPrefix(path, prefix+"/") {
 			return true
 		}

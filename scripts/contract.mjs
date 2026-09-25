@@ -1,6 +1,7 @@
 // Contract authoring tool. Generates JSON-compatible YAML; never serves API requests.
 import { mkdir, writeFile } from 'node:fs/promises'
 import { tuitionContract } from './tuition-contract.mjs'
+import { inboxContract } from './inbox-contract.mjs'
 import { billingContract } from './billing-contract.mjs'
 import { casesContract } from './cases-contract.mjs'
 import { accountContract } from './account-contract.mjs'
@@ -294,6 +295,7 @@ mediaContract(schemas, route, paths)
 staffContract(schemas, route, paths)
 applicationContract(schemas, route)
 feesContract(schemas, route)
+inboxContract(schemas, route, paths)
 paths['/webhooks/razorpay'] = {
   post: {
     operationId: 'razorpayWebhook',

@@ -1,5 +1,7 @@
 # Project instructions
 
+- User Updates override (2026-09-26): Updates is a one-way, end-to-end encrypted inbox. Admins send to parents/tutors; approved tutors send only to parents in current tuition assignments; recipients cannot reply. Keep signed recipient read receipts, immutable inbox identities, client-only passphrases/private keys, and server-side assignment/access checks. Existing tuition chat and Activity alerts are separate and are not described as end-to-end encrypted. See `docs/encrypted-inbox.md`.
+
 - User password-policy override (2026-09-25): passwords require 8–128 characters across public signup, password changes, staff provisioning and fixtures. Preserve existing hashes, password-only staff login, rate limits, session/CSRF protection and the existing common-password checks. Keep UI hints and OpenAPI bounds aligned.
 
 - User staff-auth override (2026-09-25): the operator explicitly chose email/password-only staff login, overriding the previous staff MFA requirement. Enable non-sample provisioned mentor/admin/support/finance accounts with `AUTH_PROVIDER=password`; public signup remains parent/tutor only. Preserve role/assignment boundaries, rate limits, HTTPS/Secure cookies, CSRF, session revocation and sample-account denial. Do not add MFA as a release prerequisite without a new user request.

@@ -1,3 +1,12 @@
+.workspace-inbox-count {
+  margin-left: auto;
+  border-radius: 20px;
+  background: #e1ebc5;
+  color: #15353b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 7px;
+}
 .desk-shell,
 .desk-drawer,
 .desk-gate {

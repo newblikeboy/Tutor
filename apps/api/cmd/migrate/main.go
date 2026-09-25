@@ -15,6 +15,7 @@ import (
 func main() {
 	staffOnly := flag.Bool("staff-only", false, "Apply staff indexes and validation to existing core collections only")
 	applicationOnly := flag.Bool("application-only", false, "Apply application and staff validation/indexes to existing collections only")
+	inboxOnly := flag.Bool("inbox-only", false, "Apply additive encrypted inbox collections and indexes only")
 	flag.Parse()
 	if e := config.LoadDevelopmentEnv(); e != nil {
 		log.Fatal(e)
@@ -30,7 +31,9 @@ func main() {
 		log.Fatal("Database connection failed; check private configuration")
 	}
 	defer s.Client.Disconnect(ctx)
-	if *staffOnly || *applicationOnly {
+	if *inboxOnly {
+		e = s.MigrateInbox(ctx)
+	} else if *staffOnly || *applicationOnly {
 		e = s.MigrateStaff(ctx)
 	} else {
 		e = s.Migrate(ctx)

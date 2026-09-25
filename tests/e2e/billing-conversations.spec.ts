@@ -207,7 +207,7 @@ test('unconfigured payments stay blocked while family conversation and owned upd
     await expect(parent.locator('.language-button')).toHaveCount(0)
     await capture(parent, 'conversation-en-mobile')
     await expect(parent.locator('.language-button')).toHaveCount(0)
-    await parent.goto('/notifications')
+    await parent.goto('/notifications?folder=activity')
     await expect(
       parent.getByRole('heading', { name: 'A new message in your family conversation' }).first(),
     ).toBeVisible()

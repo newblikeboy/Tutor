@@ -117,7 +117,7 @@ export function Conversation({ enrollment }: { enrollment: Schema['Enrollment'] 
     </section>
   )
 }
-export default function Notifications() {
+export function ActivityUpdates() {
   const { t, i18n } = useTranslation(),
     [cursor, setCursor] = useState('')
   const q = useQuery({
@@ -133,11 +133,6 @@ export default function Notifications() {
   })
   return (
     <div className="tu-page">
-      <header className="tu-heading">
-        <div>
-          <h1>{t('tuition.notifications')}</h1>
-        </div>
-      </header>
       <MutationError error={m.error} />
       {q.isPending ? (
         <Loading />
@@ -192,3 +187,4 @@ export default function Notifications() {
     </div>
   )
 }
+export { default } from './inbox'
