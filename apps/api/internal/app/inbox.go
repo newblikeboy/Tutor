@@ -2,144 +2,25 @@ package app
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/x509"
-	"encoding/base64"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
-	"math/big"
-	"net/http"
-	"regexp"
-	"strings"
-
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"net/http"
+	"regexp"
+	"strings"
 	"tutorplatform/internal/domain"
 	"tutorplatform/internal/storage"
+	"unicode/utf8"
 )
 
 func inboxPerson(u domain.User) domain.InboxPerson {
 	return domain.InboxPerson{ID: u.ID, Name: u.Name, Role: u.Role, Sample: u.Sample}
 }
-func inboxB64(s string, min, max int) ([]byte, bool) {
-	if len(s) > (max+2)/3*4 {
-		return nil, false
-	}
-	b, err := base64.StdEncoding.Strict().DecodeString(s)
-	return b, err == nil && len(b) >= min && len(b) <= max && base64.StdEncoding.EncodeToString(b) == s
-}
-func inboxSigningKey(s string) (*ecdsa.PublicKey, bool) {
-	b, ok := inboxB64(s, 80, 150)
-	if !ok {
-		return nil, false
-	}
-	k, err := x509.ParsePKIXPublicKey(b)
-	if err != nil {
-		return nil, false
-	}
-	p, ok := k.(*ecdsa.PublicKey)
-	return p, ok && p.Curve == elliptic.P256()
-}
-func inboxVerify(key, signature string, fields []string) bool {
-	k, ok := inboxSigningKey(key)
-	if !ok {
-		return false
-	}
-	sig, ok := inboxB64(signature, 64, 64)
-	if !ok {
-		return false
-	}
-	// All canonical fields are base64, ASCII identifiers or protocol constants.
-	encoded, _ := json.Marshal(fields)
-	hash := sha256.Sum256(encoded)
-	return ecdsa.Verify(k, hash[:], new(big.Int).SetBytes(sig[:32]), new(big.Int).SetBytes(sig[32:]))
-}
-func inboxKeyFields(k domain.InboxKey) []string {
-	return []string{"gyansetu-inbox-key-v1", k.ID, k.EncryptionKey, k.SigningKey, k.Salt, k.IV, k.Vault}
-}
-func inboxEnvelopeFields(senderID string, v domain.InboxEnvelope) []string {
-	return []string{"gyansetu-update-v1", v.Nonce, senderID, v.RecipientID, v.EnrollmentID, v.SenderFingerprint, v.RecipientFingerprint, v.IV, v.Ciphertext, v.SenderWrappedKey, v.RecipientWrappedKey}
-}
-func inboxPublic(k domain.InboxKey) map[string]string {
-	return map[string]string{"userId": k.ID, "encryptionKey": k.EncryptionKey, "signingKey": k.SigningKey, "fingerprint": k.Fingerprint}
-}
 
-type inboxPage struct {
-	recordPage[domain.InboxUpdate]
-	Keys map[string]map[string]string `json:"keys"`
-}
+type inboxPage = recordPage[domain.InboxUpdate]
 
-func emptyInboxPage() inboxPage {
-	return inboxPage{recordPage: recordPage[domain.InboxUpdate]{Items: []domain.InboxUpdate{}}, Keys: map[string]map[string]string{}}
-}
-func (a *App) inboxOwnKey(w http.ResponseWriter, r *http.Request) {
-	if !a.role(w, r, "admin", "parent", "tutor") {
-		return
-	}
-	k, err := storage.One[domain.InboxKey](r.Context(), a.Store, "inbox_keys", bson.M{"_id": user(r).ID})
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		a.json(w, 200, map[string]any{"key": nil})
-		return
-	}
-	if err != nil {
-		a.error(w, r, err)
-		return
-	}
-	a.json(w, 200, map[string]any{"key": k})
-}
-func (a *App) inboxCreateKey(w http.ResponseWriter, r *http.Request) {
-	if !a.role(w, r, "admin", "parent", "tutor") {
-		return
-	}
-	var in struct {
-		domain.InboxKey
-		Proof string `json:"proof"`
-	}
-	if !a.decode(w, r, &in) {
-		return
-	}
-	in.ID = user(r).ID
-	raw, ok := inboxB64(in.EncryptionKey, 300, 600)
-	parsed, err := x509.ParsePKIXPublicKey(raw)
-	pub, rsaOK := parsed.(*rsa.PublicKey)
-	_, sigOK := inboxSigningKey(in.SigningKey)
-	_, saltOK := inboxB64(in.Salt, 32, 32)
-	_, ivOK := inboxB64(in.IV, 12, 12)
-	_, vaultOK := inboxB64(in.Vault, 1500, 6000)
-	if !ok || err != nil || !rsaOK || pub.N.BitLen() != 3072 || pub.E != 65537 || !sigOK || !saltOK || !ivOK || !vaultOK || in.Version != 1 || !inboxVerify(in.SigningKey, in.Proof, inboxKeyFields(in.InboxKey)) {
-		a.error(w, r, domain.Fail(422, "validation", "Invalid encrypted inbox identity."))
-		return
-	}
-	hash := sha256.Sum256([]byte(in.EncryptionKey + "." + in.SigningKey))
-	in.Fingerprint = hex.EncodeToString(hash[:])
-	if err = a.rate(r.Context(), "inbox-key:"+user(r).ID, 10); err != nil {
-		a.error(w, r, err)
-		return
-	}
-	// Immutable identity: neither password reset nor another browser can replace it.
-	_, err = a.Store.C("inbox_keys").InsertOne(r.Context(), in.InboxKey)
-	if mongo.IsDuplicateKeyError(err) {
-		prior, e := storage.One[domain.InboxKey](r.Context(), a.Store, "inbox_keys", bson.M{"_id": in.ID})
-		if e == nil && prior == in.InboxKey {
-			a.json(w, 200, map[string]any{"key": prior})
-			return
-		}
-		a.error(w, r, domain.Fail(409, "inbox_key_exists", "An inbox identity already exists. Unlock it with your inbox passphrase."))
-		return
-	}
-	if err != nil {
-		a.error(w, r, err)
-		return
-	}
-	a.json(w, 201, map[string]any{"key": in.InboxKey})
-}
-
+func emptyInboxPage() inboxPage { return inboxPage{Items: []domain.InboxUpdate{}} }
 func (a *App) inboxTeaching(ctx context.Context, u domain.User) (bool, error) {
 	app, err := storage.One[domain.Application](ctx, a.Store, "applications", bson.M{"_id": u.ID})
 	if errors.Is(err, mongo.ErrNoDocuments) {
@@ -252,44 +133,19 @@ func (a *App) inboxRecipients(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	for i, person := range people {
-		count, err := a.Store.C("inbox_keys").CountDocuments(ctx, bson.M{"_id": person.ID}, options.Count().SetLimit(1))
-		if err != nil {
-			a.error(w, r, err)
-			return
-		}
 		enrollmentID := ""
 		if u.Role == "tutor" {
 			enrollmentID = enrollments[i]
 		}
-		p.Items = append(p.Items, domain.InboxRecipient{InboxPerson: inboxPerson(person), EnrollmentID: enrollmentID, Ready: count == 1})
+		p.Items = append(p.Items, domain.InboxRecipient{InboxPerson: inboxPerson(person), EnrollmentID: enrollmentID})
 	}
 	a.json(w, 200, p)
-}
-func (a *App) inboxRecipientKey(w http.ResponseWriter, r *http.Request) {
-	if !a.role(w, r, "admin", "tutor") {
-		return
-	}
-	recipient, err := a.inboxRecipient(r.Context(), user(r), chi.URLParam(r, "id"), r.URL.Query().Get("enrollmentId"), false)
-	if err != nil {
-		a.error(w, r, err)
-		return
-	}
-	k, err := storage.One[domain.InboxKey](r.Context(), a.Store, "inbox_keys", bson.M{"_id": recipient.ID})
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		a.error(w, r, domain.Fail(409, "inbox_not_ready", "The recipient has not activated their encrypted inbox."))
-		return
-	}
-	if err != nil {
-		a.error(w, r, err)
-		return
-	}
-	a.json(w, 200, inboxPublic(k))
 }
 func (a *App) inboxStatus(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "admin", "tutor", "parent") {
 		return
 	}
-	n, err := a.Store.C("inbox_updates").CountDocuments(r.Context(), bson.M{"recipientId": user(r).ID, "readAt": nil})
+	n, err := a.Store.C("inbox_messages").CountDocuments(r.Context(), bson.M{"recipientId": user(r).ID, "readAt": nil})
 	if err != nil {
 		a.error(w, r, err)
 		return
@@ -297,7 +153,7 @@ func (a *App) inboxStatus(w http.ResponseWriter, r *http.Request) {
 	a.json(w, 200, map[string]int64{"unreadCount": n})
 }
 func (a *App) inboxAccess(ctx context.Context, u domain.User, id string) (domain.InboxUpdate, error) {
-	v, err := storage.One[domain.InboxUpdate](ctx, a.Store, "inbox_updates", bson.M{"_id": id, "$or": []bson.M{{"senderId": u.ID}, {"recipientId": u.ID}}})
+	v, err := storage.One[domain.InboxUpdate](ctx, a.Store, "inbox_messages", bson.M{"_id": id, "$or": []bson.M{{"senderId": u.ID}, {"recipientId": u.ID}}})
 	if err != nil {
 		return v, err
 	}
@@ -349,10 +205,16 @@ func (a *App) inboxList(w http.ResponseWriter, r *http.Request) {
 			a.json(w, 200, emptyInboxPage())
 			return
 		}
-		pipeline = append(pipeline, bson.D{{Key: "$lookup", Value: bson.M{"from": "enrollments", "localField": "enrollmentId", "foreignField": "_id", "as": "assignment"}}}, bson.D{{Key: "$match", Value: bson.M{"assignment": bson.M{"$elemMatch": bson.M{"tutorId": u.ID, "status": bson.M{"$in": []string{"active", "paused", "pending_agreement", "awaiting_payment"}}}}}}})
+		pipeline = append(pipeline,
+			bson.D{{Key: "$lookup", Value: bson.M{"from": "enrollments", "localField": "enrollmentId", "foreignField": "_id", "as": "assignment"}}},
+			bson.D{{Key: "$match", Value: bson.M{
+				"assignment": bson.M{"$elemMatch": bson.M{"tutorId": u.ID, "status": bson.M{"$in": []string{"active", "paused", "pending_agreement", "awaiting_payment"}}}},
+				"$expr":      bson.M{"$eq": bson.A{bson.M{"$arrayElemAt": bson.A{"$assignment.ownerId", 0}}, "$recipientId"}},
+			}}},
+		)
 	}
 	pipeline = append(pipeline, bson.D{{Key: "$sort", Value: bson.D{{Key: "_id", Value: -1}}}}, bson.D{{Key: "$limit", Value: 26}})
-	cur, err := a.Store.C("inbox_updates").Aggregate(r.Context(), pipeline)
+	cur, err := a.Store.C("inbox_messages").Aggregate(r.Context(), pipeline)
 	if err != nil {
 		a.error(w, r, err)
 		return
@@ -367,21 +229,6 @@ func (a *App) inboxList(w http.ResponseWriter, r *http.Request) {
 		p.Items = p.Items[:25]
 		p.NextCursor = p.Items[24].ID
 	}
-	// Only identities already present in this authorised page; never return vaults.
-	ids := []string{}
-	for _, item := range p.Items {
-		ids = append(ids, item.SenderID, item.RecipientID)
-	}
-	if len(ids) > 0 {
-		keys, err := storage.Many[domain.InboxKey](r.Context(), a.Store, "inbox_keys", bson.M{"_id": bson.M{"$in": ids}})
-		if err != nil {
-			a.error(w, r, err)
-			return
-		}
-		for _, key := range keys {
-			p.Keys[key.ID] = inboxPublic(key)
-		}
-	}
 	a.json(w, 200, p)
 }
 func (a *App) inboxDetail(w http.ResponseWriter, r *http.Request) {
@@ -393,32 +240,20 @@ func (a *App) inboxDetail(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, err)
 		return
 	}
-	sender, err := storage.One[domain.InboxKey](r.Context(), a.Store, "inbox_keys", bson.M{"_id": v.SenderID})
-	if err != nil {
-		a.error(w, r, err)
-		return
-	}
-	receiver, err := storage.One[domain.InboxKey](r.Context(), a.Store, "inbox_keys", bson.M{"_id": v.RecipientID})
-	if err != nil {
-		a.error(w, r, err)
-		return
-	}
-	a.json(w, 200, map[string]any{"message": v, "senderKey": inboxPublic(sender), "recipientKey": inboxPublic(receiver)})
+	a.json(w, 200, map[string]any{"message": v})
 }
 func (a *App) inboxSend(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "admin", "tutor") {
 		return
 	}
-	var in domain.InboxEnvelope
+	var in domain.InboxInput
 	if !a.decode(w, r, &in) {
 		return
 	}
-	_, ivOK := inboxB64(in.IV, 12, 12)
-	_, bodyOK := inboxB64(in.Ciphertext, 32, 14000)
-	_, sOK := inboxB64(in.SenderWrappedKey, 384, 384)
-	_, rOK := inboxB64(in.RecipientWrappedKey, 384, 384)
-	if in.Version != 1 || !ivOK || !bodyOK || !sOK || !rOK || !regexp.MustCompile(`^[a-zA-Z0-9_-]{16,80}$`).MatchString(in.Nonce) || len(in.RecipientID) > 200 || len(in.EnrollmentID) > 200 {
-		a.error(w, r, domain.Fail(422, "validation", "Invalid encrypted update."))
+	in.Subject = strings.TrimSpace(in.Subject)
+	in.Body = strings.TrimSpace(in.Body)
+	if !regexp.MustCompile(`^[a-zA-Z0-9_-]{16,80}$`).MatchString(in.Nonce) || in.RecipientID == "" || len(in.RecipientID) > 200 || len(in.EnrollmentID) > 200 || utf8.RuneCountInString(in.Subject) < 1 || utf8.RuneCountInString(in.Subject) > 120 || utf8.RuneCountInString(in.Body) < 1 || utf8.RuneCountInString(in.Body) > 3000 {
+		a.error(w, r, domain.Fail(422, "validation", "Choose a recipient, a subject up to 120 characters and a message up to 3,000 characters."))
 		return
 	}
 	u := user(r)
@@ -433,18 +268,7 @@ func (a *App) inboxSend(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		senderKey, err := storage.One[domain.InboxKey](ctx, a.Store, "inbox_keys", bson.M{"_id": u.ID})
-		if err != nil {
-			return err
-		}
-		recipientKey, err := storage.One[domain.InboxKey](ctx, a.Store, "inbox_keys", bson.M{"_id": recipient.ID})
-		if err != nil {
-			return domain.Fail(409, "inbox_not_ready", "The recipient must activate their inbox first.")
-		}
-		if in.SenderFingerprint != senderKey.Fingerprint || in.RecipientFingerprint != recipientKey.Fingerprint || !inboxVerify(senderKey.SigningKey, in.Signature, inboxEnvelopeFields(u.ID, in)) {
-			return domain.Fail(422, "inbox_integrity", "The encrypted update could not be verified.")
-		}
-		prior, fp, err := a.receipt(ctx, "inbox:"+u.ID, r.Header.Get("Idempotency-Key"), in)
+		prior, fp, err := a.receipt(ctx, "updates:"+u.ID, r.Header.Get("Idempotency-Key"), in)
 		if err != nil {
 			return err
 		}
@@ -452,11 +276,11 @@ func (a *App) inboxSend(w http.ResponseWriter, r *http.Request) {
 			result, err = a.inboxAccess(ctx, u, prior)
 			return err
 		}
-		result = domain.InboxUpdate{ID: id, SenderID: u.ID, Sender: inboxPerson(u), Recipient: inboxPerson(recipient), InboxEnvelope: in, CreatedAt: a.Now()}
-		if _, err = a.Store.C("inbox_updates").InsertOne(ctx, result); err != nil {
+		result = domain.InboxUpdate{ID: id, SenderID: u.ID, Sender: inboxPerson(u), Recipient: inboxPerson(recipient), InboxInput: in, CreatedAt: a.Now()}
+		if _, err = a.Store.C("inbox_messages").InsertOne(ctx, result); err != nil {
 			return err
 		}
-		if err = a.saveReceipt(ctx, "inbox:"+u.ID, r.Header.Get("Idempotency-Key"), fp, id); err != nil {
+		if err = a.saveReceipt(ctx, "updates:"+u.ID, r.Header.Get("Idempotency-Key"), fp, id); err != nil {
 			return err
 		}
 		return a.audit(ctx, u.ID, "inbox.update_sent", id)
@@ -471,29 +295,23 @@ func (a *App) inboxRead(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "parent", "tutor") {
 		return
 	}
-	var in struct {
-		Signature string `json:"signature"`
-	}
+	var in struct{}
 	if !a.decode(w, r, &in) {
 		return
 	}
 	u := user(r)
+	if err := a.rate(r.Context(), "inbox-read:"+u.ID, 60); err != nil {
+		a.error(w, r, err)
+		return
+	}
 	id := chi.URLParam(r, "id")
-	v, err := storage.One[domain.InboxUpdate](r.Context(), a.Store, "inbox_updates", bson.M{"_id": id, "recipientId": u.ID})
+	_, err := storage.One[domain.InboxUpdate](r.Context(), a.Store, "inbox_messages", bson.M{"_id": id, "recipientId": u.ID})
 	if err != nil {
 		a.error(w, r, err)
 		return
 	}
-	k, err := storage.One[domain.InboxKey](r.Context(), a.Store, "inbox_keys", bson.M{"_id": u.ID})
-	if err != nil {
-		a.error(w, r, err)
-		return
-	}
-	if !inboxVerify(k.SigningKey, in.Signature, []string{"gyansetu-read-v1", v.ID, v.Nonce, v.RecipientFingerprint}) {
-		a.error(w, r, domain.Fail(422, "inbox_integrity", "The read receipt could not be verified."))
-		return
-	}
-	_, err = a.Store.C("inbox_updates").UpdateOne(r.Context(), bson.M{"_id": id, "recipientId": u.ID, "readAt": nil}, bson.M{"$set": bson.M{"readAt": a.Now(), "readSignature": in.Signature}})
+	// Only an authenticated recipient can acknowledge; preserve the first read time.
+	_, err = a.Store.C("inbox_messages").UpdateOne(r.Context(), bson.M{"_id": id, "recipientId": u.ID, "readAt": nil}, bson.M{"$set": bson.M{"readAt": a.Now()}})
 	if err != nil {
 		a.error(w, r, err)
 		return

@@ -1,6 +1,6 @@
 # Project instructions
 
-- User Updates override (2026-09-26): Updates is a one-way, end-to-end encrypted inbox. Admins send to parents/tutors; approved tutors send only to parents in current tuition assignments; recipients cannot reply. Keep signed recipient read receipts, immutable inbox identities, client-only passphrases/private keys, and server-side assignment/access checks. Existing tuition chat and Activity alerts are separate and are not described as end-to-end encrypted. See `docs/encrypted-inbox.md`.
+- User Updates override (2026-09-26, latest): remove end-to-end encryption entirely. Updates is an ordinary one-way inbox with recipient-only read receipts: admins send to parents/tutors, approved tutors send only to parents in current assignments, and recipients cannot reply. No inbox activation, passphrase, device linking or encryption claims. Preserve HTTPS, account sessions/CSRF, assignment checks, rate limits and immutable first-read timestamps. Retain legacy encrypted records untouched, separate from new messages; see `docs/updates-inbox.md`.
 
 - User password-policy override (2026-09-25): passwords require 8–128 characters across public signup, password changes, staff provisioning and fixtures. Preserve existing hashes, password-only staff login, rate limits, session/CSRF protection and the existing common-password checks. Keep UI hints and OpenAPI bounds aligned.
 

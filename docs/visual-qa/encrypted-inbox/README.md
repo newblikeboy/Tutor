@@ -1,3 +1,5 @@
+> Historical screenshots of the retired encrypted inbox. Current screenshots and verification are in [Updates](../updates/README.md).
+
 # Encrypted Updates review — 2026-09-26
 
 Chromium exercised the actual Go API and an isolated local MongoDB replica set. These are fictional fixture messages/accounts, not production data or real deliveries.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Operator-invoked update for the existing /srv/tutor + systemd deployment.
-# Builds this commit and applies only the additive encrypted-inbox migration.
+# Builds this commit and applies only the additive Updates inbox migration.
 # Never seeds, resets data, or edits private settings.
 set -Eeuo pipefail
 umask 022

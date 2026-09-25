@@ -15,7 +15,7 @@ import (
 func main() {
 	staffOnly := flag.Bool("staff-only", false, "Apply staff indexes and validation to existing core collections only")
 	applicationOnly := flag.Bool("application-only", false, "Apply application and staff validation/indexes to existing collections only")
-	inboxOnly := flag.Bool("inbox-only", false, "Apply additive encrypted inbox collections and indexes only")
+	inboxOnly := flag.Bool("inbox-only", false, "Apply additive Updates inbox collection and indexes only")
 	flag.Parse()
 	if e := config.LoadDevelopmentEnv(); e != nil {
 		log.Fatal(e)

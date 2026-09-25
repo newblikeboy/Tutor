@@ -1,3 +1,5 @@
+> Retired on 2026-09-26 at the operator’s request. This document describes the previous release, not current behaviour. See [the ordinary Updates inbox](updates-inbox.md). Legacy encrypted records remain untouched and cannot be automatically converted without the original decryption secret.
+
 # Encrypted Updates
 
 The operator requested a one-way inbox with read receipts and end-to-end encryption. `/notifications` now provides received updates, sent updates, composing and a separate Activity tab for the existing automated alerts. There are no replies or broadcasts. Each update has one sender and one recipient.

@@ -4024,109 +4024,6 @@
         }
       }
     },
-    "/inbox/key": {
-      "get": {
-        "operationId": "get__inbox_key",
-        "summary": "GET /inbox/key",
-        "security": [
-          {
-            "session": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InboxKeyResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "parameters": []
-      },
-      "post": {
-        "operationId": "post__inbox_key",
-        "summary": "POST /inbox/key",
-        "security": [
-          {
-            "session": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InboxKeyResponse"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InboxKeyResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "Origin",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "X-CSRF-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InboxKeyInput"
-              }
-            }
-          }
-        }
-      }
-    },
     "/inbox/status": {
       "get": {
         "operationId": "get__inbox_status",
@@ -4209,56 +4106,6 @@
           },
           {
             "name": "role",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/inbox/recipients/{id}/key": {
-      "get": {
-        "operationId": "get__inbox_recipients__id__key",
-        "summary": "GET /inbox/recipients/{id}/key",
-        "security": [
-          {
-            "session": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InboxPublicKey"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "enrollmentId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -4378,7 +4225,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InboxEnvelope"
+                "$ref": "#/components/schemas/InboxInput"
               }
             }
           }
@@ -8476,135 +8323,6 @@
           "version"
         ]
       },
-      "InboxPublicKey": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "userId",
-          "encryptionKey",
-          "signingKey",
-          "fingerprint"
-        ],
-        "properties": {
-          "userId": {
-            "type": "string"
-          },
-          "encryptionKey": {
-            "type": "string"
-          },
-          "signingKey": {
-            "type": "string"
-          },
-          "fingerprint": {
-            "type": "string"
-          }
-        }
-      },
-      "InboxKey": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "userId",
-          "encryptionKey",
-          "signingKey",
-          "fingerprint",
-          "version",
-          "salt",
-          "iv",
-          "vault"
-        ],
-        "properties": {
-          "userId": {
-            "type": "string"
-          },
-          "encryptionKey": {
-            "type": "string"
-          },
-          "signingKey": {
-            "type": "string"
-          },
-          "fingerprint": {
-            "type": "string"
-          },
-          "version": {
-            "type": "integer",
-            "const": 1
-          },
-          "salt": {
-            "type": "string"
-          },
-          "iv": {
-            "type": "string"
-          },
-          "vault": {
-            "type": "string"
-          }
-        }
-      },
-      "InboxKeyInput": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "userId",
-          "encryptionKey",
-          "signingKey",
-          "fingerprint",
-          "version",
-          "salt",
-          "iv",
-          "vault",
-          "proof"
-        ],
-        "properties": {
-          "userId": {
-            "type": "string"
-          },
-          "encryptionKey": {
-            "type": "string"
-          },
-          "signingKey": {
-            "type": "string"
-          },
-          "fingerprint": {
-            "type": "string"
-          },
-          "version": {
-            "type": "integer",
-            "const": 1
-          },
-          "salt": {
-            "type": "string"
-          },
-          "iv": {
-            "type": "string"
-          },
-          "vault": {
-            "type": "string"
-          },
-          "proof": {
-            "type": "string"
-          }
-        }
-      },
-      "InboxKeyResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "key"
-        ],
-        "properties": {
-          "key": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/InboxKey"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        }
-      },
       "InboxPerson": {
         "type": "object",
         "additionalProperties": false,
@@ -8637,8 +8355,7 @@
           "name",
           "role",
           "sample",
-          "enrollmentId",
-          "ready"
+          "enrollmentId"
         ],
         "properties": {
           "id": {
@@ -8655,9 +8372,6 @@
           },
           "enrollmentId": {
             "type": "string"
-          },
-          "ready": {
-            "type": "boolean"
           }
         }
       },
@@ -8680,59 +8394,40 @@
           }
         }
       },
-      "InboxEnvelope": {
+      "InboxInput": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "version",
           "nonce",
           "recipientId",
           "enrollmentId",
-          "senderFingerprint",
-          "recipientFingerprint",
-          "iv",
-          "ciphertext",
-          "senderWrappedKey",
-          "recipientWrappedKey",
-          "signature"
+          "subject",
+          "body"
         ],
         "properties": {
-          "version": {
-            "type": "integer",
-            "const": 1
-          },
           "nonce": {
             "type": "string",
             "minLength": 16,
             "maxLength": 80
           },
           "recipientId": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "enrollmentId": {
-            "type": "string"
-          },
-          "senderFingerprint": {
-            "type": "string"
-          },
-          "recipientFingerprint": {
-            "type": "string"
-          },
-          "iv": {
-            "type": "string"
-          },
-          "ciphertext": {
             "type": "string",
-            "maxLength": 18668
+            "maxLength": 200
           },
-          "senderWrappedKey": {
-            "type": "string"
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
           },
-          "recipientWrappedKey": {
-            "type": "string"
-          },
-          "signature": {
-            "type": "string"
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 3000
           }
         }
       },
@@ -8740,62 +8435,42 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "version",
           "nonce",
           "recipientId",
           "enrollmentId",
-          "senderFingerprint",
-          "recipientFingerprint",
-          "iv",
-          "ciphertext",
-          "senderWrappedKey",
-          "recipientWrappedKey",
-          "signature",
+          "subject",
+          "body",
           "id",
           "senderId",
           "sender",
           "recipient",
           "createdAt",
-          "readAt",
-          "readSignature"
+          "readAt"
         ],
         "properties": {
-          "version": {
-            "type": "integer",
-            "const": 1
-          },
           "nonce": {
             "type": "string",
             "minLength": 16,
             "maxLength": 80
           },
           "recipientId": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "enrollmentId": {
-            "type": "string"
-          },
-          "senderFingerprint": {
-            "type": "string"
-          },
-          "recipientFingerprint": {
-            "type": "string"
-          },
-          "iv": {
-            "type": "string"
-          },
-          "ciphertext": {
             "type": "string",
-            "maxLength": 18668
+            "maxLength": 200
           },
-          "senderWrappedKey": {
-            "type": "string"
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
           },
-          "recipientWrappedKey": {
-            "type": "string"
-          },
-          "signature": {
-            "type": "string"
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 3000
           },
           "id": {
             "type": "string"
@@ -8823,9 +8498,6 @@
                 "type": "null"
               }
             ]
-          },
-          "readSignature": {
-            "type": "string"
           }
         }
       },
@@ -8834,8 +8506,7 @@
         "additionalProperties": false,
         "required": [
           "items",
-          "nextCursor",
-          "keys"
+          "nextCursor"
         ],
         "properties": {
           "items": {
@@ -8846,12 +8517,6 @@
           },
           "nextCursor": {
             "type": "string"
-          },
-          "keys": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/InboxPublicKey"
-            }
           }
         }
       },
@@ -8859,33 +8524,19 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "message",
-          "senderKey",
-          "recipientKey"
+          "message"
         ],
         "properties": {
           "message": {
             "$ref": "#/components/schemas/InboxUpdate"
-          },
-          "senderKey": {
-            "$ref": "#/components/schemas/InboxPublicKey"
-          },
-          "recipientKey": {
-            "$ref": "#/components/schemas/InboxPublicKey"
           }
         }
       },
       "InboxReadInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "signature"
-        ],
-        "properties": {
-          "signature": {
-            "type": "string"
-          }
-        }
+        "required": [],
+        "properties": {}
       },
       "InboxStatus": {
         "type": "object",

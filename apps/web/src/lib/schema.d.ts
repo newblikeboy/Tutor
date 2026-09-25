@@ -1100,24 +1100,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/inbox/key": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** GET /inbox/key */
-        get: operations["get__inbox_key"];
-        put?: never;
-        /** POST /inbox/key */
-        post: operations["post__inbox_key"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/inbox/status": {
         parameters: {
             query?: never;
@@ -1144,23 +1126,6 @@ export interface paths {
         };
         /** GET /inbox/recipients */
         get: operations["get__inbox_recipients"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/inbox/recipients/{id}/key": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** GET /inbox/recipients/{id}/key */
-        get: operations["get__inbox_recipients__id__key"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2227,38 +2192,6 @@ export interface components {
             paused: boolean;
             version: number;
         };
-        InboxPublicKey: {
-            userId: string;
-            encryptionKey: string;
-            signingKey: string;
-            fingerprint: string;
-        };
-        InboxKey: {
-            userId: string;
-            encryptionKey: string;
-            signingKey: string;
-            fingerprint: string;
-            /** @constant */
-            version: 1;
-            salt: string;
-            iv: string;
-            vault: string;
-        };
-        InboxKeyInput: {
-            userId: string;
-            encryptionKey: string;
-            signingKey: string;
-            fingerprint: string;
-            /** @constant */
-            version: 1;
-            salt: string;
-            iv: string;
-            vault: string;
-            proof: string;
-        };
-        InboxKeyResponse: {
-            key: components["schemas"]["InboxKey"] | null;
-        };
         InboxPerson: {
             id: string;
             name: string;
@@ -2271,39 +2204,24 @@ export interface components {
             role: string;
             sample: boolean;
             enrollmentId: string;
-            ready: boolean;
         };
         InboxRecipientPage: {
             items: components["schemas"]["InboxRecipient"][];
             nextCursor: string;
         };
-        InboxEnvelope: {
-            /** @constant */
-            version: 1;
+        InboxInput: {
             nonce: string;
             recipientId: string;
             enrollmentId: string;
-            senderFingerprint: string;
-            recipientFingerprint: string;
-            iv: string;
-            ciphertext: string;
-            senderWrappedKey: string;
-            recipientWrappedKey: string;
-            signature: string;
+            subject: string;
+            body: string;
         };
         InboxUpdate: {
-            /** @constant */
-            version: 1;
             nonce: string;
             recipientId: string;
             enrollmentId: string;
-            senderFingerprint: string;
-            recipientFingerprint: string;
-            iv: string;
-            ciphertext: string;
-            senderWrappedKey: string;
-            recipientWrappedKey: string;
-            signature: string;
+            subject: string;
+            body: string;
             id: string;
             senderId: string;
             sender: components["schemas"]["InboxPerson"];
@@ -2311,23 +2229,15 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             readAt: string | null;
-            readSignature: string;
         };
         InboxPage: {
             items: components["schemas"]["InboxUpdate"][];
             nextCursor: string;
-            keys: {
-                [key: string]: components["schemas"]["InboxPublicKey"];
-            };
         };
         InboxDetail: {
             message: components["schemas"]["InboxUpdate"];
-            senderKey: components["schemas"]["InboxPublicKey"];
-            recipientKey: components["schemas"]["InboxPublicKey"];
         };
-        InboxReadInput: {
-            signature: string;
-        };
+        InboxReadInput: Record<string, never>;
         InboxStatus: {
             unreadCount: number;
         };
@@ -4818,80 +4728,6 @@ export interface operations {
             };
         };
     };
-    get__inbox_key: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InboxKeyResponse"];
-                };
-            };
-            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    post__inbox_key: {
-        parameters: {
-            query?: never;
-            header: {
-                Origin: string;
-                "X-CSRF-Token": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InboxKeyInput"];
-            };
-        };
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InboxKeyResponse"];
-                };
-            };
-            /** @description Success */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InboxKeyResponse"];
-                };
-            };
-            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     get__inbox_status: {
         parameters: {
             query?: never;
@@ -4954,39 +4790,6 @@ export interface operations {
             };
         };
     };
-    get__inbox_recipients__id__key: {
-        parameters: {
-            query?: {
-                enrollmentId?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InboxPublicKey"];
-                };
-            };
-            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     get__inbox: {
         parameters: {
             query?: {
@@ -5032,7 +4835,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["InboxEnvelope"];
+                "application/json": components["schemas"]["InboxInput"];
             };
         };
         responses: {

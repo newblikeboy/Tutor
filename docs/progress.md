@@ -1,5 +1,14 @@
 # Progress
 
+## 2026-09-26: simplify Updates and remove end-to-end encryption
+
+The latest operator request supersedes the encrypted-inbox design below. Updates opens directly after account sign-in; admins can send to parent/tutor accounts before the recipient opens Updates. Approved tutors remain limited to parents in their current tuition assignments. Inbox activation, passphrases, device linking, public-key APIs, encryption code and encryption labels are removed. Recipients cannot reply and only the authenticated recipient can acknowledge a read; the first server timestamp remains immutable.
+
+New subject/body records live in `inbox_messages`. The additive `007-simple-inbox` migration preserves all legacy encrypted collections without changing or pretending to decrypt them. Legacy ciphertext is not displayed in the ordinary inbox or counted as new unread messages. Production HTTPS, sessions/CSRF, rate limits, account/assignment guards, no-store headers and audit metadata remain. Sender retries retain the same draft, nonce and idempotency key. See [current design and migration](updates-inbox.md).
+
+Completed checks: strict TypeScript, lint, three frontend unit/component tests, production build, full local-Mongo Go race suite and vet. Six Updates API scenarios cover immediate sending, legacy retention, removed endpoints, validation, cross-instance idempotency, recipient-only reads/CSRF, applicant reception, household isolation, tutor revocation/suspension and pagination. The focused follow-up also passed for guardian ownership changes in tutor lists. The actual inbox browser flow and existing billing/tuition-conversation/Activity regression passed (2/2). Nine screenshots were individually reviewed with axe, 360–1440px reflow and CSS 200% text checks. Browser tests cover send-before-first-visit, lost-response retries, failed detail fetches staying unread, reload and another authenticated browser opening the same message without setup. [Visual evidence](visual-qa/updates/README.md). Contract comparison changed only Inbox definitions/routes, and deployment Bash syntax passed. No production deployment or real messages were performed.
+
+
 ## 2026-09-26: one-way encrypted Updates inbox
 
 The operator clarified that Updates must be one-way, show read receipts to senders, and use end-to-end encryption. Implemented administrator-to-parent/tutor sends and approved-tutor-to-current-parent sends, received/sent lists, encrypted subject previews, unread counts, compose/detail screens, recipient activation and signed read receipts. Parents have no compose/reply action. Applicants can receive administrative updates. Existing tuition chat and automated Activity alerts remain separate. Server checks retain role/assignment boundaries and revoke former-tutor access.
