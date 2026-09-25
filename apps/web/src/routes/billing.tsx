@@ -121,7 +121,7 @@ export function Checkout({ enrollment }: { enrollment: Schema['Enrollment'] }) {
         order_id: checkout.intent.orderId,
         amount: checkout.intent.amountPaise,
         currency: checkout.intent.currency,
-        name: config.data?.appName ?? 'TheGyanSetu',
+        name: config.data?.appName ?? 'GyanSetu',
         description: t('billing.sandbox'),
         theme: { color: '#15353B' },
         handler: (result) => {

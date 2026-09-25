@@ -1,7 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 const en = {
-  brand: 'TheGyanSetu',
+  brand: 'GyanSetu',
   provisional: 'A considered approach to learning',
   home: 'Home',
   tutors: 'Find a tutor',

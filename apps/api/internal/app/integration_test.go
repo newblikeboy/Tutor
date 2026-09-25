@@ -94,7 +94,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		t.Fatal(e)
 	}
 	t.Log("Created isolated database", name, "(retained for review; no existing database modified)")
-	c := config.Config{Env: "test", Name: "TheGyanSetu", Origin: "http://test.local", AuthProvider: "password"}
+	c := config.Config{Env: "test", Name: "GyanSetu", Origin: "http://test.local", AuthProvider: "password"}
 	a := New(s, c)
 	server := httptest.NewServer(a.Routes())
 	defer server.Close()

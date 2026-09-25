@@ -27,7 +27,11 @@ func env(key, fallback string) string {
 	return fallback
 }
 func Load() (Config, error) {
-	c := Config{Env: env("APP_ENV", "development"), Name: env("APP_NAME", "TheGyanSetu"), Addr: env("HTTP_ADDR", "127.0.0.1:8080"), Origin: env("WEB_ORIGIN", "http://127.0.0.1:5173"), URI: os.Getenv("MONGODB_URI"), Database: env("MONGODB_DATABASE", "tutor_dev"), AuthProvider: env("AUTH_PROVIDER", "password"), PaymentProvider: env("PAYMENT_PROVIDER", "disabled"), RazorpayKeyID: os.Getenv("RAZORPAY_KEY_ID"), RazorpaySecret: os.Getenv("RAZORPAY_KEY_SECRET"), RazorpayWebhookSecret: os.Getenv("RAZORPAY_WEBHOOK_SECRET")}
+	c := Config{Env: env("APP_ENV", "development"), Name: env("APP_NAME", "GyanSetu"), Addr: env("HTTP_ADDR", "127.0.0.1:8080"), Origin: env("WEB_ORIGIN", "http://127.0.0.1:5173"), URI: os.Getenv("MONGODB_URI"), Database: env("MONGODB_DATABASE", "tutor_dev"), AuthProvider: env("AUTH_PROVIDER", "password"), PaymentProvider: env("PAYMENT_PROVIDER", "disabled"), RazorpayKeyID: os.Getenv("RAZORPAY_KEY_ID"), RazorpaySecret: os.Getenv("RAZORPAY_KEY_SECRET"), RazorpayWebhookSecret: os.Getenv("RAZORPAY_WEBHOOK_SECRET")}
+	// The domain retains "the"; the visible brand no longer does.
+	if c.Name == "TheGyanSetu" {
+		c.Name = "GyanSetu"
+	}
 	if c.URI == "" {
 		return c, errors.New("MONGODB_URI is required; no database fallback")
 	}

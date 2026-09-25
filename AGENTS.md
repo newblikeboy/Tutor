@@ -6,7 +6,7 @@
 - User deployment override (2026-09-25): enable production email/password signup and login with explicit `AUTH_PROVIDER=password`, HTTPS, loopback API binding, Secure cookies and separate production sessions. Guardian verification and payment gates remain. Do not use development mode as a production workaround. See `docs/production-auth.md`.
 
 - Media override (2026-09-25): photos, PDFs and MP4s upload directly from the browser to authenticated Cloudinary storage. MongoDB saves URLs and access-control metadata, never file bytes. Verify provider metadata before marking files ready; authorise every short-lived viewing link. Cloudinary files do not require ClamAV or claim a malware scan. Retain legacy disk/S3 access checks. Zoom remains the meeting provider.
-- Brand name (2026-09-24): **TheGyanSetu**. Preserve this exact spelling/casing throughout visible branding, metadata and configuration defaults.
+- User brand override (2026-09-25): **GyanSetu** is the visible brand everywhere, including logos, metadata and configuration defaults. The domain remains **thegyansetu.in**; do not rename domains or technical identifiers. This supersedes the earlier TheGyanSetu wordmark.
 - Signed-out private routes (2026-09-24): go directly to sign-in with the requested destination preserved; do not restore the intermediate privacy/sign-in invitation page.
 - User preference (2026-09-23): never use the `update-design` skill. Make requested interface changes directly in this project.
 - User language override (2026-09-24): use English-only interface copy. No language switcher, account language selector or Hindi UI translations. Ignore legacy Hindi display preferences; preserve authored records and teaching-language/subject choices.

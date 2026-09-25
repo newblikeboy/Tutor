@@ -32,7 +32,7 @@ Non-negotiable business rules:
 - A child's learning record belongs with the family's account and survives a tutor change.
 - Under-18 learners have guardian-controlled private profiles; adult learners can manage their own account. Do not build independent child messaging or public child profiles in version one.
 - No invented testimonials, qualifications, founder biography, statistics, endorsements, government recognition, or service guarantees.
-- Use APP_NAME="TheGyanSetu", the brand name chosen by the user on 2026-09-24, as the configurable wordmark. Preserve its exact spelling and casing. Founder details, contact details, actual coverage, prices, and policies remain editable configuration/content.
+- Use APP_NAME="GyanSetu", the visible brand chosen by the user on 2026-09-25, as the configurable wordmark. The domain remains thegyansetu.in. Preserve this distinction and the exact brand spelling/casing. Founder details, contact details, actual coverage, prices, and policies remain editable configuration/content.
 
 ## 2. REQUIRED STACK AND ARCHITECTURE
 

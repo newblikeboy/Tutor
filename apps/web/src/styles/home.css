@@ -97,10 +97,10 @@
   pointer-events: none;
 }
 .home-hero.hero {
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-  gap: 44px;
-  padding-block: 72px 66px;
-  min-height: 710px;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  gap: 64px;
+  padding-block: 66px 58px;
+  min-height: 690px;
 }
 .home-hero .hero-copy {
   position: relative;
@@ -123,11 +123,11 @@
   flex-shrink: 0;
 }
 .home-hero .hero-copy h1 {
-  font-size: clamp(50px, 4.9vw, 72px);
-  font-weight: 500;
-  letter-spacing: -3.9px;
-  line-height: 1.13;
-  margin: 28px 0 26px;
+  font-size: clamp(42px, 4.05vw, 58px);
+  font-weight: 600;
+  letter-spacing: -2.5px;
+  line-height: 1.12;
+  margin: 25px 0 24px;
   text-wrap: balance;
 }
 .home-hero .hero-copy h1 span {
@@ -135,30 +135,48 @@
   font-family: Georgia, 'Times New Roman', serif;
   font-style: italic;
   font-weight: 400;
-  font-size: 1.16em;
-  line-height: 1.08;
-  letter-spacing: -3.4px;
-  margin-top: 7px;
+  font-size: 0.94em;
+  line-height: 1.13;
+  letter-spacing: -1.7px;
+  margin-top: 13px;
   color: #496543;
 }
 .home-intro {
-  max-width: 375px;
+  max-width: 520px;
   font-size: 16px;
-  line-height: 1.85;
+  line-height: 1.8;
+  color: #53635b;
 }
 .home-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px 24px;
-  margin-top: 29px;
+  gap: 12px;
+  margin-top: 28px;
 }
 .home-actions .btn {
-  min-height: 56px;
-  padding-inline: 23px;
+  min-height: 54px;
+  padding-inline: 22px;
+  font-size: 13px;
 }
-.home-actions .text-link {
-  font-size: 12px;
+.home-apply-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 12px 19px;
+  border: 1px solid #b8c5ae;
+  border-radius: 50px;
+  background: #ffffff9c;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.home-apply-link:hover {
+  background: #eaf0db;
+  border-color: #78916d;
 }
 .home-discover {
   display: flex;
@@ -184,17 +202,17 @@
   isolation: isolate;
   margin: 0;
   min-width: 0;
-  padding-top: 16px;
+  padding-top: 0;
 }
 .home-photo-frame {
   position: relative;
-  aspect-ratio: 1.04;
-  padding: 9px;
+  aspect-ratio: 1.03;
+  padding: 8px;
   border: 1px solid #fff;
-  border-radius: 46% 46% 26px 26px;
+  border-radius: 24px 88px 24px 24px;
   background: linear-gradient(125deg, #fff, #e2eace, #ffffffe6);
   box-shadow:
-    0 28px 60px #2447391a,
+    0 22px 48px #24473917,
     inset 0 1px 0 #fff;
 }
 .home-hero-image {
@@ -203,21 +221,6 @@
   display: block;
   object-fit: cover;
   object-position: 53% 50%;
-  border-radius: inherit;
-}
-.home-photo-orbit {
-  position: absolute;
-  z-index: -1;
-  inset: 0 13px 29px -16px;
-  border: 1px solid #b9caa699;
-  border-radius: 47% 47% 24px 24px;
-  transform: rotate(-7deg);
-}
-.home-photo-orbit::after {
-  content: '';
-  position: absolute;
-  inset: -17px 16px 10px -16px;
-  border: 1px solid #fff;
   border-radius: inherit;
 }
 .home-crystal {
@@ -264,14 +267,14 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: -48px 30px 0 -15px;
-  padding: 22px 24px;
+  margin: -40px 18px 0;
+  padding: 20px;
   background: var(--home-glass);
   backdrop-filter: blur(18px);
   border: 1px solid #fff;
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow:
-    0 16px 36px #173e2719,
+    0 12px 26px #173e2712,
     inset 0 1px 0 #fff;
 }
 .home-photo-icon {
@@ -286,8 +289,34 @@
   box-shadow: 0 0 0 1px #dce2cd;
 }
 .home-photo-caption strong {
+  display: block;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+}
+.home-photo-caption small {
+  display: block;
+  margin-top: 4px;
+  color: #53635b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.home-teaching-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+.home-teaching-modes > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #ced8bf;
+  border-radius: 8px;
+  background: #f9fbf2;
+  color: #3d5b42;
+  font-size: 12px;
+  font-weight: 600;
 }
 .home-photo-sprout {
   margin-left: auto;
@@ -927,8 +956,8 @@
     min-height: 650px;
   }
   .home-hero .hero-copy h1 {
-    font-size: 55px;
-    letter-spacing: -3px;
+    font-size: 43px;
+    letter-spacing: -1.9px;
   }
   .home-hero .hero-copy h1 span {
     letter-spacing: -2px;
@@ -982,10 +1011,10 @@
   }
   .home-hero .hero-copy h1 {
     max-width: 680px;
-    font-size: 65px;
+    font-size: 58px;
   }
   .home-hero .hero-copy h1 span {
-    font-size: 1.12em;
+    font-size: 0.94em;
   }
   .home-intro {
     max-width: 460px;
@@ -999,10 +1028,7 @@
   }
   .home-photo-frame {
     aspect-ratio: 1.35;
-    border-radius: 40% 40% 24px 24px;
-  }
-  .home-photo-orbit {
-    border-radius: 40% 40% 24px 24px;
+    border-radius: 24px 72px 24px 24px;
   }
   .home-photo-caption {
     margin-inline: 18px;
@@ -1101,20 +1127,20 @@
     letter-spacing: 1.2px;
   }
   .home-hero .hero-copy h1 {
-    font-size: clamp(40px, 8.8vw, 60px);
+    font-size: clamp(36px, 8.6vw, 54px);
     line-height: 1.13;
     letter-spacing: -2.1px;
     text-wrap: initial;
     margin: 22px 0;
   }
   .home-hero .hero-copy h1 span {
-    font-size: 1.15em;
+    font-size: 0.94em;
     letter-spacing: -1.6px;
   }
   .home-intro {
-    font-size: 14px;
-    line-height: 1.85;
-    max-width: 390px;
+    font-size: 15px;
+    line-height: 1.8;
+    max-width: 520px;
   }
   .home-actions {
     gap: 10px 17px;
@@ -1125,8 +1151,11 @@
     padding-inline: 19px;
     font-size: 12px;
   }
-  .home-actions .text-link {
-    font-size: 11px;
+  .home-actions .btn,
+  .home-actions .home-apply-link {
+    width: 100%;
+    font-size: 14px;
+    min-height: 52px;
   }
   .home-actions .btn > svg {
     margin-left: 0;
@@ -1137,20 +1166,7 @@
   .home-photo-frame {
     aspect-ratio: 1.15;
     padding: 6px;
-    border-radius: 43% 43% 22px 22px;
-  }
-  .home-photo-orbit {
-    inset: 1px 15px 33px 2px;
-    transform: rotate(-4deg);
-  }
-  .home-photo-orbit::after {
-    inset: -9px 2px 3px 0;
-  }
-  .home-hero-figure .home-crystal {
-    width: 89px;
-    height: 89px;
-    top: -5px;
-    right: 0;
+    border-radius: 20px 64px 20px 20px;
   }
   .home-photo-caption {
     gap: 11px;
@@ -1163,13 +1179,13 @@
     height: 35px;
   }
   .home-photo-caption strong {
-    font-size: 12px;
+    font-size: 13px;
   }
   .home-photo-sprout {
     display: none;
   }
   .home-image-credit {
-    font-size: 9px;
+    font-size: 10px;
     margin-top: 12px;
   }
   .home-pillars {
@@ -1403,7 +1419,6 @@
 }
 @media (forced-colors: active) {
   .home-crystal,
-  .home-photo-orbit,
   .home-step-art {
     display: none;
   }

@@ -8,6 +8,11 @@ test('photo homepage keeps its English layout, keyboard access and real entry po
   page.on('pageerror', (error) => errors.push(error.message))
   await page.goto('/')
   await page.locator('.home-tutors .tutor-card').first().waitFor()
+  await expect(page.locator('#home-title')).toHaveText(
+    'Find the right tutor for your child. Get support beyond the first class.',
+  )
+  await expect(page.locator('.wordmark')).toContainText('GyanSetu')
+  await expect(page.locator('body')).not.toContainText('TheGyanSetu')
   await expect(page.getByRole('region', { name: 'Development preview', exact: true })).toHaveCount(
     0,
   )
@@ -51,6 +56,11 @@ test('photo homepage keeps its English layout, keyboard access and real entry po
           .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
           .analyze()
         expect(accessibility.violations).toEqual([])
+        await page.screenshot({
+          path: `docs/visual-qa/gyansetu-home/home-${width}.png`,
+          fullPage: true,
+          animations: 'disabled',
+        })
       }
     }
     const summary = page.locator('.home-faq summary').first()
@@ -65,7 +75,7 @@ test('photo homepage keeps its English layout, keyboard access and real entry po
     })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({
-      path: `docs/visual-qa/english-only/landing-${language}-200-percent.png`,
+      path: `docs/visual-qa/gyansetu-home/landing-${language}-200-percent.png`,
       fullPage: false,
     })
     await page.evaluate(() => {
@@ -80,7 +90,11 @@ test('photo homepage keeps its English layout, keyboard access and real entry po
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(menu).toBeFocused()
-  await page.locator('.home-actions .text-link').click()
+  await page.getByRole('link', { name: 'Apply as a Tutor', exact: true }).first().click()
+  await expect(page).toHaveURL(/\/login\?return=%2Fapply$/)
+  await expect(page.getByRole('heading', { name: 'Tutor sign in', exact: true })).toBeVisible()
+  await page.goto('/')
+  await page.locator('.home-tutors > .home-section-heading .text-link').click()
   await expect(page).toHaveURL(/\/tutors$/)
   await page
     .locator('.tutor-card')
@@ -112,12 +126,12 @@ test('homepage remains usable while tutors load and recovers from a failed reque
   await expect(page.locator('.home-actions .btn')).toBeVisible()
   await page
     .locator('.home-tutors')
-    .screenshot({ path: 'docs/visual-qa/english-only/landing-tutors-loading.png' })
+    .screenshot({ path: 'docs/visual-qa/gyansetu-home/landing-tutors-loading.png' })
   release()
   await expect(page.locator('.home-tutors').getByRole('alert')).toBeVisible()
   await page
     .locator('.home-tutors')
-    .screenshot({ path: 'docs/visual-qa/english-only/landing-tutors-error.png' })
+    .screenshot({ path: 'docs/visual-qa/gyansetu-home/landing-tutors-error.png' })
   await page.unroute('**/api/v1/tutors')
   await page.getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(page.locator('.home-tutors .tutor-card').first()).toBeVisible()
@@ -142,9 +156,9 @@ test('landing section link works with reduced motion and high contrast', async (
   await expect(page.locator('.home-actions .btn')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({
-    path: 'docs/visual-qa/english-only/landing-editorial/high-contrast.png',
+    path: 'docs/visual-qa/gyansetu-home/high-contrast.png',
     animations: 'disabled',
   })
-  await page.locator('.home-actions .text-link').click()
-  await expect(page).toHaveURL(/\/tutors$/)
+  await page.locator('.home-actions .home-apply-link').click()
+  await expect(page).toHaveURL(/\/login\?return=%2Fapply$/)
 })

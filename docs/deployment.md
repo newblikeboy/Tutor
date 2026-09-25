@@ -10,6 +10,8 @@ Review a supported Linux droplet image, sizing, firewall/SSH policy, backups and
 
 ## Build and release layout
 
+For the existing `thegyansetu.in` droplet, `sudo bash scripts/deploy-existing.sh` from a checkout of the reviewed commit builds and activates an update. The operator explicitly authorized this GitHub push and requested the deployment command on 2026-09-25. The script requires the existing `/srv/tutor/current` release symlink, `tutor-api` service, HTTPS origin and password-auth production environment. It builds in a fresh release directory with limited concurrency, retains the previous release and hashed frontend assets, atomically switches the symlink and verifies HTTPS readiness, production configuration and the served frontend. Activation/check failures attempt to restore the previous release. It does not edit Nginx, certificates or `/etc/tutor/api.env`, run migrations/seeds, or reset data. This brand/menu release requires no new migration. Actual droplet execution must still be verified from operator output.
+
 `bash scripts/build-release.sh` builds a Linux artifact locally/on CI into `.local/release`. It does not publish it. Build for the droplet's CPU architecture. Node is only needed on the build machine.
 
 ```text
@@ -28,7 +30,7 @@ Production backend environment must include:
 
 ```dotenv
 APP_ENV=production
-APP_NAME=TheGyanSetu
+APP_NAME=GyanSetu
 HTTP_ADDR=127.0.0.1:8080
 WEB_ORIGIN=https://your-reviewed-domain.example
 MONGODB_URI=<private Atlas SRV connection>

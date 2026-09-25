@@ -337,7 +337,7 @@ await writeFile(
     {
       openapi: '3.1.0',
       info: {
-        title: 'TheGyanSetu API',
+        title: 'GyanSetu API',
         version: '0.1.0',
         description:
           'Email/password accounts, supervised trials, ongoing tuition and learning continuity, and explicitly configured Razorpay sandbox billing. Production access remains gated pending operator review. Public registration never grants academic approval. No delivery, live charge or bank settlement is implied by local records.',

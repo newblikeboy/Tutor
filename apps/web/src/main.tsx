@@ -162,7 +162,9 @@ function Layout() {
               >
                 <nav className="drawer-nav">
                   {navigation}
-                  <Link to="/workspace">{t('workspace')}</Link>
+                  <Link to={auth.data ? '/workspace' : '/login'}>
+                    {auth.data ? t('workspace') : t('login')}
+                  </Link>
                 </nav>
               </Modal>
             </div>

@@ -155,14 +155,13 @@ export function Home() {
               {t('landing.place')}
             </p>
             <h1 id="home-title">
-              {t('landing.title')}
-              <span>{t('landing.titleAccent')}</span>
+              {t('landing.title')} <span>{t('landing.titleAccent')}</span>
             </h1>
             <p className="home-intro">{t('landing.intro')}</p>
             <div className="home-actions">
               <LinkButton to="/match">{t('landing.start')}</LinkButton>
-              <Link to="/tutors" className="text-link">
-                {t('landing.explore')} <ArrowRight size={17} />
+              <Link to="/apply" className="home-apply-link">
+                {t('landing.apply')} <ArrowUpRight size={18} aria-hidden="true" />
               </Link>
             </div>
             <a href="#home-process-title" className="home-discover">
@@ -171,19 +170,22 @@ export function Home() {
             </a>
           </div>
           <figure className="home-hero-figure">
-            <div className="home-photo-orbit" aria-hidden="true" />
-            <div className="home-crystal" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              <i />
+            <div className="home-teaching-modes">
+              <span>
+                <House size={16} aria-hidden="true" />
+                {t('landing.homeMode')}
+              </span>
+              <span>
+                <Monitor size={16} aria-hidden="true" />
+                {t('landing.onlineMode')}
+              </span>
             </div>
             <div className="home-photo-frame">
               <img
                 className="home-hero-image"
                 src="/images/purnea-learning-1200.webp"
                 srcSet="/images/purnea-learning-640.webp 640w, /images/purnea-learning-960.webp 960w, /images/purnea-learning-1200.webp 1200w, /images/purnea-learning-1536.webp 1536w"
-                sizes="(max-width: 760px) calc(140vw - 56px), (max-width: 1000px) 800px, (max-width: 1190px) 75vw, (max-width: 1400px) 70vw, 900px"
+                sizes="(max-width: 760px) calc(135vw - 54px), (max-width: 1000px) 760px, 850px"
                 width={1536}
                 height={1024}
                 fetchPriority="high"
@@ -196,6 +198,7 @@ export function Home() {
               </span>
               <span>
                 <strong>{t('landing.photoTitle')}</strong>
+                <small>{t('landing.photoBody')}</small>
               </span>
               <Sprout
                 className="home-photo-sprout"

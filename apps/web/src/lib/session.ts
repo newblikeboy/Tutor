@@ -16,6 +16,11 @@ export function useConfig() {
   return useQuery({
     queryKey: ['config'],
     queryFn: ({ signal }) => api<Schema['Config']>('/config', { signal }),
+    // Keep the visible brand current while an older API/environment is deployed.
+    select: (config) => ({
+      ...config,
+      appName: config.appName === 'TheGyanSetu' ? 'GyanSetu' : config.appName,
+    }),
     staleTime: Infinity,
   })
 }
