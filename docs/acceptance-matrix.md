@@ -1,5 +1,7 @@
 # Requirement → implementation → acceptance evidence
 
+Deployment identity correction (2026-09-26): an operator-reported systemd status 217 exposed the migration's hard-coded `tutor` account. Deployment now resolves and validates the existing API service's user/group before building, preserving supplementary groups and failing closed on an unresolved named account. Bash syntax and isolated identity-resolution tests passed; actual corrected droplet deployment awaits operator verification.
+
 One-way Updates (2026-09-26, latest override): end-to-end encryption is removed. Accounts use normal sign-in, with no inbox activation, saved passphrase or device linking. Admins send to parents/tutors; approved tutors send to current tuition parents; recipients cannot reply. Recipient-only read timestamps, unread counts, pagination, retry deduplication, session/CSRF and assignment controls remain. New messages are stored server-side in a separate collection; legacy encrypted records remain untouched and cannot be automatically converted. See [current design](updates-inbox.md), [progress](progress.md) and [visual evidence](visual-qa/updates/README.md).
 
 Mobile public menu (2026-09-25): signed-out visitors have a direct Sign in link; signed-in visitors retain My workspace. Build/lint and a real local browser navigation/axe check passed; mobile/desktop captures inspected. Live deployment remains outstanding. See [progress](progress.md).

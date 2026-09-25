@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 fail() { printf '%s\n' "$*" >&2; exit 1; }
 [[ $(id -u) == 0 ]] || fail 'Run this deployment as root (sudo).'
-for tool in git npm go curl python3 flock nginx systemctl systemd-run; do
+for tool in git npm go curl python3 flock nginx systemctl systemd-run getent; do
   command -v "$tool" >/dev/null || fail "Required command is missing: $tool"
 done
 exec 9>/run/lock/gyansetu-deploy.lock
@@ -24,6 +24,9 @@ grep -qx 'AUTH_PROVIDER=password' /etc/tutor/api.env || fail 'Expected the exist
 grep -qx 'HTTP_ADDR=127.0.0.1:8080' /etc/tutor/api.env || fail 'Expected the existing loopback API binding.'
 grep -qx 'WEB_ORIGIN=https://thegyansetu.in' /etc/tutor/api.env || fail 'Expected the existing HTTPS domain origin.'
 systemctl show tutor-api --property=ExecStart --value | grep -Fq '/srv/tutor/current/tutor-api' || fail 'The service does not use the expected release path.'
+source scripts/deploy-identity.sh
+resolve_migration_identity tutor-api || fail 'Could not resolve the existing API service identity; the running release was not changed.'
+printf 'Migration will use the existing API service account: %s (group %s).\n' "$migration_user" "$migration_group"
 nginx -t
 
 commit=$(git rev-parse HEAD)
@@ -71,7 +74,8 @@ printf '%s\n' "$previous" > "$release/PREVIOUS_RELEASE"
 # systemd reads the private environment without sourcing or printing secrets.
 # This migration only adds inbox collections/indexes; old releases ignore them.
 systemd-run --quiet --wait --pipe --collect \
-  --property=User=tutor --property=Group=tutor \
+  --property="User=$migration_user" --property="Group=$migration_group" \
+  --property="SupplementaryGroups=$migration_supplementary_groups" \
   --property=EnvironmentFile=/etc/tutor/api.env \
   "$release/tutor-migrate" --inbox-only
 

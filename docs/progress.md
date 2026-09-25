@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-09-26: deployment migration account resolution
+
+The operator's deployment stopped before switching releases. Re-running the migration through systemd returned status 217 (user-credential setup), before the migration binary executed. The deployment script had hard-coded `User=tutor` and `Group=tutor` instead of inspecting the existing service. It now resolves the configured `tutor-api` user, group and supplementary groups before any build, validates the account/group, and uses those credentials for the transient migration. An omitted group uses that user's primary group; an omitted system-service user preserves systemd's existing root default. A missing named user never falls back to root. Dynamic users and failed lookups stop with a clear preflight error. No service accounts or private settings are edited.
+
+Bash syntax and isolated account-resolution tests passed for named user/group, primary-group fallback, supplementary groups, the existing system default, missing user/group, DynamicUser and failed property lookup. These tests stub commands and do not modify services/accounts. Live Linux execution of the corrected deployment remains pending operator output. Reference: [systemd exit-status definitions](https://github.com/systemd/systemd/blob/main/man/systemd.exec.xml).
+
 ## 2026-09-26: simplify Updates and remove end-to-end encryption
 
 The latest operator request supersedes the encrypted-inbox design below. Updates opens directly after account sign-in; admins can send to parent/tutor accounts before the recipient opens Updates. Approved tutors remain limited to parents in their current tuition assignments. Inbox activation, passphrases, device linking, public-key APIs, encryption code and encryption labels are removed. Recipients cannot reply and only the authenticated recipient can acknowledge a read; the first server timestamp remains immutable.
