@@ -122,8 +122,51 @@ func TestMongoStaffOperations(t *testing.T) {
 		auth := created.ok("POST", "/auth/login", map[string]any{"email": email, "password": pass}, 200)
 		created.csrf = auth["csrf"].(string)
 		created.ok("GET", "/staff/overview", nil, 200)
+		admin.ok("POST", "/staff/members/"+id+"/action", map[string]any{"action": "suspend", "reason": "Pause mentor access during founder review."}, 200)
+		created.ok("GET", "/staff/overview", nil, 403)
+		created.ok("POST", "/auth/login", map[string]any{"email": email, "password": pass}, 403)
+		admin.ok("POST", "/staff/members/"+id+"/action", map[string]any{"action": "activate", "reason": "Founder review is complete; restore mentor access."}, 200)
+		auth = created.ok("POST", "/auth/login", map[string]any{"email": email, "password": pass}, 200)
+		created.csrf = auth["csrf"].(string)
+		admin.ok("POST", "/staff/members/"+id+"/action", map[string]any{"action": "delete", "reason": "Deactivate mentor login while retaining historical audit records."}, 200)
+		created.ok("POST", "/auth/login", map[string]any{"email": email, "password": pass}, 403)
 		admin.ok("POST", "/staff/members", body, 409)
 		mentor.ok("POST", "/staff/members", map[string]any{"name": "Peer Mentor", "email": "peer-mentor@example.test", "password": pass, "reason": "Mentors cannot provision other mentor logins."}, 403)
+		mentor.ok("POST", "/staff/members/"+id+"/action", map[string]any{"action": "activate", "reason": "Mentors cannot restore staff accounts."}, 403)
+	})
+	t.Run("administrator sees founder report and family records", func(t *testing.T) {
+		if _, e := s.C("learners").InsertOne(ctx, domain.Learner{ID: "founder-learner", OwnerID: "parent-a", Name: "Founder report learner", Class: 7, Board: "CBSE", Language: "English", Kind: "minor"}); e != nil {
+			t.Fatal(e)
+		}
+		if _, e := s.C("enrollments").InsertOne(ctx, domain.Enrollment{ID: "founder-enrollment", OwnerID: "parent-a", LearnerID: "founder-learner", LearnerName: "Founder report learner", Class: 7, TutorID: "tutor-meera", TutorName: "Meera sample", MentorID: "mentor-a", Status: "active", Agreement: domain.Agreement{ID: "founder-agreement", EnrollmentID: "founder-enrollment", Version: 1, TutorID: "tutor-meera", Subject: "Mathematics", Mode: "online", Timezone: "Asia/Kolkata", SessionCount: 8, Minutes: 60, FeePerSessionPaise: 50000, TotalPaise: 400000, Currency: "INR", CancellationHours: 24, Terms: "Founder report test agreement.", TermsVersion: "test", CreatedAt: now}, Version: 1, CreatedAt: now}); e != nil {
+			t.Fatal(e)
+		}
+		if _, e := s.C("payment_intents").InsertOne(ctx, domain.PaymentIntent{ID: "founder-payment", OwnerID: "parent-a", EnrollmentID: "founder-enrollment", Amount: 400000, Currency: "INR", State: "captured", PaymentID: "pay_founder", Refunded: 50000, CreatedAt: now}); e != nil {
+			t.Fatal(e)
+		}
+		report := admin.ok("GET", "/admin/founder", nil, 200)
+		revenue := report["revenue"].(map[string]any)
+		if revenue["grossPaise"].(float64) < 400000 || revenue["netPaise"].(float64) < 350000 {
+			t.Fatalf("founder revenue missing payment: %#v", revenue)
+		}
+		metrics := report["metrics"].(map[string]any)
+		if metrics["parents"].(float64) < 2 || metrics["learners"].(float64) < 1 || metrics["paidEnrollments"].(float64) < 1 {
+			t.Fatalf("founder metrics missing records: %#v", metrics)
+		}
+		families := admin.ok("GET", "/admin/families", nil, 200)
+		items := families["items"].([]any)
+		found := false
+		for _, raw := range items {
+			item := raw.(map[string]any)
+			if item["parentId"] == "parent-a" && len(item["learners"].([]any)) > 0 && item["paidEnrollments"].(float64) >= 1 {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("parent and learner details missing: %#v", items)
+		}
+		mentor.ok("GET", "/admin/founder", nil, 403)
+		mentor.ok("GET", "/admin/families", nil, 403)
 	})
 	t.Run("administrator review requires conflict declaration and a genuine scheduled interview", func(t *testing.T) {
 		admin.decide("tutor-a", map[string]any{"action": "review", "conflictClear": true}, 200)

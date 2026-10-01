@@ -3912,6 +3912,75 @@
         }
       }
     },
+    "/staff/members/{id}/action": {
+      "post": {
+        "operationId": "post__staff_members__id__action",
+        "summary": "POST /staff/members/{id}/action",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffMemberAction"
+              }
+            }
+          }
+        }
+      }
+    },
     "/staff/events": {
       "get": {
         "operationId": "get__staff_events",
@@ -4081,6 +4150,83 @@
             }
           }
         }
+      }
+    },
+    "/admin/founder": {
+      "get": {
+        "operationId": "get__admin_founder",
+        "summary": "GET /admin/founder",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FounderReport"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/admin/families": {
+      "get": {
+        "operationId": "get__admin_families",
+        "summary": "GET /admin/families",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFamilies"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/inbox/status": {
@@ -7388,7 +7534,8 @@
         "required": [
           "id",
           "name",
-          "role"
+          "role",
+          "status"
         ],
         "properties": {
           "id": {
@@ -7398,6 +7545,9 @@
             "type": "string"
           },
           "role": {
+            "type": "string"
+          },
+          "status": {
             "type": "string"
           }
         }
@@ -7418,6 +7568,30 @@
           },
           "nextCursor": {
             "type": "string"
+          }
+        }
+      },
+      "StaffMemberAction": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "reason"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "activate",
+              "suspend",
+              "deactivate",
+              "delete"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
           }
         }
       },
@@ -7465,6 +7639,131 @@
             "$ref": "#/components/schemas/StaffMember"
           },
           "email": {
+            "type": "string"
+          }
+        }
+      },
+      "FounderRevenue": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "grossPaise",
+          "refundedPaise",
+          "netPaise"
+        ],
+        "properties": {
+          "grossPaise": {
+            "type": "integer"
+          },
+          "refundedPaise": {
+            "type": "integer"
+          },
+          "netPaise": {
+            "type": "integer"
+          }
+        }
+      },
+      "FounderReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metrics",
+          "tutorStatus",
+          "mentorStatus",
+          "enrollmentStatus",
+          "revenue"
+        ],
+        "properties": {
+          "metrics": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "tutorStatus": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "mentorStatus": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "enrollmentStatus": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/FounderRevenue"
+          }
+        }
+      },
+      "AdminFamily": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "parentId",
+          "parentName",
+          "parentEmail",
+          "sample",
+          "learners",
+          "enrollmentStatus",
+          "paidEnrollments",
+          "unpaidEnrollments"
+        ],
+        "properties": {
+          "parentId": {
+            "type": "string"
+          },
+          "parentName": {
+            "type": "string"
+          },
+          "parentEmail": {
+            "type": "string"
+          },
+          "sample": {
+            "type": "boolean"
+          },
+          "learners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Learner"
+            }
+          },
+          "enrollmentStatus": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "paidEnrollments": {
+            "type": "integer"
+          },
+          "unpaidEnrollments": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminFamilies": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminFamily"
+            }
+          },
+          "nextCursor": {
             "type": "string"
           }
         }

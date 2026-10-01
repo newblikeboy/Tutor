@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
   ArrowRight,
+  BarChart3,
   CalendarDays,
   Check,
   ClipboardCheck,
@@ -13,6 +14,7 @@ import {
   RefreshCw,
   ShieldCheck,
   UserPlus,
+  Users,
   Video,
 } from 'lucide-react'
 import { api, indiaDate, queryClient, send, type Application, type Schema } from '../lib/api'
@@ -119,6 +121,10 @@ export default function StaffWorkspace() {
         <StaffOverview queueView={queueView} />
       ) : view === 'team' ? (
         <MentorAccounts />
+      ) : view === 'families' ? (
+        <AdminFamilies />
+      ) : view === 'reports' ? (
+        <FounderReports />
       ) : view === 'audit' ? (
         <History />
       ) : (
@@ -167,6 +173,16 @@ export default function StaffWorkspace() {
 function MentorAccounts() {
   const { t } = useTranslation()
   const query = useStaffPage<Schema['StaffMembers']>('/staff/members')
+  const action = useMutation({
+    mutationFn: ({ id, next }: { id: string; next: Schema['StaffMemberAction']['action'] }) =>
+      send(`/staff/members/${encodeURIComponent(id)}/action`, {
+        action: next,
+        reason: 'Founder changed mentor account status from the admin workspace.',
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['staff', '/staff/members'] })
+    },
+  })
   const [form, setForm] = useState({ name: '', email: '', password: '', reason: '' })
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<unknown>(null)
@@ -272,7 +288,40 @@ function MentorAccounts() {
                 </span>
                 <div className="staff-row-person">
                   <strong>{member.name}</strong>
-                  <p>{t('desk.roles.mentor')}</p>
+                  <p>
+                    {t('desk.roles.mentor')} · {t(`staffOps.mentorStatus.${member.status}`)}
+                  </p>
+                </div>
+                <div className="staff-row-actions">
+                  {member.status === 'active' ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        busy={action.isPending}
+                        onClick={() => action.mutate({ id: member.id, next: 'suspend' })}
+                      >
+                        {t('staffOps.suspendMentor')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        busy={action.isPending}
+                        onClick={() => action.mutate({ id: member.id, next: 'deactivate' })}
+                      >
+                        {t('staffOps.deactivateMentor')}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      busy={action.isPending}
+                      onClick={() => action.mutate({ id: member.id, next: 'activate' })}
+                    >
+                      {t('staffOps.activateMentor')}
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -280,6 +329,7 @@ function MentorAccounts() {
         ) : (
           <Empty title={t('staffOps.noMentors')} />
         )}
+        <MutationError error={action.error} />
         {query.hasNextPage && (
           <Button
             type="button"
@@ -293,6 +343,150 @@ function MentorAccounts() {
       </section>
     </div>
   )
+}
+
+function FounderReports() {
+  const { t } = useTranslation()
+  const query = useQuery({
+    queryKey: ['staff', 'founder-report'],
+    queryFn: ({ signal }) => api<Schema['FounderReport']>('/admin/founder', { signal }),
+  })
+  if (query.isPending) return <Loading />
+  if (query.isError) return <LoadError retry={() => void query.refetch()} />
+  const report = query.data
+  const cards = [
+    ['parents', 'founderParents'],
+    ['learners', 'founderLearners'],
+    ['approvedTutors', 'founderApprovedTutors'],
+    ['onboardingTutors', 'founderOnboarding'],
+    ['paidEnrollments', 'founderPaid'],
+    ['unpaidEnrollments', 'founderUnpaid'],
+    ['notEnrolledParents', 'founderNotEnrolled'],
+  ] as const
+  return (
+    <div className="staff-report">
+      <section className="staff-panel">
+        <div className="staff-section-title">
+          <div>
+            <h2>{t('staffOps.founderReportTitle')}</h2>
+            <p>{t('staffOps.founderReportBody')}</p>
+          </div>
+          <BarChart3 size={22} aria-hidden="true" />
+        </div>
+        <div className="staff-report-cards">
+          <article className="staff-report-card accent">
+            <span>{t('staffOps.revenueGenerated')}</span>
+            <strong>{formatINR(report.revenue.netPaise)}</strong>
+            <p>
+              {t('staffOps.grossRevenue', { amount: formatINR(report.revenue.grossPaise) })} ·{' '}
+              {t('staffOps.refundedRevenue', { amount: formatINR(report.revenue.refundedPaise) })}
+            </p>
+          </article>
+          {cards.map(([key, label]) => (
+            <article className="staff-report-card" key={key}>
+              <span>{t(`staffOps.${label}`)}</span>
+              <strong>{report.metrics[key] ?? 0}</strong>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="staff-panel">
+        <div className="staff-section-title">
+          <h2>{t('staffOps.pipelineBreakdown')}</h2>
+          <GraduationCap size={22} aria-hidden="true" />
+        </div>
+        <Breakdown title={t('staffOps.tutorStatuses')} values={report.tutorStatus} />
+        <Breakdown title={t('staffOps.mentorStatuses')} values={report.mentorStatus} />
+        <Breakdown title={t('staffOps.enrollmentStatuses')} values={report.enrollmentStatus} />
+      </section>
+    </div>
+  )
+}
+
+function AdminFamilies() {
+  const { t } = useTranslation()
+  const query = useStaffPage<Schema['AdminFamilies']>('/admin/families')
+  const families = query.data?.pages.flatMap((page) => page.items) ?? []
+  if (query.isPending) return <Loading />
+  if (query.isError) return <LoadError retry={() => void query.refetch()} />
+  return (
+    <section className="staff-panel">
+      <div className="staff-section-title">
+        <div>
+          <h2>{t('staffOps.familiesTitle')}</h2>
+          <p>{t('staffOps.familiesBody')}</p>
+        </div>
+        <Users size={22} aria-hidden="true" />
+      </div>
+      {families.length ? (
+        <div className="staff-family-list">
+          {families.map((family) => (
+            <article className="staff-family-card" key={family.parentId}>
+              <div>
+                <strong>{family.parentName}</strong>
+                <p>{family.parentEmail || t('staffOps.noEmail')}</p>
+              </div>
+              <dl>
+                <div>
+                  <dt>{t('staffOps.children')}</dt>
+                  <dd>{family.learners.length}</dd>
+                </div>
+                <div>
+                  <dt>{t('staffOps.paidEnrollments')}</dt>
+                  <dd>{family.paidEnrollments}</dd>
+                </div>
+                <div>
+                  <dt>{t('staffOps.unpaidEnrollments')}</dt>
+                  <dd>{family.unpaidEnrollments}</dd>
+                </div>
+              </dl>
+              {family.learners.length > 0 && (
+                <ul>
+                  {family.learners.map((learner) => (
+                    <li key={learner.id}>
+                      {learner.name} · {t('classes')} {learner.class} · {learner.board}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <Empty title={t('staffOps.noFamilies')} />
+      )}
+      {query.hasNextPage && (
+        <Button
+          type="button"
+          variant="text"
+          busy={query.isFetchingNextPage}
+          onClick={() => void query.fetchNextPage()}
+        >
+          {t('staffOps.more')}
+        </Button>
+      )}
+    </section>
+  )
+}
+
+function Breakdown({ title, values }: { title: string; values: Record<string, number> }) {
+  const entries = Object.entries(values).filter(([, count]) => count > 0)
+  if (!entries.length) return null
+  return (
+    <div className="staff-breakdown">
+      <h3>{title}</h3>
+      {entries.map(([key, count]) => (
+        <span key={key}>
+          <strong>{count}</strong>
+          {key.replaceAll('_', ' ')}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function formatINR(paise: number) {
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(paise / 100)
 }
 
 function StaffOverview({ queueView }: { queueView: string }) {

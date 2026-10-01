@@ -20,8 +20,12 @@ export function staffContract(schemas, route, paths) {
   })
   schemas.Application.required.push('interview', 'conflictClear', 'mentorId')
   Object.assign(schemas, {
-    StaffMember: obj({ id: s, name: s, role: s }),
+    StaffMember: obj({ id: s, name: s, role: s, status: s }),
     StaffMembers: page('StaffMember'),
+    StaffMemberAction: obj({
+      action: { type: 'string', enum: ['activate', 'suspend', 'deactivate', 'delete'] },
+      reason: { ...s, minLength: 10, maxLength: 1000 },
+    }),
     StaffProvisionInput: obj({
       name: { ...s, minLength: 2, maxLength: 80 },
       email: { ...s, format: 'email', maxLength: 254 },
@@ -29,6 +33,25 @@ export function staffContract(schemas, route, paths) {
       reason: { ...s, minLength: 10, maxLength: 1000 },
     }),
     StaffProvisioned: obj({ member: ref('StaffMember'), email: s }),
+    FounderRevenue: obj({ grossPaise: n, refundedPaise: n, netPaise: n }),
+    FounderReport: obj({
+      metrics: { type: 'object', additionalProperties: n },
+      tutorStatus: { type: 'object', additionalProperties: n },
+      mentorStatus: { type: 'object', additionalProperties: n },
+      enrollmentStatus: { type: 'object', additionalProperties: n },
+      revenue: ref('FounderRevenue'),
+    }),
+    AdminFamily: obj({
+      parentId: s,
+      parentName: s,
+      parentEmail: s,
+      sample: b,
+      learners: { type: 'array', items: ref('Learner') },
+      enrollmentStatus: { type: 'object', additionalProperties: n },
+      paidEnrollments: n,
+      unpaidEnrollments: n,
+    }),
+    AdminFamilies: page('AdminFamily'),
     StaffApplications: page('Application'),
     StaffOverview: obj({
       counts: { type: 'object', additionalProperties: n },
@@ -110,14 +133,18 @@ export function staffContract(schemas, route, paths) {
   route('/staff/applications/{id}', 'get', 'StaffDetail')
   route('/staff/members', 'get', 'StaffMembers')
   route('/staff/members', 'post', 'StaffProvisioned', 'StaffProvisionInput')
+  route('/staff/members/{id}/action', 'post', 'OK', 'StaffMemberAction')
   route('/staff/events', 'get', 'StaffEvents')
   route('/staff/followups', 'get', 'TutorFollowups')
   route('/staff/followups/{id}/resolve', 'post', 'OK', 'ResolveFollowup')
+  route('/admin/founder', 'get', 'FounderReport')
+  route('/admin/families', 'get', 'AdminFamilies')
   for (const [path, names] of [
     ['/staff/applications', ['kind', 'status', 'q', 'assignee', 'cursor']],
     ['/staff/members', ['cursor']],
     ['/staff/events', ['application', 'cursor']],
     ['/staff/followups', ['status', 'cursor']],
+    ['/admin/families', ['cursor']],
   ]) {
     paths[path].get.parameters.push(
       ...names.map((name) => ({ name, in: 'query', required: false, schema: s })),

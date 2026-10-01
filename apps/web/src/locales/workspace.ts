@@ -20,6 +20,8 @@ export const workspaceEN = {
       reviews: 'Lesson reviews',
       tutors: 'Tutor network',
       team: 'Mentor logins',
+      families: 'Families',
+      reports: 'Founder report',
       audit: 'Decision history',
       applications: 'Applications',
       interviews: 'Interviews',

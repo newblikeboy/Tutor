@@ -1050,6 +1050,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/members/{id}/action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /staff/members/{id}/action */
+        post: operations["post__staff_members__id__action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/events": {
         parameters: {
             query?: never;
@@ -1095,6 +1112,40 @@ export interface paths {
         put?: never;
         /** POST /staff/followups/{id}/resolve */
         post: operations["post__staff_followups__id__resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/founder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /admin/founder */
+        get: operations["get__admin_founder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/families": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /admin/families */
+        get: operations["get__admin_families"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1972,10 +2023,16 @@ export interface components {
             id: string;
             name: string;
             role: string;
+            status: string;
         };
         StaffMembers: {
             items: components["schemas"]["StaffMember"][];
             nextCursor: string;
+        };
+        StaffMemberAction: {
+            /** @enum {string} */
+            action: "activate" | "suspend" | "deactivate" | "delete";
+            reason: string;
         };
         StaffProvisionInput: {
             name: string;
@@ -1987,6 +2044,42 @@ export interface components {
         StaffProvisioned: {
             member: components["schemas"]["StaffMember"];
             email: string;
+        };
+        FounderRevenue: {
+            grossPaise: number;
+            refundedPaise: number;
+            netPaise: number;
+        };
+        FounderReport: {
+            metrics: {
+                [key: string]: number;
+            };
+            tutorStatus: {
+                [key: string]: number;
+            };
+            mentorStatus: {
+                [key: string]: number;
+            };
+            enrollmentStatus: {
+                [key: string]: number;
+            };
+            revenue: components["schemas"]["FounderRevenue"];
+        };
+        AdminFamily: {
+            parentId: string;
+            parentName: string;
+            parentEmail: string;
+            sample: boolean;
+            learners: components["schemas"]["Learner"][];
+            enrollmentStatus: {
+                [key: string]: number;
+            };
+            paidEnrollments: number;
+            unpaidEnrollments: number;
+        };
+        AdminFamilies: {
+            items: components["schemas"]["AdminFamily"][];
+            nextCursor: string;
         };
         StaffApplications: {
             items: components["schemas"]["Application"][];
@@ -4674,6 +4767,44 @@ export interface operations {
             };
         };
     };
+    post__staff_members__id__action: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffMemberAction"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     get__staff_events: {
         parameters: {
             query?: {
@@ -4763,6 +4894,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__admin_founder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FounderReport"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__admin_families: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminFamilies"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */

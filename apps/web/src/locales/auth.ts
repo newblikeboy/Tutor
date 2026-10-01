@@ -71,6 +71,7 @@ export const authEN = {
   authUnavailable: 'Account access is currently unavailable. Please try again later.',
   authSignedIn: 'You’re signed in as {{name}}.',
   authInvalidCredentials: 'That email and password don’t match. Please check them and try again.',
+  accountInactive: 'This account is inactive. Contact the administrator.',
   authSignupUnavailable:
     'We couldn’t create this account. If you already have one, try signing in.',
   authWeakPassword: 'Choose a less common passphrase with 8–128 characters.',

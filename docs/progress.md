@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-10-01: founder admin controls and role split
+
+Administrator permissions now match the founder/control-room role more closely. Admins can create mentor logins, suspend active mentors, restore suspended/deactivated mentors and deactivate mentors without deleting historical audit records. Mentor status changes increment `authVersion`, remove active sessions and block new login/session access while suspended or deactivated. Inactive mentors are excluded from future reviewer/academic-mentor selection.
+
+The admin workspace now has Families and Founder report views. Families shows parent accounts with child profiles and paid/unpaid enrollment counts. Founder report shows real counts for parents, learners, approved tutors, tutors in onboarding, paid/unpaid enrollments, tutor status, mentor status, enrollment status and revenue generated from saved captured/refund-review payment records. Mentor work remains focused on interview, assessment and assigned tutor approval; admin-only controls cover eligibility, tutor lifecycle, mentor account status, family visibility and financial reporting.
+
+Validation: `go test ./...`, `go vet ./...`, regenerated OpenAPI/TypeScript schemas, `npm run typecheck`, `npm run lint` and `npm run build` passed. API coverage verifies admin-only mentor status changes, session revocation, inactive-login denial, founder revenue/counts and admin-only family visibility. No production account was changed and no deployment was performed.
+
 ## 2026-10-01: admin-created mentor logins
 
 Administrators can now create mentor login IDs from the staff workspace without using the server CLI for routine academic-mentor onboarding. The new admin-only `POST /api/v1/staff/members` endpoint reuses the existing staff provisioning service, fixes the role to `mentor`, normalises the email login ID, stores an Argon2id password hash, creates a non-sample staff user and records the existing `staff.provisioned` audit event with the administrator as operator. Duplicate staff emails return a specific conflict error. Public signup remains parent/tutor only, mentors cannot create accounts, and admin/support/finance staff provisioning remains CLI-only.

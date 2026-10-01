@@ -37,9 +37,35 @@ func (a Application) AcademicMentor() string {
 }
 
 type StaffMember struct {
-	ID   string `json:"id" bson:"_id"`
-	Name string `json:"name" bson:"name"`
-	Role string `json:"role" bson:"role"`
+	ID     string `json:"id" bson:"_id"`
+	Name   string `json:"name" bson:"name"`
+	Role   string `json:"role" bson:"role"`
+	Status string `json:"status" bson:"status,omitempty"`
+}
+
+type AdminFamily struct {
+	ParentID          string           `json:"parentId"`
+	ParentName        string           `json:"parentName"`
+	ParentEmail       string           `json:"parentEmail"`
+	Sample            bool             `json:"sample"`
+	Learners          []Learner        `json:"learners"`
+	EnrollmentStatus  map[string]int64 `json:"enrollmentStatus"`
+	PaidEnrollments   int64            `json:"paidEnrollments"`
+	UnpaidEnrollments int64            `json:"unpaidEnrollments"`
+}
+
+type FounderRevenue struct {
+	GrossPaise    int64 `json:"grossPaise"`
+	RefundedPaise int64 `json:"refundedPaise"`
+	NetPaise      int64 `json:"netPaise"`
+}
+
+type FounderReport struct {
+	Metrics          map[string]int64 `json:"metrics"`
+	TutorStatus      map[string]int64 `json:"tutorStatus"`
+	MentorStatus     map[string]int64 `json:"mentorStatus"`
+	EnrollmentStatus map[string]int64 `json:"enrollmentStatus"`
+	Revenue          FounderRevenue   `json:"revenue"`
 }
 
 type TutorFollowup struct {

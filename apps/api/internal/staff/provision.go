@@ -44,7 +44,7 @@ func Provision(ctx context.Context, s *storage.Store, in Input) (domain.User, er
 		return domain.User{}, e
 	}
 	id := hex.EncodeToString(random[:])
-	u := domain.User{ID: id, Name: in.Name, Email: email, Role: in.Role, Sample: false}
+	u := domain.User{ID: id, Name: in.Name, Email: email, Role: in.Role, Status: "active", Sample: false}
 	if e = s.Tx(ctx, func(ctx context.Context) error {
 		if _, e := s.C("credentials").InsertOne(ctx, bson.M{"_id": email, "userId": id, "passwordHash": hash}); e != nil {
 			return e

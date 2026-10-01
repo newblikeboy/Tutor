@@ -192,6 +192,11 @@ func (a *App) staffMembers(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
+	for i := range p.Items {
+		if p.Items[i].Status == "" {
+			p.Items[i].Status = "active"
+		}
+	}
 	a.json(w, 200, p)
 }
 
@@ -231,7 +236,7 @@ func (a *App) createStaffMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.json(w, 201, map[string]any{
-		"member": domain.StaffMember{ID: created.ID, Name: created.Name, Role: created.Role},
+		"member": domain.StaffMember{ID: created.ID, Name: created.Name, Role: created.Role, Status: created.Status},
 		"email":  created.Email,
 	})
 }
@@ -463,7 +468,7 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			if assessor == id {
 				return domain.Fail(403, "self_assessment", "An applicant cannot assess themselves.")
 			}
-			if _, e = storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": assessor, "role": bson.M{"$in": []string{"mentor", "admin"}}}); e != nil {
+			if _, e = storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": assessor, "role": bson.M{"$in": []string{"mentor", "admin"}}, "$or": activeStaffFilter()["$or"]}); e != nil {
 				return domain.Fail(422, "validation", "Choose a provisioned academic reviewer.")
 			}
 			if in.Action == "review" && !in.ConflictClear {
@@ -580,7 +585,7 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			if mentorID == "" && u.Role == "mentor" {
 				mentorID = u.ID
 			}
-			if _, e = storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": mentorID, "role": "mentor"}); e != nil {
+			if _, e = storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": mentorID, "role": "mentor", "$or": activeStaffFilter()["$or"]}); e != nil {
 				return domain.Fail(422, "validation", "Choose the academic mentor who will support this tutor's learners.")
 			}
 			v.MentorID = mentorID

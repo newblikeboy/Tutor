@@ -106,6 +106,9 @@ func (a *App) sessionMethod() string {
 }
 
 func (a *App) accountAccessError(u domain.User) error {
+	if enum(u.Status, "suspended", "deactivated") {
+		return domain.Fail(403, "account_inactive", "This account is inactive. Contact the administrator.")
+	}
 	if a.Config.Env != "production" {
 		return nil
 	}
