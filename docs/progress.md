@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-10-02: compact private menu headers
+
+Private workspace menus now use less vertical space before their real work areas. Account, Payments & records, Support & requests and Find Tutor keep accessible page titles without rendering large repeated heading blocks. Workspace and staff menu headings no longer show decorative eyebrow or intro copy, the shared private heading size is reduced, and Documents/Messages panels no longer repeat short explanatory text under their section titles.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema, production data, permissions or deployment was changed in this checkpoint.
+
 ## 2026-10-02: compact Updates layout
 
 The Updates page now uses a compact top toolbar so the Inbox/Sent/Activity tabs and message list sit higher on the page. The redundant eyebrow, large repeated title, introductory sentence, compose one-way explanation, empty-state one-way badge and message-detail one-way note were removed from the rendered interface. The New update action remains available for roles that can send updates.

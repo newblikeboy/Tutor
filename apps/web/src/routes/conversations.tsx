@@ -49,7 +49,6 @@ export function Conversation({ enrollment }: { enrollment: Schema['Enrollment'] 
         <MessageCircle />
         <div>
           <h2>{t('tuition.messages')}</h2>
-          <p>{t('tuition.messagesIntro')}</p>
         </div>
       </div>
       {q.isPending ? (

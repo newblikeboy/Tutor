@@ -98,7 +98,6 @@ export default function StaffWorkspace() {
     <div className={`desk-content staff-content desk-view-${view}`} data-role={role}>
       <div className="desk-page-heading staff-page-heading">
         <div>
-          <p className="desk-eyebrow">{t('staffOps.label')}</p>
           <h1>
             {application
               ? t('staffOps.applications')

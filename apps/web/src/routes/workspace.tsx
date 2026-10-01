@@ -56,25 +56,10 @@ function WorkspaceData() {
     )
   const d = q.data
   const view = workspaceView(d.user.role, params.get('view'))
-  const intro =
-    view === 'overview'
-      ? `desk.${d.user.role}Intro`
-      : (
-          {
-            learners: 'desk.learnersIntro',
-            sessions: 'desk.sessionIntro',
-            progress: 'desk.progressIntro',
-            assessments: 'desk.assessmentIntro',
-            reviews: 'desk.reviewsIntro',
-            tutors: 'desk.tutorsIntro',
-            audit: 'desk.auditIntro',
-          } as Record<string, string>
-        )[view]
   return (
     <div className={`desk-content desk-view-${view}`} data-role={d.user.role}>
       <div className="desk-page-heading">
         <div>
-          <p className="desk-eyebrow">{t('desk.greeting', { name: d.user.name })}</p>
           <h1>
             {['parent', 'tutor'].includes(d.user.role)
               ? t(`parent.nav.${view}`)
@@ -82,7 +67,6 @@ function WorkspaceData() {
                 ? t(`desk.${d.user.role}Title`)
                 : t(`desk.nav.${view}`)}
           </h1>
-          {!['parent', 'tutor'].includes(d.user.role) && <p>{t(intro)}</p>}
         </div>
         <div className="desk-page-actions">
           <Button

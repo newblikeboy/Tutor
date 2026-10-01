@@ -125,7 +125,6 @@ export function PrivateFiles({
         <FileText size={26} aria-hidden="true" />
         <div>
           <h2>{t('files.title')}</h2>
-          <p>{t(target === 'applications' ? 'files.applicationIntro' : 'files.intro')}</p>
         </div>
       </div>
       {config.isError ? (

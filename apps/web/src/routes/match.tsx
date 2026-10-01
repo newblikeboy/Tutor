@@ -20,7 +20,6 @@ import {
   Loading,
   LoadError,
   MutationError,
-  PageHeading,
 } from '../components/ui'
 export default function Match() {
   const { t } = useTranslation()
@@ -36,7 +35,7 @@ export default function Match() {
         <ArrowLeft size={16} aria-hidden="true" />
         {t('parent.back')}
       </Link>
-      <PageHeading title={t('parent.start')} />
+      <h1 className="sr-only">{t('parent.start')}</h1>
       {auth.isPending ? (
         <Loading />
       ) : !auth.data ? (

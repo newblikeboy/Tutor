@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ShieldCheck, Monitor } from 'lucide-react'
+import { Monitor } from 'lucide-react'
 import { api, send, setCSRF, queryClient, indiaDate, type Schema } from '../lib/api'
 import { Alert, Button, Field, Loading, LoadError, MutationError } from '../components/ui'
 import '../styles/tuition.css'
@@ -20,14 +20,7 @@ export default function Account() {
   })
   return (
     <div className="tu-page account-page">
-      <header className="tu-heading">
-        <div>
-          <h1>{t('account.title')}</h1>
-        </div>
-        <span className="tu-book">
-          <ShieldCheck aria-hidden="true" />
-        </span>
-      </header>
+      <h1 className="sr-only">{t('account.title')}</h1>
       <TabBar
         id="account"
         label={t('account.title')}

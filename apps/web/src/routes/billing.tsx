@@ -206,12 +206,9 @@ export default function Billing() {
     return <Alert>{t('permission')}</Alert>
   return (
     <div className="tu-page">
-      <header className="tu-heading">
-        <div>
-          <p className="eyebrow">{t('desk.privateSpace')}</p>
-          <h1>{t(auth.data?.user.role === 'parent' ? 'parent.payments' : 'billing.title')}</h1>
-        </div>
-      </header>
+      <h1 className="sr-only">
+        {t(auth.data?.user.role === 'parent' ? 'parent.payments' : 'billing.title')}
+      </h1>
       {id ? (
         <PaymentDetail id={id} />
       ) : ['admin', 'finance'].includes(auth.data!.user.role) ? (

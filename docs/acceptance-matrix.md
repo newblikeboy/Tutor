@@ -1,5 +1,7 @@
 # Requirement → implementation → acceptance evidence
 
+Latest private-menu layout checkpoint: private workspace pages now remove repeated decorative headings/intro text from Account, Payments & records, Support & requests, Find Tutor, Documents and Messages; workspace/staff headings are compact so tabs and lists sit higher. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
+
 Latest Updates layout checkpoint: the Updates page now has a compact tab/action toolbar and no rendered one-way eyebrow, repeated page title, intro sentence or one-way helper notes. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
 
 Latest support-copy checkpoint: visible support/case copy no longer says development inbox, operator staffing pending, development preview or not-live service. Request inbox/support wording is production-style while retaining a limited emergency boundary. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, ArrowUpRight, LifeBuoy, LockKeyhole, Plus } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, LockKeyhole, Plus } from 'lucide-react'
 import { api, send, queryClient, indiaDate, type Schema } from '../lib/api'
 import { useAuth } from '../lib/session'
 import {
@@ -28,15 +28,7 @@ export default function Cases() {
     { id } = useParams()
   return (
     <div className="tu-page">
-      <header className="tu-heading">
-        <div>
-          <h1>{t(customer ? 'parent.help' : 'cases.title')}</h1>
-          {!customer && <p>{t('cases.intro')}</p>}
-        </div>
-        <span className="tu-book">
-          <LifeBuoy aria-hidden="true" />
-        </span>
-      </header>
+      <h1 className="sr-only">{t(customer ? 'parent.help' : 'cases.title')}</h1>
       {id ? <CaseDetail id={id} /> : <CaseList />}
     </div>
   )
