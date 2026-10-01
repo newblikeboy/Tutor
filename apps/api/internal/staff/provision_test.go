@@ -27,7 +27,7 @@ func TestMongoStaffProvisioning(t *testing.T) {
 		t.Fatal(e)
 	}
 	in := Input{Name: "Fictional scoped operator", Email: "  Staff.Test@Example.test ", Role: "support", Password: "Provisioning test passphrase 527!", Operator: "test-operator", Reason: "Provision support-only test operator."}
-	if e = Provision(ctx, s, in); e != nil {
+	if _, e = Provision(ctx, s, in); e != nil {
 		t.Fatal(e)
 	}
 	u, e := storage.One[domain.User](ctx, s, "users", bson.M{"email": "staff.test@example.test"})
@@ -44,7 +44,7 @@ func TestMongoStaffProvisioning(t *testing.T) {
 		t.Fatal("missing audit")
 	}
 	in.Role = "admin"
-	if e = Provision(ctx, s, in); e == nil {
+	if _, e = Provision(ctx, s, in); e == nil {
 		t.Fatal("existing account overwritten")
 	}
 	u, _ = storage.One[domain.User](ctx, s, "users", bson.M{"_id": u.ID})
@@ -53,7 +53,7 @@ func TestMongoStaffProvisioning(t *testing.T) {
 	}
 	in.Email = "another@example.test"
 	in.Role = "tutor"
-	if e = Provision(ctx, s, in); e == nil {
+	if _, e = Provision(ctx, s, in); e == nil {
 		t.Fatal("public role accepted by staff tool")
 	}
 }

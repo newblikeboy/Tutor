@@ -193,6 +193,7 @@ function route(path, method, response, request, publicRoute = false, isArray = f
         '/consents',
         '/learners',
         '/requirements',
+        '/staff/members',
         '/trials',
         '/enrollments',
         '/enrollments/{id}/plans',

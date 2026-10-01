@@ -60,6 +60,12 @@
   gap: 24px;
   align-items: start;
 }
+.staff-team-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 24px;
+  align-items: start;
+}
 .staff-panel {
   background: linear-gradient(150deg, #fff, #fffefa);
   border: 1px solid var(--staff-line);
@@ -88,6 +94,13 @@
   align-items: center;
   gap: 14px;
   margin-bottom: 20px;
+}
+.staff-section-title p {
+  margin: 7px 0 0;
+  max-width: 560px;
+  color: #53685d;
+  font-size: 13px;
+  line-height: 1.55;
 }
 .staff-section-title h2,
 .staff-section-title h3 {
@@ -205,6 +218,18 @@
 .staff-filters input,
 .staff-filters select {
   background: #fffefa;
+}
+.staff-account-form textarea {
+  min-height: 118px;
+}
+.staff-fixed-role {
+  border: 1px solid #d8e0cc;
+  border-radius: 12px;
+  background: #f2f6e8;
+  color: #3f5a4d;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 12px 14px;
 }
 .staff-search {
   position: relative;
@@ -503,6 +528,9 @@
     gap: 12px;
   }
   .staff-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .staff-team-grid {
     grid-template-columns: 1fr;
   }
   .staff-person-heading {

@@ -68,7 +68,7 @@ func main() {
 		fail("Database connection failed")
 	}
 	defer s.Client.Disconnect(context.Background())
-	if e = staff.Provision(ctx, s, in); e != nil {
+	if _, e = staff.Provision(ctx, s, in); e != nil {
 		fail("Staff provisioning failed; check fields/password policy and existing account. No existing account was replaced.")
 	}
 	fmt.Println("Staff account provisioned with an audit record. No invitation was sent.")

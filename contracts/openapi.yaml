@@ -3851,6 +3851,65 @@
             }
           }
         ]
+      },
+      "post": {
+        "operationId": "post__staff_members",
+        "summary": "POST /staff/members",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffProvisioned"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffProvisionInput"
+              }
+            }
+          }
+        }
       }
     },
     "/staff/events": {
@@ -7358,6 +7417,54 @@
             }
           },
           "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "StaffProvisionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "email",
+          "password",
+          "reason"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
+          }
+        }
+      },
+      "StaffProvisioned": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "member",
+          "email"
+        ],
+        "properties": {
+          "member": {
+            "$ref": "#/components/schemas/StaffMember"
+          },
+          "email": {
             "type": "string"
           }
         }

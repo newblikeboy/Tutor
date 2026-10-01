@@ -8,6 +8,7 @@ export type WorkspaceView =
   | 'assessments'
   | 'reviews'
   | 'tutors'
+  | 'team'
   | 'audit'
   | 'applications'
   | 'interviews'
@@ -21,7 +22,7 @@ export function workspaceViews(role: User['role']): WorkspaceView[] {
     case 'mentor':
       return ['overview', 'assessments', 'interviews', 'reviews']
     case 'admin':
-      return ['overview', 'applications', 'interviews', 'tutors', 'followups', 'audit']
+      return ['overview', 'applications', 'interviews', 'tutors', 'followups', 'team', 'audit']
     default:
       return []
   }

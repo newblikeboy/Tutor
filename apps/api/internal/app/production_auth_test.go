@@ -75,7 +75,7 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 	}
 	parent, tutor := newClient(server), newClient(server)
 	call(parent, "POST", "/auth/signup", map[string]any{"name": "Short password", "email": "short@example.test", "password": "Abcd!42", "role": "parent", "adult": true}, 422)
-	if err := staff.Provision(ctx, s, staff.Input{Name: "Short staff", Email: "short-staff@example.test", Role: "admin", Password: "Abcd!42", Operator: "policy-test", Reason: "Reject passwords below the new minimum."}); err == nil {
+	if _, err := staff.Provision(ctx, s, staff.Input{Name: "Short staff", Email: "short-staff@example.test", Role: "admin", Password: "Abcd!42", Operator: "policy-test", Reason: "Reject passwords below the new minimum."}); err == nil {
 		t.Fatal("staff provisioning accepted seven characters")
 	}
 	if v := call(parent, "GET", "/config", nil, 200); v["authEnabled"] != true || v["development"] != false {
@@ -101,7 +101,7 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 	call(tutor, "GET", "/staff/overview", nil, 403)
 	for _, role := range []string{"admin", "mentor", "support", "finance"} {
 		call(parent, "POST", "/auth/signup", map[string]any{"name": "Injected staff", "email": role + "@example.test", "password": accountPassword, "role": role, "adult": true}, 422)
-		if err := staff.Provision(ctx, s, staff.Input{Name: "Fictional " + role, Email: role + "@example.test", Role: role, Password: accountPassword, Operator: "production-auth-test", Reason: "Verify explicitly provisioned staff password access."}); err != nil {
+		if _, err := staff.Provision(ctx, s, staff.Input{Name: "Fictional " + role, Email: role + "@example.test", Role: role, Password: accountPassword, Operator: "production-auth-test", Reason: "Verify explicitly provisioned staff password access."}); err != nil {
 			t.Fatal(err)
 		}
 		c := newClient(server)

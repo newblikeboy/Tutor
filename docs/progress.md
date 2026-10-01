@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-10-01: admin-created mentor logins
+
+Administrators can now create mentor login IDs from the staff workspace without using the server CLI for routine academic-mentor onboarding. The new admin-only `POST /api/v1/staff/members` endpoint reuses the existing staff provisioning service, fixes the role to `mentor`, normalises the email login ID, stores an Argon2id password hash, creates a non-sample staff user and records the existing `staff.provisioned` audit event with the administrator as operator. Duplicate staff emails return a specific conflict error. Public signup remains parent/tutor only, mentors cannot create accounts, and admin/support/finance staff provisioning remains CLI-only.
+
+The admin workspace now includes a Mentor logins page with a create form for mentor name, login email, temporary password and access reason plus a mentor list. Password submission stays local to the form request and is cleared after success; the UI displays the login email, not the password. OpenAPI and generated TypeScript schemas include the new request/response.
+
+Validation: `go test ./...`, `go vet ./...`, generated contract/schema, `npm run typecheck`, `npm run lint` and `npm run build` passed. The API test verifies admin creation, email normalisation, protected credential storage, audit creation, duplicate rejection, non-admin denial and successful login by the newly created mentor. No production account was created and no deployment was performed.
+
 ## 2026-09-26: deployment migration account resolution
 
 The operator's deployment stopped before switching releases. Re-running the migration through systemd returned status 217 (user-credential setup), before the migration binary executed. The deployment script had hard-coded `User=tutor` and `Group=tutor` instead of inspecting the existing service. It now resolves the configured `tutor-api` user, group and supplementary groups before any build, validates the account/group, and uses those credentials for the transient migration. An omitted group uses that user's primary group; an omitted system-service user preserves systemd's existing root default. A missing named user never falls back to root. Dynamic users and failed lookups stop with a clear preflight error. No service accounts or private settings are edited.

@@ -15,6 +15,7 @@ import (
 	"time"
 	"tutorplatform/internal/config"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/password"
 	"tutorplatform/internal/storage"
 )
 
@@ -79,10 +80,50 @@ func TestMongoStaffOperations(t *testing.T) {
 			for _, path := range []string{"/staff/overview", "/staff/applications", "/staff/applications/tutor-a", "/staff/members", "/staff/events", "/staff/followups"} {
 				tc.ok("GET", path, nil, 403)
 			}
+			tc.ok("POST", "/staff/members", map[string]any{"name": "Denied Mentor", "email": "denied-mentor@example.test", "password": testPassword, "reason": "Only administrators can create mentor logins."}, 403)
 		}
 		admin.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "review", "conflictClear": true}, 422)
 		admin.decide("tutor-a", map[string]any{"action": "review"}, 422)
 		mentor.ok("GET", "/staff/events", nil, 403)
+	})
+	t.Run("administrator provisions mentor login", func(t *testing.T) {
+		email := "new.mentor@example.test"
+		pass := "Mentor login passphrase 742!"
+		body := map[string]any{
+			"name":     "New Academic Mentor",
+			"email":    "  NEW.MENTOR@example.test ",
+			"password": pass,
+			"reason":   "Create a mentor login for assigned academic reviews.",
+		}
+		v := admin.ok("POST", "/staff/members", body, 201)
+		if v["email"] != email {
+			t.Fatalf("expected normalized email, got %#v", v["email"])
+		}
+		member := v["member"].(map[string]any)
+		if member["role"] != "mentor" || member["name"] != "New Academic Mentor" || member["id"] == "" {
+			t.Fatalf("unexpected mentor response: %#v", member)
+		}
+		id := member["id"].(string)
+		u, e := storage.One[domain.User](ctx, s, "users", bson.M{"_id": id})
+		if e != nil || u.Role != "mentor" || u.Email != email || u.Sample {
+			t.Fatalf("incorrect mentor account: %#v %v", u, e)
+		}
+		var credential struct {
+			Hash string `bson:"passwordHash"`
+		}
+		if e = s.C("credentials").FindOne(ctx, bson.M{"_id": email}).Decode(&credential); e != nil || !password.Verify(credential.Hash, pass) {
+			t.Fatalf("mentor credential was not protected or saved")
+		}
+		if n, e := s.C("audit").CountDocuments(ctx, bson.M{"target": id, "actor": "operator:admin-a", "action": "staff.provisioned", "role": "mentor"}); e != nil || n != 1 {
+			t.Fatalf("missing mentor provisioning audit: %d %v", n, e)
+		}
+		fresh, _ := cookiejar.New(nil)
+		created := &testClient{t: t, http: &http.Client{Jar: fresh, Timeout: 30 * time.Second}, base: server.URL}
+		auth := created.ok("POST", "/auth/login", map[string]any{"email": email, "password": pass}, 200)
+		created.csrf = auth["csrf"].(string)
+		created.ok("GET", "/staff/overview", nil, 200)
+		admin.ok("POST", "/staff/members", body, 409)
+		mentor.ok("POST", "/staff/members", map[string]any{"name": "Peer Mentor", "email": "peer-mentor@example.test", "password": pass, "reason": "Mentors cannot provision other mentor logins."}, 403)
 	})
 	t.Run("administrator review requires conflict declaration and a genuine scheduled interview", func(t *testing.T) {
 		admin.decide("tutor-a", map[string]any{"action": "review", "conflictClear": true}, 200)

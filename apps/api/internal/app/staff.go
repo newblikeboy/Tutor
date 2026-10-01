@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"tutorplatform/internal/domain"
 	"tutorplatform/internal/meetings"
+	staffprovision "tutorplatform/internal/staff"
 	"tutorplatform/internal/storage"
 )
 
@@ -192,6 +193,47 @@ func (a *App) staffMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.json(w, 200, p)
+}
+
+type staffProvisionInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Reason   string `json:"reason"`
+}
+
+func (a *App) createStaffMember(w http.ResponseWriter, r *http.Request) {
+	if !a.role(w, r, "admin") {
+		return
+	}
+	var in staffProvisionInput
+	if !a.decode(w, r, &in) {
+		return
+	}
+	if e := a.rate(r.Context(), "staff-provision:"+user(r).ID, 8); e != nil {
+		a.error(w, r, e)
+		return
+	}
+	created, e := staffprovision.Provision(r.Context(), a.Store, staffprovision.Input{
+		Name:     in.Name,
+		Email:    in.Email,
+		Password: in.Password,
+		Role:     "mentor",
+		Operator: user(r).ID,
+		Reason:   in.Reason,
+	})
+	if e != nil {
+		if mongo.IsDuplicateKeyError(e) {
+			a.error(w, r, domain.Fail(409, "staff_account_exists", "A staff login already exists for that email."))
+			return
+		}
+		a.error(w, r, e)
+		return
+	}
+	a.json(w, 201, map[string]any{
+		"member": domain.StaffMember{ID: created.ID, Name: created.Name, Role: created.Role},
+		"email":  created.Email,
+	})
 }
 
 // Both new and legacy audit identifiers are ordered by time, then ID. The cursor is bounded.

@@ -19,6 +19,7 @@ export const workspaceEN = {
       assessments: 'Assessments',
       reviews: 'Lesson reviews',
       tutors: 'Tutor network',
+      team: 'Mentor logins',
       audit: 'Decision history',
       applications: 'Applications',
       interviews: 'Interviews',

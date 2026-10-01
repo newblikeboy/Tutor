@@ -22,6 +22,13 @@ export function staffContract(schemas, route, paths) {
   Object.assign(schemas, {
     StaffMember: obj({ id: s, name: s, role: s }),
     StaffMembers: page('StaffMember'),
+    StaffProvisionInput: obj({
+      name: { ...s, minLength: 2, maxLength: 80 },
+      email: { ...s, format: 'email', maxLength: 254 },
+      password: { ...s, minLength: 8, maxLength: 128 },
+      reason: { ...s, minLength: 10, maxLength: 1000 },
+    }),
+    StaffProvisioned: obj({ member: ref('StaffMember'), email: s }),
     StaffApplications: page('Application'),
     StaffOverview: obj({
       counts: { type: 'object', additionalProperties: n },
@@ -102,6 +109,7 @@ export function staffContract(schemas, route, paths) {
   route('/staff/applications', 'get', 'StaffApplications')
   route('/staff/applications/{id}', 'get', 'StaffDetail')
   route('/staff/members', 'get', 'StaffMembers')
+  route('/staff/members', 'post', 'StaffProvisioned', 'StaffProvisionInput')
   route('/staff/events', 'get', 'StaffEvents')
   route('/staff/followups', 'get', 'TutorFollowups')
   route('/staff/followups/{id}/resolve', 'post', 'OK', 'ResolveFollowup')

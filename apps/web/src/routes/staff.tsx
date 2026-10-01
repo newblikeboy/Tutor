@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -12,6 +12,7 @@ import {
   GraduationCap,
   RefreshCw,
   ShieldCheck,
+  UserPlus,
   Video,
 } from 'lucide-react'
 import { api, indiaDate, queryClient, send, type Application, type Schema } from '../lib/api'
@@ -116,6 +117,8 @@ export default function StaffWorkspace() {
         <ApplicationDetail key={application} id={application} />
       ) : view === 'overview' ? (
         <StaffOverview queueView={queueView} />
+      ) : view === 'team' ? (
+        <MentorAccounts />
       ) : view === 'audit' ? (
         <History />
       ) : (
@@ -157,6 +160,137 @@ export default function StaffWorkspace() {
           ))}
         </>
       )}
+    </div>
+  )
+}
+
+function MentorAccounts() {
+  const { t } = useTranslation()
+  const query = useStaffPage<Schema['StaffMembers']>('/staff/members')
+  const [form, setForm] = useState({ name: '', email: '', password: '', reason: '' })
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const [created, setCreated] = useState<Schema['StaffProvisioned'] | null>(null)
+  const mentors =
+    query.data?.pages.flatMap((page) => page.items).filter((m) => m.role === 'mentor') ?? []
+  function edit(field: keyof typeof form, value: string) {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setPending(true)
+    setError(null)
+    setCreated(null)
+    try {
+      const result = await send<Schema['StaffProvisioned']>('/staff/members', form)
+      setCreated(result)
+      setForm({ name: '', email: '', password: '', reason: '' })
+      await queryClient.invalidateQueries({ queryKey: ['staff', '/staff/members'] })
+    } catch (e) {
+      setError(e)
+    } finally {
+      setPending(false)
+    }
+  }
+  return (
+    <div className="staff-team-grid">
+      <section className="staff-panel">
+        <div className="staff-section-title">
+          <div>
+            <h2>{t('staffOps.mentorLoginsTitle')}</h2>
+            <p>{t('staffOps.mentorLoginsBody')}</p>
+          </div>
+          <UserPlus size={22} aria-hidden="true" />
+        </div>
+        <form className="form-stack staff-account-form" onSubmit={submit}>
+          <Field label={t('staffOps.mentorName')}>
+            <input
+              value={form.name}
+              onChange={(event) => edit('name', event.target.value)}
+              minLength={2}
+              maxLength={80}
+              autoComplete="name"
+              required
+            />
+          </Field>
+          <Field label={t('staffOps.mentorEmail')} hint={t('staffOps.mentorLoginId')}>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(event) => edit('email', event.target.value)}
+              maxLength={254}
+              autoComplete="email"
+              required
+            />
+          </Field>
+          <Field label={t('staffOps.temporaryPassword')} hint={t('staffOps.passwordHint')}>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(event) => edit('password', event.target.value)}
+              minLength={8}
+              maxLength={128}
+              autoComplete="new-password"
+              required
+            />
+          </Field>
+          <Field label={t('staffOps.provisionReason')} hint={t('staffOps.provisionReasonHint')}>
+            <textarea
+              value={form.reason}
+              onChange={(event) => edit('reason', event.target.value)}
+              minLength={10}
+              maxLength={1000}
+              required
+            />
+          </Field>
+          <p className="staff-fixed-role">{t('staffOps.mentorRoleFixed')}</p>
+          {created && (
+            <Alert kind="success">{t('staffOps.mentorCreated', { email: created.email })}</Alert>
+          )}
+          <MutationError error={error} />
+          <Button type="submit" busy={pending}>
+            <UserPlus size={17} aria-hidden="true" />
+            {t('staffOps.createMentor')}
+          </Button>
+        </form>
+      </section>
+      <section className="staff-panel">
+        <div className="staff-section-title">
+          <h2>{t('staffOps.existingMentors')}</h2>
+          <GraduationCap size={22} aria-hidden="true" />
+        </div>
+        {query.isPending ? (
+          <Loading />
+        ) : query.isError ? (
+          <LoadError retry={() => void query.refetch()} />
+        ) : mentors.length ? (
+          <div className="staff-rows">
+            {mentors.map((member) => (
+              <div className="staff-row" key={member.id}>
+                <span className="staff-avatar" aria-hidden="true">
+                  {initials(member.name)}
+                </span>
+                <div className="staff-row-person">
+                  <strong>{member.name}</strong>
+                  <p>{t('desk.roles.mentor')}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty title={t('staffOps.noMentors')} />
+        )}
+        {query.hasNextPage && (
+          <Button
+            type="button"
+            variant="text"
+            busy={query.isFetchingNextPage}
+            onClick={() => void query.fetchNextPage()}
+          >
+            {t('staffOps.more')}
+          </Button>
+        )}
+      </section>
     </div>
   )
 }

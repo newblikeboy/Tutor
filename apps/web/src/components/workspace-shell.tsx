@@ -43,6 +43,7 @@ const icons: Record<WorkspaceView, typeof BookOpen> = {
   assessments: ClipboardCheck,
   reviews: BookOpen,
   tutors: GraduationCap,
+  team: Users,
   audit: FileText,
   applications: ClipboardCheck,
   interviews: CalendarDays,

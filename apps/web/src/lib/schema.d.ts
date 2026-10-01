@@ -1042,7 +1042,8 @@ export interface paths {
         /** GET /staff/members */
         get: operations["get__staff_members"];
         put?: never;
-        post?: never;
+        /** POST /staff/members */
+        post: operations["post__staff_members"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1975,6 +1976,17 @@ export interface components {
         StaffMembers: {
             items: components["schemas"]["StaffMember"][];
             nextCursor: string;
+        };
+        StaffProvisionInput: {
+            name: string;
+            /** Format: email */
+            email: string;
+            password: string;
+            reason: string;
+        };
+        StaffProvisioned: {
+            member: components["schemas"]["StaffMember"];
+            email: string;
         };
         StaffApplications: {
             items: components["schemas"]["Application"][];
@@ -4613,6 +4625,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffMembers"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__staff_members: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffProvisionInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffProvisioned"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
