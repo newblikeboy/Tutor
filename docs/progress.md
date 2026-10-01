@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-10-02: remove development wording from support copy
+
+Support and request inbox copy no longer describes the deployed service as a development inbox, staffing-pending inbox, development preview or not-live service. The case inbox heading now reads as a request inbox, the support/contact copy points users to workspace support requests, and the public FAQ describes tutor-request review without development-preview language.
+
+The emergency boundary remains concise and production-appropriate: the app does not claim to provide emergency response, so urgent danger or medical emergencies direct users to local emergency services.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema, migration, production data or deployment was changed in this checkpoint.
+
 ## 2026-10-02: parent tutor chooser profile cards
 
 The parent trial-request step no longer asks families to select a tutor name from a dropdown. It now shows approved tutor profile cards with name, scoped subject/class range, mode, teaching language, experience, teaching approach, next review date, staff-confirmed fee plans and a link to view the complete public profile. Selecting a tutor uses radio-card semantics so the existing trial request API still receives the selected approved tutor ID.

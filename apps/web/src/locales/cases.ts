@@ -7,9 +7,9 @@ export const casesEN = {
     subject: 'A short title',
     body: 'Tell us what happened',
     send: 'Save request',
-    draft: 'Development inbox · operator staffing pending',
+    draft: 'Request inbox',
     draftBody:
-      'Requests are saved for review. This inbox is not monitored for emergencies. If someone is in immediate danger, contact local emergency services.',
+      'Requests are saved for review by the support team. For immediate danger or medical emergencies, contact local emergency services.',
     privacy:
       'Privacy requests need a reviewed response. Saving a request does not erase data or claim a legal decision.',
     restricted: 'Restricted request',

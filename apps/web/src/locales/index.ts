@@ -13,8 +13,8 @@ const en = {
   skip: 'Skip to content',
   menu: 'Open menu',
   close: 'Close',
-  dev: 'Development preview',
-  devDetail: 'Fictional profiles · No SMS or payments · Not a live service',
+  dev: 'Setup mode',
+  devDetail: 'Sample profiles and disabled providers are clearly labelled',
   eyebrow: 'THOUGHTFUL TUITION · PURNEA',
   heroA: 'The right support.',
   heroB: 'A clearer way',
@@ -75,9 +75,9 @@ const en = {
   faq2: 'Is a particular result guaranteed?',
   faq2Body:
     'No. We focus on suitability, learning evidence and continued support. We do not guarantee marks or a perfect match.',
-  faq3: 'Is this service open for bookings?',
+  faq3: 'How are tutor requests handled?',
   faq3Body:
-    'This is a development preview. Profiles are fictional and trial records are for testing. Actual coverage, prices and policies need operator approval.',
+    'Tutor requests are saved for academic review. Sample profiles stay labelled, and actual coverage, prices and policies are shown only after staff confirmation.',
   finalTitle: 'Let’s start with your child.',
   finalBody: 'Their questions. Their pace. Their next step.',
   searchTitle: 'A suitable tutor starts with the right scope.',
@@ -365,7 +365,7 @@ const en = {
   aboutPreview: 'About this preview',
   support: 'Support & contact',
   supportBody:
-    'Live contact details and safeguarding procedures have not been configured. This development preview does not accept service or emergency reports.',
+    'Send a support request from your workspace. For immediate danger or medical emergencies, contact local emergency services.',
   failureConflict: 'That time is already reserved. Please choose another time.',
   failureScope: 'This teaching scope is no longer available. Refresh and choose an approved tutor.',
   failureLimit: 'Too many attempts. Please wait a minute and try again.',
