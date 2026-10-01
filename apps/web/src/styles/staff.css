@@ -223,6 +223,9 @@
   gap: 18px;
   margin-bottom: 24px;
 }
+.staff-filters.single {
+  grid-template-columns: minmax(0, 440px);
+}
 .staff-filters .field {
   margin: 0;
 }
@@ -302,6 +305,28 @@
 .staff-breakdown strong {
   color: #21392e;
 }
+.staff-finance-table {
+  display: grid;
+  border: 1px solid #dce4d1;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.staff-finance-table > div {
+  display: grid;
+  grid-template-columns: 1fr repeat(3, minmax(110px, 0.8fr));
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e8ece3;
+  background: #fffefa;
+  font-size: 13px;
+}
+.staff-finance-table > div:first-child {
+  background: #f2f6e8;
+}
+.staff-finance-table > div:last-child {
+  border-bottom: 0;
+}
 .staff-family-list {
   display: grid;
   gap: 16px;
@@ -340,6 +365,25 @@
   grid-column: 1 / -1;
   margin: 0;
   padding-left: 18px;
+}
+.staff-family-enrollments,
+.staff-assignment-review {
+  grid-column: 1 / -1;
+  border-top: 1px solid #e8ece3;
+  padding-top: 14px;
+}
+.staff-family-enrollments h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.staff-family-enrollments p,
+.staff-assignment-review {
+  margin: 6px 0 0;
+  color: #52665a;
+  font-size: 12px;
+}
+.staff-family-card.assignment {
+  grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1fr);
 }
 .staff-search {
   position: relative;
@@ -707,6 +751,9 @@
   }
   .staff-family-card dl {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .staff-finance-table > div {
+    grid-template-columns: 1fr 1fr;
   }
 }
 @media (forced-colors: active) {

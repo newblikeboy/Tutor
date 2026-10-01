@@ -4152,6 +4152,40 @@
         }
       }
     },
+    "/staff/academic": {
+      "get": {
+        "operationId": "get__staff_academic",
+        "summary": "GET /staff/academic",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MentorAcademicReport"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
     "/admin/founder": {
       "get": {
         "operationId": "get__admin_founder",
@@ -4218,6 +4252,14 @@
           }
         },
         "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "cursor",
             "in": "query",
@@ -7663,6 +7705,34 @@
           }
         }
       },
+      "FinanceMonth": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "month",
+          "grossPaise",
+          "refundedPaise",
+          "netPaise",
+          "payments"
+        ],
+        "properties": {
+          "month": {
+            "type": "string"
+          },
+          "grossPaise": {
+            "type": "integer"
+          },
+          "refundedPaise": {
+            "type": "integer"
+          },
+          "netPaise": {
+            "type": "integer"
+          },
+          "payments": {
+            "type": "integer"
+          }
+        }
+      },
       "FounderReport": {
         "type": "object",
         "additionalProperties": false,
@@ -7671,7 +7741,9 @@
           "tutorStatus",
           "mentorStatus",
           "enrollmentStatus",
-          "revenue"
+          "refundStatus",
+          "revenue",
+          "monthlyRevenue"
         ],
         "properties": {
           "metrics": {
@@ -7698,8 +7770,68 @@
               "type": "integer"
             }
           },
+          "refundStatus": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
           "revenue": {
             "$ref": "#/components/schemas/FounderRevenue"
+          },
+          "monthlyRevenue": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinanceMonth"
+            }
+          }
+        }
+      },
+      "AdminEnrollment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "learnerId",
+          "learnerName",
+          "tutorId",
+          "tutorName",
+          "mentorId",
+          "mentorName",
+          "status",
+          "paymentState",
+          "amountPaise"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "learnerId": {
+            "type": "string"
+          },
+          "learnerName": {
+            "type": "string"
+          },
+          "tutorId": {
+            "type": "string"
+          },
+          "tutorName": {
+            "type": "string"
+          },
+          "mentorId": {
+            "type": "string"
+          },
+          "mentorName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paymentState": {
+            "type": "string"
+          },
+          "amountPaise": {
+            "type": "integer"
           }
         }
       },
@@ -7712,6 +7844,7 @@
           "parentEmail",
           "sample",
           "learners",
+          "enrollments",
           "enrollmentStatus",
           "paidEnrollments",
           "unpaidEnrollments"
@@ -7733,6 +7866,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Learner"
+            }
+          },
+          "enrollments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminEnrollment"
             }
           },
           "enrollmentStatus": {
@@ -7765,6 +7904,115 @@
           },
           "nextCursor": {
             "type": "string"
+          }
+        }
+      },
+      "MentorTutorReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tutorId",
+          "tutorName",
+          "status",
+          "activeLearners",
+          "reviewedClasses",
+          "missedClasses",
+          "awaitingReviews"
+        ],
+        "properties": {
+          "tutorId": {
+            "type": "string"
+          },
+          "tutorName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "activeLearners": {
+            "type": "integer"
+          },
+          "reviewedClasses": {
+            "type": "integer"
+          },
+          "missedClasses": {
+            "type": "integer"
+          },
+          "awaitingReviews": {
+            "type": "integer"
+          }
+        }
+      },
+      "MentorAssignmentReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enrollmentId",
+          "learnerName",
+          "tutorId",
+          "tutorName",
+          "status",
+          "planVersion",
+          "deliveredClasses",
+          "remainingClasses",
+          "nextReviewDate"
+        ],
+        "properties": {
+          "enrollmentId": {
+            "type": "string"
+          },
+          "learnerName": {
+            "type": "string"
+          },
+          "tutorId": {
+            "type": "string"
+          },
+          "tutorName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "planVersion": {
+            "type": "integer"
+          },
+          "deliveredClasses": {
+            "type": "integer"
+          },
+          "remainingClasses": {
+            "type": "integer"
+          },
+          "nextReviewDate": {
+            "type": "string"
+          }
+        }
+      },
+      "MentorAcademicReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metrics",
+          "tutors",
+          "assignments"
+        ],
+        "properties": {
+          "metrics": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "tutors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MentorTutorReport"
+            }
+          },
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MentorAssignmentReport"
+            }
           }
         }
       },

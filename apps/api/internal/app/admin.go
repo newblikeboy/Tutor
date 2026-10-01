@@ -3,6 +3,10 @@ package app
 import (
 	"context"
 	"net/http"
+	"regexp"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -116,19 +120,46 @@ func (a *App) founderReport(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
+	refundStatus, e := a.countBy(ctx, "refunds", bson.M{}, "status")
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
 	revenue, e := a.revenue(ctx)
 	if e != nil {
 		a.error(w, r, e)
 		return
 	}
-	a.json(w, 200, domain.FounderReport{Metrics: metrics, TutorStatus: tutorStatus, MentorStatus: mentorStatus, EnrollmentStatus: enrollmentStatus, Revenue: revenue})
+	monthly, e := a.monthlyRevenue(ctx)
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	a.json(w, 200, domain.FounderReport{Metrics: metrics, TutorStatus: tutorStatus, MentorStatus: mentorStatus, EnrollmentStatus: enrollmentStatus, RefundStatus: refundStatus, Revenue: revenue, MonthlyRevenue: monthly})
 }
 
 func (a *App) adminFamilies(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "admin") {
 		return
 	}
-	page, e := pageRecords[domain.User](r.Context(), a.Store, "users", bson.M{"role": "parent"}, r.URL.Query().Get("cursor"))
+	filter := bson.M{"role": "parent"}
+	if search := strings.TrimSpace(r.URL.Query().Get("q")); search != "" {
+		if !validText(search, 1, 80) {
+			a.error(w, r, domain.Fail(422, "validation", "Search is too long."))
+			return
+		}
+		ownerIDs := []string{}
+		if e := a.Store.C("learners").Distinct(r.Context(), "ownerId", bson.M{"name": bson.M{"$regex": regexp.QuoteMeta(search), "$options": "i"}}).Decode(&ownerIDs); e != nil {
+			a.error(w, r, e)
+			return
+		}
+		filter["$or"] = []bson.M{
+			{"name": bson.M{"$regex": regexp.QuoteMeta(search), "$options": "i"}},
+			{"email": bson.M{"$regex": regexp.QuoteMeta(search), "$options": "i"}},
+			{"_id": bson.M{"$in": ownerIDs}},
+		}
+	}
+	page, e := pageRecords[domain.User](r.Context(), a.Store, "users", filter, r.URL.Query().Get("cursor"))
 	if e != nil {
 		a.error(w, r, e)
 		return
@@ -145,18 +176,162 @@ func (a *App) adminFamilies(w http.ResponseWriter, r *http.Request) {
 			a.error(w, r, e)
 			return
 		}
+		details, e := a.adminEnrollmentDetails(r.Context(), parent.ID)
+		if e != nil {
+			a.error(w, r, e)
+			return
+		}
 		out.Items = append(out.Items, domain.AdminFamily{
 			ParentID:          parent.ID,
 			ParentName:        parent.Name,
 			ParentEmail:       parent.Email,
 			Sample:            parent.Sample,
 			Learners:          learners,
+			Enrollments:       details,
 			EnrollmentStatus:  enrollments,
 			PaidEnrollments:   enrollments["active"] + enrollments["completed"],
 			UnpaidEnrollments: enrollments["pending_agreement"] + enrollments["awaiting_payment"] + enrollments["expired"],
 		})
 	}
 	a.json(w, 200, out)
+}
+
+func (a *App) adminEnrollmentDetails(ctx context.Context, parentID string) ([]domain.AdminEnrollment, error) {
+	enrollments, e := storage.Many[domain.Enrollment](ctx, a.Store, "enrollments", bson.M{"ownerId": parentID})
+	if e != nil {
+		return nil, e
+	}
+	out := []domain.AdminEnrollment{}
+	for _, v := range enrollments {
+		row := domain.AdminEnrollment{ID: v.ID, LearnerID: v.LearnerID, LearnerName: v.LearnerName, TutorID: v.TutorID, TutorName: v.TutorName, MentorID: v.MentorID, Status: v.Status, AmountPaise: v.Agreement.TotalPaise}
+		if v.MentorID != "" {
+			mentor, er := storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": v.MentorID})
+			if er == nil {
+				row.MentorName = mentor.Name
+			}
+		}
+		if v.PaymentIntentID != "" {
+			payment, er := storage.One[domain.PaymentIntent](ctx, a.Store, "payment_intents", bson.M{"_id": v.PaymentIntentID})
+			if er == nil {
+				row.PaymentState = payment.State
+			}
+		}
+		out = append(out, row)
+	}
+	return out, nil
+}
+
+func (a *App) mentorAcademicReport(w http.ResponseWriter, r *http.Request) {
+	if !a.role(w, r, "admin", "mentor") {
+		return
+	}
+	u := user(r)
+	filter := bson.M{"status": bson.M{"$in": []string{"approved", "suspended"}}}
+	if u.Role == "mentor" {
+		filter["mentorId"] = u.ID
+	}
+	tutors, e := storage.Many[domain.Application](r.Context(), a.Store, "applications", filter)
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	assignFilter := bson.M{"status": bson.M{"$in": []string{"pending_agreement", "awaiting_payment", "active", "paused"}}}
+	if u.Role == "mentor" {
+		assignFilter["mentorId"] = u.ID
+	}
+	assignments, e := storage.Many[domain.Enrollment](r.Context(), a.Store, "enrollments", assignFilter)
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	tutorReports, e := a.mentorTutorReports(r.Context(), tutors, assignments)
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	assignmentReports, e := a.mentorAssignmentReports(r.Context(), assignments)
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	metrics := map[string]int64{
+		"assignedTutors":    int64(len(tutors)),
+		"activeAssignments": int64(len(assignments)),
+	}
+	for _, row := range tutorReports {
+		metrics["awaitingReviews"] += row.AwaitingReviews
+		metrics["missedClasses"] += row.MissedClasses
+	}
+	for _, row := range assignmentReports {
+		if row.NextReviewDate != "" {
+			if at, er := time.Parse(time.RFC3339, row.NextReviewDate); er == nil && at.Before(a.Now()) {
+				metrics["overdueReviews"]++
+			}
+		}
+	}
+	a.json(w, 200, domain.MentorAcademicReport{Metrics: metrics, Tutors: tutorReports, Assignments: assignmentReports})
+}
+
+func (a *App) mentorTutorReports(ctx context.Context, tutors []domain.Application, assignments []domain.Enrollment) ([]domain.MentorTutorReport, error) {
+	out := []domain.MentorTutorReport{}
+	for _, tutor := range tutors {
+		row := domain.MentorTutorReport{TutorID: tutor.ID, TutorName: tutor.Name, Status: tutor.Status}
+		for _, enrollment := range assignments {
+			if enrollment.TutorID == tutor.ID && enum(enrollment.Status, "active", "paused") {
+				row.ActiveLearners++
+			}
+		}
+		reviewed, e := a.Store.C("classes").CountDocuments(ctx, bson.M{"tutorId": tutor.ID, "status": "reviewed"})
+		if e != nil {
+			return nil, e
+		}
+		missed, e := a.Store.C("classes").CountDocuments(ctx, bson.M{"tutorId": tutor.ID, "status": "missed"})
+		if e != nil {
+			return nil, e
+		}
+		awaiting, e := a.Store.C("classes").CountDocuments(ctx, bson.M{"tutorId": tutor.ID, "status": "awaiting_review"})
+		if e != nil {
+			return nil, e
+		}
+		row.ReviewedClasses, row.MissedClasses, row.AwaitingReviews = reviewed, missed, awaiting
+		out = append(out, row)
+	}
+	return out, nil
+}
+
+func (a *App) mentorAssignmentReports(ctx context.Context, assignments []domain.Enrollment) ([]domain.MentorAssignmentReport, error) {
+	out := []domain.MentorAssignmentReport{}
+	for _, v := range assignments {
+		row := domain.MentorAssignmentReport{EnrollmentID: v.ID, LearnerName: v.LearnerName, TutorID: v.TutorID, TutorName: v.TutorName, Status: v.Status, PlanVersion: v.PlanVersion}
+		classes, e := storage.Many[domain.ClassSession](ctx, a.Store, "classes", bson.M{"enrollmentId": v.ID})
+		if e != nil {
+			return nil, e
+		}
+		for _, class := range classes {
+			if class.Status == "reviewed" {
+				row.DeliveredClasses++
+			}
+			if !enum(class.Status, "reviewed", "missed", "cancelled_consumed", "cancelled") {
+				row.RemainingClasses++
+			}
+		}
+		plans, e := storage.Many[domain.LearningPlan](ctx, a.Store, "learning_plans", bson.M{"enrollmentId": v.ID})
+		if e != nil {
+			return nil, e
+		}
+		for _, plan := range plans {
+			if row.NextReviewDate == "" || plan.ReviewDate.After(parseReportDate(row.NextReviewDate)) {
+				row.NextReviewDate = plan.ReviewDate.UTC().Format(time.RFC3339)
+			}
+		}
+		out = append(out, row)
+	}
+	return out, nil
+}
+
+func parseReportDate(value string) time.Time {
+	at, _ := time.Parse(time.RFC3339, value)
+	return at
 }
 
 func (a *App) distinctCount(ctx context.Context, collection string, filter bson.M, field string) (int64, error) {
@@ -241,5 +416,41 @@ func (a *App) revenue(ctx context.Context) (domain.FounderRevenue, error) {
 		out.RefundedPaise += row.Refunded
 	}
 	out.NetPaise = out.GrossPaise - out.RefundedPaise
+	return out, nil
+}
+
+func (a *App) monthlyRevenue(ctx context.Context) ([]domain.FinanceMonth, error) {
+	cur, e := a.Store.C("payment_intents").Find(ctx, bson.M{"state": bson.M{"$in": []string{"captured", "refund_review"}}}, options.Find().SetProjection(bson.M{"amountPaise": 1, "refundedPaise": 1, "createdAt": 1}))
+	if e != nil {
+		return nil, e
+	}
+	defer cur.Close(ctx)
+	var rows []domain.PaymentIntent
+	if e = cur.All(ctx, &rows); e != nil {
+		return nil, e
+	}
+	months := map[string]*domain.FinanceMonth{}
+	for _, row := range rows {
+		month := row.CreatedAt.UTC().Format("2006-01")
+		if month == "0001-01" {
+			month = "unknown"
+		}
+		if months[month] == nil {
+			months[month] = &domain.FinanceMonth{Month: month}
+		}
+		months[month].GrossPaise += row.Amount
+		months[month].RefundedPaise += row.Refunded
+		months[month].NetPaise += row.Amount - row.Refunded
+		months[month].Payments++
+	}
+	keys := []string{}
+	for key := range months {
+		keys = append(keys, key)
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	out := []domain.FinanceMonth{}
+	for _, key := range keys {
+		out = append(out, *months[key])
+	}
 	return out, nil
 }

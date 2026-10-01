@@ -1118,6 +1118,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/academic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /staff/academic */
+        get: operations["get__staff_academic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/founder": {
         parameters: {
             query?: never;
@@ -2050,6 +2067,13 @@ export interface components {
             refundedPaise: number;
             netPaise: number;
         };
+        FinanceMonth: {
+            month: string;
+            grossPaise: number;
+            refundedPaise: number;
+            netPaise: number;
+            payments: number;
+        };
         FounderReport: {
             metrics: {
                 [key: string]: number;
@@ -2063,7 +2087,23 @@ export interface components {
             enrollmentStatus: {
                 [key: string]: number;
             };
+            refundStatus: {
+                [key: string]: number;
+            };
             revenue: components["schemas"]["FounderRevenue"];
+            monthlyRevenue: components["schemas"]["FinanceMonth"][];
+        };
+        AdminEnrollment: {
+            id: string;
+            learnerId: string;
+            learnerName: string;
+            tutorId: string;
+            tutorName: string;
+            mentorId: string;
+            mentorName: string;
+            status: string;
+            paymentState: string;
+            amountPaise: number;
         };
         AdminFamily: {
             parentId: string;
@@ -2071,6 +2111,7 @@ export interface components {
             parentEmail: string;
             sample: boolean;
             learners: components["schemas"]["Learner"][];
+            enrollments: components["schemas"]["AdminEnrollment"][];
             enrollmentStatus: {
                 [key: string]: number;
             };
@@ -2080,6 +2121,33 @@ export interface components {
         AdminFamilies: {
             items: components["schemas"]["AdminFamily"][];
             nextCursor: string;
+        };
+        MentorTutorReport: {
+            tutorId: string;
+            tutorName: string;
+            status: string;
+            activeLearners: number;
+            reviewedClasses: number;
+            missedClasses: number;
+            awaitingReviews: number;
+        };
+        MentorAssignmentReport: {
+            enrollmentId: string;
+            learnerName: string;
+            tutorId: string;
+            tutorName: string;
+            status: string;
+            planVersion: number;
+            deliveredClasses: number;
+            remainingClasses: number;
+            nextReviewDate: string;
+        };
+        MentorAcademicReport: {
+            metrics: {
+                [key: string]: number;
+            };
+            tutors: components["schemas"]["MentorTutorReport"][];
+            assignments: components["schemas"]["MentorAssignmentReport"][];
         };
         StaffApplications: {
             items: components["schemas"]["Application"][];
@@ -4907,6 +4975,35 @@ export interface operations {
             };
         };
     };
+    get__staff_academic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MentorAcademicReport"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     get__admin_founder: {
         parameters: {
             query?: never;
@@ -4939,6 +5036,7 @@ export interface operations {
     get__admin_families: {
         parameters: {
             query?: {
+                q?: string;
                 cursor?: string;
             };
             header?: never;

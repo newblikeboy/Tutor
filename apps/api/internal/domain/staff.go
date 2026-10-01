@@ -44,14 +44,28 @@ type StaffMember struct {
 }
 
 type AdminFamily struct {
-	ParentID          string           `json:"parentId"`
-	ParentName        string           `json:"parentName"`
-	ParentEmail       string           `json:"parentEmail"`
-	Sample            bool             `json:"sample"`
-	Learners          []Learner        `json:"learners"`
-	EnrollmentStatus  map[string]int64 `json:"enrollmentStatus"`
-	PaidEnrollments   int64            `json:"paidEnrollments"`
-	UnpaidEnrollments int64            `json:"unpaidEnrollments"`
+	ParentID          string            `json:"parentId"`
+	ParentName        string            `json:"parentName"`
+	ParentEmail       string            `json:"parentEmail"`
+	Sample            bool              `json:"sample"`
+	Learners          []Learner         `json:"learners"`
+	Enrollments       []AdminEnrollment `json:"enrollments"`
+	EnrollmentStatus  map[string]int64  `json:"enrollmentStatus"`
+	PaidEnrollments   int64             `json:"paidEnrollments"`
+	UnpaidEnrollments int64             `json:"unpaidEnrollments"`
+}
+
+type AdminEnrollment struct {
+	ID           string `json:"id"`
+	LearnerID    string `json:"learnerId"`
+	LearnerName  string `json:"learnerName"`
+	TutorID      string `json:"tutorId"`
+	TutorName    string `json:"tutorName"`
+	MentorID     string `json:"mentorId"`
+	MentorName   string `json:"mentorName"`
+	Status       string `json:"status"`
+	PaymentState string `json:"paymentState"`
+	AmountPaise  int64  `json:"amountPaise"`
 }
 
 type FounderRevenue struct {
@@ -60,12 +74,50 @@ type FounderRevenue struct {
 	NetPaise      int64 `json:"netPaise"`
 }
 
+type FinanceMonth struct {
+	Month         string `json:"month"`
+	GrossPaise    int64  `json:"grossPaise"`
+	RefundedPaise int64  `json:"refundedPaise"`
+	NetPaise      int64  `json:"netPaise"`
+	Payments      int64  `json:"payments"`
+}
+
 type FounderReport struct {
 	Metrics          map[string]int64 `json:"metrics"`
 	TutorStatus      map[string]int64 `json:"tutorStatus"`
 	MentorStatus     map[string]int64 `json:"mentorStatus"`
 	EnrollmentStatus map[string]int64 `json:"enrollmentStatus"`
+	RefundStatus     map[string]int64 `json:"refundStatus"`
 	Revenue          FounderRevenue   `json:"revenue"`
+	MonthlyRevenue   []FinanceMonth   `json:"monthlyRevenue"`
+}
+
+type MentorAcademicReport struct {
+	Metrics     map[string]int64         `json:"metrics"`
+	Tutors      []MentorTutorReport      `json:"tutors"`
+	Assignments []MentorAssignmentReport `json:"assignments"`
+}
+
+type MentorTutorReport struct {
+	TutorID         string `json:"tutorId"`
+	TutorName       string `json:"tutorName"`
+	Status          string `json:"status"`
+	ActiveLearners  int64  `json:"activeLearners"`
+	ReviewedClasses int64  `json:"reviewedClasses"`
+	MissedClasses   int64  `json:"missedClasses"`
+	AwaitingReviews int64  `json:"awaitingReviews"`
+}
+
+type MentorAssignmentReport struct {
+	EnrollmentID     string `json:"enrollmentId"`
+	LearnerName      string `json:"learnerName"`
+	TutorID          string `json:"tutorId"`
+	TutorName        string `json:"tutorName"`
+	Status           string `json:"status"`
+	PlanVersion      int    `json:"planVersion"`
+	DeliveredClasses int64  `json:"deliveredClasses"`
+	RemainingClasses int64  `json:"remainingClasses"`
+	NextReviewDate   string `json:"nextReviewDate"`
 }
 
 type TutorFollowup struct {

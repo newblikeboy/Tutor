@@ -161,6 +161,7 @@ func (a *App) Routes() http.Handler {
 		r.Get("/api/v1/staff/events", a.staffEvents)
 		r.Get("/api/v1/staff/followups", a.staffFollowups)
 		r.Post("/api/v1/staff/followups/{id}/resolve", a.resolveTutorFollowup)
+		r.Get("/api/v1/staff/academic", a.mentorAcademicReport)
 		r.Get("/api/v1/admin/founder", a.founderReport)
 		r.Get("/api/v1/admin/families", a.adminFamilies)
 		r.Put("/api/v1/application", a.application)

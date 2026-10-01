@@ -1,5 +1,15 @@
 # Progress
 
+## 2026-10-01: phases 3-5 academic, family and finance controls
+
+Phase 3 adds a mentor academic tracking view backed by `GET /api/v1/staff/academic`. Mentors see assigned tutors, active learner assignments, class reviews due, missed classes, delivered/remaining class counts and learning-plan review dates. Admins can also read the same academic report across the network. The existing interview/approval workflow remains the source of final tutor approval; this checkpoint adds tracking rather than automatic performance conclusions.
+
+Phase 4 extends the founder family view. Admins can search families by parent name, parent email or child name, and each family row now includes child profiles, enrollment counts, assignment rows, assigned tutor, assigned mentor, enrollment status, payment state and agreement amount. Mentor and non-admin roles remain denied.
+
+Phase 5 expands finance reporting in the Founder report. Revenue now includes monthly gross/refund/net rows, refund status counts, and the existing paid/unpaid/not-enrolled enrollment metrics. These figures are computed from saved payment intents, refund requests, enrollments, applications and learners; no revenue or progress data is invented.
+
+Validation: `go test ./...`, `go vet ./...`, regenerated OpenAPI/TypeScript schemas, `npm run typecheck`, `npm run lint` and `npm run build` passed. API coverage verifies mentor academic assignment data, family search by child name, family enrollment/payment details, monthly finance rows and refund status counts. No production data was changed and no deployment was performed.
+
 ## 2026-10-01: founder admin controls and role split
 
 Administrator permissions now match the founder/control-room role more closely. Admins can create mentor logins, suspend active mentors, restore suspended/deactivated mentors and deactivate mentors without deleting historical audit records. Mentor status changes increment `authVersion`, remove active sessions and block new login/session access while suspended or deactivated. Inactive mentors are excluded from future reviewer/academic-mentor selection.

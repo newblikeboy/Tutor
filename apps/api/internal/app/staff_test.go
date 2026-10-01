@@ -138,16 +138,34 @@ func TestMongoStaffOperations(t *testing.T) {
 		if _, e := s.C("learners").InsertOne(ctx, domain.Learner{ID: "founder-learner", OwnerID: "parent-a", Name: "Founder report learner", Class: 7, Board: "CBSE", Language: "English", Kind: "minor"}); e != nil {
 			t.Fatal(e)
 		}
-		if _, e := s.C("enrollments").InsertOne(ctx, domain.Enrollment{ID: "founder-enrollment", OwnerID: "parent-a", LearnerID: "founder-learner", LearnerName: "Founder report learner", Class: 7, TutorID: "tutor-meera", TutorName: "Meera sample", MentorID: "mentor-a", Status: "active", Agreement: domain.Agreement{ID: "founder-agreement", EnrollmentID: "founder-enrollment", Version: 1, TutorID: "tutor-meera", Subject: "Mathematics", Mode: "online", Timezone: "Asia/Kolkata", SessionCount: 8, Minutes: 60, FeePerSessionPaise: 50000, TotalPaise: 400000, Currency: "INR", CancellationHours: 24, Terms: "Founder report test agreement.", TermsVersion: "test", CreatedAt: now}, Version: 1, CreatedAt: now}); e != nil {
+		if _, e := s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-meera"}, bson.M{"$set": bson.M{"mentorId": "mentor-a"}}); e != nil {
+			t.Fatal(e)
+		}
+		if _, e := s.C("enrollments").InsertOne(ctx, domain.Enrollment{ID: "founder-enrollment", OwnerID: "parent-a", LearnerID: "founder-learner", LearnerName: "Founder report learner", Class: 7, TutorID: "tutor-meera", TutorName: "Meera sample", MentorID: "mentor-a", Status: "active", PaymentIntentID: "founder-payment", Agreement: domain.Agreement{ID: "founder-agreement", EnrollmentID: "founder-enrollment", Version: 1, TutorID: "tutor-meera", Subject: "Mathematics", Mode: "online", Timezone: "Asia/Kolkata", SessionCount: 8, Minutes: 60, FeePerSessionPaise: 50000, TotalPaise: 400000, Currency: "INR", CancellationHours: 24, Terms: "Founder report test agreement.", TermsVersion: "test", CreatedAt: now}, Version: 1, CreatedAt: now}); e != nil {
 			t.Fatal(e)
 		}
 		if _, e := s.C("payment_intents").InsertOne(ctx, domain.PaymentIntent{ID: "founder-payment", OwnerID: "parent-a", EnrollmentID: "founder-enrollment", Amount: 400000, Currency: "INR", State: "captured", PaymentID: "pay_founder", Refunded: 50000, CreatedAt: now}); e != nil {
+			t.Fatal(e)
+		}
+		if _, e := s.C("refunds").InsertOne(ctx, domain.RefundRequest{ID: "founder-refund", IntentID: "founder-payment", OwnerID: "parent-a", Amount: 50000, Reason: "Monthly finance report refund fixture.", Status: "requested", RequestedBy: "parent-a", CreatedAt: now}); e != nil {
+			t.Fatal(e)
+		}
+		if _, e := s.C("classes").InsertMany(ctx, []any{
+			domain.ClassSession{ID: "founder-enrollment:01", EnrollmentID: "founder-enrollment", TutorID: "tutor-meera", Start: now.Add(-48 * time.Hour), End: now.Add(-47 * time.Hour), Status: "reviewed", Timezone: "Asia/Kolkata", Version: 1},
+			domain.ClassSession{ID: "founder-enrollment:02", EnrollmentID: "founder-enrollment", TutorID: "tutor-meera", Start: now.Add(-24 * time.Hour), End: now.Add(-23 * time.Hour), Status: "awaiting_review", Timezone: "Asia/Kolkata", Version: 1},
+		}); e != nil {
+			t.Fatal(e)
+		}
+		if _, e := s.C("learning_plans").InsertOne(ctx, domain.LearningPlan{ID: "founder-enrollment:0001", EnrollmentID: "founder-enrollment", Version: 1, StartingPoint: "Learner knows arithmetic basics.", Goals: "Strengthen fractions and algebra.", Topics: []domain.LearningTopic{{Title: "Fractions", Status: "practising", Evidence: "Class notes show partial confidence.", Practice: "Daily number-line practice."}}, NextSteps: "Review fraction operations.", ReviewDate: now.Add(-24 * time.Hour), AuthorID: "mentor-a", CreatedAt: now}); e != nil {
 			t.Fatal(e)
 		}
 		report := admin.ok("GET", "/admin/founder", nil, 200)
 		revenue := report["revenue"].(map[string]any)
 		if revenue["grossPaise"].(float64) < 400000 || revenue["netPaise"].(float64) < 350000 {
 			t.Fatalf("founder revenue missing payment: %#v", revenue)
+		}
+		if len(report["monthlyRevenue"].([]any)) == 0 || report["refundStatus"].(map[string]any)["requested"].(float64) < 1 {
+			t.Fatalf("finance monthly/refund report missing: %#v", report)
 		}
 		metrics := report["metrics"].(map[string]any)
 		if metrics["parents"].(float64) < 2 || metrics["learners"].(float64) < 1 || metrics["paidEnrollments"].(float64) < 1 {
@@ -158,12 +176,20 @@ func TestMongoStaffOperations(t *testing.T) {
 		found := false
 		for _, raw := range items {
 			item := raw.(map[string]any)
-			if item["parentId"] == "parent-a" && len(item["learners"].([]any)) > 0 && item["paidEnrollments"].(float64) >= 1 {
+			if item["parentId"] == "parent-a" && len(item["learners"].([]any)) > 0 && item["paidEnrollments"].(float64) >= 1 && len(item["enrollments"].([]any)) > 0 {
 				found = true
 			}
 		}
 		if !found {
 			t.Fatalf("parent and learner details missing: %#v", items)
+		}
+		searched := admin.ok("GET", "/admin/families?q=Founder", nil, 200)
+		if len(searched["items"].([]any)) != 1 {
+			t.Fatalf("family search by child name failed: %#v", searched)
+		}
+		academic := mentor.ok("GET", "/staff/academic", nil, 200)
+		if academic["metrics"].(map[string]any)["awaitingReviews"].(float64) < 1 || len(academic["assignments"].([]any)) != 1 || len(academic["tutors"].([]any)) < 1 {
+			t.Fatalf("mentor academic report missing assignment data: %#v", academic)
 		}
 		mentor.ok("GET", "/admin/founder", nil, 403)
 		mentor.ok("GET", "/admin/families", nil, 403)

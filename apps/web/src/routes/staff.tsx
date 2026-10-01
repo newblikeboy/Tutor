@@ -125,6 +125,8 @@ export default function StaffWorkspace() {
         <AdminFamilies />
       ) : view === 'reports' ? (
         <FounderReports />
+      ) : view === 'reviews' ? (
+        <MentorAcademic />
       ) : view === 'audit' ? (
         <History />
       ) : (
@@ -398,6 +400,37 @@ function FounderReports() {
         <Breakdown title={t('staffOps.tutorStatuses')} values={report.tutorStatus} />
         <Breakdown title={t('staffOps.mentorStatuses')} values={report.mentorStatus} />
         <Breakdown title={t('staffOps.enrollmentStatuses')} values={report.enrollmentStatus} />
+        <Breakdown title={t('staffOps.refundStatuses')} values={report.refundStatus} />
+      </section>
+      <section className="staff-panel">
+        <div className="staff-section-title">
+          <h2>{t('staffOps.monthlyFinance')}</h2>
+          <FileText size={22} aria-hidden="true" />
+        </div>
+        {report.monthlyRevenue.length ? (
+          <div
+            className="staff-finance-table"
+            role="table"
+            aria-label={t('staffOps.monthlyFinance')}
+          >
+            <div role="row">
+              <strong role="columnheader">{t('staffOps.month')}</strong>
+              <strong role="columnheader">{t('staffOps.gross')}</strong>
+              <strong role="columnheader">{t('staffOps.refunds')}</strong>
+              <strong role="columnheader">{t('staffOps.net')}</strong>
+            </div>
+            {report.monthlyRevenue.map((month) => (
+              <div role="row" key={month.month}>
+                <span role="cell">{month.month}</span>
+                <span role="cell">{formatINR(month.grossPaise)}</span>
+                <span role="cell">{formatINR(month.refundedPaise)}</span>
+                <span role="cell">{formatINR(month.netPaise)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty title={t('staffOps.noFinanceRows')} />
+        )}
       </section>
     </div>
   )
@@ -405,8 +438,18 @@ function FounderReports() {
 
 function AdminFamilies() {
   const { t } = useTranslation()
-  const query = useStaffPage<Schema['AdminFamilies']>('/admin/families')
+  const [params, setParams] = useSearchParams()
+  const request = new URLSearchParams()
+  const search = params.get('q') ?? ''
+  if (search) request.set('q', search)
+  const query = useStaffPage<Schema['AdminFamilies']>(`/admin/families?${request}`)
   const families = query.data?.pages.flatMap((page) => page.items) ?? []
+  function updateSearch(value: string) {
+    const next = new URLSearchParams(params)
+    if (value) next.set('q', value)
+    else next.delete('q')
+    setParams(next, { replace: true })
+  }
   if (query.isPending) return <Loading />
   if (query.isError) return <LoadError retry={() => void query.refetch()} />
   return (
@@ -417,6 +460,16 @@ function AdminFamilies() {
           <p>{t('staffOps.familiesBody')}</p>
         </div>
         <Users size={22} aria-hidden="true" />
+      </div>
+      <div className="staff-filters single">
+        <Field label={t('staffOps.familySearch')}>
+          <input
+            value={search}
+            onChange={(event) => updateSearch(event.target.value)}
+            placeholder={t('staffOps.familySearchPlaceholder')}
+            maxLength={80}
+          />
+        </Field>
       </div>
       {families.length ? (
         <div className="staff-family-list">
@@ -449,6 +502,18 @@ function AdminFamilies() {
                   ))}
                 </ul>
               )}
+              {family.enrollments.length > 0 && (
+                <div className="staff-family-enrollments">
+                  <h3>{t('staffOps.assignments')}</h3>
+                  {family.enrollments.map((enrollment) => (
+                    <p key={enrollment.id}>
+                      <strong>{enrollment.learnerName}</strong> · {enrollment.tutorName} ·{' '}
+                      {enrollment.mentorName || t('staffOps.unassigned')} · {enrollment.status} ·{' '}
+                      {enrollment.paymentState || t('staffOps.noPayment')}
+                    </p>
+                  ))}
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -466,6 +531,116 @@ function AdminFamilies() {
         </Button>
       )}
     </section>
+  )
+}
+
+function MentorAcademic() {
+  const { t, i18n } = useTranslation()
+  const query = useQuery({
+    queryKey: ['staff', 'academic'],
+    queryFn: ({ signal }) => api<Schema['MentorAcademicReport']>('/staff/academic', { signal }),
+  })
+  if (query.isPending) return <Loading />
+  if (query.isError) return <LoadError retry={() => void query.refetch()} />
+  const report = query.data
+  const cards = [
+    ['assignedTutors', 'mentorAssignedTutors'],
+    ['activeAssignments', 'mentorActiveAssignments'],
+    ['awaitingReviews', 'mentorAwaitingReviews'],
+    ['missedClasses', 'mentorMissedClasses'],
+    ['overdueReviews', 'mentorOverdueReviews'],
+  ] as const
+  return (
+    <div className="staff-report">
+      <section className="staff-panel">
+        <div className="staff-section-title">
+          <div>
+            <h2>{t('staffOps.mentorAcademicTitle')}</h2>
+            <p>{t('staffOps.mentorAcademicBody')}</p>
+          </div>
+          <ClipboardCheck size={22} aria-hidden="true" />
+        </div>
+        <div className="staff-report-cards">
+          {cards.map(([key, label]) => (
+            <article className="staff-report-card" key={key}>
+              <span>{t(`staffOps.${label}`)}</span>
+              <strong>{report.metrics[key] ?? 0}</strong>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="staff-panel">
+        <div className="staff-section-title">
+          <h2>{t('staffOps.teacherPerformance')}</h2>
+          <GraduationCap size={22} aria-hidden="true" />
+        </div>
+        {report.tutors.length ? (
+          <div className="staff-rows">
+            {report.tutors.map((tutor) => (
+              <div className="staff-row" key={tutor.tutorId}>
+                <span className="staff-avatar" aria-hidden="true">
+                  {initials(tutor.tutorName)}
+                </span>
+                <div className="staff-row-person">
+                  <strong>{tutor.tutorName}</strong>
+                  <p>
+                    {t('staffOps.activeLearners', { count: tutor.activeLearners })} ·{' '}
+                    {t('staffOps.reviewedClasses', { count: tutor.reviewedClasses })} ·{' '}
+                    {t('staffOps.awaitingReviewsCount', { count: tutor.awaitingReviews })}
+                  </p>
+                </div>
+                <Status status={tutor.status} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty title={t('staffOps.noTeacherPerformance')} />
+        )}
+      </section>
+      <section className="staff-panel">
+        <div className="staff-section-title">
+          <h2>{t('staffOps.assignmentTracking')}</h2>
+          <ClipboardCheck size={22} aria-hidden="true" />
+        </div>
+        {report.assignments.length ? (
+          <div className="staff-family-list">
+            {report.assignments.map((assignment) => (
+              <article className="staff-family-card assignment" key={assignment.enrollmentId}>
+                <div>
+                  <strong>{assignment.learnerName}</strong>
+                  <p>
+                    {assignment.tutorName} · {assignment.status}
+                  </p>
+                </div>
+                <dl>
+                  <div>
+                    <dt>{t('staffOps.delivered')}</dt>
+                    <dd>{assignment.deliveredClasses}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('staffOps.remaining')}</dt>
+                    <dd>{assignment.remainingClasses}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('staffOps.planVersion')}</dt>
+                    <dd>{assignment.planVersion}</dd>
+                  </div>
+                </dl>
+                <p className="staff-assignment-review">
+                  {assignment.nextReviewDate
+                    ? t('staffOps.nextReview', {
+                        date: indiaDate(assignment.nextReviewDate, i18n.language),
+                      })
+                    : t('staffOps.noReviewDate')}
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <Empty title={t('staffOps.noAssignments')} />
+        )}
+      </section>
+    </div>
   )
 }
 

@@ -34,12 +34,33 @@ export function staffContract(schemas, route, paths) {
     }),
     StaffProvisioned: obj({ member: ref('StaffMember'), email: s }),
     FounderRevenue: obj({ grossPaise: n, refundedPaise: n, netPaise: n }),
+    FinanceMonth: obj({
+      month: s,
+      grossPaise: n,
+      refundedPaise: n,
+      netPaise: n,
+      payments: n,
+    }),
     FounderReport: obj({
       metrics: { type: 'object', additionalProperties: n },
       tutorStatus: { type: 'object', additionalProperties: n },
       mentorStatus: { type: 'object', additionalProperties: n },
       enrollmentStatus: { type: 'object', additionalProperties: n },
+      refundStatus: { type: 'object', additionalProperties: n },
       revenue: ref('FounderRevenue'),
+      monthlyRevenue: { type: 'array', items: ref('FinanceMonth') },
+    }),
+    AdminEnrollment: obj({
+      id: s,
+      learnerId: s,
+      learnerName: s,
+      tutorId: s,
+      tutorName: s,
+      mentorId: s,
+      mentorName: s,
+      status: s,
+      paymentState: s,
+      amountPaise: n,
     }),
     AdminFamily: obj({
       parentId: s,
@@ -47,11 +68,37 @@ export function staffContract(schemas, route, paths) {
       parentEmail: s,
       sample: b,
       learners: { type: 'array', items: ref('Learner') },
+      enrollments: { type: 'array', items: ref('AdminEnrollment') },
       enrollmentStatus: { type: 'object', additionalProperties: n },
       paidEnrollments: n,
       unpaidEnrollments: n,
     }),
     AdminFamilies: page('AdminFamily'),
+    MentorTutorReport: obj({
+      tutorId: s,
+      tutorName: s,
+      status: s,
+      activeLearners: n,
+      reviewedClasses: n,
+      missedClasses: n,
+      awaitingReviews: n,
+    }),
+    MentorAssignmentReport: obj({
+      enrollmentId: s,
+      learnerName: s,
+      tutorId: s,
+      tutorName: s,
+      status: s,
+      planVersion: n,
+      deliveredClasses: n,
+      remainingClasses: n,
+      nextReviewDate: s,
+    }),
+    MentorAcademicReport: obj({
+      metrics: { type: 'object', additionalProperties: n },
+      tutors: { type: 'array', items: ref('MentorTutorReport') },
+      assignments: { type: 'array', items: ref('MentorAssignmentReport') },
+    }),
     StaffApplications: page('Application'),
     StaffOverview: obj({
       counts: { type: 'object', additionalProperties: n },
@@ -137,6 +184,7 @@ export function staffContract(schemas, route, paths) {
   route('/staff/events', 'get', 'StaffEvents')
   route('/staff/followups', 'get', 'TutorFollowups')
   route('/staff/followups/{id}/resolve', 'post', 'OK', 'ResolveFollowup')
+  route('/staff/academic', 'get', 'MentorAcademicReport')
   route('/admin/founder', 'get', 'FounderReport')
   route('/admin/families', 'get', 'AdminFamilies')
   for (const [path, names] of [
@@ -144,7 +192,7 @@ export function staffContract(schemas, route, paths) {
     ['/staff/members', ['cursor']],
     ['/staff/events', ['application', 'cursor']],
     ['/staff/followups', ['status', 'cursor']],
-    ['/admin/families', ['cursor']],
+    ['/admin/families', ['q', 'cursor']],
   ]) {
     paths[path].get.parameters.push(
       ...names.map((name) => ({ name, in: 'query', required: false, schema: s })),
