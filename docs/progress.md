@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-10-02: parent tutor chooser profile cards
+
+The parent trial-request step no longer asks families to select a tutor name from a dropdown. It now shows approved tutor profile cards with name, scoped subject/class range, mode, teaching language, experience, teaching approach, next review date, staff-confirmed fee plans and a link to view the complete public profile. Selecting a tutor uses radio-card semantics so the existing trial request API still receives the selected approved tutor ID.
+
+Parents can now filter the shortlist by teacher name/approach, teaching language and mode, and sort by recommended fit, most experience or review due soon. Recommended fit prioritises the learner's preferred language when available, then experience. The shortlist still starts from the server-approved tutors already suitable for the learner's class range; no unapproved tutor or invented ranking data is introduced.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema, migration, production data or deployment was changed in this checkpoint.
+
 ## 2026-10-02: searchable locality fields for applications and matching
 
 Tutor application location entry now uses searchable locality controls instead of plain text boxes. The About step has a city search with Purnea/Purnia guidance, and the Home Tuition section has a locality search plus a chip-based service-locality picker. Applicants can add known Purnea localities, add their own locality, remove chips, and use browser current-location permission to confirm they are in or near Purnea. The app saves locality text only; it does not store GPS coordinates or exact home addresses in these fields.

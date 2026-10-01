@@ -1,5 +1,7 @@
 # Requirement → implementation → acceptance evidence
 
+Latest parent tutor-chooser checkpoint: the parent trial request flow now presents approved tutors as profile cards instead of a name dropdown, with visible scope, language, mode, experience, approach, review date, fee plans and a complete-profile link. Parents can search, filter by language/mode and sort by recommended fit, experience or review due soon. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
+
 Latest locality-entry checkpoint: tutor application City, tutor Home Tuition locality, tutor service localities and parent match locality now use searchable Purnea locality controls with curated suggestions and a current-location helper. Service areas are chips instead of a raw multiline textarea. The browser location helper saves only broad locality text and no GPS coordinates. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
 
 Latest public teacher-profile checkpoint: the public tutor detail page now leads with a stronger teacher hero, experience/scope/review evidence cards, parent-readable strengths, a quote-style teaching approach, fit guidance and a clearer child-fit CTA. It uses only existing approved public tutor data and keeps sample labels/scope limits visible. `npm run typecheck`, `npm run lint` and `npm run build` passed. No production deployment was performed.

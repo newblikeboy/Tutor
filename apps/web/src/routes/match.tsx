@@ -2,9 +2,9 @@ import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import { z } from 'zod'
-import { api, queryClient, send } from '../lib/api'
+import { api, indiaDate, queryClient, send } from '../lib/api'
 import type { Dashboard, Learner, Requirement, Schema, Tutor } from '../lib/api'
 import { useAuth, useDashboard } from '../lib/session'
 import { workspaceLink } from '../lib/workspace'
@@ -440,7 +440,7 @@ function TrialRequest({
   learner?: Learner
   selectedTutor: string
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const tutors = useQuery({
     queryKey: ['tutors', 'request'],
     queryFn: ({ signal }) => api<Tutor[]>('/tutors', { signal }),
@@ -448,6 +448,10 @@ function TrialRequest({
   const [tutorId, setTutorId] = useState(selectedTutor)
   const [start, setStart] = useState('')
   const [terms, setTerms] = useState(false)
+  const [search, setSearch] = useState('')
+  const [language, setLanguage] = useState('')
+  const [mode, setMode] = useState('')
+  const [sort, setSort] = useState('recommended')
   const key = useRef(crypto.randomUUID())
   const request = useMutation({
     mutationFn: () =>
@@ -476,12 +480,38 @@ function TrialRequest({
   })
   if (tutors.isPending) return <Loading />
   if (tutors.isError) return <LoadError retry={() => void tutors.refetch()} />
+  const learnerLanguage = learner?.language ?? ''
   const suitable = tutors.data.filter(
     (v) => !learner || (learner.class >= v.scope.minClass && learner.class <= v.scope.maxClass),
   )
+  const visibleTutors = suitable
+    .filter((tutor) => {
+      const text = search.trim().toLocaleLowerCase()
+      const matchesSearch =
+        !text ||
+        [tutor.name, tutor.approach, tutor.scope.subject]
+          .join(' ')
+          .toLocaleLowerCase()
+          .includes(text)
+      const matchesLanguage = !language || tutor.language === language
+      const matchesMode = !mode || tutor.scope.mode === mode
+      return matchesSearch && matchesLanguage && matchesMode
+    })
+    .sort((a, b) => {
+      if (sort === 'experience') return b.experience - a.experience || a.name.localeCompare(b.name)
+      if (sort === 'review') return a.scope.expiresAt.localeCompare(b.scope.expiresAt)
+      const aLanguage = learnerLanguage && a.language === learnerLanguage ? 1 : 0
+      const bLanguage = learnerLanguage && b.language === learnerLanguage ? 1 : 0
+      return bLanguage - aLanguage || b.experience - a.experience || a.name.localeCompare(b.name)
+    })
+  const selected = suitable.find((tutor) => tutor.id === tutorId)
+  const chooseTutor = (id: string) => {
+    setTutorId(id)
+    key.current = crypto.randomUUID()
+  }
   return (
     <form
-      className="panel form-stack trial-form"
+      className="panel form-stack trial-form parent-tutor-choice"
       onSubmit={(e) => {
         e.preventDefault()
         request.mutate()
@@ -493,23 +523,139 @@ function TrialRequest({
         <Alert>{t('noTutorsBody')}</Alert>
       ) : (
         <>
-          <Field label={t('selectTutor')}>
-            <select
-              value={tutorId}
-              onChange={(e) => {
-                setTutorId(e.target.value)
-                key.current = crypto.randomUUID()
-              }}
-              required
-            >
-              <option value="">{t('choose')}</option>
-              {suitable.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name} · {t('classes')} {v.scope.minClass}–{v.scope.maxClass}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <section className="parent-tutor-browser" aria-labelledby="parent-tutor-browser-title">
+            <div className="parent-tutor-browser-head">
+              <div>
+                <p className="eyebrow">{t('parentTutorChooserEyebrow')}</p>
+                <h3 id="parent-tutor-browser-title">{t('parentTutorChooserTitle')}</h3>
+                <p>{t('parentTutorChooserBody')}</p>
+              </div>
+              <span>
+                <ShieldCheck size={17} aria-hidden="true" />
+                {t('parentTutorChooserCount', { count: visibleTutors.length })}
+              </span>
+            </div>
+            <div className="parent-tutor-filters" aria-label={t('parentTutorFilters')}>
+              <div className="parent-tutor-search">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder={t('parentTutorSearch')}
+                  aria-label={t('parentTutorSearch')}
+                />
+              </div>
+              <label>
+                <span>{t('preferredLanguage')}</span>
+                <select value={language} onChange={(event) => setLanguage(event.target.value)}>
+                  <option value="">{t('allLanguages')}</option>
+                  <option value="Hindi">{t('hindi')}</option>
+                  <option value="English">{t('english')}</option>
+                </select>
+              </label>
+              <label>
+                <span>{t('teacherMode')}</span>
+                <select value={mode} onChange={(event) => setMode(event.target.value)}>
+                  <option value="">{t('parentTutorAllModes')}</option>
+                  <option value="online">{t('online')}</option>
+                  <option value="home">{t('applicationForm.home')}</option>
+                </select>
+              </label>
+              <label>
+                <span>{t('parentTutorSort')}</span>
+                <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                  <option value="recommended">{t('parentTutorSortRecommended')}</option>
+                  <option value="experience">{t('parentTutorSortExperience')}</option>
+                  <option value="review">{t('parentTutorSortReview')}</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                className="parent-tutor-reset"
+                onClick={() => {
+                  setSearch('')
+                  setLanguage('')
+                  setMode('')
+                  setSort('recommended')
+                }}
+              >
+                <SlidersHorizontal size={15} aria-hidden="true" />
+                {t('reset')}
+              </button>
+            </div>
+            {visibleTutors.length === 0 ? (
+              <Alert>{t('parentTutorNoFilterResults')}</Alert>
+            ) : (
+              <div className="parent-tutor-grid" role="radiogroup" aria-label={t('selectTutor')}>
+                {visibleTutors.map((tutor) => {
+                  const isSelected = tutor.id === tutorId
+                  const tutorMode = t(
+                    tutor.scope.mode === 'home' ? 'applicationForm.home' : 'online',
+                  )
+                  const tutorLanguage = t(tutor.language === 'Hindi' ? 'hindi' : 'english')
+                  return (
+                    <article
+                      className={`parent-tutor-option ${isSelected ? 'selected' : ''}`}
+                      key={tutor.id}
+                    >
+                      <label>
+                        <input
+                          type="radio"
+                          name="tutorId"
+                          value={tutor.id}
+                          checked={isSelected}
+                          required
+                          onChange={() => chooseTutor(tutor.id)}
+                        />
+                        <span className="parent-tutor-card-top">
+                          <span className="initial-avatar" aria-hidden="true">
+                            {tutor.name.slice(0, 1)}
+                          </span>
+                          <span>
+                            <small>{tutor.sample ? t('sampleProfile') : t('scoped')}</small>
+                            <strong>{tutor.name}</strong>
+                            <em>
+                              {tutor.scope.subject === 'Mathematics'
+                                ? t('math')
+                                : tutor.scope.subject}{' '}
+                              - {t('classes')} {tutor.scope.minClass}-{tutor.scope.maxClass}
+                            </em>
+                          </span>
+                        </span>
+                        <span className="parent-tutor-meta">
+                          <span>{tutorMode}</span>
+                          <span>{tutorLanguage}</span>
+                          <span>
+                            {t('teacherProofExperienceValue', { count: tutor.experience })}
+                          </span>
+                        </span>
+                        <span className="parent-tutor-approach">{tutor.approach}</span>
+                        <span className="parent-tutor-review">
+                          {t('teacherProofReview')}:{' '}
+                          {indiaDate(tutor.scope.expiresAt, i18n.language)}
+                        </span>
+                        <span className="parent-tutor-price">
+                          <TutorFees plans={tutor.feePlans} />
+                        </span>
+                      </label>
+                      <Link
+                        className="text-link parent-tutor-profile-link"
+                        to={`/tutors/${tutor.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {t('viewCompleteProfile')}
+                      </Link>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+          {selected && (
+            <Alert kind="success">{t('parentTutorSelected', { name: selected.name })}</Alert>
+          )}
           <Field label={t('startTime')} hint={t('timezone')}>
             <input
               type="datetime-local"
@@ -521,9 +667,6 @@ function TrialRequest({
               required
             />
           </Field>
-          {tutorId && (
-            <TutorFees plans={suitable.find((tutor) => tutor.id === tutorId)?.feePlans} />
-          )}
           <Alert>{t('termsBody')}</Alert>
           <label className="check-label">
             <input
@@ -535,7 +678,7 @@ function TrialRequest({
             {t('terms')}
           </label>
           <MutationError error={request.error} />
-          <Button type="submit" busy={request.isPending}>
+          <Button type="submit" busy={request.isPending} disabled={!tutorId}>
             {t('requestTrial')}
           </Button>
         </>

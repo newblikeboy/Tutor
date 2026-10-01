@@ -191,3 +191,216 @@
     display: none;
   }
 }
+.parent-tutor-choice {
+  gap: 20px;
+}
+.parent-tutor-browser {
+  display: grid;
+  gap: 18px;
+}
+.parent-tutor-browser-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid #d8e4da;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fffefa, #f1f8f3);
+}
+.parent-tutor-browser-head h3 {
+  margin: 4px 0 8px;
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: -0.7px;
+}
+.parent-tutor-browser-head p {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--muted);
+}
+.parent-tutor-browser-head > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  border: 1px solid #c8dbce;
+  border-radius: 999px;
+  background: #ffffffbf;
+  color: #245441;
+  font-size: 12px;
+  font-weight: 800;
+}
+.parent-tutor-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(145px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+.parent-tutor-filters label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.parent-tutor-filters select,
+.parent-tutor-search {
+  min-height: 44px;
+  border: 1px solid #d2ded3;
+  border-radius: 12px;
+  background: #fffefa;
+}
+.parent-tutor-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--teal);
+}
+.parent-tutor-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+.parent-tutor-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #d2ded3;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #245441;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.parent-tutor-grid {
+  display: grid;
+  gap: 14px;
+}
+.parent-tutor-option {
+  position: relative;
+  border: 1px solid #d8e4da;
+  border-radius: 18px;
+  background: #fffefa;
+  box-shadow: 0 12px 28px #15353b08;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+.parent-tutor-option:hover,
+.parent-tutor-option:focus-within {
+  border-color: #75a882;
+  box-shadow: 0 16px 36px #15353b12;
+  transform: translateY(-1px);
+}
+.parent-tutor-option.selected {
+  border-color: var(--teal);
+  box-shadow:
+    0 0 0 3px #0d7b8420,
+    0 16px 36px #15353b12;
+}
+.parent-tutor-option > label {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  cursor: pointer;
+}
+.parent-tutor-option input[type='radio'] {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--teal);
+}
+.parent-tutor-card-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 36px;
+}
+.parent-tutor-card-top > span:last-child {
+  display: grid;
+  gap: 3px;
+}
+.parent-tutor-card-top small {
+  color: var(--teal);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.parent-tutor-card-top strong {
+  color: var(--ink);
+  font-size: 21px;
+  letter-spacing: -0.35px;
+}
+.parent-tutor-card-top em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 13px;
+}
+.parent-tutor-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.parent-tutor-meta span {
+  padding: 7px 9px;
+  border: 1px solid #d9e5dc;
+  border-radius: 999px;
+  background: #f6faf6;
+  color: #314d3c;
+  font-size: 12px;
+  font-weight: 800;
+}
+.parent-tutor-approach {
+  color: #2c3f55;
+  font-size: 14px;
+  line-height: 1.75;
+}
+.parent-tutor-review {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.parent-tutor-price .fee-list {
+  margin: 0;
+}
+.parent-tutor-profile-link {
+  margin: 0 18px 18px;
+}
+@media (max-width: 900px) {
+  .parent-tutor-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .parent-tutor-search {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 600px) {
+  .parent-tutor-browser-head {
+    flex-direction: column;
+  }
+  .parent-tutor-filters {
+    grid-template-columns: 1fr;
+  }
+  .parent-tutor-reset {
+    width: 100%;
+  }
+  .parent-tutor-card-top {
+    align-items: flex-start;
+  }
+  .parent-tutor-card-top .initial-avatar {
+    width: 54px;
+    height: 62px;
+    font-size: 24px;
+  }
+}
