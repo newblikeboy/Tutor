@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-10-02: searchable locality fields for applications and matching
+
+Tutor application location entry now uses searchable locality controls instead of plain text boxes. The About step has a city search with Purnea/Purnia guidance, and the Home Tuition section has a locality search plus a chip-based service-locality picker. Applicants can add known Purnea localities, add their own locality, remove chips, and use browser current-location permission to confirm they are in or near Purnea. The app saves locality text only; it does not store GPS coordinates or exact home addresses in these fields.
+
+The parent matching locality field uses the same search/current-location control, keeping the no-exact-address guidance. The implementation is keyless and offline-friendly: it uses curated local Purnea suggestions and browser geolocation only for a broad in/near-Purnea check, avoiding a new third-party maps dependency.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema, migration, production data or deployment was changed in this checkpoint.
+
 ## 2026-10-02: stronger public teacher profile
 
 The public tutor detail page now presents each approved tutor as a stronger parent-facing teacher profile. The first view leads with the teacher identity, approved subject/class/mode, teaching language and a concise positioning line, followed by evidence cards for experience, approved scope and next academic review. The profile now highlights why the teacher may fit a family, keeps the approved-scope boundaries visible, turns the teaching approach into a stronger quote-style section, and changes the sticky call to action to check whether the teacher fits the child.

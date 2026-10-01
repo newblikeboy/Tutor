@@ -9,6 +9,7 @@ import type { Dashboard, Learner, Requirement, Schema, Tutor } from '../lib/api'
 import { useAuth, useDashboard } from '../lib/session'
 import { workspaceLink } from '../lib/workspace'
 import { TrialCard } from '../components/trial-card'
+import { LocationSearchField } from '../components/location-search'
 import { TutorFees } from '../components/tutor-fees'
 import '../styles/parent.css'
 import {
@@ -361,17 +362,15 @@ function Wizard({ initial }: { initial: Dashboard }) {
                   aria-invalid={validation && goal.trim().length < 10}
                 />
               </Field>
-              <Field
+              <LocationSearchField
                 label={t('locality')}
+                value={locality}
+                onChange={setLocality}
+                maxLength={120}
+                required
+                hint={t('localityHelp')}
                 error={validation && locality.trim().length < 2 ? t('parent.cityError') : undefined}
-              >
-                <input
-                  value={locality}
-                  onChange={(e) => setLocality(e.target.value)}
-                  maxLength={120}
-                  aria-invalid={validation && locality.trim().length < 2}
-                />
-              </Field>
+              />
             </>
           ) : (
             <>

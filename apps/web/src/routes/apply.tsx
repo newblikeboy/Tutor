@@ -35,6 +35,7 @@ import {
 import { InterviewCard } from '../components/interview'
 import { TutorFees } from '../components/tutor-fees'
 import { ApplicationScope, ApplicationSummary } from '../components/application-summary'
+import { LocationSearchField, ServiceLocalityPicker } from '../components/location-search'
 import { PrivateFiles } from './files'
 import '../styles/application.css'
 import { useClock } from '../lib/clock'
@@ -411,6 +412,8 @@ function StepFields({
     { register, setValue, getFieldState, formState, clearErrors } =
       useFormContext<ApplicationProfile>()
   const p = useWatch<ApplicationProfile>() as ApplicationProfile
+  const cityError = getFieldState('about.city', formState).error
+  const localityError = getFieldState('about.locality', formState).error
   const localitiesError = getFieldState('availability.home.localities', formState).error
   const home = p.teachingAreas.some((a) => a.modes.includes('home')),
     online = p.teachingAreas.some((a) => a.modes.includes('online'))
@@ -428,7 +431,20 @@ function StepFields({
             <input value={email} readOnly type="email" />
           </Field>
           <Input name="about.mobile" type="tel" max={16} />
-          <Input name="about.city" min={2} max={80} />
+          <LocationSearchField
+            label={c('city')}
+            value={p.about.city}
+            onChange={(value) => {
+              clearErrors('about.city')
+              setValue('about.city', value, { shouldDirty: true })
+            }}
+            error={cityError ? c('required') : undefined}
+            hint={c('citySearchHint')}
+            required
+            maxLength={80}
+            city
+            currentValue="Purnea"
+          />
         </div>
         <Checks name="about.communicationLanguages" options={['Hindi', 'English']} />
         <Attachment name="about.photoFileId" label="photoFileId" ensureDraft={ensureDraft} />
@@ -610,26 +626,31 @@ function StepFields({
           <fieldset className="af-area">
             <legend>{c('homeTitle')}</legend>
             <div className="form-grid">
-              <Input name="about.locality" min={2} max={120} />
-              <Input name="about.pin" min={6} max={6} />
-            </div>
-            <Field
-              label={c('localities')}
-              error={localitiesError ? c('localitiesError') : undefined}
-            >
-              <textarea
-                required
-                rows={3}
-                aria-invalid={!!localitiesError}
-                value={p.availability.home.localities.join('\n')}
-                onChange={(e) => {
-                  clearErrors('availability.home.localities')
-                  setValue('availability.home.localities', e.target.value.split('\n'), {
-                    shouldDirty: true,
-                  })
+              <LocationSearchField
+                label={c('locality')}
+                value={p.about.locality}
+                onChange={(value) => {
+                  clearErrors('about.locality')
+                  setValue('about.locality', value, { shouldDirty: true })
                 }}
+                error={localityError ? c('required') : undefined}
+                hint={c('localitySearchHint')}
+                required
+                maxLength={120}
               />
-            </Field>
+              <Input name="about.pin" min={6} max={6} hint="pinHint" />
+            </div>
+            <ServiceLocalityPicker
+              label={c('localities')}
+              value={p.availability.home.localities}
+              currentLocality={p.about.locality}
+              hint={c('serviceLocalitiesHint')}
+              error={localitiesError ? c('localitiesError') : undefined}
+              onChange={(value) => {
+                clearErrors('availability.home.localities')
+                setValue('availability.home.localities', value, { shouldDirty: true })
+              }}
+            />
             <div className="form-grid">
               <Input name="availability.home.travelKm" type="number" min={1} max={100} />
               <Select
