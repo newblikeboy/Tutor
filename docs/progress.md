@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-10-02: stronger public teacher profile
+
+The public tutor detail page now presents each approved tutor as a stronger parent-facing teacher profile. The first view leads with the teacher identity, approved subject/class/mode, teaching language and a concise positioning line, followed by evidence cards for experience, approved scope and next academic review. The profile now highlights why the teacher may fit a family, keeps the approved-scope boundaries visible, turns the teaching approach into a stronger quote-style section, and changes the sticky call to action to check whether the teacher fits the child.
+
+The redesign uses only existing public tutor fields: name, sample flag, subject, class range, mode, language, experience, assessment date, scope review date, approach and staff-confirmed fee plans. It does not add testimonials, claims about outcomes, hidden scores or safety guarantees. Fictional development profiles remain labelled.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend, data migration, production data or deployment was changed in this checkpoint.
+
 ## 2026-10-01: phases 3-5 academic, family and finance controls
 
 Phase 3 adds a mentor academic tracking view backed by `GET /api/v1/staff/academic`. Mentors see assigned tutors, active learner assignments, class reviews due, missed classes, delivered/remaining class counts and learning-plan review dates. Admins can also read the same academic report across the network. The existing interview/approval workflow remains the source of final tutor approval; this checkpoint adds tracking rather than automatic performance conclusions.

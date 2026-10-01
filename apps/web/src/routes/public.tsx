@@ -5,17 +5,21 @@ import { useTranslation } from 'react-i18next'
 import {
   ArrowRight,
   ArrowUpRight,
+  Award,
   BookOpen,
   Check,
   CheckCircle2,
   ChevronRight,
   Compass,
   GraduationCap,
+  LineChart,
   House,
   LockKeyhole,
   Monitor,
+  Sparkles,
   ShieldCheck,
   SlidersHorizontal,
+  Target,
   Sprout,
 } from 'lucide-react'
 import { api, indiaDate } from '../lib/api'
@@ -520,72 +524,179 @@ export function TutorDetail() {
       </div>
     )
   const tutor = q.data
+  const subject = tutor.scope.subject === 'Mathematics' ? t('math') : tutor.scope.subject
+  const classRange = `${tutor.scope.minClass}–${tutor.scope.maxClass}`
+  const language = t(tutor.language === 'Hindi' ? 'hindi' : 'english')
+  const mode = t(tutor.scope.mode === 'home' ? 'applicationForm.home' : 'online')
+  const assessedOn = indiaDate(tutor.assessmentAt, i18n.language)
+  const reviewDue = indiaDate(tutor.scope.expiresAt, i18n.language)
+  const proofItems = [
+    {
+      icon: Award,
+      label: t('teacherProofExperience'),
+      value: t('teacherProofExperienceValue', { count: tutor.experience }),
+    },
+    {
+      icon: Target,
+      label: t('teacherProofScope'),
+      value: `${subject} · ${t('classes')} ${classRange}`,
+    },
+    { icon: LineChart, label: t('teacherProofReview'), value: reviewDue },
+  ]
+  const strengthItems = [
+    {
+      icon: ShieldCheck,
+      title: t('teacherStrengthScopeTitle'),
+      body: t('teacherStrengthScopeBody', { subject, classes: classRange, mode }),
+    },
+    {
+      icon: BookOpen,
+      title: t('teacherStrengthMethodTitle'),
+      body: t('teacherStrengthMethodBody'),
+    },
+    {
+      icon: GraduationCap,
+      title: t('teacherStrengthReviewTitle'),
+      body: t('teacherStrengthReviewBody'),
+    },
+  ]
+
   return (
     <div className="container section">
       <Link className="back-link" to="/tutors">
         ← {t('browse')}
       </Link>
-      <div className="profile-layout">
+      <div className="profile-layout teacher-profile-layout">
         <div>
-          <div className="profile-header">
-            <div className="initial-avatar large">{tutor.name.slice(0, 1)}</div>
-            <div>
-              <p className="eyebrow">{t('sampleProfile')}</p>
-              <h1>{tutor.name}</h1>
-              <p>
-                {t('math')} · {t('online')} · {t(tutor.language === 'Hindi' ? 'hindi' : 'english')}
+          <section className="teacher-hero-card" aria-labelledby="teacher-profile-title">
+            <div className="teacher-hero-main">
+              <div className="teacher-identity">
+                <div className="initial-avatar teacher-avatar" aria-hidden="true">
+                  {tutor.name.slice(0, 1)}
+                </div>
+                <div>
+                  <p className="eyebrow">
+                    {tutor.sample ? t('sampleProfile') : t('teacherProfileEyebrow')}
+                  </p>
+                  <h1 id="teacher-profile-title">{tutor.name}</h1>
+                </div>
+              </div>
+              <p className="teacher-headline">
+                {t('teacherProfileLead', { subject, classes: classRange, mode, language })}
               </p>
+              <div className="teacher-badges" aria-label={t('teacherProfileFacts')}>
+                <span>
+                  <ShieldCheck size={16} />
+                  {t('scoped')}
+                </span>
+                <span>
+                  {tutor.scope.mode === 'home' ? <House size={16} /> : <Monitor size={16} />}
+                  {mode}
+                </span>
+                <span>
+                  <Sparkles size={16} />
+                  {language}
+                </span>
+              </div>
             </div>
-          </div>
-          <section className="panel scope-panel">
+            <aside className="teacher-snapshot" aria-label={t('teacherSnapshot')}>
+              <span>{t('teacherSnapshot')}</span>
+              <strong>{subject}</strong>
+              <p>
+                {t('classes')} {classRange} · {mode}
+              </p>
+              <small>
+                {t('assessedOn')}: {assessedOn}
+              </small>
+            </aside>
+          </section>
+
+          <section className="teacher-proof-grid" aria-label={t('teacherProofTitle')}>
+            {proofItems.map((item) => (
+              <article className="teacher-proof-card" key={item.label}>
+                <item.icon size={22} />
+                <small>{item.label}</small>
+                <strong>{item.value}</strong>
+              </article>
+            ))}
+          </section>
+
+          <section
+            className="profile-section teacher-strengths"
+            aria-labelledby="teacher-strengths-title"
+          >
+            <p className="eyebrow">{t('teacherProofTitle')}</p>
+            <h2 id="teacher-strengths-title">{t('teacherStrengthTitle')}</h2>
+            <div className="teacher-strength-grid">
+              {strengthItems.map((item) => (
+                <article className="teacher-strength-card" key={item.title}>
+                  <span>
+                    <item.icon size={20} />
+                  </span>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel scope-panel teacher-scope-panel">
             <ShieldCheck className="teal" />
             <h2>{t('scopeTitle')}</h2>
             <div className="scope-grid">
               <div>
                 <small>{t('subject')}</small>
-                <strong>{t('math')}</strong>
+                <strong>{subject}</strong>
               </div>
               <div>
                 <small>{t('classes')}</small>
-                <strong>
-                  {tutor.scope.minClass}–{tutor.scope.maxClass}
-                </strong>
+                <strong>{classRange}</strong>
               </div>
               <div>
-                <small>{t('online')}</small>
-                <strong>{t('scoped')}</strong>
+                <small>{t('teacherMode')}</small>
+                <strong>{mode}</strong>
               </div>
             </div>
             <p>{t('scopeHelp')}</p>
             <small>
-              {t('assessedOn')}: {indiaDate(tutor.assessmentAt, i18n.language)}
+              {t('assessedOn')}: {assessedOn}
             </small>
             <small>
-              {t('until')}: {indiaDate(tutor.scope.expiresAt, i18n.language)}
+              {t('until')}: {reviewDue}
             </small>
           </section>
-          <section className="profile-section">
-            <h2>{t('teachingApproach')}</h2>
-            <p>{tutor.approach}</p>
+
+          <section className="profile-section teacher-approach-panel">
+            <div>
+              <p className="eyebrow">{t('teachingApproach')}</p>
+              <h2>{t('teacherApproachTitle')}</h2>
+            </div>
+            <blockquote>{tutor.approach}</blockquote>
             <Alert>{t('sampleProfile')}</Alert>
           </section>
-          <section className="profile-section">
-            <h2>{t('step3')}</h2>
-            <p>{t('step3Body')}</p>
+
+          <section className="profile-section teacher-fit-panel">
+            <h2>{t('teacherFitTitle')}</h2>
+            <p>{t('teacherFitBody')}</p>
+            <ul>
+              <li>{t('teacherFitScope', { subject, classes: classRange })}</li>
+              <li>{t('teacherFitMode', { mode })}</li>
+              <li>{t('teacherFitReview')}</li>
+            </ul>
           </section>
         </div>
-        <aside className="trial-summary panel">
+        <aside className="trial-summary teacher-action-card panel">
           <span className="summary-icon">
             <GraduationCap size={30} />
           </span>
-          <h2>{t('trialTitle')}</h2>
+          <h2>{t('teacherActionTitle')}</h2>
           <TutorFees plans={tutor.feePlans} />
-          <p>{t('trialBody')}</p>
+          <p>{t('teacherActionBody', { name: tutor.name })}</p>
           <div className="price">
             <strong>{t('freeTrial')}</strong>
             <span>{t('freeTrialBody')}</span>
           </div>
-          <LinkButton to={`/match?tutor=${tutor.id}`}>{t('requestMatch')}</LinkButton>
+          <LinkButton to={`/match?tutor=${tutor.id}`}>{t('teacherActionButton')}</LinkButton>
           <p className="privacy-note">
             <LockKeyhole size={16} />
             {t('privacyNote')}

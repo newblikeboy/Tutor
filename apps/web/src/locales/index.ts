@@ -116,6 +116,38 @@ const en = {
   trialBody: 'Share your learning needs first. You can then choose this tutor and request a time.',
   freeTrial: '₹0 development trial',
   freeTrialBody: 'One online session · 60 minutes · No payment collected',
+  teacherProfileEyebrow: 'Assessed teaching profile',
+  teacherProfileLead:
+    '{{subject}} teacher for Classes {{classes}} · {{mode}} · teaches in {{language}}',
+  teacherProfileFacts: 'Teacher profile facts',
+  teacherSnapshot: 'Teacher focus',
+  teacherProofTitle: 'Why this teacher stands out',
+  teacherProofExperience: 'Teaching experience',
+  teacherProofExperienceValue: '{{count}} years',
+  teacherProofScope: 'Approved teaching scope',
+  teacherProofReview: 'Next academic review',
+  teacherMode: 'Mode',
+  teacherStrengthTitle: 'A profile parents can understand quickly',
+  teacherStrengthScopeTitle: 'Approved for this exact need',
+  teacherStrengthScopeBody:
+    '{{subject}}, Classes {{classes}}, {{mode}}. The public profile only shows the scope reviewed by the academic team.',
+  teacherStrengthMethodTitle: 'Clear teaching method',
+  teacherStrengthMethodBody:
+    'The approach is written for families, so you can judge how the teacher explains, practices and follows up before requesting a trial.',
+  teacherStrengthReviewTitle: 'Tracked after the first class',
+  teacherStrengthReviewBody:
+    'The trial is followed by lesson evidence and mentor review, so the family sees the next step instead of guessing.',
+  teacherApproachTitle: 'How this teacher builds understanding',
+  teacherFitTitle: 'Best fit for this profile',
+  teacherFitBody:
+    'Use this teacher when your child needs support inside the approved subject, class range and teaching mode shown here.',
+  teacherFitScope: '{{subject}} support for Classes {{classes}}.',
+  teacherFitMode: 'Works through {{mode}} sessions.',
+  teacherFitReview: 'Suitable for families who want trial notes and academic follow-up.',
+  teacherActionTitle: 'Check if this teacher fits your child',
+  teacherActionBody:
+    'Share your child’s learning need first. Then the academic team can help confirm whether {{name}} is a good trial choice.',
+  teacherActionButton: 'Check fit for my child',
   privacyNote:
     'Learner details are private. Only the family and authorised academic team can access them.',
   signTitle: 'A good next step starts here.',
