@@ -1,5 +1,7 @@
 # Requirement → implementation → acceptance evidence
 
+Latest Updates layout checkpoint: the Updates page now has a compact tab/action toolbar and no rendered one-way eyebrow, repeated page title, intro sentence or one-way helper notes. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
+
 Latest support-copy checkpoint: visible support/case copy no longer says development inbox, operator staffing pending, development preview or not-live service. Request inbox/support wording is production-style while retaining a limited emergency boundary. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
 
 Latest parent tutor-chooser checkpoint: the parent trial request flow now presents approved tutors as profile cards instead of a name dropdown, with visible scope, language, mode, experience, approach, review date, fee plans and a complete-profile link. Parents can search, filter by language/mode and sort by recommended fit, experience or review due soon. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.

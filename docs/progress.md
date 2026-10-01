@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-10-02: compact Updates layout
+
+The Updates page now uses a compact top toolbar so the Inbox/Sent/Activity tabs and message list sit higher on the page. The redundant eyebrow, large repeated title, introductory sentence, compose one-way explanation, empty-state one-way badge and message-detail one-way note were removed from the rendered interface. The New update action remains available for roles that can send updates.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema, migration, production data or deployment was changed in this checkpoint.
+
 ## 2026-10-02: remove development wording from support copy
 
 Support and request inbox copy no longer describes the deployed service as a development inbox, staffing-pending inbox, development preview or not-live service. The case inbox heading now reads as a request inbox, the support/contact copy points users to workspace support requests, and the public FAQ describes tutor-request review without development-preview language.

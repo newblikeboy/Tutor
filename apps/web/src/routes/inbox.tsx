@@ -88,54 +88,43 @@ function Updates({ user }: { user: User }) {
     )
   return (
     <div className="tu-page inbox-page">
-      <header className="tu-heading inbox-heading">
-        <div>
-          <p className="inbox-eyebrow">
-            <Mail size={16} aria-hidden="true" />{' '}
-            {t(folder === 'activity' && !compose ? 'inbox.activity' : 'inbox.privateUpdate')}
-          </p>
-          <h1>{t('inbox.title')}</h1>
-          <p>
-            {t(
-              `inbox.${user.role === 'admin' ? 'adminIntro' : user.role === 'tutor' ? 'tutorIntro' : 'parentIntro'}`,
-            )}
-          </p>
-        </div>
-        <div className="inbox-header-actions">
-          {user.role !== 'parent' && (
-            <Link className="btn primary" to="/notifications?compose=1">
-              <PenLine size={17} aria-hidden="true" />
-              {t('inbox.compose')}
+      <div className="inbox-toolbar">
+        <nav className="inbox-tabs" aria-label={t('inbox.title')}>
+          {user.role !== 'admin' && (
+            <Link
+              to={url('inbox')}
+              aria-current={!compose && ['inbox', 'unread'].includes(folder) ? 'page' : undefined}
+            >
+              <InboxIcon size={18} aria-hidden="true" />
+              {t('inbox.received')}
+              {!!status.data?.unreadCount && (
+                <span className="inbox-count">{status.data.unreadCount}</span>
+              )}
             </Link>
           )}
-        </div>
-      </header>
-      <nav className="inbox-tabs" aria-label={t('inbox.title')}>
-        {user.role !== 'admin' && (
+          {user.role !== 'parent' && (
+            <Link
+              to={url('sent')}
+              aria-current={!compose && folder === 'sent' ? 'page' : undefined}
+            >
+              <Send size={17} aria-hidden="true" />
+              {t('inbox.sent')}
+            </Link>
+          )}
           <Link
-            to={url('inbox')}
-            aria-current={!compose && ['inbox', 'unread'].includes(folder) ? 'page' : undefined}
+            to={url('activity')}
+            aria-current={!compose && folder === 'activity' ? 'page' : undefined}
           >
-            <InboxIcon size={18} aria-hidden="true" />
-            {t('inbox.received')}
-            {!!status.data?.unreadCount && (
-              <span className="inbox-count">{status.data.unreadCount}</span>
-            )}
+            {t('inbox.activity')}
           </Link>
-        )}
+        </nav>
         {user.role !== 'parent' && (
-          <Link to={url('sent')} aria-current={!compose && folder === 'sent' ? 'page' : undefined}>
-            <Send size={17} aria-hidden="true" />
-            {t('inbox.sent')}
+          <Link className="btn primary inbox-compose-link" to="/notifications?compose=1">
+            <PenLine size={17} aria-hidden="true" />
+            {t('inbox.compose')}
           </Link>
         )}
-        <Link
-          to={url('activity')}
-          aria-current={!compose && folder === 'activity' ? 'page' : undefined}
-        >
-          {t('inbox.activity')}
-        </Link>
-      </nav>
+      </div>
       {folder === 'activity' && !compose ? (
         <ActivityUpdates />
       ) : compose ? (
@@ -199,7 +188,6 @@ function Compose({ user }: { user: User }) {
           {t('inbox.cancel')}
         </Link>
       </div>
-      <p>{t('inbox.oneWay')}</p>
       {user.role === 'admin' && (
         <form
           className="inbox-recipient-search"
@@ -426,10 +414,6 @@ function Mailbox({
             <Mail size={38} aria-hidden="true" />
             <h2>{t('inbox.choose')}</h2>
             <p>{t('inbox.chooseBody')}</p>
-            <span>
-              <Mail size={14} aria-hidden="true" />
-              {t('inbox.oneWay')}
-            </span>
           </div>
         )}
       </section>
@@ -571,7 +555,6 @@ function ReadUpdate({
                 </Button>
               </Alert>
             )}
-            <p className="inbox-one-way">{t('inbox.oneWay')}</p>
           </>
         )
       )}
