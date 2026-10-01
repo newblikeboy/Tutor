@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-10-02: Home Tuition approval publishes weekly and monthly fees
+
+Teacher weekly and monthly fees were hidden because public tutor pricing is filtered to the approved teaching mode, while the staff approval flow always saved the approved mode as Online. Staff approval now includes an approved teaching mode selector using the applicant's requested modes. Online approval continues to publish only the hourly Online plan; Home Tuition approval publishes the staff-confirmed weekly and monthly Home plans with class count and duration.
+
+Validation: `go test ./internal/app -run "TestStaff|TestFee"`, `go test ./...`, `go vet ./...`, `npm run typecheck`, `npm run lint` and `npm run build` passed. No production data or deployment was changed in this checkpoint.
+
 ## 2026-10-02: compact private menu headers
 
 Private workspace menus now use less vertical space before their real work areas. Account, Payments & records, Support & requests and Find Tutor keep accessible page titles without rendering large repeated heading blocks. Workspace and staff menu headings no longer show decorative eyebrow or intro copy, the shared private heading size is reduced, and Documents/Messages panels no longer repeat short explanatory text under their section titles.

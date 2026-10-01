@@ -1556,6 +1556,8 @@ export interface components {
             scores?: number[];
             minClass?: number;
             maxClass?: number;
+            /** @enum {string} */
+            mode?: "home" | "online";
             assessorId?: string;
             mentorId?: string;
             conflictClear?: boolean;

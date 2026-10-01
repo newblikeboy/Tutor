@@ -5645,6 +5645,13 @@
           "maxClass": {
             "type": "integer"
           },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "home",
+              "online"
+            ]
+          },
           "assessorId": {
             "type": "string"
           },

@@ -1,5 +1,7 @@
 # Requirement → implementation → acceptance evidence
 
+Latest Home Tuition fee checkpoint: staff approval now records the approved teaching mode. Public tutor pricing remains scoped to the approved mode: Online approvals publish hourly plans and Home Tuition approvals publish weekly/monthly plans with class count and duration. Backend tests cover Home approval fee publication; `go test ./...`, `go vet ./...`, `npm run typecheck`, `npm run lint` and `npm run build` passed. No production deployment was performed.
+
 Latest private-menu layout checkpoint: private workspace pages now remove repeated decorative headings/intro text from Account, Payments & records, Support & requests, Find Tutor, Documents and Messages; workspace/staff headings are compact so tabs and lists sit higher. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
 
 Latest Updates layout checkpoint: the Updates page now has a compact tab/action toolbar and no rendered one-way eyebrow, repeated page title, intro sentence or one-way helper notes. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.

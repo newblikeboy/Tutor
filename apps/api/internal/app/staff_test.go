@@ -238,12 +238,26 @@ func TestMongoStaffOperations(t *testing.T) {
 		if len(persistedFees["plans"].([]any)) != 3 || persistedFees["setBy"] != "mentor-a" {
 			t.Fatal("staff fees did not persist across API instances")
 		}
-		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "reason": "Observed teaching supports class eight online Mathematics."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "mode": "online", "reason": "Observed teaching supports class eight online Mathematics."}, 200)
 		pub := parent.ok("GET", "/tutors/tutor-a", nil, 200)
 		published := pub["feePlans"].([]any)
 		if len(published) != 1 || published[0].(map[string]any)["amountPaise"] != float64(40000) || pub["fees"] != nil {
 			t.Fatal("wrong public prices or private fee metadata leaked")
 		}
+		mentor.decide("tutor-a", map[string]any{"action": "reopen", "reason": "Review Home Tuition approval after the initial online approval."}, 403)
+		admin.decide("tutor-a", map[string]any{"action": "reopen", "reason": "Review Home Tuition approval after the initial online approval."}, 200)
+		admin.decide("tutor-a", map[string]any{"action": "assign", "assessorId": "mentor-a", "reason": "Assign reviewer for Home Tuition scope."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "confirm_conflict", "conflictClear": true, "reason": "Reviewer remains eligible for Home Tuition assessment."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": interview(now.Add(-time.Minute))}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Observed home tuition readiness and parent communication for class eight."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "fees", "feePlans": []domain.FeePlan{{Mode: "online", Period: "hour", AmountPaise: 40000, Classes: 1, Minutes: 60}, {Mode: "home", Period: "week", AmountPaise: 120000, Classes: 3, Minutes: 60}, {Mode: "home", Period: "month", AmountPaise: 480000, Classes: 12, Minutes: 60}}}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "mode": "home", "reason": "Observed teaching supports class eight Home Tuition Mathematics."}, 200)
+		homePub := parent.ok("GET", "/tutors/tutor-a", nil, 200)
+		homePublished := homePub["feePlans"].([]any)
+		if len(homePublished) != 2 || homePublished[0].(map[string]any)["period"] != "week" || homePublished[1].(map[string]any)["period"] != "month" || homePub["scope"].(map[string]any)["mode"] != "home" {
+			t.Fatal("home weekly and monthly fees were not published for a Home Tuition approval")
+		}
+
 		tutor.ok("PUT", "/availability", map[string]any{"feePaise": 1}, 403)
 		tutor.ok("PUT", "/availability", map[string]any{"feeVersion": 1}, 403)
 		if pub["scope"].(map[string]any)["minClass"] != float64(8) || pub["interview"] != nil {

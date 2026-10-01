@@ -298,6 +298,7 @@ type staffDecisionInput struct {
 	Scores        []int             `json:"scores"`
 	MinClass      int               `json:"minClass"`
 	MaxClass      int               `json:"maxClass"`
+	Mode          string            `json:"mode"`
 	AssessorID    string            `json:"assessorId"`
 	MentorID      string            `json:"mentorId"`
 	ConflictClear bool              `json:"conflictClear"`
@@ -562,21 +563,30 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 				return domain.Fail(409, "invalid_transition", "Only the assigned reviewer can approve an assessed application.")
 			}
 			if in.MinClass < 6 || in.MaxClass > 10 || in.MinClass > in.MaxClass {
-				return domain.Fail(422, "validation", "Approved classes must be within 6–10.")
+				return domain.Fail(422, "validation", "Approved classes must be within 6-10.")
+			}
+			mode := in.Mode
+			if mode == "" {
+				mode = v.Scope.Mode
 			}
 			if v.Profile != nil {
 				if v.Profile.NeedsEligibilityReview() && (v.Eligibility == nil || v.Eligibility.Status != "cleared" || v.Eligibility.ReviewedAt == nil) || v.Eligibility != nil && v.Eligibility.Status == "blocked" {
 					return domain.Fail(409, "eligibility_pending", "An administrator must complete the required eligibility review.")
 				}
 				area, ok := v.Profile.FirstArea()
-				if !ok || area.Subject != "Mathematics" || !enum("online", area.Modes...) || in.MinClass < area.MinClass || in.MaxClass > area.MaxClass {
+				if mode == "" && ok && len(area.Modes) > 0 {
+					mode = area.Modes[0]
+				}
+				if !ok || area.Subject != "Mathematics" || !enum(mode, area.Modes...) || in.MinClass < area.MinClass || in.MaxClass > area.MaxClass {
 					return domain.Fail(409, "requested_scope", "Approve only an assessed, requested teaching area supported by the current booking service.")
 				}
 				v.Scope.Subject = area.Subject
-				v.Scope.Mode = "online"
+				v.Scope.Mode = mode
 				if v.Profile.About.DisplayName != "" {
 					v.Name = v.Profile.About.DisplayName
 				}
+			} else if !enum(mode, "home", "online") {
+				return domain.Fail(422, "validation", "Choose an approved teaching mode.")
 			}
 			mentorID := in.MentorID
 			if v.Fees == nil || len(v.FeePlans()) == 0 {

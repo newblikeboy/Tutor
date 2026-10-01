@@ -131,6 +131,9 @@ export const staffEN = {
     expired: 'Approval expired',
     reviewer: 'Reviewer',
     academicMentor: 'Academic mentor for ongoing learning',
+    approvedMode: 'Approved teaching mode',
+    approvedModeHint:
+      'Home Tuition approval publishes weekly and monthly plans. Online approval publishes the hourly plan.',
     afterInterview: 'Assessment opens when the interview begins.',
     unassigned: 'Unassigned',
     takeReview: 'Start review',

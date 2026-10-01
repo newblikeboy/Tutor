@@ -1573,6 +1573,16 @@ function ApprovalForm({ application }: { application: Application }) {
   const [maxClass, setMaxClass] = useState(
     firstArea ? Math.min(10, firstArea.maxClass) : application.scope.maxClass,
   )
+  const approvalModes = (firstArea?.modes ?? [application.scope.mode]).filter(
+    (mode): mode is 'home' | 'online' => mode === 'home' || mode === 'online',
+  )
+  const [mode, setMode] = useState<'home' | 'online'>(
+    (application.scope.mode === 'home' || application.scope.mode === 'online'
+      ? application.scope.mode
+      : approvalModes.includes('online')
+        ? 'online'
+        : approvalModes[0]) as 'home' | 'online',
+  )
   const [reason, setReason] = useState('')
   const auth = useAuth()
   const [mentorId, setMentorId] = useState(
@@ -1583,7 +1593,7 @@ function ApprovalForm({ application }: { application: Application }) {
     application.profile &&
     (!firstArea ||
       firstArea.subject !== 'Mathematics' ||
-      !firstArea.modes.includes('online') ||
+      !approvalModes.length ||
       firstArea.minClass > 10 ||
       firstArea.maxClass < 6)
   )
@@ -1597,7 +1607,7 @@ function ApprovalForm({ application }: { application: Application }) {
       aria-label={t('staffOps.approve')}
       onSubmit={(event) => {
         event.preventDefault()
-        mutation.mutate({ action: 'approve', minClass, maxClass, reason, mentorId })
+        mutation.mutate({ action: 'approve', minClass, maxClass, mode, reason, mentorId })
       }}
     >
       {members.isError ? (
@@ -1622,6 +1632,19 @@ function ApprovalForm({ application }: { application: Application }) {
           {t('staffOps.more')}
         </Button>
       )}
+      <Field label={t('staffOps.approvedMode')} hint={t('staffOps.approvedModeHint')}>
+        <select
+          value={mode}
+          onChange={(event) => setMode(event.target.value as 'home' | 'online')}
+          required
+        >
+          {approvalModes.map((choice) => (
+            <option key={choice} value={choice}>
+              {t(choice === 'home' ? 'applicationForm.home' : 'online')}
+            </option>
+          ))}
+        </select>
+      </Field>
       <div className="staff-score-inputs">
         <Field label={t('minClass')}>
           <input
