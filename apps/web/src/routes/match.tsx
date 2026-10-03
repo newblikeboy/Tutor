@@ -9,7 +9,7 @@ import type { Dashboard, Learner, Requirement, Schema, Tutor } from '../lib/api'
 import { useAuth, useDashboard } from '../lib/session'
 import { workspaceLink } from '../lib/workspace'
 import { TrialCard } from '../components/trial-card'
-import { LocationSearchField } from '../components/location-search'
+import { LocationSearchField, type StoredLocation } from '../components/location-search'
 import { TutorFees } from '../components/tutor-fees'
 import '../styles/parent.css'
 import {
@@ -82,15 +82,25 @@ function Wizard({ initial }: { initial: Dashboard }) {
   const [accepted, setAccepted] = useState(false)
   const [consentId, setConsentId] = useState('')
   const [name, setName] = useState('')
-  const [classNumber, setClassNumber] = useState(8)
+  const requestedClass = Number(params.get('class'))
+  const initialClass =
+    Number.isInteger(requestedClass) && requestedClass >= 1 && requestedClass <= 12
+      ? requestedClass
+      : 8
+  const requestedGoal = params.get('goal')?.trim() ?? ''
+  const requestedLocality = params.get('locality')?.trim() ?? ''
+  const [classNumber, setClassNumber] = useState(initialClass)
   const [board, setBoard] = useState('CBSE')
   const [language, setLanguage] = useState('Hindi')
-  const [goal, setGoal] = useState(draft?.goal ?? '')
-  const [locality, setLocality] = useState(draft?.locality ?? 'Purnea')
+  const [goal, setGoal] = useState(draft?.goal ?? requestedGoal)
+  const [locality, setLocality] = useState((draft?.locality ?? requestedLocality) || 'Purnea')
+  const [location, setLocation] = useState<StoredLocation | null>(
+    (draft?.location as StoredLocation | null | undefined) ?? null,
+  )
   const [validation, setValidation] = useState(false)
   const errorRef = useRef<HTMLDivElement>(null)
   const saveDraft = async (next: number, id = learnerId) => {
-    await send('/draft', { step: next, learnerId: id, goal, locality }, 'PUT')
+    await send('/draft', { step: next, learnerId: id, goal, locality, location }, 'PUT')
     setStep(next)
     await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     if (id) {
@@ -157,7 +167,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
         await saveDraft(3, id)
         return
       }
-      const result = await send<Requirement>('/requirements', { learnerId, goal, locality })
+      const result = await send<Requirement>('/requirements', { learnerId, goal, locality, location })
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       const updated = new URLSearchParams(params)
       updated.delete('new')
@@ -365,6 +375,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
                 label={t('locality')}
                 value={locality}
                 onChange={setLocality}
+                onLocationChange={setLocation}
                 maxLength={120}
                 required
                 hint={t('localityHelp')}

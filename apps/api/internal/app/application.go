@@ -79,6 +79,18 @@ func normalizeApplication(p *domain.TutorApplication) {
 	p.About.City = clean(p.About.City)
 	p.About.Locality = clean(p.About.Locality)
 	p.About.PIN = strings.TrimSpace(p.About.PIN)
+	p.About.Location = cleanLocationPoint(p.About.Location)
+	if p.About.Location != nil {
+		if p.About.Locality == "" {
+			p.About.Locality = p.About.Location.Locality
+		}
+		if p.About.City == "" {
+			p.About.City = p.About.Location.City
+		}
+		if p.About.PIN == "" {
+			p.About.PIN = p.About.Location.PostalCode
+		}
+	}
 	if p.Education.Pursuing == "no" {
 		p.Education.Programme = ""
 		p.Education.CurrentInstitution = ""
@@ -92,7 +104,7 @@ func normalizeApplication(p *domain.TutorApplication) {
 		p.Education.Summary = ""
 	}
 	if !p.HasMode("home") {
-		p.Availability.Home = domain.HomeTeachingRequest{Localities: []string{}}
+		p.Availability.Home = domain.HomeTeachingRequest{Localities: []string{}, ServiceLocations: []domain.LocationPoint{}}
 	}
 	if !p.HasMode("online") {
 		p.Availability.Online = domain.OnlineTeachingRequest{}
@@ -107,6 +119,45 @@ func normalizeApplication(p *domain.TutorApplication) {
 	}
 	// Legacy applicant preferences are never accepted as staff pricing.
 	p.Fees = domain.ApplicantFees{Preference: "staff", SessionMinutes: 60, Rates: []domain.ExpectedRate{}}
+	serviceLocations := make([]domain.LocationPoint, 0, len(p.Availability.Home.ServiceLocations))
+	for i := range p.Availability.Home.ServiceLocations {
+		if loc := cleanLocationPoint(&p.Availability.Home.ServiceLocations[i]); loc != nil {
+			serviceLocations = append(serviceLocations, *loc)
+		}
+	}
+	p.Availability.Home.ServiceLocations = serviceLocations
+	if p.HasMode("home") {
+		p.Availability.Home.Localities = []string{}
+		p.Availability.Home.ServiceLocations = []domain.LocationPoint{}
+		p.Availability.Home.Charges = ""
+		p.Availability.Home.BufferMinutes = 0
+	}
+}
+
+func (a *App) nextApplicationMentor(ctx context.Context) (domain.User, error) {
+	mentors, e := storage.Many[domain.User](ctx, a.Store, "users", bson.M{"role": "mentor", "$or": activeStaffFilter()["$or"]})
+	if e != nil {
+		return domain.User{}, e
+	}
+	if len(mentors) == 0 {
+		return domain.User{}, domain.Fail(503, "mentor_unavailable", "No active mentor is available for new tutor applications.")
+	}
+	var sequence struct {
+		ID       string `bson:"_id"`
+		Version  int64  `bson:"version"`
+		Sequence int64  `bson:"sequence"`
+	}
+	e = a.Store.C("guards").FindOneAndUpdate(
+		ctx,
+		bson.M{"_id": "application:auto_mentor_assignment"},
+		bson.M{"$inc": bson.M{"version": 1, "sequence": 1}},
+		options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After),
+	).Decode(&sequence)
+	if e != nil {
+		return domain.User{}, e
+	}
+	index := int((sequence.Sequence - 1) % int64(len(mentors)))
+	return mentors[index], nil
 }
 
 func (a *App) application(w http.ResponseWriter, r *http.Request) {
@@ -188,11 +239,15 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 		result.Version++
 		result.UpdatedAt = a.Now()
 		if in.Submit {
+			mentor, er := a.nextApplicationMentor(ctx)
+			if er != nil {
+				return er
+			}
 			result.Fees = nil
 			result.Status = "submitted"
 			result.FormStep = 6
 			result.Scope = domain.Scope{}
-			result.AssessorID = ""
+			result.AssessorID = mentor.ID
 			result.MentorID = ""
 			result.ConflictClear = false
 			result.Interview = nil
@@ -209,7 +264,10 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		if in.Submit {
-			return a.audit(ctx, u.ID, "application.submitted", u.ID)
+			if err = a.audit(ctx, u.ID, "application.submitted", u.ID); err != nil {
+				return err
+			}
+			return a.staffAudit(ctx, domain.User{ID: "system", Name: "System"}, "application.auto_assigned", u.ID, "System assigned the next active mentor for tutor application review.", result.Status, result.Status, &result)
 		}
 		return nil
 	})

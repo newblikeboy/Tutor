@@ -145,6 +145,41 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "class",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "latitude",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "radiusKm",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ]
       }
@@ -895,6 +930,58 @@
             }
           }
         }
+      }
+    },
+    "/location/reverse": {
+      "get": {
+        "operationId": "get__location_reverse",
+        "summary": "GET /location/reverse",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReverseLocation"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accuracyMeters",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/trials": {
@@ -4879,6 +4966,122 @@
           }
         }
       },
+      "LocationPoint": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "address",
+          "locality",
+          "city",
+          "district",
+          "state",
+          "country",
+          "postalCode",
+          "latitude",
+          "longitude",
+          "accuracyMeters",
+          "source"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "accuracyMeters": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "ReverseLocation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "address",
+          "locality",
+          "city",
+          "district",
+          "state",
+          "country",
+          "postalCode",
+          "latitude",
+          "longitude",
+          "accuracyMeters",
+          "source",
+          "location",
+          "primary",
+          "secondary"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "accuracyMeters": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "string"
+          },
+          "secondary": {
+            "type": "string"
+          }
+        }
+      },
       "PublicTutor": {
         "type": "object",
         "additionalProperties": false,
@@ -4891,6 +5094,9 @@
           "scope",
           "assessmentAt",
           "sample",
+          "publicLocality",
+          "serviceRadiusKm",
+          "distanceKm",
           "feePlans"
         ],
         "properties": {
@@ -4918,6 +5124,22 @@
           },
           "sample": {
             "type": "boolean"
+          },
+          "publicLocality": {
+            "type": "string"
+          },
+          "serviceRadiusKm": {
+            "type": "integer"
+          },
+          "distanceKm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "feePlans": {
             "type": "array",
@@ -5117,6 +5339,7 @@
           "subject",
           "goal",
           "locality",
+          "location",
           "status",
           "createdAt"
         ],
@@ -5135,6 +5358,16 @@
           },
           "locality": {
             "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocationPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "type": "string"
@@ -5239,7 +5472,8 @@
           "step",
           "learnerId",
           "goal",
-          "locality"
+          "locality",
+          "location"
         ],
         "properties": {
           "step": {
@@ -5253,6 +5487,16 @@
           },
           "locality": {
             "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocationPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -5646,11 +5890,7 @@
             "type": "integer"
           },
           "mode": {
-            "type": "string",
-            "enum": [
-              "home",
-              "online"
-            ]
+            "type": "string"
           },
           "assessorId": {
             "type": "string"
@@ -5742,7 +5982,8 @@
         "required": [
           "learnerId",
           "goal",
-          "locality"
+          "locality",
+          "location"
         ],
         "properties": {
           "learnerId": {
@@ -5753,6 +5994,16 @@
           },
           "locality": {
             "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocationPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -8314,6 +8565,7 @@
           "locality",
           "pin",
           "photoFileId",
+          "location",
           "communicationLanguages"
         ],
         "properties": {
@@ -8337,6 +8589,16 @@
           },
           "photoFileId": {
             "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocationPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "communicationLanguages": {
             "type": "array",
@@ -8515,6 +8777,7 @@
         "additionalProperties": false,
         "required": [
           "localities",
+          "serviceLocations",
           "travelKm",
           "charges",
           "bufferMinutes"
@@ -8524,6 +8787,12 @@
             "type": "array",
             "items": {
               "type": "string"
+            }
+          },
+          "serviceLocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationPoint"
             }
           },
           "travelKm": {

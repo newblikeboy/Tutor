@@ -47,19 +47,35 @@ type Application struct {
 	Attachments   []PrivateFile       `json:"-" bson:"attachments,omitempty"`
 }
 type PublicTutor struct {
-	FeePlans     []FeePlan `json:"feePlans"`
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Approach     string    `json:"approach"`
-	Language     string    `json:"language"`
-	Experience   int       `json:"experience"`
-	Scope        Scope     `json:"scope"`
-	AssessmentAt time.Time `json:"assessmentAt"`
-	Sample       bool      `json:"sample"`
+	FeePlans        []FeePlan `json:"feePlans"`
+	ID              string    `json:"id"`
+	Name            string    `json:"name"`
+	Approach        string    `json:"approach"`
+	Language        string    `json:"language"`
+	Experience      int       `json:"experience"`
+	Scope           Scope     `json:"scope"`
+	AssessmentAt    time.Time `json:"assessmentAt"`
+	Sample          bool      `json:"sample"`
+	PublicLocality  string    `json:"publicLocality"`
+	ServiceRadiusKM int       `json:"serviceRadiusKm"`
+	DistanceKM      *float64  `json:"distanceKm"`
 }
 
 func (a Application) Public() PublicTutor {
-	return PublicTutor{a.FeePlans(), a.ID, a.Name, a.Approach, a.Language, a.Experience, a.Scope, a.AssessmentAt, a.Sample}
+	out := PublicTutor{FeePlans: a.FeePlans(), ID: a.ID, Name: a.Name, Approach: a.Approach, Language: a.Language, Experience: a.Experience, Scope: a.Scope, AssessmentAt: a.AssessmentAt, Sample: a.Sample}
+	if a.Profile != nil {
+		out.PublicLocality = a.Profile.About.Locality
+		if a.Profile.About.Location != nil {
+			if out.PublicLocality == "" {
+				out.PublicLocality = a.Profile.About.Location.Locality
+			}
+			if out.PublicLocality == "" {
+				out.PublicLocality = a.Profile.About.Location.City
+			}
+		}
+		out.ServiceRadiusKM = a.Profile.Availability.Home.TravelKM
+	}
+	return out
 }
 
 type Consent struct {
@@ -81,14 +97,15 @@ type Learner struct {
 	ConsentID string `json:"-" bson:"consentId"`
 }
 type Requirement struct {
-	ID        string    `json:"id" bson:"_id"`
-	OwnerID   string    `json:"-" bson:"ownerId"`
-	LearnerID string    `json:"learnerId" bson:"learnerId"`
-	Subject   string    `json:"subject" bson:"subject"`
-	Goal      string    `json:"goal" bson:"goal"`
-	Locality  string    `json:"locality" bson:"locality"`
-	Status    string    `json:"status" bson:"status"`
-	CreatedAt time.Time `json:"createdAt" bson:"createdAt"`
+	ID        string         `json:"id" bson:"_id"`
+	OwnerID   string         `json:"-" bson:"ownerId"`
+	LearnerID string         `json:"learnerId" bson:"learnerId"`
+	Subject   string         `json:"subject" bson:"subject"`
+	Goal      string         `json:"goal" bson:"goal"`
+	Locality  string         `json:"locality" bson:"locality"`
+	Location  *LocationPoint `json:"location" bson:"location,omitempty"`
+	Status    string         `json:"status" bson:"status"`
+	CreatedAt time.Time      `json:"createdAt" bson:"createdAt"`
 }
 type Trial struct {
 	ScheduleTimezone string     `json:"-" bson:"scheduleTimezone,omitempty"`
@@ -115,11 +132,12 @@ type Trial struct {
 	CreatedAt        time.Time  `json:"createdAt" bson:"createdAt"`
 }
 type Draft struct {
-	ID        string `json:"-" bson:"_id"`
-	Step      int    `json:"step" bson:"step"`
-	LearnerID string `json:"learnerId" bson:"learnerId"`
-	Goal      string `json:"goal" bson:"goal"`
-	Locality  string `json:"locality" bson:"locality"`
+	ID        string         `json:"-" bson:"_id"`
+	Step      int            `json:"step" bson:"step"`
+	LearnerID string         `json:"learnerId" bson:"learnerId"`
+	Goal      string         `json:"goal" bson:"goal"`
+	Locality  string         `json:"locality" bson:"locality"`
+	Location  *LocationPoint `json:"location" bson:"location,omitempty"`
 }
 type Event struct {
 	ID     string    `json:"id" bson:"_id"`

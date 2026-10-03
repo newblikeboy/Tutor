@@ -86,3 +86,18 @@ func (a *App) applicationFilePage(ctx context.Context, id, cursor string) (recor
 	}
 	return p, nil
 }
+
+func (a *App) archivePrivateFile(ctx context.Context, id, state string) (bool, error) {
+	if !strings.HasPrefix(id, applicationFilePrefix) {
+		r, e := a.Store.C("files").UpdateOne(ctx, bson.M{"_id": id, "status": state}, bson.M{"$set": bson.M{"status": "archived"}})
+		if e != nil {
+			return false, e
+		}
+		return r.ModifiedCount == 1, nil
+	}
+	r, e := a.Store.C("applications").UpdateOne(ctx, bson.M{"attachments": bson.M{"$elemMatch": bson.M{"_id": id, "status": state}}}, bson.M{"$set": bson.M{"attachments.$.status": "archived"}})
+	if e != nil {
+		return false, e
+	}
+	return r.ModifiedCount == 1, nil
+}

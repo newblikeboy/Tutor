@@ -16,15 +16,30 @@ type TutorApplication struct {
 	Fees          ApplicantFees           `json:"fees" bson:"fees"`
 	Declarations  ApplicantDeclarations   `json:"declarations" bson:"declarations"`
 }
+type LocationPoint struct {
+	Address        string  `json:"address" bson:"address"`
+	Locality       string  `json:"locality" bson:"locality"`
+	City           string  `json:"city" bson:"city"`
+	District       string  `json:"district" bson:"district"`
+	State          string  `json:"state" bson:"state"`
+	Country        string  `json:"country" bson:"country"`
+	PostalCode     string  `json:"postalCode" bson:"postalCode"`
+	Latitude       float64 `json:"latitude" bson:"latitude"`
+	Longitude      float64 `json:"longitude" bson:"longitude"`
+	AccuracyMeters float64 `json:"accuracyMeters" bson:"accuracyMeters"`
+	Source         string  `json:"source" bson:"source"`
+}
+
 type ApplicantAbout struct {
-	FullName               string   `json:"fullName" bson:"fullName"`
-	DisplayName            string   `json:"displayName" bson:"displayName"`
-	Mobile                 string   `json:"mobile" bson:"mobile"`
-	City                   string   `json:"city" bson:"city"`
-	Locality               string   `json:"locality" bson:"locality"`
-	PIN                    string   `json:"pin" bson:"pin"`
-	PhotoFileID            string   `json:"photoFileId" bson:"photoFileId"`
-	CommunicationLanguages []string `json:"communicationLanguages" bson:"communicationLanguages"`
+	FullName               string         `json:"fullName" bson:"fullName"`
+	DisplayName            string         `json:"displayName" bson:"displayName"`
+	Mobile                 string         `json:"mobile" bson:"mobile"`
+	City                   string         `json:"city" bson:"city"`
+	Locality               string         `json:"locality" bson:"locality"`
+	PIN                    string         `json:"pin" bson:"pin"`
+	Location               *LocationPoint `json:"location" bson:"location,omitempty"`
+	PhotoFileID            string         `json:"photoFileId" bson:"photoFileId"`
+	CommunicationLanguages []string       `json:"communicationLanguages" bson:"communicationLanguages"`
 }
 type ApplicantEducation struct {
 	Qualification      string   `json:"qualification" bson:"qualification"`
@@ -76,10 +91,11 @@ type ApplicantAvailability struct {
 	Online        OnlineTeachingRequest `json:"online" bson:"online"`
 }
 type HomeTeachingRequest struct {
-	Localities    []string `json:"localities" bson:"localities"`
-	TravelKM      int      `json:"travelKm" bson:"travelKm"`
-	Charges       string   `json:"charges" bson:"charges"`
-	BufferMinutes int      `json:"bufferMinutes" bson:"bufferMinutes"`
+	Localities       []string        `json:"localities" bson:"localities"`
+	ServiceLocations []LocationPoint `json:"serviceLocations" bson:"serviceLocations"`
+	TravelKM         int             `json:"travelKm" bson:"travelKm"`
+	Charges          string          `json:"charges" bson:"charges"`
+	BufferMinutes    int             `json:"bufferMinutes" bson:"bufferMinutes"`
 }
 type OnlineTeachingRequest struct {
 	Device         string `json:"device" bson:"device"`

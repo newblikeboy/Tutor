@@ -182,6 +182,48 @@ func (a *App) completeDirectUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	a.json(w, 200, f)
 }
+
+func (a *App) deletePrivateFile(w http.ResponseWriter, r *http.Request) {
+	f, e := a.privateFile(r.Context(), chi.URLParam(r, "id"))
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	u := user(r)
+	if f.TargetKind != "application" || f.UploaderID != u.ID || f.TargetID != u.ID {
+		a.error(w, r, domain.Fail(404, "not_found", "This upload is unavailable."))
+		return
+	}
+	if e = a.fileAccess(r.Context(), u, f.TargetKind, f.TargetID, true); e != nil {
+		a.error(w, r, e)
+		return
+	}
+	if f.Provider == "cloudinary" && f.Status == "ready" {
+		if a.DirectFiles == nil || f.PublicID == "" || f.ResourceType == "" {
+			a.error(w, r, domain.Fail(503, "storage_unconfigured", "Cloudinary is unavailable."))
+			return
+		}
+		if e = a.DirectFiles.Delete(r.Context(), f.PublicID, f.ResourceType, a.Now()); e != nil {
+			a.error(w, r, domain.Fail(503, "storage_unavailable", "Cloudinary could not delete this upload. Retry shortly."))
+			return
+		}
+	}
+	changed, e := a.archivePrivateFile(r.Context(), f.ID, f.Status)
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	if !changed {
+		a.error(w, r, domain.Fail(409, "stale", "This upload changed. Refresh and try again."))
+		return
+	}
+	if e = a.audit(r.Context(), u.ID, "file.archived", f.ID); e != nil {
+		a.error(w, r, e)
+		return
+	}
+	a.json(w, 200, map[string]any{"deleted": true})
+}
+
 func (a *App) viewDirectFile(w http.ResponseWriter, r *http.Request) {
 	f, e := a.privateFile(r.Context(), chi.URLParam(r, "id"))
 	if e != nil {

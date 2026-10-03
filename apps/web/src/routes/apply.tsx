@@ -35,7 +35,10 @@ import {
 import { InterviewCard } from '../components/interview'
 import { TutorFees } from '../components/tutor-fees'
 import { ApplicationScope, ApplicationSummary } from '../components/application-summary'
-import { LocationSearchField, ServiceLocalityPicker } from '../components/location-search'
+import {
+  CurrentLocationButton,
+  type StoredLocation,
+} from '../components/location-search'
 import { PrivateFiles } from './files'
 import '../styles/application.css'
 import { useClock } from '../lib/clock'
@@ -280,6 +283,24 @@ function Attachment({
     queryFn: () => api<Schema['FilePage']>(`/applications/${auth.data!.user.id}/files`),
     enabled: selectedIds.length > 0,
   })
+  const remove = useMutation({
+    onMutate: () => activity(true),
+    onSettled: () => activity(false),
+    mutationFn: async (id: string) => {
+      if (name === 'education.educationFileIds') {
+        setValue(
+          name,
+          selectedIds.filter((value) => value !== id),
+          { shouldDirty: true },
+        )
+      } else setValue(name, '', { shouldDirty: true })
+      await ensureDraft()
+      await send(`/files/${id}`, {}, 'DELETE')
+      await queryClient.invalidateQueries({
+        queryKey: ['files', 'applications', auth.data!.user.id],
+      })
+    },
+  })
   const upload = useMutation({
     onMutate: () => activity(true),
     onSettled: () => activity(false),
@@ -370,32 +391,36 @@ function Attachment({
       {!enabled && !config.isPending && <Alert>{c('uploadUnavailable')}</Alert>}
       {overLimit && <Alert kind="error">{c('educationDocumentsHint')}</Alert>}
       {selectedIds.length > 0 && (
-        <ul className="af-attachment-list">
-          {selectedIds.map((id) => (
-            <li key={id}>
-              <p role="status">
-                {files.data?.items.find((f) => f.id === id)?.name} · {c('attachmentSaved')}
-              </p>
-              <Button
-                type="button"
-                variant="text"
-                onClick={() => {
-                  if (name === 'education.educationFileIds')
-                    setValue(
-                      name,
-                      selectedIds.filter((value) => value !== id),
-                      { shouldDirty: true },
-                    )
-                  else setValue(name, '', { shouldDirty: true })
-                }}
-              >
-                {c('remove')}
-              </Button>
-            </li>
-          ))}
+        <ul className={`af-attachment-list ${photo ? 'photo' : ''}`}>
+          {selectedIds.map((id) => {
+            const file = files.data?.items.find((item) => item.id === id)
+            return (
+              <li key={id}>
+                {photo ? (
+                  <div className="af-photo-preview">
+                    <img src={`/api/v1/files/${id}/view`} alt={c('photoPreviewAlt')} />
+                  </div>
+                ) : null}
+                <p role="status">
+                  <strong>{file?.name ?? c('attachmentLoading')}</strong>
+                  <span>{c('attachmentSaved')}</span>
+                </p>
+                <Button
+                  type="button"
+                  variant="text"
+                  busy={remove.isPending}
+                  disabled={remove.isPending || upload.isPending}
+                  onClick={() => remove.mutate(id)}
+                >
+                  {c('remove')}
+                </Button>
+              </li>
+            )
+          })}
         </ul>
       )}
       <MutationError error={upload.error} />
+      <MutationError error={remove.error} />
     </div>
   )
 }
@@ -412,15 +437,25 @@ function StepFields({
     { register, setValue, getFieldState, formState, clearErrors } =
       useFormContext<ApplicationProfile>()
   const p = useWatch<ApplicationProfile>() as ApplicationProfile
-  const cityError = getFieldState('about.city', formState).error
-  const localityError = getFieldState('about.locality', formState).error
-  const localitiesError = getFieldState('availability.home.localities', formState).error
+  const [changingLocation, setChangingLocation] = useState(false)
+  const locationError =
+    getFieldState('about.location', formState).error ||
+    getFieldState('about.city', formState).error ||
+    getFieldState('about.locality', formState).error
   const home = p.teachingAreas.some((a) => a.modes.includes('home')),
     online = p.teachingAreas.some((a) => a.modes.includes('online'))
   const options = p.teachingAreas.map((a, i) => ({
     value: a.id,
     label: `${i + 1}. ${a.subject ? c(a.subject) : c('area')} · ${a.minClass}–${a.maxClass}`,
   }))
+  const saveDetectedLocation = (location: StoredLocation) => {
+    clearErrors(['about.location', 'about.city', 'about.locality', 'about.pin'])
+    setValue('about.location', location, { shouldDirty: true })
+    setValue('about.city', location.city, { shouldDirty: true })
+    setValue('about.locality', location.locality || location.address, { shouldDirty: true })
+    setValue('about.pin', location.postalCode, { shouldDirty: true })
+    setChangingLocation(false)
+  }
   if (step === 0)
     return (
       <>
@@ -431,21 +466,42 @@ function StepFields({
             <input value={email} readOnly type="email" />
           </Field>
           <Input name="about.mobile" type="tel" max={16} />
-          <LocationSearchField
-            label={c('city')}
-            value={p.about.city}
-            onChange={(value) => {
-              clearErrors('about.city')
-              setValue('about.city', value, { shouldDirty: true })
-            }}
-            error={cityError ? c('required') : undefined}
-            hint={c('citySearchHint')}
-            required
-            maxLength={80}
-            city
-            currentValue="Purnea"
-          />
         </div>
+        <div className="location-detail-grid" aria-label={c('detectedLocationDetails')}>
+          <Field label={c('state')}>
+            <input value={p.about.location?.state ?? ''} placeholder={c('state')} readOnly />
+          </Field>
+          <Field label={c('district')}>
+            <input value={p.about.location?.district ?? ''} placeholder={c('district')} readOnly />
+          </Field>
+          <Field label={c('city')}>
+            <input value={p.about.city || p.about.location?.city || ''} placeholder={c('city')} readOnly />
+          </Field>
+          <Field label={c('location')}>
+            <input
+              value={p.about.locality || p.about.location?.locality || ''}
+              placeholder={c('location')}
+              readOnly
+            />
+          </Field>
+          <Field label={c('pin')}>
+            <input
+              value={p.about.pin || p.about.location?.postalCode || ''}
+              placeholder={c('pin')}
+              readOnly
+            />
+          </Field>
+        </div>
+        {locationError && <p className="field-error">{c('locationRequired')}</p>}
+        {p.about.location && !changingLocation ? (
+          <Button type="button" variant="secondary" onClick={() => setChangingLocation(true)}>
+            {c('changeLocation')}
+          </Button>
+        ) : (
+          <CurrentLocationButton onLocationChange={saveDetectedLocation}>
+            {c(p.about.location ? 'useCurrentLocationAgain' : 'useCurrentLocation')}
+          </CurrentLocationButton>
+        )}
         <Checks name="about.communicationLanguages" options={['Hindi', 'English']} />
         <Attachment name="about.photoFileId" label="photoFileId" ensureDraft={ensureDraft} />
       </>
@@ -625,39 +681,28 @@ function StepFields({
         {home && (
           <fieldset className="af-area">
             <legend>{c('homeTitle')}</legend>
-            <div className="form-grid">
-              <LocationSearchField
-                label={c('locality')}
-                value={p.about.locality}
-                onChange={(value) => {
-                  clearErrors('about.locality')
-                  setValue('about.locality', value, { shouldDirty: true })
-                }}
-                error={localityError ? c('required') : undefined}
-                hint={c('localitySearchHint')}
-                required
-                maxLength={120}
+            <div className="coverage-slider">
+              <div>
+                <label htmlFor="home-service-radius">{c('travelKm')}</label>
+                <strong>{c('radiusValue', { count: p.availability.home.travelKm || 1 })}</strong>
+              </div>
+              <input
+                id="home-service-radius"
+                type="range"
+                min={1}
+                max={25}
+                step={1}
+                value={p.availability.home.travelKm || 1}
+                onChange={(event) =>
+                  setValue('availability.home.travelKm', Number(event.target.value), {
+                    shouldDirty: true,
+                  })
+                }
               />
-              <Input name="about.pin" min={6} max={6} hint="pinHint" />
-            </div>
-            <ServiceLocalityPicker
-              label={c('localities')}
-              value={p.availability.home.localities}
-              currentLocality={p.about.locality}
-              hint={c('serviceLocalitiesHint')}
-              error={localitiesError ? c('localitiesError') : undefined}
-              onChange={(value) => {
-                clearErrors('availability.home.localities')
-                setValue('availability.home.localities', value, { shouldDirty: true })
-              }}
-            />
-            <div className="form-grid">
-              <Input name="availability.home.travelKm" type="number" min={1} max={100} />
-              <Select
-                name="availability.home.charges"
-                options={['included', 'additional', 'discuss']}
-              />
-              <Input name="availability.home.bufferMinutes" type="number" min={5} max={180} />
+              <div className="coverage-slider-scale" aria-hidden="true">
+                <span>1 km</span>
+                <span>25 km</span>
+              </div>
             </div>
             <p className="af-note">{c('travelFeesHint')}</p>
           </fieldset>
@@ -809,6 +854,10 @@ function ApplicationForm({
       const profile = structuredClone(form.getValues())
       profile.declarations.noticeVersion = notice
       profile.fees = { preference: 'staff', sessionMinutes: 60, rates: [], comments: '' }
+      profile.availability.home.localities = []
+      profile.availability.home.serviceLocations = []
+      profile.availability.home.charges = ''
+      profile.availability.home.bufferMinutes = 0
       // The form no longer offers a recorded-demo choice. Keep legacy attachments,
       // while using the existing interview flow so old incomplete drafts can submit.
       profile.approach.demonstration = 'live'
@@ -843,6 +892,7 @@ function ApplicationForm({
     if (validate) {
       const p = form.getValues(),
         missing: Path[] = []
+      if (step === 0 && !p.about.location) missing.push('about.location')
       if (step === 0 && !p.about.communicationLanguages.length)
         missing.push('about.communicationLanguages')
       if (step === 1 && !p.education.newToTutoring && !p.education.settings.length)
@@ -859,15 +909,9 @@ function ApplicationForm({
         if (!p.availability.slots.length) missing.push('availability.slots')
         if (!p.availability.durations.length) missing.push('availability.durations')
         if (p.teachingAreas.some((a) => a.modes.includes('home'))) {
-          const localities = p.availability.home.localities
-            .map((name) => name.trim())
-            .filter(Boolean)
-          if (
-            !localities.length ||
-            localities.length > 12 ||
-            localities.some((name) => [...name].length < 2 || [...name].length > 100)
-          )
-            missing.push('availability.home.localities')
+          if (!p.about.location) missing.push('about.location')
+          if (p.availability.home.travelKm < 1 || p.availability.home.travelKm > 25)
+            missing.push('availability.home.travelKm')
         }
       }
       if (step === 4) {

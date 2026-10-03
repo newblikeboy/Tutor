@@ -11,6 +11,7 @@ import { applicationContract } from './application-contract.mjs'
 import { feesContract } from './fees-contract.mjs'
 const str = { type: 'string' },
   num = { type: 'integer' },
+  real = { type: 'number' },
   bool = { type: 'boolean' },
   date = { type: 'string', format: 'date-time' }
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` })
@@ -29,6 +30,35 @@ const schemas = {
     sample: bool,
   }),
   Scope: obj({ subject: str, minClass: num, maxClass: num, mode: str, expiresAt: date }),
+  LocationPoint: obj({
+    address: str,
+    locality: str,
+    city: str,
+    district: str,
+    state: str,
+    country: str,
+    postalCode: str,
+    latitude: real,
+    longitude: real,
+    accuracyMeters: real,
+    source: str,
+  }),
+  ReverseLocation: obj({
+    address: str,
+    locality: str,
+    city: str,
+    district: str,
+    state: str,
+    country: str,
+    postalCode: str,
+    latitude: real,
+    longitude: real,
+    accuracyMeters: real,
+    source: str,
+    location: str,
+    primary: str,
+    secondary: str,
+  }),
   PublicTutor: obj({
     id: str,
     name: str,
@@ -38,6 +68,9 @@ const schemas = {
     scope: ref('Scope'),
     assessmentAt: date,
     sample: bool,
+    publicLocality: str,
+    serviceRadiusKm: num,
+    distanceKm: { anyOf: [real, { type: 'null' }] },
   }),
   Application: obj({
     id: str,
@@ -64,6 +97,7 @@ const schemas = {
     subject: str,
     goal: str,
     locality: str,
+    location: { anyOf: [ref('LocationPoint'), { type: 'null' }] },
     status: str,
     createdAt: date,
   }),
@@ -87,7 +121,13 @@ const schemas = {
     review: str,
     createdAt: date,
   }),
-  Draft: obj({ step: num, learnerId: str, goal: str, locality: str }),
+  Draft: obj({
+    step: num,
+    learnerId: str,
+    goal: str,
+    locality: str,
+    location: { anyOf: [ref('LocationPoint'), { type: 'null' }] },
+  }),
   Event: obj({ id: str, actor: str, action: str, target: str, at: date }),
   Dashboard: obj({
     user: ref('User'),
@@ -169,7 +209,12 @@ const schemas = {
     kind: { type: 'string', enum: ['minor', 'adult_self'] },
     consentId: str,
   }),
-  RequirementInput: obj({ learnerId: str, goal: str, locality: str }),
+  RequirementInput: obj({
+    learnerId: str,
+    goal: str,
+    locality: str,
+    location: { anyOf: [ref('LocationPoint'), { type: 'null' }] },
+  }),
   TrialInput: obj({ requirementId: str, tutorId: str, start: date, termsAccepted: bool }),
   ActionInput: obj({
     action: { type: 'string', enum: ['accept', 'decline', 'cancel', 'complete', 'review'] },
@@ -220,7 +265,10 @@ function route(path, method, response, request, publicRoute = false, isArray = f
   if (path.includes('{id}'))
     operation.parameters.push({ name: 'id', in: 'path', required: true, schema: str })
   if (path === '/tutors')
-    for (const name of ['subject', 'language'])
+    for (const name of ['subject', 'language', 'class', 'mode', 'latitude', 'longitude', 'radiusKm'])
+      operation.parameters.push({ name, in: 'query', schema: str })
+  if (path === '/location/reverse')
+    for (const name of ['latitude', 'longitude', 'accuracyMeters'])
       operation.parameters.push({ name, in: 'query', schema: str })
   if (
     [
@@ -286,6 +334,7 @@ route('/learners', 'post', 'Learner', 'LearnerInput')
 route('/learners/{id}', 'get', 'Learner')
 route('/draft', 'put', 'Draft', 'Draft')
 route('/requirements', 'post', 'Requirement', 'RequirementInput')
+route('/location/reverse', 'get', 'ReverseLocation', null, true)
 route('/trials', 'post', 'Trial', 'TrialInput')
 route('/trials/{id}/action', 'post', 'OK', 'ActionInput')
 tuitionContract(schemas, route)

@@ -311,6 +311,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/location/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /location/reverse */
+        get: operations["get__location_reverse"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trials": {
         parameters: {
             query?: never;
@@ -1377,6 +1394,35 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        LocationPoint: {
+            address: string;
+            locality: string;
+            city: string;
+            district: string;
+            state: string;
+            country: string;
+            postalCode: string;
+            latitude: number;
+            longitude: number;
+            accuracyMeters: number;
+            source: string;
+        };
+        ReverseLocation: {
+            address: string;
+            locality: string;
+            city: string;
+            district: string;
+            state: string;
+            country: string;
+            postalCode: string;
+            latitude: number;
+            longitude: number;
+            accuracyMeters: number;
+            source: string;
+            location: string;
+            primary: string;
+            secondary: string;
+        };
         PublicTutor: {
             id: string;
             name: string;
@@ -1387,6 +1433,9 @@ export interface components {
             /** Format: date-time */
             assessmentAt: string;
             sample: boolean;
+            publicLocality: string;
+            serviceRadiusKm: number;
+            distanceKm: number | null;
             feePlans: components["schemas"]["FeePlan"][];
         };
         Application: {
@@ -1432,6 +1481,7 @@ export interface components {
             subject: string;
             goal: string;
             locality: string;
+            location: components["schemas"]["LocationPoint"] | null;
             status: string;
             /** Format: date-time */
             createdAt: string;
@@ -1466,6 +1516,7 @@ export interface components {
             learnerId: string;
             goal: string;
             locality: string;
+            location: components["schemas"]["LocationPoint"] | null;
         };
         Event: {
             id: string;
@@ -1556,8 +1607,7 @@ export interface components {
             scores?: number[];
             minClass?: number;
             maxClass?: number;
-            /** @enum {string} */
-            mode?: "home" | "online";
+            mode?: string;
             assessorId?: string;
             mentorId?: string;
             conflictClear?: boolean;
@@ -1584,6 +1634,7 @@ export interface components {
             learnerId: string;
             goal: string;
             locality: string;
+            location: components["schemas"]["LocationPoint"] | null;
         };
         TrialInput: {
             requirementId: string;
@@ -2219,6 +2270,7 @@ export interface components {
             locality: string;
             pin: string;
             photoFileId: string;
+            location: components["schemas"]["LocationPoint"] | null;
             communicationLanguages: string[];
         };
         ApplicantEducation: {
@@ -2259,6 +2311,7 @@ export interface components {
         };
         HomeTeachingRequest: {
             localities: string[];
+            serviceLocations: components["schemas"]["LocationPoint"][];
             travelKm: number;
             charges: string;
             bufferMinutes: number;
@@ -2517,6 +2570,11 @@ export interface operations {
             query?: {
                 subject?: string;
                 language?: string;
+                class?: string;
+                mode?: string;
+                latitude?: string;
+                longitude?: string;
+                radiusKm?: string;
             };
             header?: never;
             path?: never;
@@ -3033,6 +3091,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Requirement"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__location_reverse: {
+        parameters: {
+            query?: {
+                latitude?: string;
+                longitude?: string;
+                accuracyMeters?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReverseLocation"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */

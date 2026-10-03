@@ -107,8 +107,15 @@ func (a *App) draft(w http.ResponseWriter, r *http.Request) {
 	if !a.decode(w, r, &in) {
 		return
 	}
+	in.Goal = clean(in.Goal)
+	in.Locality = clean(in.Locality)
+	in.Location = cleanLocationPoint(in.Location)
 	if in.Step < 1 || in.Step > 3 || len([]rune(in.Goal)) > 1200 || len(in.Locality) > 120 {
 		a.error(w, r, domain.Fail(422, "validation", "Check draft fields."))
+		return
+	}
+	if !validLocationPoint(in.Location) {
+		a.error(w, r, domain.Fail(422, "validation", "Check the selected location."))
 		return
 	}
 	if in.LearnerID != "" {
@@ -129,18 +136,22 @@ func (a *App) requirement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		LearnerID string `json:"learnerId"`
-		Goal      string `json:"goal"`
-		Locality  string `json:"locality"`
+		LearnerID string                `json:"learnerId"`
+		Goal      string                `json:"goal"`
+		Locality  string                `json:"locality"`
+		Location  *domain.LocationPoint `json:"location"`
 	}
 	if !a.decode(w, r, &in) {
 		return
 	}
-	if !validText(in.Goal, 10, 1200) || !validText(in.Locality, 2, 120) {
+	in.Goal = clean(in.Goal)
+	in.Locality = clean(in.Locality)
+	in.Location = cleanLocationPoint(in.Location)
+	if !validText(in.Goal, 10, 1200) || !validText(in.Locality, 2, 120) || !validLocationPoint(in.Location) {
 		a.error(w, r, domain.Fail(422, "validation", "Add a learning goal and locality."))
 		return
 	}
-	v := domain.Requirement{ID: token(), OwnerID: user(r).ID, LearnerID: in.LearnerID, Subject: "Mathematics", Goal: in.Goal, Locality: in.Locality, Status: "submitted", CreatedAt: a.Now()}
+	v := domain.Requirement{ID: token(), OwnerID: user(r).ID, LearnerID: in.LearnerID, Subject: "Mathematics", Goal: in.Goal, Locality: in.Locality, Location: in.Location, Status: "submitted", CreatedAt: a.Now()}
 	e := a.Store.Tx(r.Context(), func(ctx context.Context) error {
 		if _, er := storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": in.LearnerID, "ownerId": user(r).ID}); er != nil {
 			return er

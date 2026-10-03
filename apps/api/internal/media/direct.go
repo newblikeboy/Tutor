@@ -33,6 +33,7 @@ type DirectStore interface {
 	Grant(string, string, string, time.Time) UploadGrant
 	Verify(context.Context, string, string) (Asset, error)
 	Delivery(string, string, string, bool, time.Time) string
+	Delete(context.Context, string, string, time.Time) error
 }
 type CloudinaryDirect struct {
 	cloud, endpoint string
@@ -81,6 +82,32 @@ func (c *CloudinaryDirect) Verify(ctx context.Context, id, resource string) (Ass
 	asset.URL = "https://res.cloudinary.com/" + url.PathEscape(c.cloud) + "/" + resource + "/authenticated/v" + strconv.FormatInt(asset.Version, 10) + "/" + id + suffix
 	return asset, nil
 }
+
+func (c *CloudinaryDirect) Delete(ctx context.Context, id, resource string, now time.Time) error {
+	p := url.Values{"public_id": {id}, "type": {"authenticated"}, "timestamp": {strconv.FormatInt(now.Unix(), 10)}}
+	c.signer.sign(p)
+	req, e := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint+"/"+resource+"/destroy", strings.NewReader(p.Encode()))
+	if e != nil {
+		return ErrStorage
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	res, e := c.signer.client.Do(req)
+	if e != nil {
+		return ErrStorage
+	}
+	defer res.Body.Close()
+	var out struct {
+		Result string `json:"result"`
+	}
+	if res.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(res.Body, 64*1024)).Decode(&out) != nil {
+		return ErrStorage
+	}
+	if out.Result != "ok" && out.Result != "not found" {
+		return ErrStorage
+	}
+	return nil
+}
+
 func (c *CloudinaryDirect) Delivery(id, resource, format string, attachment bool, now time.Time) string {
 	p := url.Values{"public_id": {id}, "type": {"authenticated"}, "timestamp": {strconv.FormatInt(now.Unix(), 10)}, "expires_at": {strconv.FormatInt(now.Add(5*time.Minute).Unix(), 10)}, "attachment": {strconv.FormatBool(attachment)}}
 	if format != "" {

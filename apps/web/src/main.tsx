@@ -68,6 +68,10 @@ function Layout() {
   const auth = useAuth()
   const config = useConfig()
   const location = useLocation()
+  const publicLanding =
+    location.pathname === '/' ||
+    location.pathname === '/tutors' ||
+    location.pathname.startsWith('/tutors/')
   const logout = useMutation({
     mutationFn: () => send('/auth/logout', {}),
     onSuccess: () => {
@@ -123,16 +127,10 @@ function Layout() {
     )
   }
   return (
-    <div className={location.pathname === '/' ? 'landing-shell' : undefined}>
+    <div className={publicLanding ? 'landing-shell' : undefined}>
       <a className="skip-link" href="#main">
         {t('skip')}
       </a>
-      {config.data?.development && location.pathname !== '/' && (
-        <div className="dev-banner" role="region" aria-label={t('dev')}>
-          <strong>{t('dev')}</strong>
-          <span>{t('devDetail')}</span>
-        </div>
-      )}
       <header className="site-header">
         <div className="header-inner">
           <Link to="/" className="wordmark">
@@ -189,14 +187,14 @@ function Layout() {
               {config.data?.appName ?? t('brand')}.
             </Link>
             <p>{t('footer')}</p>
-            {location.pathname !== '/' && <small>{t('noFounder')}</small>}
+            {!publicLanding && <small>{t('noFounder')}</small>}
           </div>
           <nav aria-label="Footer">
             <Link to="/standards">{t('standards')}</Link>
             <Link to="/privacy">{t('privacy')}</Link>
             <Link to="/support">{t('support')}</Link>
             <Link to="/login?staff=1">{t('staff')}</Link>
-            {config.data?.development && location.pathname !== '/' && (
+            {config.data?.development && !publicLanding && (
               <Link to="/components">{t('components')}</Link>
             )}
           </nav>

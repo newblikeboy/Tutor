@@ -72,6 +72,9 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 	text("about.city", b.City, 2, 80)
 	text("about.locality", b.Locality, 0, 120)
 	text("about.pin", b.PIN, 0, 6)
+	if !validLocationPoint(b.Location) {
+		errors["about.location"] = "location"
+	}
 	text("about.photoFileId", b.PhotoFileID, 0, 100)
 	choices("about.communicationLanguages", b.CommunicationLanguages, true, "Hindi", "English")
 	e := p.Education
@@ -176,18 +179,29 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 	h := v.Home
 	if p.HasMode("home") {
 		text("about.locality", b.Locality, 2, 120)
-		if submit && !regexp.MustCompile(`^[1-9][0-9]{5}$`).MatchString(b.PIN) {
+		if submit && (b.Location == nil || b.Location.Latitude == 0 && b.Location.Longitude == 0) {
+			errors["about.location"] = "required"
+		}
+		if b.PIN != "" && !regexp.MustCompile(`^[1-9][0-9]{5}$`).MatchString(b.PIN) {
 			errors["about.pin"] = "pin"
 		}
-		if len(h.Localities) > 12 || submit && len(h.Localities) == 0 {
+		if len(h.Localities) > 12 {
 			errors["availability.home.localities"] = "required"
 		}
 		for _, name := range h.Localities {
 			text("availability.home.localities", name, 2, 100)
 		}
-		number("availability.home.travelKm", h.TravelKM, 1, 100)
-		choice("availability.home.charges", h.Charges, true, "included", "additional", "discuss")
-		number("availability.home.bufferMinutes", h.BufferMinutes, 5, 180)
+		if len(h.ServiceLocations) > 12 {
+			errors["availability.home.serviceLocations"] = "limit"
+		}
+		for i := range h.ServiceLocations {
+			if !validLocationPoint(&h.ServiceLocations[i]) {
+				errors["availability.home.serviceLocations"] = "location"
+			}
+		}
+		number("availability.home.travelKm", h.TravelKM, 1, 25)
+		choice("availability.home.charges", h.Charges, false, "included", "additional", "discuss")
+		number("availability.home.bufferMinutes", h.BufferMinutes, 0, 180)
 	}
 	if p.HasMode("online") {
 		o := v.Online

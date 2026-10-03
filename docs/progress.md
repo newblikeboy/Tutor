@@ -1,5 +1,83 @@
 # Progress
 
+## 2026-10-03: tutor finder page simplified locally
+
+The `/tutors` finder page no longer shows the top setup-mode banner. The page heading now starts directly with "Start with what your child needs." The finder card no longer repeats the Quick Tutor Finder eyebrow/title. The old Main need choices were replaced with Teacher needed choices for 1 hr online, weekly and monthly, and preferred time now uses a time input. Search carries the selected plan and time into the tutor results URL.
+
+Validation: `/tutors` screenshot was reviewed. Browser flow check passed for Monthly at 19:30 opening results with `mode=home`, `plan=home-month` and the selected time. `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: parent-centric FAQ copy locally
+
+The landing FAQ heading and questions were rewritten for parents. The section now focuses on choosing the right tutor for a child, selecting home or online tuition, and understanding fees, availability and next steps.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: learning-stage cards lightened with symbols locally
+
+The Class 11-12 learning-stage card now uses the same light treatment as the other stage cards. Each learning-stage card now has a symbolic visual icon: book, compass, target and graduation cap.
+
+Validation: stage-section screenshot was reviewed. `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: removed landing How it works links locally
+
+The landing page no longer shows the small hero "How it works" scroll link or the process-section "How it works" action. The unused landing copy key and related homepage styles were removed.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: How it works action balanced locally
+
+The How it works action in the landing process section was restyled from a small text link into a larger rounded action button, so it visually balances with the large "A thoughtful beginning" heading.
+
+Validation: desktop screenshot was reviewed. `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: landing hero image and section sizing refined locally
+
+The landing hero photo was enlarged and cleaned up. The Home tuition, Online tuition and AI-generated illustrative scene labels were removed from the hero image area, and the entrance fade was removed so the photo renders clearly immediately. The How it works section now uses a tighter, more consistent spacing rhythm with cards sized closer to the other post-hero sections.
+
+Validation: desktop and mobile screenshots were captured for visual review. `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: quick finder moved to tutor results page locally
+
+The quick tutor finder is no longer visible in the landing hero. All public "Find a Tutor" entry points now open `/tutors`, where the quick finder appears as the first step. Tutor cards/results are hidden until the parent clicks "Search tutors"; that action reloads `/tutors` with `searched=1` and the selected class, mode, need, timing and goal parameters, then shows filtered tutor results.
+
+Validation: browser flow check passed: homepage has no quick finder, `/tutors` initially shows the finder and no tutor cards, and after Search the finder disappears while the results layout appears. `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: quick finder drives tutor results locally
+
+The landing page now treats the quick tutor finder as the required first step for public tutor discovery. The header/menu "Find a tutor" link and landing "Find a Tutor" buttons open the quick finder, the hero CTA copy was renamed from "Find My Child's Tutor", and the finder action is now "Search tutors". Search opens the tutor results page with class, teaching mode, need, timing and goal in the URL. The results page respects class and teaching mode against each tutor's approved public scope while preserving existing subject and language filters.
+
+Validation: browser flow check passed from homepage CTA to finder to `/tutors` results URL. `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: removed homepage tutor-card section locally
+
+The landing page no longer shows the "Meet their next tutor" section or teacher cards. The homepage-specific query, copy keys and CSS for that removed block were cleaned up while leaving the dedicated tutor listing and profile pages intact.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: compact photo-backed landing hero locally
+
+The landing hero layout was tightened after visual review. The photo and quick tutor finder now behave as one right-side action area on desktop, with the first fold moved upward and the old photo caption overlay removed. On mobile, the photo becomes a short banner and the finder begins inside the first screen instead of being pushed far below it. This keeps the site alive with imagery while reducing wasted space and making the parent action easier to reach.
+
+Validation: desktop and mobile Playwright screenshots were captured at `tmp-home-1440.png` and `tmp-home-mobile.png`. `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: photo-backed utility hero locally
+
+The landing hero now combines the restored learning photo with the quick tutor finder, so the first screen has both emotional trust and an immediate parent action. The finder remains layered in the hero and continues to prefill class, goal and Purnea locality in the matching flow. This replaces the plain utility-only hero that felt too dead without imagery.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: utility-first landing finder locally
+
+The landing hero now acts like a parent utility instead of only a readable introduction. Parents can choose class group, home/online mode, main learning need and timing preference, then continue into the matching flow with class, goal and Purnea locality prefilled. The homepage still keeps the adapted learning-stage cards, request-detail checklist and expanded tutor preview. The implementation remains honest: choices help prefill the request and do not claim instant matching or guaranteed availability.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
+## 2026-10-03: adapted landing request journey locally
+
+The landing page now adapts the useful structure from the reference site without copying its claims or wording. It keeps the learning-stage cards, adds a parent request-detail section for class/subject/board, goals and weak areas, mode/locality/timing, and language/learning style, and shows up to four approved tutor cards on the homepage. The copy remains tied to GyanSetu's approved tutor availability and does not claim unsupported profile counts or no-account request flow.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. This checkpoint is local only; no commit, push or deployment was performed.
+
 ## 2026-10-03: homepage learning-stage categories
 
 The landing page now includes a parent-facing learning-stage section between the matching process and tutor cards. It groups needs into Up to Class 5/Foundation years, Classes 6-8/Concept building, Classes 9-10/Board preparation, and Classes 11-12/Senior secondary. Copy stays tied to request understanding and approved tutor availability rather than claiming unsupported coverage.
@@ -96,7 +174,6 @@ New subject/body records live in `inbox_messages`. The additive `007-simple-inbo
 
 Completed checks: strict TypeScript, lint, three frontend unit/component tests, production build, full local-Mongo Go race suite and vet. Six Updates API scenarios cover immediate sending, legacy retention, removed endpoints, validation, cross-instance idempotency, recipient-only reads/CSRF, applicant reception, household isolation, tutor revocation/suspension and pagination. The focused follow-up also passed for guardian ownership changes in tutor lists. The actual inbox browser flow and existing billing/tuition-conversation/Activity regression passed (2/2). Nine screenshots were individually reviewed with axe, 360–1440px reflow and CSS 200% text checks. Browser tests cover send-before-first-visit, lost-response retries, failed detail fetches staying unread, reload and another authenticated browser opening the same message without setup. [Visual evidence](visual-qa/updates/README.md). Contract comparison changed only Inbox definitions/routes, and deployment Bash syntax passed. No production deployment or real messages were performed.
 
-
 ## 2026-09-26: one-way encrypted Updates inbox
 
 The operator clarified that Updates must be one-way, show read receipts to senders, and use end-to-end encryption. Implemented administrator-to-parent/tutor sends and approved-tutor-to-current-parent sends, received/sent lists, encrypted subject previews, unread counts, compose/detail screens, recipient activation and signed read receipts. Parents have no compose/reply action. Applicants can receive administrative updates. Existing tuition chat and automated Activity alerts remain separate. Server checks retain role/assignment boundaries and revoke former-tutor access.
@@ -177,7 +254,6 @@ Live read-only provider check: existing private Cloudinary PDF metadata lookup r
 
 A restart of the existing local API was rejected by automatic approval review with "blocked by policy". The old API remains healthy on 8080; a new binary was built in `.local/cloudinary-direct-api.exe`. Source/build changes must be deployed/restarted to use the new flow. Other local services were not replaced.
 
-
 ## 2026-09-24: TheGyanSetu rebrand
 
 Replaced the provisional Tutor Platform name with the user-selected **TheGyanSetu** in public/auth/private wordmarks, fallback copy, checkout branding, calendar producer metadata, HTML title/description/application name, API defaults, deployment examples and project/API documentation. Added a paper/ink/sage book favicon using the established icon direction. The application step title now includes the brand and restores the previous page title when leaving the form. Only APP_NAME was changed in the private local environment; the local API was rebuilt/restarted and its live config endpoint confirms TheGyanSetu. Existing technical identifiers and calendar event UIDs remain stable.
@@ -204,7 +280,6 @@ Removed the demo preference, its recorded-demo fields/upload, the upload-unavail
 
 Validation: production build/strict TypeScript and lint passed. Focused Chromium regression passed **1/1 in 52.6s** against an isolated real Go/local-Mongo environment, covering the removed controls, English desktop/Hindi mobile axe and screenshots, Continue/reload/submission of a legacy recorded draft and retention of its private file with download still locked. Earlier test assertions were corrected to distinguish the three textareas from time inputs and to check preserved file records instead of obsolete demo-selection metadata. Both `visual-qa/application-compact/approach-simplified-*.png` screenshots were inspected. Wider suites were not rerun. Main app remains on 5173/8080; no API/schema/private configuration change, deployment or file/database deletion.
 
-
 ## 2026-09-24: compact tutor application tabs and field review
 
 Replaced the nested application sidebar with six horizontal tabs, a native step-position progress bar and one visible form section. The form now uses the available workspace width, with smaller gaps, grouped education fields, paired document controls, compact subject choices and actions that do not cover fields. Mobile keeps six numbered tabs with full accessible names. Arrow/Home/End navigation and Enter/Space activation are supported. Save draft keeps the scroll position; step changes focus the heading and respect reduced motion.
@@ -214,7 +289,6 @@ Reviewed every tutor-application field and its conditional branches. English/Hin
 Verification: production build/strict TypeScript, lint, all 3 component tests and private-value scan passed. Initial application Chromium run passed **5/5 in 3.7m**. Final expanded run passed 6/7 in 5.4m; the only failure was an obsolete exact Hindi document label in the upload test. After updating that selector to the new optional label, its rerun passed 1/1 in 59.9s: **all seven selected cases pass across the final run and targeted rerun**. Coverage includes keyboard tabs, blank numeric draft saves, five-width bilingual reflow/axe, 200% CSS text reflow, complete submission/staff review, stale drafts, locality correction, recorded demo, all private application uploads and application-first route gates. Formatting and git diff checks passed.
 
 Visual review: user-supplied desktop and prior Hindi mobile screenshots were inspected before editing; final desktop/mobile views are under `visual-qa/application-compact/`. Review prompted fixed mobile step circles, shorter textareas, aligned time-row actions and grouped subject options. The field-by-field audit and inspected captures are recorded in that folder's README. No pixel baseline was promoted. Tests use the real Go API and isolated local replica-set database `tutor_e2e_1790265635430`; test data/files are retained. Temporary test API/Vite/Zoom/Mongo services were stopped; main frontend/API remain on 5173/8080 and readiness returned 200. Private `.env`, main Atlas records, login/signup design and release gates are unchanged. No public deployment, provider delivery/charges or database deletion occurred. The prohibited update-design skill was not used. Wider unrelated suites, Go tests, cross-browser and native screen-reader checks were not rerun for this frontend change.
-
 
 ## 2026-09-24: staff-confirmed tutor fees
 
@@ -489,20 +563,20 @@ Full specification read and preserved. Repository initially contained only the m
 
 ### Verification executed
 
-| Command/check | Actual result |
-|---|---|
-| `./scripts/api.ps1 migrate` / `seed` | Passed against supplied Atlas, idempotent migration/seed |
-| `go fmt ./...`, `go vet ./...` | Passed |
-| `go test ./...` | Unit tests passed; integration explicitly skips without TEST_MONGODB_URI |
-| `go test -race ./...` | Passed for non-integration suite |
-| `./scripts/integration.ps1 -Race` | Passed: 18 Atlas integration subcases plus 3 unit tests, including concurrent overlapping HTTP accepts from separate API instances and actual API stop/new client restart persistence. Latest integration duration 21.35s; no races reported. |
-| `npm run typecheck`, `npm run lint` | Passed |
-| `npm run test` | Passed: 3 Vitest/RTL component tests |
-| `npm run build` | Passed: strict TypeScript + Vite production build; split account routes and bundled local font files |
-| OpenAPI generation/type alignment | `node scripts/contract.mjs` and `npm run contract` passed; generated types used by frontend |
-| npm install/audit | Locked exact versions; install reported zero vulnerabilities |
-| Final running-app check | `/api/v1/ready` returned ready against Atlas. Chromium visited home, tutor search, tutor profile and login: zero browser console/page errors. Staged files passed a check for the private URI and OTP secret; `.env` is excluded. |
-| `npm run e2e` | **10/10 passed** in the final complete rerun (1.7m): full four-role journey, bilingual/responsive public routes, loading/error/retry/keyboard/200% reflow, Hindi adult requirement, and 6 visually reviewed exact-pixel baselines. Axe scans on exercised screens reported no violations. |
+| Command/check                        | Actual result                                                                                                                                                                                                                                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./scripts/api.ps1 migrate` / `seed` | Passed against supplied Atlas, idempotent migration/seed                                                                                                                                                                                                                                  |
+| `go fmt ./...`, `go vet ./...`       | Passed                                                                                                                                                                                                                                                                                    |
+| `go test ./...`                      | Unit tests passed; integration explicitly skips without TEST_MONGODB_URI                                                                                                                                                                                                                  |
+| `go test -race ./...`                | Passed for non-integration suite                                                                                                                                                                                                                                                          |
+| `./scripts/integration.ps1 -Race`    | Passed: 18 Atlas integration subcases plus 3 unit tests, including concurrent overlapping HTTP accepts from separate API instances and actual API stop/new client restart persistence. Latest integration duration 21.35s; no races reported.                                             |
+| `npm run typecheck`, `npm run lint`  | Passed                                                                                                                                                                                                                                                                                    |
+| `npm run test`                       | Passed: 3 Vitest/RTL component tests                                                                                                                                                                                                                                                      |
+| `npm run build`                      | Passed: strict TypeScript + Vite production build; split account routes and bundled local font files                                                                                                                                                                                      |
+| OpenAPI generation/type alignment    | `node scripts/contract.mjs` and `npm run contract` passed; generated types used by frontend                                                                                                                                                                                               |
+| npm install/audit                    | Locked exact versions; install reported zero vulnerabilities                                                                                                                                                                                                                              |
+| Final running-app check              | `/api/v1/ready` returned ready against Atlas. Chromium visited home, tutor search, tutor profile and login: zero browser console/page errors. Staged files passed a check for the private URI and OTP secret; `.env` is excluded.                                                         |
+| `npm run e2e`                        | **10/10 passed** in the final complete rerun (1.7m): full four-role journey, bilingual/responsive public routes, loading/error/retry/keyboard/200% reflow, Hindi adult requirement, and 6 visually reviewed exact-pixel baselines. Axe scans on exercised screens reported no violations. |
 
 Initial failed checks were fixed rather than suppressed: missing Vitest imports, form accessible label/hint mix-up, insufficient label contrast, 200% header overflow and mobile intrinsic grid width. The Hindi added test now waits for the backend-confirmed next step before refreshing, as the English persisted-draft test already did.
 
@@ -525,3 +599,59 @@ GitHub remote, droplet/domain/TLS and deployment authorization have not been sup
 ## 2026-09-25: operator-approved Atlas test database cleanup
 
 After the droplet migration failed with AtlasError code 8000, a read-only inventory confirmed 500 collections. The user explicitly approved deletion of the 27 reviewed automated-test databases listed in `.local/atlas-test-databases.json`. An exact-name allowlist and pre-deletion count checks constrained the operation; the configured application database was excluded. All 27 databases (398 collections) were deleted. Post-deletion inventory confirmed 102 remaining collections and unchanged collection names/counts in all eight preserved application databases, including `tutor_dev`. The local audit is `.local/atlas-approved-cleanup-20260925.json`. Earlier notes describing this specific cleanup as pending approval are superseded. The droplet migration must still be rerun; this cleanup does not establish deployment or production readiness.
+
+## 2026-10-03: tutor finder shell and spacing matched locally
+
+The `/tutors` finder page now uses the same landing-page shell treatment as the homepage, including the rounded public header and matching footer behavior. The top spacing above "Start with what your child needs." was reduced so parents reach the finder sooner, and the setup-mode banner remains removed from the public tutor finder.
+
+Validation: reviewed the local `/tutors` page in-browser, then ran `npm run typecheck`, `npm run lint`, and `npm run build` successfully. This checkpoint is local only; no commit, push, or deployment was performed.
+
+## 2026-10-03: public tutor discovery and profile refresh locally
+
+The public tutor flow was redesigned across the quick finder, searched results, and tutor detail page. The mobile quick finder is tighter, result cards now show parent-useful teacher facts, price and a clear profile action, and the tutor detail page now focuses on fit, mode, language, price and next action instead of development/assessment-heavy content. Tutor detail pages now use the same landing-page shell as the homepage and `/tutors`.
+
+Validation: reviewed local desktop and mobile screenshots for `/tutors`, searched tutor results and a tutor detail page. `npm run typecheck`, `npm run lint`, and `npm run build` passed. This checkpoint is local only; no commit, push, or deployment was performed.
+
+## 2026-10-03: tutor application photo preview and removal fixed locally
+
+Tutor application photo uploads now render as an in-form preview card using the authorised `/files/{id}/view` route. Removing an uploaded application file now clears the selected field, saves the draft so it does not reappear after refresh, and calls a draft-only `DELETE /files/{id}` endpoint. For Cloudinary direct uploads, the endpoint also requests authenticated asset deletion before archiving the file record; draft restrictions preserve submitted application evidence.
+
+Validation: `npm run typecheck`, `npm run lint`, `npm run build`, and `go test ./...` from `apps/api` passed. This checkpoint is local only; no commit, push, or deployment was performed.
+
+## 2026-10-03: current-location reverse geocoding added locally
+
+The shared location search control now uses browser GPS coordinates with a new authenticated `/api/v1/location/reverse` endpoint. The endpoint uses the configured Google Maps API key when available and falls back to OpenStreetMap/Nominatim if needed. Current-location now saves structured address and coordinates when the user chooses GPS; manual text entry still saves locality text only.
+
+Validation: `go test ./...` in `apps/api`, `npm run typecheck`, `npm run lint`, and `npm run build` passed. The local API was restarted on `127.0.0.1:8080`. This checkpoint is local only; no commit, push, or deployment was performed.
+
+## 2026-10-04: GPS location data now persists for India-wide use
+
+Location capture is now stored as structured data instead of being only transient text. Parent requirements and drafts can save a `location` object with resolved address, locality, city, district, state, country, postal code, latitude, longitude, accuracy and source. Tutor applications can save the same object for the tutor locality, and home-tuition service areas can save structured `serviceLocations` beside the existing locality chips.
+
+Purnea remains the launch-market suggestion in the UI, but the schema and reverse-geocoding flow are not restricted to Purnea. Current-location no longer blocks coordinates outside Purnea; it resolves and saves locations across India when the user chooses the browser location button. Manual typed localities still work without coordinates.
+
+Verification: `go test ./...` from `apps/api`, contract regeneration, `npm run typecheck`, `npm run lint` and `npm run build` all passed locally. No commit, push or deployment was performed.
+
+## 2026-10-04: GPS radius matching for home tutors
+
+Home tutor discovery now uses saved GPS data instead of only locality text. Tutor applications save a structured base location from the About step and show the resolved state, district, locality and PIN back to the tutor. The existing Home Tuition travel distance field is now presented as a home-tuition service radius; staff/tutor saved applications keep using the existing `availability.home.travelKm` value.
+
+The public `/tutors` API now accepts class, mode, latitude, longitude and radiusKm query parameters. For home-tuition searches with parent coordinates, the backend calculates approximate distance using the Haversine formula, excludes tutors without usable coordinates/service radius, excludes tutors outside their own service radius, applies the parent search radius, sorts nearest first, and returns only approximate distance plus public locality/service radius. Exact tutor coordinates are not returned publicly. Reverse-geocoding is available for the public finder with rate limiting.
+
+The Find Tutor page now shows a location search/current-location control and radius selector for Home Tuition. Tutor cards show approximate distance and service radius when a location search is active. Verification passed: `go test ./...`, OpenAPI/schema regeneration, `npm run typecheck`, `npm run lint`, and `npm run build`. Local API was restarted on `127.0.0.1:8080`. No push or deployment was performed.
+
+## 2026-10-04: tutor application location fields simplified
+
+The tutor About step now removes the city dropdown/search and relies on browser current location for address capture. The form displays four read-only boxes for State, District, City and Location. Before a location is saved, the tutor sees Use current location; after a location has been fetched and saved into the draft, that action is hidden and replaced by Change location, which allows the tutor to fetch location again.
+
+The Time & location Home Tuition section now asks only how much area the tutor can cover from the saved current location. It uses the existing `availability.home.travelKm` value as a 1-25 km slider and removes the old locality, service-locality, travel-charge and buffer inputs from the tutor-facing flow. The API normalizer clears those removed home-service fields so stale draft data does not remain active, and submission validation requires a saved GPS location plus a valid radius for home tuition.
+
+Validation: `go test ./...` in `apps/api`, `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No commit, push or production deployment was performed.
+
+## 2026-10-04: tutor applications auto-assign to mentors
+
+Tutor final submission now assigns an active mentor automatically on the server. Applicants do not choose or influence the reviewer. The API keeps a transactional round-robin counter and selects from active mentor accounts sorted by ID, so with two active mentors applications rotate A, B, A, B. If a mentor is suspended/deleted, new submissions rotate across the remaining active mentors; if no active mentor exists, final submission fails with a mentor-unavailable error instead of leaving the application unassigned.
+
+Mentor access is now restricted to applications where they are the saved assessor. The previous ability for any mentor to claim an unassigned submitted application has been removed; administrators can still reassign when needed. The application remains in submitted status until the assigned mentor confirms the review/no-conflict step, preserving the existing academic workflow.
+
+Validation: `go test ./...` in `apps/api` passed locally, including a two-mentor/two-applicant round-robin assignment case and an access check that mentor A cannot open or act on mentor B's application. No commit, push or production deployment was performed.

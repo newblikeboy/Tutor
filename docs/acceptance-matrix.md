@@ -1,5 +1,11 @@
 # Requirement → implementation → acceptance evidence
 
+Latest local photo-backed landing checkpoint: the landing hero now restores the learning photo and layers the quick tutor finder with it, keeping parent utility while making the first screen feel warmer and more alive. `npm run typecheck`, `npm run lint` and `npm run build` passed. No commit, push or production deployment was performed.
+
+Latest local landing utility checkpoint: the hero now includes a quick tutor finder with class group, mode, need and timing choices that prefill the parent matching flow. The page also keeps learning-stage cards, a request-detail checklist and up to four approved tutor cards. `npm run typecheck`, `npm run lint` and `npm run build` passed. No commit, push or production deployment was performed.
+
+Latest local landing adaptation checkpoint: the homepage now includes the learning-stage categories, a parent request-detail checklist, and up to four approved tutor cards while avoiding unsupported external-site claims. `npm run typecheck`, `npm run lint` and `npm run build` passed. No commit, push or production deployment was performed.
+
 Latest homepage learning-stage checkpoint: the landing page now groups parent needs into Up to Class 5, Classes 6-8, Classes 9-10 Board preparation, and Classes 11-12 Senior secondary, with copy framed around request understanding and approved tutor availability. `npm run typecheck`, `npm run lint` and `npm run build` passed. No production deployment was performed.
 
 Latest Home Tuition fee checkpoint: staff approval now records the approved teaching mode. Public tutor pricing remains scoped to the approved mode: Online approvals publish hourly plans and Home Tuition approvals publish weekly/monthly plans with class count and duration. Backend tests cover Home approval fee publication; `go test ./...`, `go vet ./...`, `npm run typecheck`, `npm run lint` and `npm run build` passed. No production deployment was performed.
@@ -12,7 +18,9 @@ Latest support-copy checkpoint: visible support/case copy no longer says develop
 
 Latest parent tutor-chooser checkpoint: the parent trial request flow now presents approved tutors as profile cards instead of a name dropdown, with visible scope, language, mode, experience, approach, review date, fee plans and a complete-profile link. Parents can search, filter by language/mode and sort by recommended fit, experience or review due soon. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
 
-Latest locality-entry checkpoint: tutor application City, tutor Home Tuition locality, tutor service localities and parent match locality now use searchable Purnea locality controls with curated suggestions and a current-location helper. Service areas are chips instead of a raw multiline textarea. The browser location helper saves only broad locality text and no GPS coordinates. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
+Latest tutor location checkpoint: tutor About now uses one current-location action to fill read-only State, District, City and Location boxes. After a GPS location is saved the form shows Change location instead of another location search field. Home Tuition availability now asks only for the service radius from that saved location, using a 1-25 km slider; removed home locality, travel-charge and travel-buffer fields are cleared during normalization. `go test ./...`, `npm run typecheck`, `npm run lint` and `npm run build` passed. No commit, push or production deployment was performed.
+
+Latest mentor auto-assignment checkpoint: tutor final submission now assigns the next active mentor through a server-side round-robin counter. Applicants cannot choose a mentor, mentors can only see and act on their assigned applications, and admins retain reassignment control. `go test ./...` passed locally. No commit, push or production deployment was performed.
 
 Latest public teacher-profile checkpoint: the public tutor detail page now leads with a stronger teacher hero, experience/scope/review evidence cards, parent-readable strengths, a quote-style teaching approach, fit guidance and a clearer child-fit CTA. It uses only existing approved public tutor data and keeps sample labels/scope limits visible. `npm run typecheck`, `npm run lint` and `npm run build` passed. No production deployment was performed.
 
@@ -122,3 +130,55 @@ Atlas cleanup remains pending explicit approval: `.local/atlas-test-databases.js
 ## 2026-09-25: operator-approved Atlas test database cleanup
 
 After the droplet migration failed with AtlasError code 8000, a read-only inventory confirmed 500 collections. The user explicitly approved deletion of the 27 reviewed automated-test databases listed in `.local/atlas-test-databases.json`. An exact-name allowlist and pre-deletion count checks constrained the operation; the configured application database was excluded. All 27 databases (398 collections) were deleted. Post-deletion inventory confirmed 102 remaining collections and unchanged collection names/counts in all eight preserved application databases, including `tutor_dev`. The local audit is `.local/atlas-approved-cleanup-20260925.json`. Earlier notes describing this specific cleanup as pending approval are superseded. The droplet migration must still be rerun; this cleanup does not establish deployment or production readiness.
+
+## 2026-10-03: public tutor finder shell alignment
+
+- Scope: `/tutors` uses the landing-page header/footer treatment, removes the setup-mode strip from the public finder, and reduces the whitespace above the parent-facing finder headline.
+- Evidence: local browser review of `/tutors`; `npm run typecheck`; `npm run lint`; `npm run build`.
+- Release status: local only. No commit, push, or deployment was performed.
+
+## 2026-10-03: tutor finder, results and profile presentation
+
+- Scope: improved mobile quick finder spacing, redesigned public tutor result cards for desktop/mobile, simplified tutor detail content to parent-useful facts, and matched tutor detail header/footer with the landing-page shell.
+- Evidence: local browser screenshots reviewed at desktop and mobile sizes for finder, results and detail views; `npm run typecheck`; `npm run lint`; `npm run build`.
+- Release status: local only. No commit, push, or deployment was performed.
+
+## 2026-10-03: tutor application upload removal
+
+- Scope: uploaded tutor photos show a preview in the application form; Remove persists the cleared field and deletes/archives the draft upload through a server route. Cloudinary direct uploads request remote asset deletion; submitted evidence remains protected.
+- Evidence: `npm run typecheck`; `npm run lint`; `npm run build`; `go test ./...` in `apps/api`.
+- Release status: local only. No commit, push, or deployment was performed.
+
+## 2026-10-03: GPS-backed current location
+
+- Scope: `Use current location` now sends browser latitude/longitude to an authenticated reverse-geocoding endpoint and fills the form with resolved locality text. Google Maps is used when `GOOGLE_MAPS_API_KEY` is configured; OpenStreetMap is the fallback. Coordinates are now persisted when the user chooses current location; manual text entry still saves locality text only.
+- Evidence: `go test ./...` in `apps/api`; `npm run typecheck`; `npm run lint`; `npm run build`; local API restarted.
+- Release status: local only. No commit, push, or deployment was performed.
+
+## 2026-10-04: persisted structured location data
+
+- Scope: saved parent drafts, parent requirements and tutor applications now support a structured `LocationPoint` containing resolved address and GPS coordinates. Tutor service localities also support structured service-location records beside the existing text chips.
+- India-ready behavior: Purnea is treated as the first launch area in guidance/suggestions, while the schema and reverse-geocoder accept valid coordinates anywhere, including outside Purnea.
+- Compatibility: existing `locality`, `city`, `pin` and locality-chip strings remain in place for old records and manual entry. Coordinates are saved only when the user chooses current location.
+- Evidence: `go test ./...`, OpenAPI/schema regeneration, `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No production deployment was run.
+
+## 2026-10-04: parent radius search and tutor service radius
+
+- Scope: tutor About current-location data now supports visible state/district/locality/PIN review, and Home Tuition uses the saved travelKm value as a service radius.
+- Matching: `/api/v1/tutors` accepts parent coordinates and radiusKm. Home tutors are included only when the calculated distance is inside the tutor service radius and inside the parent selected radius, then sorted nearest first.
+- Privacy: public tutor responses expose approximate distance, public locality and service radius only; exact tutor coordinates are not exposed.
+- Evidence: `go test ./...`, contract regeneration, `npm run typecheck`, `npm run lint`, and `npm run build` passed. Local API restarted. No production deployment.
+
+## 2026-10-04: simplified tutor application location flow
+
+- Scope: the tutor About step no longer renders a city dropdown/search. It shows State, District, City and Location as read-only review boxes populated by Use current location. Once location is saved, the action changes to Change location, which re-enables the current-location fetch.
+- Availability: the Home Tuition section now keeps only the service-radius decision, labelled as the area the tutor can cover from the saved current location. The radius slider is limited to 1-25 km.
+- Persistence: removed home service-locality, charge-preference and travel-buffer inputs are normalized to empty/default values so stale draft values do not continue affecting saved applications.
+- Evidence: `go test ./...`, `npm run typecheck`, `npm run lint`, and `npm run build` passed locally. No commit, push or production deployment was performed.
+
+## 2026-10-04: automatic mentor assignment for tutor applications
+
+- Scope: final tutor application submission assigns `assessorId` on the server using a transactional round-robin counter across active mentor accounts. With two active mentors, applications rotate between the first and second mentor in stable ID order.
+- Boundaries: applicants never send or choose a mentor ID. Mentors no longer have the old claim-any-submitted-application path; mentor queues and details are filtered to their assigned applications. Admin reassignment remains available.
+- Failure mode: if no active mentor exists, final submission returns a mentor-unavailable error rather than creating an unowned review item.
+- Evidence: `go test ./...` in `apps/api` passed locally with round-robin and mentor-access tests. No commit, push or production deployment was performed.

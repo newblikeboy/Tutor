@@ -168,6 +168,7 @@ export function staffContract(schemas, route, paths) {
         scores: { type: 'array', items: n },
         minClass: n,
         maxClass: n,
+        mode: s,
         assessorId: s,
         mentorId: s,
         conflictClear: b,

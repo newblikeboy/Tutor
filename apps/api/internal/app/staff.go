@@ -34,7 +34,7 @@ func restrictedTutorRoute(path, id string) bool {
 func staffApplicationFilter(u domain.User) bson.M {
 	f := bson.M{"status": bson.M{"$ne": "draft"}}
 	if u.Role == "mentor" {
-		f["$or"] = []bson.M{{"status": "submitted"}, {"assessorId": u.ID}}
+		f["assessorId"] = u.ID
 	}
 	return f
 }
@@ -409,7 +409,7 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 		if v.Status == "draft" {
 			return domain.Fail(409, "invalid_transition", "The applicant must submit first.")
 		}
-		if u.Role == "mentor" && v.AssessorID != u.ID && !(in.Action == "review" && v.Status == "submitted") {
+		if u.Role == "mentor" && v.AssessorID != u.ID {
 			return domain.Fail(403, "forbidden", "Only the assigned reviewer can change this application.")
 		}
 		from := v.Status

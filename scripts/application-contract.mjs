@@ -14,6 +14,7 @@ export function applicationContract(schemas, route) {
   const strings = (names) => Object.fromEntries(names.split(' ').map((k) => [k, s]))
   schemas.ApplicantAbout = obj({
     ...strings('fullName displayName mobile city locality pin photoFileId'),
+    location: { anyOf: [ref('LocationPoint'), { type: 'null' }] },
     communicationLanguages: array(s),
   })
   schemas.ApplicantEducation = obj({
@@ -38,6 +39,7 @@ export function applicationContract(schemas, route) {
   schemas.ApplicationSlot = obj({ day: n, start: s, end: s })
   schemas.HomeTeachingRequest = obj({
     localities: array(s),
+    serviceLocations: array(ref('LocationPoint')),
     travelKm: n,
     charges: s,
     bufferMinutes: n,

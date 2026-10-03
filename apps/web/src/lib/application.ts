@@ -39,6 +39,7 @@ export function emptyApplication(name: string, noticeVersion: string): Applicati
       city: '',
       locality: '',
       pin: '',
+      location: null,
       photoFileId: '',
       communicationLanguages: [],
     },
@@ -75,7 +76,13 @@ export function emptyApplication(name: string, noticeVersion: string): Applicati
       period: '',
       untilDate: '',
       interruptions: '',
-      home: { localities: [], travelKm: 0, charges: '', bufferMinutes: 0 },
+      home: {
+        localities: [],
+        serviceLocations: [],
+        travelKm: 0,
+        charges: '',
+        bufferMinutes: 0,
+      },
       online: {
         device: '',
         camera: '',
@@ -128,11 +135,19 @@ export function applicationDefaults(
       fees: { preference: 'staff', sessionMinutes: 60, rates: [], comments: '' },
       about: {
         ...application.profile.about,
+        location: application.profile.about.location ?? null,
         photoFileId: application.profile.about.photoFileId ?? '',
       },
       education: {
         ...application.profile.education,
         educationFileIds: application.profile.education.educationFileIds ?? [],
+      },
+      availability: {
+        ...application.profile.availability,
+        home: {
+          ...application.profile.availability.home,
+          serviceLocations: application.profile.availability.home.serviceLocations ?? [],
+        },
       },
     }
   const profile = emptyApplication(application?.name || name, noticeVersion)

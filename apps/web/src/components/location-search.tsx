@@ -1,8 +1,40 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LocateFixed, Plus, Search, X } from 'lucide-react'
+import { api, type Schema } from '../lib/api'
 
 type LocalityOption = { value: string; detail?: string }
+export type StoredLocation = Schema['LocationPoint']
+export type LocationSelection = StoredLocation & {
+  location: string
+  primary: string
+  secondary?: string
+}
+
+export function locationLabel(location: StoredLocation | LocationSelection) {
+  const candidate = location as Partial<LocationSelection>
+  return clean(candidate.location || location.address || location.locality || location.city)
+}
+
+export function toStoredLocation(
+  location: LocationSelection | StoredLocation | null | undefined,
+): StoredLocation | null {
+  if (!location) return null
+  const candidate = location as Partial<LocationSelection>
+  return {
+    address: clean(location.address || candidate.location || location.locality || location.city),
+    locality: clean(location.locality || candidate.primary || location.city || candidate.location || ''),
+    city: clean(location.city || ''),
+    district: clean(location.district || ''),
+    state: clean(location.state || ''),
+    country: clean(location.country || 'India'),
+    postalCode: clean(location.postalCode || ''),
+    latitude: Number(location.latitude || 0),
+    longitude: Number(location.longitude || 0),
+    accuracyMeters: Number(location.accuracyMeters || 0),
+    source: clean(location.source || 'browser'),
+  }
+}
 
 export const purneaLocalities: LocalityOption[] = [
   { value: 'Purnea', detail: 'City' },
@@ -28,34 +60,26 @@ export const purneaLocalities: LocalityOption[] = [
 ]
 
 const cityOptions: LocalityOption[] = [
-  { value: 'Purnea', detail: 'Recommended spelling' },
+  { value: 'Purnea', detail: 'Launch city' },
   { value: 'Purnia', detail: 'Alternate spelling' },
   { value: 'Kasba', detail: 'Purnea district' },
   { value: 'Banmankhi', detail: 'Purnea district' },
   { value: 'Dhamdaha', detail: 'Purnea district' },
+  { value: 'Patna', detail: 'Bihar' },
+  { value: 'Delhi', detail: 'NCR' },
+  { value: 'Mumbai', detail: 'Maharashtra' },
+  { value: 'Kolkata', detail: 'West Bengal' },
+  { value: 'Bengaluru', detail: 'Karnataka' },
+  { value: 'Hyderabad', detail: 'Telangana' },
+  { value: 'Chennai', detail: 'Tamil Nadu' },
+  { value: 'Pune', detail: 'Maharashtra' },
 ]
-
-const purneaBounds = {
-  minLat: 25.55,
-  maxLat: 26.15,
-  minLng: 87.0,
-  maxLng: 87.75,
-}
 
 function clean(value: string) {
   return value.replace(/\s+/g, ' ').trim()
 }
 
-function isNearPurnea(latitude: number, longitude: number) {
-  return (
-    latitude >= purneaBounds.minLat &&
-    latitude <= purneaBounds.maxLat &&
-    longitude >= purneaBounds.minLng &&
-    longitude <= purneaBounds.maxLng
-  )
-}
-
-function useCurrentLocation(onDetected: () => void) {
+function useCurrentLocation(onDetected: (location: LocationSelection) => void) {
   const { t } = useTranslation()
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
@@ -68,14 +92,38 @@ function useCurrentLocation(onDetected: () => void) {
     setStatus(t('locationDetecting'))
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setBusy(false)
         const { latitude, longitude } = position.coords
-        if (isNearPurnea(latitude, longitude)) {
-          onDetected()
-          setStatus(t('locationDetected'))
-        } else {
-          setStatus(t('locationOutsidePurnea'))
-        }
+        void api<LocationSelection>(
+          `/location/reverse?${new URLSearchParams({
+            latitude: String(latitude),
+            longitude: String(longitude),
+            accuracyMeters: String(position.coords.accuracy || 0),
+          })}`,
+        )
+          .then((location) => {
+            onDetected(location)
+            setStatus(t('locationDetected', { location: location.location }))
+          })
+          .catch(() => {
+            const fallback = {
+              location: 'Near current location',
+              primary: 'Near current location',
+              address: 'Near current location',
+              locality: 'Near current location',
+              city: '',
+              district: '',
+              state: '',
+              country: 'India',
+              postalCode: '',
+              latitude,
+              longitude,
+              accuracyMeters: position.coords.accuracy || 0,
+              source: 'browser',
+            }
+            onDetected(fallback)
+            setStatus(t('locationDetected', { location: fallback.location }))
+          })
+          .finally(() => setBusy(false))
       },
       (error) => {
         setBusy(false)
@@ -89,6 +137,35 @@ function useCurrentLocation(onDetected: () => void) {
   return { status, busy, detect }
 }
 
+export function CurrentLocationButton({
+  onLocationChange,
+  children,
+  className = 'location-current-btn',
+}: {
+  onLocationChange: (location: StoredLocation) => void
+  children?: ReactNode
+  className?: string
+}) {
+  const { t } = useTranslation()
+  const { status, busy, detect } = useCurrentLocation((location) => {
+    const stored = toStoredLocation(location)
+    if (stored) onLocationChange(stored)
+  })
+  return (
+    <div className="location-current-action">
+      <button className={className} type="button" onClick={detect} disabled={busy}>
+        <LocateFixed size={16} aria-hidden="true" />
+        {children ?? (busy ? t('locationDetecting') : t('locationUseCurrent'))}
+      </button>
+      {status && (
+        <span className="hint location-status" role="status">
+          {status}
+        </span>
+      )}
+    </div>
+  )
+}
+
 export function LocationSearchField({
   label,
   value,
@@ -99,10 +176,12 @@ export function LocationSearchField({
   maxLength = 120,
   city = false,
   currentValue,
+  onLocationChange,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
+  onLocationChange?: (location: StoredLocation | null) => void
   error?: string
   hint?: string
   required?: boolean
@@ -114,9 +193,12 @@ export function LocationSearchField({
   const id = useId()
   const listId = `${id}-options`
   const options = city ? cityOptions : purneaLocalities
-  const { status, busy, detect } = useCurrentLocation(() =>
-    onChange(currentValue ?? (city ? 'Purnea' : 'Near current location, Purnea')),
-  )
+  const { status, busy, detect } = useCurrentLocation((location) => {
+    onChange(
+      currentValue ?? (city ? location.city || location.primary || location.locality : location.location),
+    )
+    onLocationChange?.(toStoredLocation(location))
+  })
   const described =
     [hint ? `${id}-hint` : '', error ? `${id}-error` : '', status ? `${id}-status` : '']
       .filter(Boolean)
@@ -131,7 +213,10 @@ export function LocationSearchField({
           type="search"
           list={listId}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => {
+            onChange(event.target.value)
+            onLocationChange?.(null)
+          }}
           required={required}
           maxLength={maxLength}
           autoComplete="off"
@@ -181,10 +266,14 @@ export function ServiceLocalityPicker({
   error,
   hint,
   currentLocality,
+  locations = [],
+  onLocationsChange,
 }: {
   label: string
   value: string[]
   onChange: (value: string[]) => void
+  locations?: StoredLocation[]
+  onLocationsChange?: (value: StoredLocation[]) => void
   error?: string
   hint?: string
   currentLocality?: string
@@ -193,7 +282,7 @@ export function ServiceLocalityPicker({
   const id = useId()
   const listId = `${id}-options`
   const [query, setQuery] = useState('')
-  const { status, busy, detect } = useCurrentLocation(() => add('Near current location, Purnea'))
+  const { status, busy, detect } = useCurrentLocation((location) => add(location.location, location))
   const selected = useMemo(() => value.map(clean).filter(Boolean), [value])
   const filtered = useMemo(() => {
     const text = query.toLocaleLowerCase()
@@ -210,7 +299,7 @@ export function ServiceLocalityPicker({
       )
       .slice(0, 6)
   }, [query, selected])
-  function add(raw = query) {
+  function add(raw = query, location?: LocationSelection) {
     const next = clean(raw)
     if (!next) return
     if (selected.some((item) => item.toLocaleLowerCase() === next.toLocaleLowerCase())) {
@@ -218,10 +307,26 @@ export function ServiceLocalityPicker({
       return
     }
     onChange([...selected, next])
+    if (location) {
+      const stored = toStoredLocation(location)
+      if (!stored) return
+      onLocationsChange?.([
+        ...locations.filter(
+          (item) => locationLabel(item).toLocaleLowerCase() !== next.toLocaleLowerCase(),
+        ),
+        stored,
+      ])
+    }
     setQuery('')
   }
   function remove(item: string) {
     onChange(selected.filter((value) => value !== item))
+    onLocationsChange?.(
+      locations.filter(
+        (location) =>
+          locationLabel(location).toLocaleLowerCase() !== item.toLocaleLowerCase(),
+      ),
+    )
   }
   const described =
     [hint ? `${id}-hint` : '', error ? `${id}-error` : '', status ? `${id}-status` : '']

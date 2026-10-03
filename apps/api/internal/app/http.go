@@ -10,7 +10,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"io"
 	"log/slog"
+	"math"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"tutorplatform/internal/config"
@@ -139,6 +142,7 @@ func (a *App) Routes() http.Handler {
 	r.Post("/api/v1/webhooks/razorpay", a.razorpayWebhook)
 	r.Get("/api/v1/tutors/{id}", a.tutor)
 	r.Get("/api/v1/tutors/{id}/availability", a.availability)
+	r.Get("/api/v1/location/reverse", a.reverseLocation)
 	r.Post("/api/v1/auth/signup", a.signup)
 	r.Post("/api/v1/auth/login", a.login)
 	r.Get("/api/v1/auth/session", a.sessionState)
@@ -216,6 +220,7 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/applications/{id}/files/upload-intent", a.createUploadIntent)
 		r.Post("/api/v1/enrollments/{id}/files/upload-intent", a.createUploadIntent)
 		r.Post("/api/v1/files/{id}/complete", a.completeDirectUpload)
+		r.Delete("/api/v1/files/{id}", a.deletePrivateFile)
 		r.Get("/api/v1/files/{id}/view", a.viewDirectFile)
 		r.Get("/api/v1/files/{id}/download", a.downloadFile)
 		r.Get("/api/v1/files/{id}/play", a.downloadFile)
@@ -236,6 +241,33 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 	}
 	if v := r.URL.Query().Get("language"); v != "" {
 		f["language"] = v
+	}
+	if v := r.URL.Query().Get("mode"); enum(v, "home", "online") {
+		f["scope.mode"] = v
+	}
+	if v := r.URL.Query().Get("class"); v != "" {
+		klass, er := strconv.Atoi(v)
+		if er != nil || klass < 1 || klass > 12 {
+			a.error(w, r, domain.Fail(422, "validation", "Choose a valid class."))
+			return
+		}
+		f["scope.minClass"] = bson.M{"$lte": klass}
+		f["scope.maxClass"] = bson.M{"$gte": klass}
+	}
+	queryLat, hasLat := optionalCoordinate(r, "latitude", -90, 90)
+	queryLng, hasLng := optionalCoordinate(r, "longitude", -180, 180)
+	if hasLat != hasLng {
+		a.error(w, r, domain.Fail(422, "validation", "Choose a complete location."))
+		return
+	}
+	searchRadiusKM := 0.0
+	if raw := strings.TrimSpace(r.URL.Query().Get("radiusKm")); raw != "" {
+		v, er := strconv.ParseFloat(raw, 64)
+		if er != nil || v < 1 || v > 100 {
+			a.error(w, r, domain.Fail(422, "validation", "Choose a valid search radius."))
+			return
+		}
+		searchRadiusKM = v
 	}
 	items, e := storage.Many[domain.Application](r.Context(), a.Store, "applications", f)
 	if e != nil {
@@ -260,9 +292,65 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 		if unavailable[v.ID] {
 			continue
 		}
-		out = append(out, v.Public())
+		public := v.Public()
+		if hasLat && v.Scope.Mode == "home" {
+			location, ok := tutorBaseLocation(v)
+			if !ok || public.ServiceRadiusKM <= 0 {
+				continue
+			}
+			distance := haversineKM(queryLat, queryLng, location.Latitude, location.Longitude)
+			if distance > float64(public.ServiceRadiusKM) {
+				continue
+			}
+			if searchRadiusKM > 0 && distance > searchRadiusKM {
+				continue
+			}
+			rounded := math.Round(distance*10) / 10
+			public.DistanceKM = &rounded
+		}
+		out = append(out, public)
 	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].DistanceKM != nil && out[j].DistanceKM != nil {
+			return *out[i].DistanceKM < *out[j].DistanceKM
+		}
+		return out[i].Name < out[j].Name
+	})
 	a.json(w, 200, out)
+}
+
+func optionalCoordinate(r *http.Request, key string, min, max float64) (float64, bool) {
+	raw := strings.TrimSpace(r.URL.Query().Get(key))
+	if raw == "" {
+		return 0, false
+	}
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil || value < min || value > max {
+		return 0, false
+	}
+	return value, true
+}
+
+func tutorBaseLocation(v domain.Application) (domain.LocationPoint, bool) {
+	if v.Profile == nil || v.Profile.About.Location == nil {
+		return domain.LocationPoint{}, false
+	}
+	location := *v.Profile.About.Location
+	if location.Latitude < -90 || location.Latitude > 90 || location.Longitude < -180 || location.Longitude > 180 || location.Latitude == 0 && location.Longitude == 0 {
+		return domain.LocationPoint{}, false
+	}
+	return location, true
+}
+
+func haversineKM(lat1, lon1, lat2, lon2 float64) float64 {
+	const earthRadiusKM = 6371.0088
+	toRadians := func(value float64) float64 { return value * math.Pi / 180 }
+	dLat := toRadians(lat2 - lat1)
+	dLon := toRadians(lon2 - lon1)
+	rLat1 := toRadians(lat1)
+	rLat2 := toRadians(lat2)
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(rLat1)*math.Cos(rLat2)*math.Sin(dLon/2)*math.Sin(dLon/2)
+	return earthRadiusKM * 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 }
 func (a *App) tutor(w http.ResponseWriter, r *http.Request) {
 	f := bson.M{"_id": chi.URLParam(r, "id"), "status": "approved", "scope.expiresAt": bson.M{"$gt": a.Now()}}

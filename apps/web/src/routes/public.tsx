@@ -5,16 +5,15 @@ import { useTranslation } from 'react-i18next'
 import {
   ArrowRight,
   ArrowUpRight,
-  Award,
   BookOpen,
   Check,
   CheckCircle2,
   ChevronRight,
   Compass,
   GraduationCap,
-  LineChart,
   House,
   LockKeyhole,
+  MapPin,
   Monitor,
   Sparkles,
   ShieldCheck,
@@ -22,8 +21,9 @@ import {
   Target,
   Sprout,
 } from 'lucide-react'
-import { api, indiaDate } from '../lib/api'
+import { api } from '../lib/api'
 import type { Tutor } from '../lib/api'
+import { LocationSearchField, type StoredLocation } from '../components/location-search'
 import { TutorFees } from '../components/tutor-fees'
 import {
   Alert,
@@ -105,50 +105,143 @@ export function LearningPreview() {
 }
 export function TutorCard({ tutor }: { tutor: Tutor }) {
   const { t } = useTranslation()
+  const subject = tutor.scope.subject === 'Mathematics' ? t('math') : tutor.scope.subject
+  const classRange = `${tutor.scope.minClass}-${tutor.scope.maxClass}`
+  const language = t(tutor.language === 'Hindi' ? 'hindi' : 'english')
+  const mode = t(tutor.scope.mode === 'home' ? 'applicationForm.home' : 'online')
+  const experienceLabel =
+    tutor.experience > 0
+      ? t('teacherProofExperienceValue', { count: tutor.experience })
+      : t('teacherExperienceNew')
   return (
-    <article className="tutor-card">
-      <div className="tutor-card-top">
-        <div className="initial-avatar" aria-hidden="true">
-          {tutor.name.slice(0, 1)}
+    <article className="tutor-card tutor-result-card">
+      <div className="tutor-card-main">
+        <div className="tutor-photo-symbol" aria-hidden="true">
+          <span>{tutor.name.slice(0, 1)}</span>
+          <GraduationCap size={28} strokeWidth={1.45} />
         </div>
-        <div>
-          <span className="overline">{tutor.sample ? t('sampleProfile') : t('scoped')}</span>
+        <div className="tutor-card-copy">
+          <div className="tutor-card-kicker">
+            <Badge tone="teal">{t('teacherAvailable')}</Badge>
+            <span>{experienceLabel}</span>
+          </div>
           <h3>
             <Link to={`/tutors/${tutor.id}`}>{tutor.name}</Link>
           </h3>
-          <p>
-            {t('math')} · {t('classes')} {tutor.scope.minClass}–{tutor.scope.maxClass}
+          <p className="tutor-card-title">
+            {subject} teacher for Classes {classRange}
           </p>
+          <p className="tutor-approach">{tutor.sample ? t('step3Body') : tutor.approach}</p>
+          <div className="tutor-highlights" aria-label={t('teacherProfileFacts')}>
+            <span>
+              {tutor.scope.mode === 'home' ? <House size={16} /> : <Monitor size={16} />}
+              {mode}
+            </span>
+            <span>
+              <Sparkles size={16} />
+              {language}
+            </span>
+            <span>
+              <ShieldCheck size={16} />
+              {t('staffConfirmed')}
+            </span>
+          </div>
+          {(tutor.distanceKm != null || tutor.serviceRadiusKm > 0 || tutor.publicLocality) && (
+            <div className="tutor-distance-line">
+              <MapPin size={16} aria-hidden="true" />
+              <span>
+                {tutor.distanceKm != null
+                  ? t('teacherDistanceAway', { distance: tutor.distanceKm.toFixed(1) })
+                  : tutor.publicLocality || t('locationSearchPlaceholder')}
+                {tutor.serviceRadiusKm > 0
+                  ? ` · ${t('teacherServiceRadius', { count: tutor.serviceRadiusKm })}`
+                  : ''}
+              </span>
+            </div>
+          )}
         </div>
-        <ShieldCheck size={22} className="teal" aria-label={t('scoped')} />
       </div>
-      <p className="tutor-approach">
-        {t('teachingApproach')}: {tutor.sample ? t('step3Body') : tutor.approach}
-      </p>
-      <div className="tutor-meta">
-        <span>
-          {tutor.scope.mode === 'home' ? <House size={15} /> : <Monitor size={15} />}
-          {t(tutor.scope.mode === 'home' ? 'applicationForm.home' : 'online')}
-        </span>
-        <span>{t(tutor.language === 'Hindi' ? 'hindi' : 'english')}</span>
-      </div>
-      <div className="tutor-bottom">
+      <aside className="tutor-card-action" aria-label={t('teacherCardAction')}>
         <TutorFees plans={tutor.feePlans} />
-        <Link to={`/tutors/${tutor.id}`} className="text-link">
-          {t('profile')}
-          <ArrowRight size={17} />
-        </Link>
-      </div>
+        <LinkButton to={`/tutors/${tutor.id}`}>{t('viewCompleteProfile')}</LinkButton>
+      </aside>
     </article>
   )
 }
+function QuickTutorFinder({ className = 'home-finder' }: { className?: string }) {
+  const { t } = useTranslation()
+  const classOptions = [
+    { value: 5, label: t('landing.finderClassPrimary') },
+    { value: 8, label: t('landing.finderClassMiddle') },
+    { value: 10, label: t('landing.finderClassBoard') },
+    { value: 12, label: t('landing.finderClassSenior') },
+  ]
+  const teacherOptions = [
+    { value: 'online-hour', mode: 'online', label: t('landing.finderTeacherOnlineHour') },
+    { value: 'home-week', mode: 'home', label: t('landing.finderTeacherWeekly') },
+    { value: 'home-month', mode: 'home', label: t('landing.finderTeacherMonthly') },
+  ]
+  const [finderClass, setFinderClass] = useState(classOptions[1].value)
+  const [finderTeacher, setFinderTeacher] = useState(teacherOptions[0].value)
+  const [finderTime, setFinderTime] = useState('17:00')
+  const selectedTeacher =
+    teacherOptions.find((option) => option.value === finderTeacher) ?? teacherOptions[0]
+  const finderGoal = t('landing.finderGoal', {
+    teacher: selectedTeacher.label,
+    time: finderTime,
+  })
+  const finderLink = `/tutors?searched=1&subject=Mathematics&class=${finderClass}&mode=${selectedTeacher.mode}&plan=${selectedTeacher.value}&teacher=${encodeURIComponent(selectedTeacher.label)}&time=${encodeURIComponent(finderTime)}&goal=${encodeURIComponent(finderGoal)}`
+  return (
+    <aside id="quick-tutor-finder" className={className} aria-label={t('landing.finderTitle')}>
+      <div className="home-finder-group">
+        <span>{t('landing.finderClassLabel')}</span>
+        <div className="home-finder-options">
+          {classOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={finderClass === option.value}
+              onClick={() => setFinderClass(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="home-finder-group">
+        <span>{t('landing.finderTeacherLabel')}</span>
+        <div className="home-finder-options three">
+          {teacherOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={finderTeacher === option.value}
+              onClick={() => setFinderTeacher(option.value)}
+            >
+              {option.mode === 'online' ? <Monitor size={15} /> : <House size={15} />}
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <Field label={t('landing.finderPreferredTime')}>
+        <input
+          type="time"
+          value={finderTime}
+          onChange={(event) => setFinderTime(event.target.value)}
+        />
+      </Field>
+      <LinkButton to={finderLink}>{t('landing.finderButton')}</LinkButton>
+      <p className="home-finder-note">{t('landing.finderNote')}</p>
+    </aside>
+  )
+}
+
 export function Home() {
   const { t } = useTranslation()
-  const tutors = useQuery({
-    queryKey: ['tutors', 'home'],
-    queryFn: ({ signal }) => api<Tutor[]>('/tutors', { signal }),
-  })
   const pillars = [ShieldCheck, Compass, Sprout]
+  const requestIcons = [GraduationCap, Target, Compass, CheckCircle2]
+  const stageIcons = [BookOpen, Compass, Target, GraduationCap]
   return (
     <div className="home-page">
       <div className="home-hero-wrap">
@@ -163,56 +256,28 @@ export function Home() {
             </h1>
             <p className="home-intro">{t('landing.intro')}</p>
             <div className="home-actions">
-              <LinkButton to="/match">{t('landing.start')}</LinkButton>
+              <LinkButton to="/tutors">{t('landing.start')}</LinkButton>
               <Link to="/apply" className="home-apply-link">
                 {t('landing.apply')} <ArrowUpRight size={18} aria-hidden="true" />
               </Link>
             </div>
-            <a href="#home-process-title" className="home-discover">
-              <span aria-hidden="true">↓</span>
-              {t('landing.processLink')}
-            </a>
           </div>
-          <figure className="home-hero-figure">
-            <div className="home-teaching-modes">
-              <span>
-                <House size={16} aria-hidden="true" />
-                {t('landing.homeMode')}
-              </span>
-              <span>
-                <Monitor size={16} aria-hidden="true" />
-                {t('landing.onlineMode')}
-              </span>
-            </div>
-            <div className="home-photo-frame">
-              <img
-                className="home-hero-image"
-                src="/images/purnea-learning-1200.webp"
-                srcSet="/images/purnea-learning-640.webp 640w, /images/purnea-learning-960.webp 960w, /images/purnea-learning-1200.webp 1200w, /images/purnea-learning-1536.webp 1536w"
-                sizes="(max-width: 760px) calc(135vw - 54px), (max-width: 1000px) 760px, 850px"
-                width={1536}
-                height={1024}
-                fetchPriority="high"
-                alt={t('landing.imageAlt')}
-              />
-            </div>
-            <figcaption className="home-photo-caption">
-              <span className="home-photo-icon">
-                <BookOpen size={23} strokeWidth={1.5} aria-hidden="true" />
-              </span>
-              <span>
-                <strong>{t('landing.photoTitle')}</strong>
-                <small>{t('landing.photoBody')}</small>
-              </span>
-              <Sprout
-                className="home-photo-sprout"
-                size={32}
-                strokeWidth={1.3}
-                aria-hidden="true"
-              />
-            </figcaption>
-            <small className="home-image-credit">{t('landing.imageCredit')}</small>
-          </figure>
+          <div className="home-hero-visual">
+            <figure className="home-hero-figure">
+              <div className="home-photo-frame">
+                <img
+                  className="home-hero-image"
+                  src="/images/purnea-learning-1200.webp"
+                  srcSet="/images/purnea-learning-640.webp 640w, /images/purnea-learning-960.webp 960w, /images/purnea-learning-1200.webp 1200w, /images/purnea-learning-1536.webp 1536w"
+                  sizes="(max-width: 760px) calc(100vw - 40px), (max-width: 1000px) 680px, 520px"
+                  width={1536}
+                  height={1024}
+                  fetchPriority="high"
+                  alt={t('landing.imageAlt')}
+                />
+              </div>
+            </figure>
+          </div>
         </section>
       </div>
 
@@ -237,9 +302,6 @@ export function Home() {
               <p className="eyebrow">{t('landing.processEyebrow')}</p>
               <h2 id="home-process-title">{t('landing.processTitle')}</h2>
             </div>
-            <Link to="/how-it-works" className="text-link">
-              {t('landing.processLink')} <ArrowUpRight size={19} />
-            </Link>
           </div>
           <ol className="home-steps">
             {[1, 2, 3].map((n) => (
@@ -301,51 +363,52 @@ export function Home() {
           </div>
         </div>
         <div className="home-stage-grid">
-          {[1, 2, 3, 4].map((n) => (
-            <article className="home-stage-card" key={n}>
-              <span className="home-stage-number" aria-hidden="true">
-                0{n}
-              </span>
-              <div>
-                <p className="eyebrow">{t(`landing.stage${n}Range`)}</p>
-                <h3>{t(`landing.stage${n}Title`)}</h3>
-                <p>{t(`landing.stage${n}Body`)}</p>
-              </div>
-            </article>
-          ))}
+          {[1, 2, 3, 4].map((n) => {
+            const Icon = stageIcons[n - 1]
+            return (
+              <article className="home-stage-card" key={n}>
+                <div className="home-stage-top">
+                  <span className="home-stage-number" aria-hidden="true">
+                    0{n}
+                  </span>
+                  <span className="home-stage-symbol" aria-hidden="true">
+                    <Icon size={30} strokeWidth={1.45} />
+                  </span>
+                </div>
+                <div>
+                  <p className="eyebrow">{t(`landing.stage${n}Range`)}</p>
+                  <h3>{t(`landing.stage${n}Title`)}</h3>
+                  <p>{t(`landing.stage${n}Body`)}</p>
+                </div>
+              </article>
+            )
+          })}
         </div>
       </section>
 
-      <section className="container home-section home-tutors" aria-labelledby="home-tutors-title">
-        <div className="home-section-heading">
-          <div>
-            <p className="eyebrow">{t('landing.tutorEyebrow')}</p>
-            <h2 id="home-tutors-title">{t('landing.tutorTitle')}</h2>
-            <p className="home-section-intro">{t('landing.tutorBody')}</p>
-          </div>
-          <Link to="/tutors" className="text-link">
-            {t('viewAll')} <ArrowRight size={18} />
-          </Link>
+      <section className="container home-request" aria-labelledby="home-request-title">
+        <div className="home-request-copy">
+          <p className="eyebrow">{t('landing.requestEyebrow')}</p>
+          <h2 id="home-request-title">{t('landing.requestTitle')}</h2>
+          <p>{t('landing.requestBody')}</p>
+          <LinkButton to="/tutors">{t('landing.start')}</LinkButton>
         </div>
-        {tutors.isPending ? (
-          <Loading />
-        ) : tutors.isError ? (
-          <LoadError
-            title={t('landing.tutorsErrorTitle')}
-            body={t('landing.tutorsErrorBody')}
-            retry={() => void tutors.refetch()}
-          />
-        ) : tutors.data.length ? (
-          <div className="tutor-grid">
-            {tutors.data.slice(0, 2).map((v) => (
-              <TutorCard key={v.id} tutor={v} />
-            ))}
-          </div>
-        ) : (
-          <Empty title={t('noTutors')} body={t('noTutorsBody')}>
-            <LinkButton to="/match">{t('requestMatch')}</LinkButton>
-          </Empty>
-        )}
+        <div className="home-request-list" aria-label={t('landing.requestListLabel')}>
+          {[1, 2, 3, 4].map((n) => {
+            const Icon = requestIcons[n - 1]
+            return (
+              <div className="home-request-item" key={n}>
+                <span aria-hidden="true">
+                  <Icon size={19} strokeWidth={1.6} />
+                </span>
+                <div>
+                  <strong>{t(`landing.request${n}Title`)}</strong>
+                  <p>{t(`landing.request${n}Body`)}</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </section>
 
       <section className="container home-story" aria-labelledby="home-story-title">
@@ -417,7 +480,7 @@ export function Home() {
           <h2 id="home-closing-title">{t('landing.finalTitle')}</h2>
         </div>
         <div className="home-closing-actions">
-          <LinkButton to="/match">{t('landing.start')}</LinkButton>
+          <LinkButton to="/tutors">{t('landing.start')}</LinkButton>
           <div className="home-teach-link">
             <span>{t('landing.teach')}</span>
             <Link to="/apply">
@@ -434,19 +497,76 @@ export function Search() {
   const [params, setParams] = useSearchParams()
   const subject = params.get('subject') ?? 'Mathematics'
   const language = params.get('language') ?? ''
+  const hasSearched =
+    params.get('searched') === '1' ||
+    params.has('class') ||
+    params.has('mode') ||
+    params.has('plan')
+  const requestedClass = Number(params.get('class'))
+  const classFilter =
+    Number.isInteger(requestedClass) && requestedClass >= 1 && requestedClass <= 12
+      ? requestedClass
+      : null
+  const modeFilter = params.get('mode')
+  const selectedMode = modeFilter === 'home' || modeFilter === 'online' ? modeFilter : ''
+  const teacherFilter = params.get('teacher')?.trim() ?? ''
+  const timeFilter = params.get('time')?.trim() ?? ''
+  const locationText = params.get('locality')?.trim() ?? ''
+  const latitude = params.get('latitude') ?? ''
+  const longitude = params.get('longitude') ?? ''
+  const radiusKm = params.get('radiusKm') ?? '5'
+  const modeLabel = selectedMode
+    ? t(selectedMode === 'home' ? 'landing.homeMode' : 'landing.onlineMode')
+    : t('allModes')
   const query = useQuery({
-    queryKey: ['tutors', subject, language],
-    queryFn: ({ signal }) =>
-      api<Tutor[]>(`/tutors?${new URLSearchParams({ subject, language })}`, { signal }),
+    queryKey: ['tutors', subject, language, classFilter, selectedMode, latitude, longitude, radiusKm],
+    queryFn: ({ signal }) => {
+      const request = new URLSearchParams({ subject })
+      if (language) request.set('language', language)
+      if (classFilter) request.set('class', String(classFilter))
+      if (selectedMode) request.set('mode', selectedMode)
+      if (selectedMode === 'home' && latitude && longitude) {
+        request.set('latitude', latitude)
+        request.set('longitude', longitude)
+        request.set('radiusKm', radiusKm)
+      }
+      return api<Tutor[]>(`/tutors?${request}`, { signal })
+    },
+    enabled: hasSearched,
   })
+  const results =
+    query.data?.filter((tutor) => {
+      return !selectedMode || tutor.scope.mode === selectedMode
+    }) ?? []
   function filter(key: string, value: string) {
     const next = new URLSearchParams(params)
     if (value) {
       next.set(key, value)
+      next.set('searched', '1')
     } else {
       next.delete(key)
     }
     setParams(next)
+  }
+  function updateSearch(values: Record<string, string | null>) {
+    const next = new URLSearchParams(params)
+    next.set('searched', '1')
+    for (const [key, value] of Object.entries(values)) {
+      if (value) next.set(key, value)
+      else next.delete(key)
+    }
+    setParams(next)
+  }
+  function setSearchLocation(location: StoredLocation | null) {
+    if (!location) {
+      updateSearch({ latitude: null, longitude: null })
+      return
+    }
+    updateSearch({
+      locality: location.address || location.locality || location.city,
+      latitude: String(location.latitude),
+      longitude: String(location.longitude),
+    })
   }
   const fields = (
     <div className="filter-fields">
@@ -463,11 +583,55 @@ export function Search() {
           <option value="English">{t('english')}</option>
         </select>
       </Field>
+      <Field label={t('classes')}>
+        <select value={classFilter ?? ''} onChange={(e) => filter('class', e.target.value)}>
+          <option value="">{t('allClasses')}</option>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((klass) => (
+            <option key={klass} value={klass}>
+              {klass}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label={t('landing.finderModeLabel')}>
+        <select value={selectedMode} onChange={(e) => filter('mode', e.target.value)}>
+          <option value="">{t('allModes')}</option>
+          <option value="home">{t('landing.homeMode')}</option>
+          <option value="online">{t('landing.onlineMode')}</option>
+        </select>
+      </Field>
+      {selectedMode === 'home' && (
+        <>
+          <LocationSearchField
+            label={t('parentSearchLocation')}
+            value={locationText}
+            onChange={(value) => updateSearch({ locality: value, latitude: null, longitude: null })}
+            onLocationChange={setSearchLocation}
+            maxLength={160}
+            hint={t('parentSearchLocationHint')}
+          />
+          <Field label={t('searchRadius')}>
+            <select value={radiusKm} onChange={(e) => filter('radiusKm', e.target.value)}>
+              {['2', '5', '10', '15', '25'].map((value) => (
+                <option key={value} value={value}>
+                  {t('radiusKm', { count: Number(value) })}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </>
+      )}
       <div className="scope-filter">
-        <Monitor size={18} />
+        {selectedMode === 'home' ? <House size={18} /> : <Monitor size={18} />}
         <div>
-          <strong>{t('online')}</strong>
-          <p>{t('classes')} 6–10</p>
+          <strong>{t('yourSearch')}</strong>
+          <p>
+            {classFilter ? `${t('classes')} ${classFilter}` : t('allClasses')}
+            {` - ${modeLabel}`}
+            {teacherFilter ? ` - ${teacherFilter}` : ''}
+            {timeFilter ? ` - ${timeFilter}` : ''}
+            {selectedMode === 'home' && locationText ? ` - ${locationText}` : ''}
+          </p>
         </div>
       </div>
       <Button variant="text" onClick={() => setParams({})}>
@@ -475,18 +639,35 @@ export function Search() {
       </Button>
     </div>
   )
+  if (!hasSearched) {
+    return (
+      <div className="container section tutor-finder-page">
+        <PageHeading title={t('landing.finderTitle')} body={t('searchIntro')} />
+        <QuickTutorFinder className="home-finder tutor-search-finder" />
+      </div>
+    )
+  }
   return (
-    <div className="container section">
-      <PageHeading eyebrow={t('scoped')} title={t('searchTitle')} body={t('searchIntro')} />
-      <div className="search-layout">
-        <aside className="filter-rail">
+    <div className="container section tutor-results-page">
+      <div className="tutor-results-heading">
+        <div>
+          <p className="eyebrow">{t('teacherResultsEyebrow')}</p>
+          <h1>{t('searchTitle')}</h1>
+          <p>{t('searchIntro')}</p>
+        </div>
+        <Link to="/tutors" className="text-link">
+          {t('editNeed')} <ArrowRight size={17} />
+        </Link>
+      </div>
+      <div className="search-layout tutor-results-layout">
+        <aside className="filter-rail tutor-filter-rail">
           <h2>{t('filters')}</h2>
           {fields}
         </aside>
-        <div>
+        <div className="tutor-results-main">
           <div className="results-bar">
             <p aria-live="polite">
-              <strong>{query.data?.length ?? '—'}</strong> {t('results')}
+              <strong>{query.data ? results.length : '...'}</strong> {t('results')}
             </p>
             <div className="mobile-filters">
               <Modal
@@ -505,9 +686,17 @@ export function Search() {
           </div>
           <div className="filter-chips">
             <Badge tone="neutral">{t(subject === 'Science' ? 'science' : 'math')}</Badge>
+            {classFilter && <Badge tone="neutral">{`${t('classes')} ${classFilter}`}</Badge>}
+            {selectedMode && <Badge tone="neutral">{modeLabel}</Badge>}
+            {selectedMode === 'home' && locationText && <Badge tone="neutral">{locationText}</Badge>}
+            {selectedMode === 'home' && latitude && longitude && (
+              <Badge tone="neutral">{t('radiusKm', { count: Number(radiusKm) })}</Badge>
+            )}
+            {teacherFilter && <Badge tone="neutral">{teacherFilter}</Badge>}
+            {timeFilter && <Badge tone="neutral">{timeFilter}</Badge>}
             {language && (
               <button className="filter-chip" onClick={() => filter('language', '')}>
-                {t(language === 'Hindi' ? 'hindi' : 'english')} ×
+                {t(language === 'Hindi' ? 'hindi' : 'english')} ?
               </button>
             )}
           </div>
@@ -515,9 +704,9 @@ export function Search() {
             <Loading />
           ) : query.isError ? (
             <LoadError retry={() => void query.refetch()} />
-          ) : query.data.length ? (
+          ) : results.length ? (
             <div className="search-cards">
-              {query.data.map((tutor) => (
+              {results.map((tutor) => (
                 <TutorCard key={tutor.id} tutor={tutor} />
               ))}
             </div>
@@ -533,7 +722,7 @@ export function Search() {
 }
 export function TutorDetail() {
   const { id } = useParams()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const q = useQuery({
     queryKey: ['tutor', id],
     queryFn: ({ signal }) => api<Tutor>(`/tutors/${id}`, { signal }),
@@ -552,69 +741,45 @@ export function TutorDetail() {
     )
   const tutor = q.data
   const subject = tutor.scope.subject === 'Mathematics' ? t('math') : tutor.scope.subject
-  const classRange = `${tutor.scope.minClass}–${tutor.scope.maxClass}`
+  const classRange = `${tutor.scope.minClass}-${tutor.scope.maxClass}`
   const language = t(tutor.language === 'Hindi' ? 'hindi' : 'english')
   const mode = t(tutor.scope.mode === 'home' ? 'applicationForm.home' : 'online')
-  const assessedOn = indiaDate(tutor.assessmentAt, i18n.language)
-  const reviewDue = indiaDate(tutor.scope.expiresAt, i18n.language)
-  const proofItems = [
-    {
-      icon: Award,
-      label: t('teacherProofExperience'),
-      value: t('teacherProofExperienceValue', { count: tutor.experience }),
-    },
-    {
-      icon: Target,
-      label: t('teacherProofScope'),
-      value: `${subject} · ${t('classes')} ${classRange}`,
-    },
-    { icon: LineChart, label: t('teacherProofReview'), value: reviewDue },
-  ]
-  const strengthItems = [
-    {
-      icon: ShieldCheck,
-      title: t('teacherStrengthScopeTitle'),
-      body: t('teacherStrengthScopeBody', { subject, classes: classRange, mode }),
-    },
-    {
-      icon: BookOpen,
-      title: t('teacherStrengthMethodTitle'),
-      body: t('teacherStrengthMethodBody'),
-    },
-    {
-      icon: GraduationCap,
-      title: t('teacherStrengthReviewTitle'),
-      body: t('teacherStrengthReviewBody'),
-    },
+  const experienceLabel =
+    tutor.experience > 0
+      ? t('teacherProofExperienceValue', { count: tutor.experience })
+      : t('teacherExperienceNew')
+  const bestFor = [
+    t('teacherFitScope', { subject, classes: classRange }),
+    t('teacherFitMode', { mode }),
+    t('teacherFitReview'),
   ]
 
   return (
-    <div className="container section">
-      <Link className="back-link" to="/tutors">
-        ← {t('browse')}
+    <div className="container section tutor-profile-page">
+      <Link className="back-link" to="/tutors?searched=1">
+        {t('browse')}
       </Link>
       <div className="profile-layout teacher-profile-layout">
-        <div>
+        <main>
           <section className="teacher-hero-card" aria-labelledby="teacher-profile-title">
             <div className="teacher-hero-main">
               <div className="teacher-identity">
-                <div className="initial-avatar teacher-avatar" aria-hidden="true">
-                  {tutor.name.slice(0, 1)}
+                <div className="teacher-photo-symbol" aria-hidden="true">
+                  <span>{tutor.name.slice(0, 1)}</span>
+                  <GraduationCap size={36} strokeWidth={1.35} />
                 </div>
                 <div>
-                  <p className="eyebrow">
-                    {tutor.sample ? t('sampleProfile') : t('teacherProfileEyebrow')}
-                  </p>
+                  <p className="eyebrow">{t('teacherProfileEyebrow')}</p>
                   <h1 id="teacher-profile-title">{tutor.name}</h1>
+                  <p className="teacher-headline">
+                    {t('teacherProfileLead', { subject, classes: classRange, mode, language })}
+                  </p>
                 </div>
               </div>
-              <p className="teacher-headline">
-                {t('teacherProfileLead', { subject, classes: classRange, mode, language })}
-              </p>
               <div className="teacher-badges" aria-label={t('teacherProfileFacts')}>
                 <span>
-                  <ShieldCheck size={16} />
-                  {t('scoped')}
+                  <BookOpen size={16} />
+                  {subject}
                 </span>
                 <span>
                   {tutor.scope.mode === 'home' ? <House size={16} /> : <Monitor size={16} />}
@@ -628,69 +793,41 @@ export function TutorDetail() {
             </div>
             <aside className="teacher-snapshot" aria-label={t('teacherSnapshot')}>
               <span>{t('teacherSnapshot')}</span>
-              <strong>{subject}</strong>
-              <p>
-                {t('classes')} {classRange} · {mode}
-              </p>
-              <small>
-                {t('assessedOn')}: {assessedOn}
-              </small>
+              <strong>{experienceLabel}</strong>
+              <p>{t('experienceParentCopy')}</p>
             </aside>
           </section>
 
-          <section className="teacher-proof-grid" aria-label={t('teacherProofTitle')}>
-            {proofItems.map((item) => (
-              <article className="teacher-proof-card" key={item.label}>
-                <item.icon size={22} />
-                <small>{item.label}</small>
-                <strong>{item.value}</strong>
+          <section className="teacher-decision-grid" aria-label={t('teacherProfileFacts')}>
+            <article>
+              <ShieldCheck size={22} />
+              <span>{t('staffConfirmed')}</span>
+              <strong>
+                {subject}, Classes {classRange}
+              </strong>
+            </article>
+            <article>
+              {tutor.scope.mode === 'home' ? <House size={22} /> : <Monitor size={22} />}
+              <span>{t('teacherMode')}</span>
+              <strong>{mode}</strong>
+            </article>
+            <article>
+              <Sparkles size={22} />
+              <span>{t('preferredLanguage')}</span>
+              <strong>{language}</strong>
+            </article>
+            {tutor.scope.mode === 'home' && (tutor.publicLocality || tutor.serviceRadiusKm > 0) && (
+              <article>
+                <MapPin size={22} />
+                <span>{t('homeServiceArea')}</span>
+                <strong>
+                  {tutor.publicLocality || t('applicationForm.home')}
+                  {tutor.serviceRadiusKm > 0
+                    ? ` · ${t('teacherServiceRadius', { count: tutor.serviceRadiusKm })}`
+                    : ''}
+                </strong>
               </article>
-            ))}
-          </section>
-
-          <section
-            className="profile-section teacher-strengths"
-            aria-labelledby="teacher-strengths-title"
-          >
-            <p className="eyebrow">{t('teacherProofTitle')}</p>
-            <h2 id="teacher-strengths-title">{t('teacherStrengthTitle')}</h2>
-            <div className="teacher-strength-grid">
-              {strengthItems.map((item) => (
-                <article className="teacher-strength-card" key={item.title}>
-                  <span>
-                    <item.icon size={20} />
-                  </span>
-                  <h3>{item.title}</h3>
-                  <p>{item.body}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="panel scope-panel teacher-scope-panel">
-            <ShieldCheck className="teal" />
-            <h2>{t('scopeTitle')}</h2>
-            <div className="scope-grid">
-              <div>
-                <small>{t('subject')}</small>
-                <strong>{subject}</strong>
-              </div>
-              <div>
-                <small>{t('classes')}</small>
-                <strong>{classRange}</strong>
-              </div>
-              <div>
-                <small>{t('teacherMode')}</small>
-                <strong>{mode}</strong>
-              </div>
-            </div>
-            <p>{t('scopeHelp')}</p>
-            <small>
-              {t('assessedOn')}: {assessedOn}
-            </small>
-            <small>
-              {t('until')}: {reviewDue}
-            </small>
+            )}
           </section>
 
           <section className="profile-section teacher-approach-panel">
@@ -698,31 +835,26 @@ export function TutorDetail() {
               <p className="eyebrow">{t('teachingApproach')}</p>
               <h2>{t('teacherApproachTitle')}</h2>
             </div>
-            <blockquote>{tutor.approach}</blockquote>
-            <Alert>{t('sampleProfile')}</Alert>
+            <blockquote>{tutor.sample ? t('step3Body') : tutor.approach}</blockquote>
           </section>
 
           <section className="profile-section teacher-fit-panel">
             <h2>{t('teacherFitTitle')}</h2>
             <p>{t('teacherFitBody')}</p>
             <ul>
-              <li>{t('teacherFitScope', { subject, classes: classRange })}</li>
-              <li>{t('teacherFitMode', { mode })}</li>
-              <li>{t('teacherFitReview')}</li>
+              {bestFor.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
           </section>
-        </div>
+        </main>
         <aside className="trial-summary teacher-action-card panel">
           <span className="summary-icon">
             <GraduationCap size={30} />
           </span>
           <h2>{t('teacherActionTitle')}</h2>
-          <TutorFees plans={tutor.feePlans} />
           <p>{t('teacherActionBody', { name: tutor.name })}</p>
-          <div className="price">
-            <strong>{t('freeTrial')}</strong>
-            <span>{t('freeTrialBody')}</span>
-          </div>
+          <TutorFees plans={tutor.feePlans} />
           <LinkButton to={`/match?tutor=${tutor.id}`}>{t('teacherActionButton')}</LinkButton>
           <p className="privacy-note">
             <LockKeyhole size={16} />
