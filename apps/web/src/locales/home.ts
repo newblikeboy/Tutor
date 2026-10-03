@@ -37,6 +37,26 @@ export const homeEN = {
     step2Label: 'CONNECT',
     step3Label: 'GROW',
     processLink: 'How it works',
+    stagesEyebrow: 'LEARNING STAGES',
+    stagesTitle: 'Every stage needs a different kind of support.',
+    stagesBody:
+      'Start with the class group, then share subject, board, timing, mode and the exact learning need. Approved tutor availability is shown profile by profile.',
+    stage1Range: 'UP TO CLASS 5',
+    stage1Title: 'Foundation years',
+    stage1Body:
+      'Build confidence in reading, numeracy, homework habits and the basics before gaps become stressful.',
+    stage2Range: 'CLASSES 6-8',
+    stage2Title: 'Concept building',
+    stage2Body:
+      'Strengthen subject understanding, regular practice and doubt clearing as school topics become deeper.',
+    stage3Range: 'CLASSES 9-10',
+    stage3Title: 'Board preparation',
+    stage3Body:
+      'Focus on syllabus coverage, weak chapters, revision rhythm and exam confidence for board years.',
+    stage4Range: 'CLASSES 11-12',
+    stage4Title: 'Senior secondary',
+    stage4Body:
+      'Look for focused support in advanced subjects, board goals and preparation for the next academic step.',
     tutorEyebrow: 'THE PEOPLE BEHIND THE LEARNING',
     tutorTitle: 'Meet their next tutor.',
     tutorsErrorTitle: 'We couldn’t load the tutor profiles',

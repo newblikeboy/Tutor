@@ -289,6 +289,33 @@ export function Home() {
         </div>
       </section>
 
+      <section
+        className="container home-section home-learning-stages"
+        aria-labelledby="home-stages-title"
+      >
+        <div className="home-section-heading">
+          <div>
+            <p className="eyebrow">{t('landing.stagesEyebrow')}</p>
+            <h2 id="home-stages-title">{t('landing.stagesTitle')}</h2>
+            <p className="home-section-intro">{t('landing.stagesBody')}</p>
+          </div>
+        </div>
+        <div className="home-stage-grid">
+          {[1, 2, 3, 4].map((n) => (
+            <article className="home-stage-card" key={n}>
+              <span className="home-stage-number" aria-hidden="true">
+                0{n}
+              </span>
+              <div>
+                <p className="eyebrow">{t(`landing.stage${n}Range`)}</p>
+                <h3>{t(`landing.stage${n}Title`)}</h3>
+                <p>{t(`landing.stage${n}Body`)}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="container home-section home-tutors" aria-labelledby="home-tutors-title">
         <div className="home-section-heading">
           <div>

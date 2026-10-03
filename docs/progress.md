@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-10-03: homepage learning-stage categories
+
+The landing page now includes a parent-facing learning-stage section between the matching process and tutor cards. It groups needs into Up to Class 5/Foundation years, Classes 6-8/Concept building, Classes 9-10/Board preparation, and Classes 11-12/Senior secondary. Copy stays tied to request understanding and approved tutor availability rather than claiming unsupported coverage.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema, production data or deployment was changed in this checkpoint.
+
 ## 2026-10-02: Home Tuition approval publishes weekly and monthly fees
 
 Teacher weekly and monthly fees were hidden because public tutor pricing is filtered to the approved teaching mode, while the staff approval flow always saved the approved mode as Online. Staff approval now includes an approved teaching mode selector using the applicant's requested modes. Online approval continues to publish only the hourly Online plan; Home Tuition approval publishes the staff-confirmed weekly and monthly Home plans with class count and duration.

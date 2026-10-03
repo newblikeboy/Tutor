@@ -1,5 +1,7 @@
 # Requirement → implementation → acceptance evidence
 
+Latest homepage learning-stage checkpoint: the landing page now groups parent needs into Up to Class 5, Classes 6-8, Classes 9-10 Board preparation, and Classes 11-12 Senior secondary, with copy framed around request understanding and approved tutor availability. `npm run typecheck`, `npm run lint` and `npm run build` passed. No production deployment was performed.
+
 Latest Home Tuition fee checkpoint: staff approval now records the approved teaching mode. Public tutor pricing remains scoped to the approved mode: Online approvals publish hourly plans and Home Tuition approvals publish weekly/monthly plans with class count and duration. Backend tests cover Home approval fee publication; `go test ./...`, `go vet ./...`, `npm run typecheck`, `npm run lint` and `npm run build` passed. No production deployment was performed.
 
 Latest private-menu layout checkpoint: private workspace pages now remove repeated decorative headings/intro text from Account, Payments & records, Support & requests, Find Tutor, Documents and Messages; workspace/staff headings are compact so tabs and lists sit higher. `npm run typecheck`, `npm run lint` and `npm run build` passed. No backend schema or production deployment was performed.
