@@ -11,6 +11,7 @@ import {
   FileText,
   GraduationCap,
   LayoutDashboard,
+  LocateFixed,
   LogOut,
   Mail,
   Menu,
@@ -32,6 +33,7 @@ import {
 import type { WorkspaceView } from '../lib/workspace'
 import { useClock } from '../lib/clock'
 import { Button, Loading, LoadError, MutationError } from './ui'
+import { CurrentLocationButton, locationLabel, type StoredLocation } from './location-search'
 import '../styles/workspace.css'
 import '../styles/experience.css'
 
@@ -60,6 +62,11 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     enabled: !!auth.data && ['parent', 'tutor', 'admin'].includes(auth.data.user.role),
     queryFn: ({ signal }) => api<Schema['InboxStatus']>('/inbox/status', { signal }),
     refetchInterval: 15000,
+  })
+  const parentAccount = useQuery({
+    queryKey: ['account'],
+    enabled: auth.data?.user.role === 'parent',
+    queryFn: ({ signal }) => api<Schema['Account']>('/account', { signal }),
   })
   const application = useTutorApplication()
   const now = useClock()
@@ -275,9 +282,15 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
                 </Dialog.Portal>
               </Dialog.Root>
             </div>
-            <span className="desk-breadcrumb-role">{t(`desk.roles.${user.role}`)}</span>
-            <ChevronRight size={14} className="desk-breadcrumb-chevron" aria-hidden="true" />
-            <span>{section}</span>
+            {user.role === 'parent' ? (
+              <ParentTopbarLocation account={parentAccount.data} />
+            ) : (
+              <>
+                <span className="desk-breadcrumb-role">{t(`desk.roles.${user.role}`)}</span>
+                <ChevronRight size={14} className="desk-breadcrumb-chevron" aria-hidden="true" />
+                <span>{section}</span>
+              </>
+            )}
           </div>
           <div className="desk-utilities">
             <span className="desk-user-avatar" aria-hidden="true">
@@ -323,6 +336,60 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           <span>{t('desk.purnea')}</span>
         </footer>
       </div>
+    </div>
+  )
+}
+
+function ParentTopbarLocation({ account }: { account?: Schema['Account'] }) {
+  const { t } = useTranslation()
+  const savedLocation = account?.preferences.location ?? null
+  const save = useMutation({
+    mutationFn: (nextLocation: StoredLocation) => {
+      if (!account) throw new Error(t('loading'))
+      return send(
+        '/account',
+        {
+          name: account.name,
+          language: 'en',
+          location: nextLocation,
+          version: account.preferences.version,
+        },
+        'PUT',
+      )
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['account'] }),
+        queryClient.invalidateQueries({ queryKey: ['tutors'] }),
+      ])
+    },
+  })
+  const location = save.variables ?? savedLocation
+  const label = location
+    ? location.district || location.city || location.locality || locationLabel(location)
+    : t('locationUseCurrent')
+
+  if (!account)
+    return (
+      <span className="desk-location-pill is-static" aria-label={t('account.currentLocation')}>
+        <LocateFixed size={19} aria-hidden="true" />
+        <span>{t('locationUseCurrent')}</span>
+      </span>
+    )
+
+  return (
+    <div className="desk-location-control">
+      <CurrentLocationButton
+        className="desk-location-pill"
+        onLocationChange={(nextLocation) => save.mutate(nextLocation)}
+      >
+        <span>{label}</span>
+      </CurrentLocationButton>
+      {save.isError && (
+        <span className="sr-only" role="alert">
+          {t('actionError')}
+        </span>
+      )}
     </div>
   )
 }

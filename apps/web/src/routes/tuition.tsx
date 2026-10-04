@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -8,11 +8,13 @@ import {
   BookOpen,
   CalendarDays,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Plus,
   Sprout,
   X,
 } from 'lucide-react'
-import { api, APIError, indiaDate, queryClient, send, type Schema } from '../lib/api'
+import { api, APIError, indiaDate, queryClient, send, type Schema, type Tutor } from '../lib/api'
 import { useAuth, useConfig, useDashboard } from '../lib/session'
 import {
   Alert,
@@ -29,7 +31,7 @@ import '../styles/tuition.css'
 import { Checkout } from './billing'
 import { Conversation } from './conversations'
 import { PrivateFiles } from './files'
-import { TutorFees } from '../components/tutor-fees'
+import { feeLabel, TutorFees } from '../components/tutor-fees'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
 
 type Agreement = Schema['Agreement']
@@ -404,153 +406,507 @@ function TuitionList() {
 function NewAgreement() {
   const { t, i18n } = useTranslation()
   const dashboard = useDashboard()
-  const [trialId, setTrialId] = useState('')
-  const trials = dashboard.data?.trials.filter((trial) => trial.status === 'reviewed') ?? []
-  const selected = trials.find((trial) => trial.id === trialId)
+  const tutors = useQuery({
+    queryKey: ['tutors', 'regular-classes'],
+    queryFn: ({ signal }) => api<Tutor[]>('/tutors?subject=Mathematics', { signal }),
+  })
+  const [openKey, setOpenKey] = useState('')
+  const reviewedTrials = useMemo(() => {
+    const trials = dashboard.data?.trials.filter((trial) => trial.status === 'reviewed') ?? []
+    const latest = new Map<string, Schema['Trial']>()
+    for (const trial of [...trials].sort((a, b) => b.start.localeCompare(a.start))) {
+      const key = `${trial.learnerId}:${trial.tutorId}`
+      if (!latest.has(key)) latest.set(key, trial)
+    }
+    return Array.from(latest.values())
+  }, [dashboard.data?.trials])
+  const tutorById = useMemo(() => new Map((tutors.data ?? []).map((tutor) => [tutor.id, tutor])), [tutors.data])
+  const options = reviewedTrials
+    .map((trial) => ({ trial, tutor: tutorById.get(trial.tutorId) }))
+    .filter((item): item is { trial: Schema['Trial']; tutor: Tutor } => !!item.tutor)
+
   if (dashboard.isError) return <LoadError retry={() => void dashboard.refetch()} />
-  if (!trials.length) return null
+  if (tutors.isError) return <LoadError retry={() => void tutors.refetch()} />
+  if (dashboard.isPending || tutors.isPending) return <Loading />
+  if (!options.length) return null
+
   return (
-    <details className="tu-panel tu-disclosure">
-      <summary>
-        <Plus size={20} />
-        {t('tuition.new')}
-      </summary>
-      <Field label={t('tuition.chooseTrial')}>
-        <select value={trialId} onChange={(e) => setTrialId(e.target.value)}>
-          <option value="">—</option>
-          {trials.map((trial) => (
-            <option value={trial.id} key={trial.id}>
-              {trial.learnerName} · {indiaDate(trial.start, i18n.language)}
-            </option>
-          ))}
-        </select>
-      </Field>
-      {selected && (
-        <AgreementForm key={selected.id} trialId={selected.id} tutorId={selected.tutorId} />
-      )}
-    </details>
+    <section className="tu-panel tu-regular-start" aria-label={t('tuition.new')}>
+      <div className="tu-panel-title">
+        <Plus size={20} aria-hidden="true" />
+        <div>
+          <h2>{t('tuition.new')}</h2>
+          <p>{t('tuition.newBody')}</p>
+        </div>
+      </div>
+      <div className="tu-teacher-booking-list">
+        {options.map(({ trial, tutor }) => {
+          const key = `${trial.learnerId}:${trial.tutorId}`
+          return (
+            <RegularTeacherCard
+              key={key}
+              trial={trial}
+              tutor={tutor}
+              open={openKey === key}
+              onOpen={() => setOpenKey(openKey === key ? '' : key)}
+              dateLabel={indiaDate(trial.start, i18n.language)}
+            />
+          )
+        })}
+      </div>
+    </section>
   )
 }
-function AgreementForm({ trialId, tutorId }: { trialId: string; tutorId: string }) {
+
+function RegularTeacherCard({
+  trial,
+  tutor,
+  open,
+  onOpen,
+  dateLabel,
+}: {
+  trial: Schema['Trial']
+  tutor: Tutor
+  open: boolean
+  onOpen: () => void
+  dateLabel: string
+}) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const [key] = useState(() => crypto.randomUUID())
-  const [count, setCount] = useState(4)
-  const [minutes, setMinutes] = useState(60)
+  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID())
+  const [packageKey, setPackageKey] = useState('')
+  const [pickedDate, setPickedDate] = useState('')
+  const [start, setStart] = useState('')
   const [acceptedQuote, setAcceptedQuote] = useState('')
-  const q = useQuery({
-    queryKey: ['availability', tutorId],
+  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()))
+  const availability = useQuery({
+    queryKey: ['availability', tutor.id, 'regular-classes'],
     queryFn: ({ signal }) =>
-      api<Schema['Availability']>(`/tutors/${tutorId}/availability`, { signal }),
+      api<Schema['Availability']>(`/tutors/${tutor.id}/availability`, { signal }),
+    enabled: open,
   })
   const mutation = useMutation({
     mutationFn: (body: Schema['EnrollmentInput']) =>
-      send<Schema['Enrollment']>('/enrollments', body, 'POST', { 'Idempotency-Key': key }),
+      send<Schema['Enrollment']>('/enrollments', body, 'POST', { 'Idempotency-Key': requestKey }),
     onError: async (error) => {
       if (error instanceof APIError && error.code === 'stale_version') {
         setAcceptedQuote('')
-        await q.refetch()
+        await availability.refetch()
       }
     },
-    onSuccess: async (e) => {
+    onSuccess: async (enrollment) => {
       await queryClient.invalidateQueries({ queryKey: ['tuition'] })
-      navigate(`/tuition/${e.id}`)
+      navigate(`/tuition/${enrollment.id}`)
     },
   })
-  if (q.isPending) return <Loading />
-  if (q.isError) return <LoadError retry={() => void q.refetch()} />
-  if (!q.data.feePlan) return <Alert>{t('tutorFees.pending')}</Alert>
-  if (!q.data.windows.length || q.data.paused)
-    return <Alert>{t('tuition.noAvailabilityBody')}</Alert>
-  const quoteKey = `${q.data.feeVersion}:${q.data.version}:${minutes}:${count}`
+  const plans = availability.data?.feePlans ?? []
+  const selectedPlan = plans.find((plan) => planKey(plan) === packageKey)
+  const selectedDate = pickedDate || start.slice(0, 10)
+  const selectedMinute = selectedDate && start.startsWith(`${selectedDate}T`) ? timeToMinute(start.slice(11, 16)) : -1
+  const slots = selectedDate && selectedPlan ? classSlotsForDate(availability.data, selectedDate, selectedPlan.minutes) : []
+  const selectedStillAvailable =
+    !!availability.data &&
+    !!selectedPlan &&
+    !!selectedDate &&
+    selectedMinute >= 0 &&
+    classSlotAvailable(availability.data, selectedDate, selectedMinute, selectedPlan.minutes)
+  const quoteKey = selectedPlan
+    ? `${availability.data?.feeVersion}:${availability.data?.version}:${packageKey}:${start}`
+    : ''
+  const canSubmit = !!selectedPlan && selectedStillAvailable && acceptedQuote === quoteKey
+
   return (
-    <form
-      className="tu-proposal"
-      onSubmit={(event) => {
-        const d = formValues(event)
-        mutation.mutate({
-          trialId,
-          offeringVersion: q.data.version,
-          feeVersion: q.data.feeVersion,
-          accepted: true,
-          schedule: {
-            startDate: value(d, 'date'),
-            time: value(d, 'time'),
-            timezone: 'Asia/Kolkata',
-            weekdays: d.getAll('days').map(Number),
-            count,
-            minutes,
-          },
-        })
-      }}
-    >
-      <div className="tu-form-grid">
-        <Field label={t('tuition.firstDate')}>
-          <input name="date" type="date" min={futureDate()} defaultValue={futureDate()} required />
-        </Field>
-        <Field label={t('tuition.time')}>
-          <input name="time" type="time" required />
-        </Field>
-        <Field label={t('tuition.count')}>
-          <input
-            name="count"
-            type="number"
-            min="1"
-            max="24"
-            value={count}
-            onChange={(e) => setCount(Number(e.target.value))}
-            required
-          />
-        </Field>
-        <Field label={t('tuition.minutes')}>
-          <input
-            name="minutes"
-            type="number"
-            min="30"
-            max="120"
-            value={minutes}
-            onChange={(event) => setMinutes(Number(event.target.value))}
-            required
-          />
-        </Field>
-      </div>
-      <fieldset className="tu-weekdays">
-        <legend>{t('tuition.repeatDays')}</legend>
-        {Array.from({ length: 7 }, (_, day) => (
-          <label key={day}>
-            <input type="checkbox" name="days" value={day} />
-            <span>{t(`tuition.weekdays.${day}`)}</span>
-          </label>
-        ))}
-      </fieldset>
-      <div className="tu-quote">
+    <article className={`tu-teacher-booking-card ${open ? 'selected' : ''}`}>
+      <div className="tu-teacher-booking-main">
         <div>
-          <span>{t('tuition.perSession')}</span>
-          <strong>{money(Math.round((q.data.feePaise * minutes) / 60), i18n.language)}</strong>
+          <small>{t('tuition.completedTrial')}</small>
+          <h3>{tutor.name}</h3>
+          <p>
+            {trial.learnerName} ? {dateLabel}
+          </p>
         </div>
-        <div>
-          <span>{t('tuition.total')}</span>
-          <strong>
-            {money(Math.round((q.data.feePaise * minutes) / 60) * count, i18n.language)}
-          </strong>
+        <div className="tu-teacher-booking-meta">
+          <span>
+            {t('math')} ? {t('class')} {trial.class}
+          </span>
+          <span>{tutor.scope.minClass}-{tutor.scope.maxClass}</span>
+          <span>{tutor.language === 'Hindi' ? t('hindi') : t('english')}</span>
         </div>
+        <TutorFees plans={tutor.feePlans} />
       </div>
-      <Policy />
-      <label className="tu-check">
-        <input
-          name="accepted"
-          type="checkbox"
-          required
-          checked={acceptedQuote === quoteKey}
-          onChange={(event) => setAcceptedQuote(event.target.checked ? quoteKey : '')}
-        />
-        {t('tuition.acceptTerms')}
-      </label>
-      <MutationError error={mutation.error} />
-      <Button busy={mutation.isPending}>{t('tuition.proposeAgreement')}</Button>
-    </form>
+      <Button type="button" variant={open ? 'text' : 'secondary'} onClick={onOpen}>
+        {t(open ? 'cancel' : 'tuition.bookNow')}
+      </Button>
+      {open && (
+        <div className="tu-regular-booking-panel">
+          {availability.isPending ? (
+            <Loading />
+          ) : availability.isError ? (
+            <LoadError retry={() => void availability.refetch()} />
+          ) : !plans.length ? (
+            <Alert>{t('tutorFees.pending')}</Alert>
+          ) : availability.data.paused || !availability.data.windows.length ? (
+            <Alert>{t('tuition.noAvailabilityBody')}</Alert>
+          ) : (
+            <form
+              className="tu-regular-booking-form"
+              onSubmit={(event) => {
+                event.preventDefault()
+                if (!selectedPlan || !selectedDate || selectedMinute < 0) return
+                mutation.mutate({
+                  trialId: trial.id,
+                  packageMode: selectedPlan.mode,
+                  packagePeriod: selectedPlan.period,
+                  offeringVersion: availability.data.version,
+                  feeVersion: availability.data.feeVersion,
+                  accepted: true,
+                  schedule: {
+                    startDate: selectedDate,
+                    time: minuteLabel(selectedMinute),
+                    timezone: 'Asia/Kolkata',
+                    weekdays: [weekdayForDate(selectedDate)],
+                    count: selectedPlan.classes,
+                    minutes: selectedPlan.minutes,
+                  },
+                })
+              }}
+            >
+              <fieldset className="tu-package-options">
+                <legend>{t('tuition.choosePackage')}</legend>
+                {plans.map((plan) => {
+                  const key = planKey(plan)
+                  return (
+                    <label key={key} className={packageKey === key ? 'selected' : ''}>
+                      <input
+                        type="radio"
+                        name="package"
+                        value={key}
+                        checked={packageKey === key}
+                        onChange={() => {
+                          setPackageKey(key)
+                          setPickedDate('')
+                          setStart('')
+                          setAcceptedQuote('')
+                          setRequestKey(crypto.randomUUID())
+                        }}
+                      />
+                      <span>
+                        <strong>{t(`tutorFees.${feeLabel(plan)}`)}</strong>
+                        <small>
+                          {money(plan.amountPaise, i18n.language)} ? {packageDetail(plan, t)}
+                        </small>
+                      </span>
+                    </label>
+                  )
+                })}
+              </fieldset>
+              {selectedPlan && availability.data && (
+                <RegularAvailabilityPicker
+                  availability={availability.data}
+                  selectedPlan={selectedPlan}
+                  selectedDate={selectedDate}
+                  selectedMinute={selectedMinute}
+                  slots={slots}
+                  calendarMonth={calendarMonth}
+                  onMonthChange={setCalendarMonth}
+                  onDateChange={(date) => {
+                    setPickedDate(date)
+                    setStart('')
+                    setAcceptedQuote('')
+                    setRequestKey(crypto.randomUUID())
+                  }}
+                  onTimeChange={(time) => {
+                    setStart(`${selectedDate}T${time}`)
+                    setAcceptedQuote('')
+                    setRequestKey(crypto.randomUUID())
+                  }}
+                />
+              )}
+              {selectedPlan && (
+                <div className="tu-quote">
+                  <div>
+                    <span>{t('tuition.perSession')}</span>
+                    <strong>{money(perClassPaise(selectedPlan), i18n.language)}</strong>
+                  </div>
+                  <div>
+                    <span>{t('tuition.total')}</span>
+                    <strong>{money(selectedPlan.amountPaise, i18n.language)}</strong>
+                  </div>
+                </div>
+              )}
+              <Policy />
+              <label className="tu-check">
+                <input
+                  type="checkbox"
+                  required
+                  disabled={!selectedPlan || !selectedStillAvailable}
+                  checked={acceptedQuote === quoteKey}
+                  onChange={(event) => setAcceptedQuote(event.target.checked ? quoteKey : '')}
+                />
+                {t('tuition.acceptTerms')}
+              </label>
+              <MutationError error={mutation.error} />
+              <Button busy={mutation.isPending} disabled={!canSubmit}>
+                {t('tuition.proposeAgreement')}
+              </Button>
+            </form>
+          )}
+        </div>
+      )}
+    </article>
   )
 }
+
+function RegularAvailabilityPicker({
+  availability,
+  selectedPlan,
+  selectedDate,
+  selectedMinute,
+  slots,
+  calendarMonth,
+  onMonthChange,
+  onDateChange,
+  onTimeChange,
+}: {
+  availability: Schema['Availability']
+  selectedPlan: Schema['FeePlan']
+  selectedDate: string
+  selectedMinute: number
+  slots: Array<{ minute: number; label: string; available: boolean }>
+  calendarMonth: Date
+  onMonthChange: (value: Date) => void
+  onDateChange: (value: string) => void
+  onTimeChange: (value: string) => void
+}) {
+  const { t, i18n } = useTranslation()
+  const calendarWeeks = calendarWeeksForMonth(calendarMonth)
+  const todayMonth = startOfMonth(new Date())
+  const latest = new Date()
+  latest.setMonth(latest.getMonth() + 1)
+  const latestMonth = startOfMonth(latest)
+  const monthLabel = new Intl.DateTimeFormat('en-IN', {
+    month: 'long',
+    year: 'numeric',
+  }).format(calendarMonth)
+  return (
+    <div className="tu-regular-calendar-wrap">
+      <div>
+        <p className="eyebrow">{t('availabilityCalendar')}</p>
+        <p className="hint">{t('availabilityCalendarHint')}</p>
+      </div>
+      <div className="parent-trial-calendar-box" aria-label={t('availabilityDates')}>
+        <div className="parent-trial-calendar-head">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => onMonthChange(addMonths(calendarMonth, -1))}
+            disabled={calendarMonth <= todayMonth}
+            aria-label={t('back')}
+          >
+            <ChevronLeft size={17} aria-hidden="true" />
+          </button>
+          <strong>{monthLabel}</strong>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => onMonthChange(addMonths(calendarMonth, 1))}
+            disabled={calendarMonth >= latestMonth}
+            aria-label={t('next')}
+          >
+            <ChevronRight size={17} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="parent-trial-weekdays" aria-hidden="true">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+            <span key={day}>{day}</span>
+          ))}
+        </div>
+        <div className="parent-trial-calendar" role="grid">
+          {calendarWeeks.flat().map((date, index) => {
+            if (!date) return <span className="trial-date empty" key={`empty-${index}`} />
+            const value = dateInputValue(date)
+            const inMonth = date.getMonth() === calendarMonth.getMonth()
+            const inRange = bookingDateInRange(value)
+            const available =
+              inMonth && inRange && hasClassSlot(availability, value, selectedPlan.minutes)
+            const unavailable = inMonth && inRange && !available
+            return (
+              <button
+                type="button"
+                key={value}
+                role="gridcell"
+                className={`trial-date ${available ? 'available' : ''} ${
+                  unavailable ? 'unavailable' : ''
+                } ${selectedDate === value ? 'selected' : ''}`}
+                disabled={!available}
+                onClick={() => onDateChange(value)}
+              >
+                <strong>{date.getDate()}</strong>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      {selectedDate ? (
+        <div>
+          <p className="parent-trial-section-label">{t('availabilityTimes')}</p>
+          <div className="parent-trial-times" aria-label={t('availabilityTimes')}>
+            {slots.map((slot) => (
+              <button
+                type="button"
+                key={slot.minute}
+                className={`trial-time ${slot.available ? 'available' : 'unavailable'} ${
+                  selectedMinute === slot.minute ? 'selected' : ''
+                }`}
+                disabled={!slot.available}
+                onClick={() => onTimeChange(slot.label)}
+              >
+                {formatRegularTime(slot.label, i18n.language)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="parent-trial-section-label">{t('availabilityPickDate')}</p>
+      )}
+    </div>
+  )
+}
+
+function planKey(plan: Pick<Schema['FeePlan'], 'mode' | 'period'>) {
+  return `${plan.mode}:${plan.period}`
+}
+
+function packageDetail(
+  plan: Schema['FeePlan'],
+  t: (key: string, options?: Record<string, unknown>) => string,
+) {
+  return plan.mode === 'online'
+    ? t('tutorFees.hour')
+    : t('tutorFees.includes', { count: plan.classes, minutes: plan.minutes })
+}
+
+function perClassPaise(plan: Schema['FeePlan']) {
+  return plan.classes > 1 ? Math.round(plan.amountPaise / plan.classes) : plan.amountPaise
+}
+
+function classSlotsForDate(
+  availability: Schema['Availability'] | undefined,
+  date: string,
+  minutes: number,
+) {
+  if (!availability) return []
+  const starts = new Set<number>()
+  for (const window of availability.windows) {
+    if (window.day !== weekdayForDate(date)) continue
+    const first = Math.ceil(window.startMinute / 30) * 30
+    const last = window.endMinute - minutes
+    for (let minute = first; minute <= last; minute += 30) starts.add(minute)
+  }
+  return Array.from(starts)
+    .sort((a, b) => a - b)
+    .map((minute) => ({
+      minute,
+      label: minuteLabel(minute),
+      available: classSlotAvailable(availability, date, minute, minutes),
+    }))
+}
+
+function classSlotAvailable(
+  availability: Schema['Availability'],
+  date: string,
+  minute: number,
+  minutes: number,
+) {
+  if (availability.paused || availability.leaveDates.includes(date)) return false
+  const start = localBookingDateTime(date, minute)
+  const end = localBookingDateTime(date, minute + minutes)
+  const now = new Date()
+  const latest = new Date(now)
+  latest.setMonth(latest.getMonth() + 1)
+  if (!start || !end || start <= new Date(now.getTime() + 5 * 60 * 1000) || start > latest) {
+    return false
+  }
+  return availability.windows.some(
+    (window) =>
+      window.day === weekdayForDate(date) &&
+      minute >= window.startMinute &&
+      minute + minutes <= window.endMinute,
+  )
+}
+
+function hasClassSlot(availability: Schema['Availability'], date: string, minutes: number) {
+  return classSlotsForDate(availability, date, minutes).some((slot) => slot.available)
+}
+
+function startOfMonth(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), 1)
+}
+
+function addMonths(value: Date, months: number) {
+  return new Date(value.getFullYear(), value.getMonth() + months, 1)
+}
+
+function calendarWeeksForMonth(month: Date) {
+  const first = startOfMonth(month)
+  const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate()
+  const cells: Array<Date | null> = Array.from({ length: first.getDay() }, () => null)
+  for (let day = 1; day <= days; day += 1) {
+    cells.push(new Date(first.getFullYear(), first.getMonth(), day))
+  }
+  while (cells.length % 7 !== 0) cells.push(null)
+  const weeks: Array<Array<Date | null>> = []
+  for (let index = 0; index < cells.length; index += 7) weeks.push(cells.slice(index, index + 7))
+  return weeks
+}
+
+function bookingDateInRange(value: string) {
+  const date = localBookingDateTime(value, 12 * 60)
+  if (!date) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const latest = new Date(today)
+  latest.setMonth(latest.getMonth() + 1)
+  return date >= today && date <= latest
+}
+
+function dateInputValue(value: Date) {
+  return [
+    value.getFullYear(),
+    String(value.getMonth() + 1).padStart(2, '0'),
+    String(value.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function weekdayForDate(value: string) {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day).getDay()
+}
+
+function localBookingDateTime(date: string, minute: number) {
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(year, month - 1, day, Math.floor(minute / 60), minute % 60)
+}
+
+function minuteLabel(minute: number) {
+  return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(
+    2,
+    '0',
+  )}`
+}
+
+function timeToMinute(value: string) {
+  const [hour, minute] = value.split(':').map(Number)
+  return hour * 60 + minute
+}
+
+function formatRegularTime(value: string, language: string) {
+  return new Intl.DateTimeFormat(language === 'hi' ? 'hi-IN' : 'en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(`2026-01-01T${value}:00+05:30`))
+}
+
 function Policy() {
   const { t } = useTranslation()
   return (

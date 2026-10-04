@@ -214,7 +214,7 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 		v.State = "captured"
 		usable := !forceReview && enrollment.Status == "awaiting_payment" && enrollment.HoldUntil != nil && enrollment.HoldUntil.After(a.Now()) && enrollment.PaymentIntentID == v.ID && p.AmountRefunded == 0
 		if usable {
-			app, av, er := a.lockOffering(ctx, enrollment.TutorID, enrollment.Class)
+			app, av, er := a.lockOffering(ctx, enrollment.TutorID, enrollment.Class, enrollment.Agreement.Mode)
 			if er != nil {
 				var f *domain.Fault
 				if errors.As(er, &f) || errors.Is(er, mongo.ErrNoDocuments) {

@@ -16,9 +16,10 @@ import (
 )
 
 type accountPreferences struct {
-	ID       string `json:"-" bson:"_id"`
-	Language string `json:"language" bson:"language"`
-	Version  int    `json:"version" bson:"version"`
+	ID       string                `json:"-" bson:"_id"`
+	Language string                `json:"language" bson:"language"`
+	Location *domain.LocationPoint `json:"location,omitempty" bson:"location,omitempty"`
+	Version  int                   `json:"version" bson:"version"`
 }
 type accountSession struct {
 	ID        string    `json:"id"`
@@ -37,9 +38,10 @@ func (a *App) account(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) saveAccount(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Name     string `json:"name"`
-		Language string `json:"language"`
-		Version  int    `json:"version"`
+		Name     string                `json:"name"`
+		Language string                `json:"language"`
+		Location *domain.LocationPoint `json:"location"`
+		Version  int                   `json:"version"`
 	}
 	if !a.decode(w, r, &in) {
 		return
@@ -47,6 +49,11 @@ func (a *App) saveAccount(w http.ResponseWriter, r *http.Request) {
 	in.Name = strings.TrimSpace(in.Name)
 	if utf8.RuneCountInString(in.Name) < 2 || utf8.RuneCountInString(in.Name) > 80 || (in.Language != "en" && in.Language != "hi") || in.Version < 0 {
 		a.error(w, r, domain.Fail(422, "validation", "Check your name and language."))
+		return
+	}
+	in.Location = cleanLocationPoint(in.Location)
+	if !validLocationPoint(in.Location) {
+		a.error(w, r, domain.Fail(422, "validation", "Check the selected location."))
 		return
 	}
 	e := a.Store.Tx(r.Context(), func(ctx context.Context) error {
@@ -59,6 +66,7 @@ func (a *App) saveAccount(w http.ResponseWriter, r *http.Request) {
 			return domain.Fail(409, "stale_version", "Refresh these preferences before saving.")
 		}
 		p.Language = in.Language
+		p.Location = in.Location
 		p.Version++
 		if _, e = a.Store.C("preferences").ReplaceOne(ctx, bson.M{"_id": p.ID}, p, options.Replace().SetUpsert(true)); e != nil {
 			return e

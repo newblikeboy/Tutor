@@ -10,9 +10,28 @@ export function accountContract(schemas, route) {
     properties,
   })
   Object.assign(schemas, {
-    Preferences: obj({ language: { type: 'string', enum: ['en', 'hi'] }, version: i }),
+    Preferences: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['language', 'version'],
+      properties: {
+        language: { type: 'string', enum: ['en', 'hi'] },
+        location: { anyOf: [ref('LocationPoint'), { type: 'null' }] },
+        version: i,
+      },
+    },
     Account: obj({ name: s, email: s, preferences: ref('Preferences') }),
-    AccountInput: obj({ name: s, language: { type: 'string', enum: ['en', 'hi'] }, version: i }),
+    AccountInput: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['name', 'language', 'version'],
+      properties: {
+        name: s,
+        language: { type: 'string', enum: ['en', 'hi'] },
+        location: { anyOf: [ref('LocationPoint'), { type: 'null' }] },
+        version: i,
+      },
+    },
     PasswordChange: obj({
       currentPassword: { type: 'string', writeOnly: true },
       newPassword: { type: 'string', minLength: 8, maxLength: 128, writeOnly: true },

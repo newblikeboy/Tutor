@@ -58,6 +58,7 @@ func (a *App) availability(w http.ResponseWriter, r *http.Request) {
 	}
 	// Never expose the former tutor-authored availability price as an agreed fee.
 	v.FeePaise = 0
+	v.FeePlans = application.FeePlans()
 	if plan, ok := application.HourlyFee(); ok {
 		v.FeePlan = &plan
 		v.FeePaise = plan.AmountPaise
@@ -211,13 +212,13 @@ func (a *App) reserveWindow(ctx context.Context, id, tutor, learner string, star
 	}
 	return nil
 }
-func (a *App) lockOffering(ctx context.Context, tutor string, class int) (domain.Application, domain.Availability, error) {
+func (a *App) lockOffering(ctx context.Context, tutor string, class int, mode string) (domain.Application, domain.Availability, error) {
 	var application domain.Application
 	e := a.Store.C("applications").FindOneAndUpdate(ctx, bson.M{"_id": tutor}, bson.M{"$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&application)
 	if e != nil {
 		return application, domain.Availability{}, e
 	}
-	if !domain.Eligible(application, class, a.Now()) {
+	if !domain.EligibleForMode(application, class, mode, a.Now()) {
 		return application, domain.Availability{}, domain.Fail(409, "scope_unavailable", "This teaching scope is not available.")
 	}
 	var av domain.Availability

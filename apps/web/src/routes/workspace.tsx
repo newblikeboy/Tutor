@@ -54,7 +54,7 @@ function WorkspaceData() {
           <LoadError retry={() => void q.refetch()} />
         )}
       </div>
-    )
+  )
   const d = q.data
   const view = workspaceView(d.user.role, params.get('view'))
   return (
@@ -103,6 +103,7 @@ function WorkspaceData() {
     </div>
   )
 }
+
 function TutorWorkspace({ data, view }: { data: Dashboard; view: WorkspaceView }) {
   const { t, i18n } = useTranslation()
   const [params] = useSearchParams()

@@ -203,6 +203,60 @@
 .desk-breadcrumb-chevron {
   color: #7b8a7f;
 }
+.desk-location-pill {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  min-width: 64px;
+  min-height: 48px;
+  padding: 5px 10px;
+  border: 1px solid #d4e1d5;
+  border-radius: 15px;
+  background: linear-gradient(180deg, #fffefa 0%, #f4f8ef 100%);
+  color: #214f42;
+  box-shadow: 0 10px 22px #173d2f0c;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.15;
+  text-align: center;
+}
+.desk-location-control {
+  display: inline-grid;
+  place-items: center;
+}
+.desk-location-control .location-current-action {
+  display: contents;
+}
+.desk-location-control .location-status {
+  display: none;
+}
+.desk-location-pill svg {
+  width: 19px;
+  height: 19px;
+  color: #245441;
+}
+.desk-location-pill:hover,
+.desk-location-pill:focus-visible {
+  border-color: #9fc5a5;
+  box-shadow: 0 12px 26px #173d2f16;
+}
+.desk-location-pill.is-static {
+  cursor: wait;
+  opacity: 0.75;
+}
+.desk-location-pill span {
+  display: block;
+  min-height: 13px;
+  max-width: 120px;
+  overflow: hidden;
+  color: #153d2f;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: -0.1px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .desk-utilities {
   display: flex;
   align-items: center;
@@ -1206,6 +1260,15 @@
   .desk-breadcrumb {
     gap: 5px;
     font-size: 13px;
+  }
+  .desk-location-pill {
+    min-width: 54px;
+    min-height: 44px;
+    padding-inline: 7px;
+  }
+  .desk-location-pill span {
+    max-width: 82px;
+    font-size: 10px;
   }
   .desk-breadcrumb-role,
   .desk-breadcrumb-chevron,

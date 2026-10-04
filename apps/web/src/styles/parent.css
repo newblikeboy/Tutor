@@ -6,6 +6,9 @@
 .parent-content .desk-learner-bar {
   margin: 0;
 }
+.desk-view-overview[data-role='parent'] .desk-learner-bar {
+  display: none;
+}
 .parent-welcome,
 .parent-next {
   background: linear-gradient(135deg, #ffffffd9 0%, #edf1df 44%, #dfe8bc 100%);
@@ -200,6 +203,47 @@
 .parent-tutor-browser {
   display: grid;
   gap: 18px;
+}
+.parent-saved-location {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d8e4da;
+  border-radius: 16px;
+  background: #f8fbf3;
+}
+.parent-saved-location > div:first-child,
+.parent-saved-location-current {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.parent-saved-location > div:first-child svg {
+  flex: 0 0 auto;
+  color: #315d4f;
+}
+.parent-saved-location > div:first-child span {
+  display: grid;
+  gap: 2px;
+}
+.parent-saved-location strong {
+  color: #173d2f;
+  font-size: 14px;
+}
+.parent-saved-location small {
+  color: #596662;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.parent-saved-location-current {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.parent-saved-location-current > span {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 .parent-tutor-browser-head {
   display: flex;
@@ -478,10 +522,47 @@
 .parent-trial-picker .eyebrow {
   margin-bottom: 4px;
 }
+.parent-trial-calendar-box {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 420px);
+  padding: 14px;
+  border: 1px solid #d8e5db;
+  border-radius: 14px;
+  background: #fffefa;
+}
+.parent-trial-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.parent-trial-calendar-head strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+.parent-trial-calendar-head .icon-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #d8e5db;
+  background: #f7faf5;
+  color: #245441;
+}
+.parent-trial-calendar-head .icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.parent-trial-weekdays,
 .parent-trial-calendar {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.parent-trial-weekdays span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-align: center;
 }
 .trial-date,
 .trial-time {
@@ -497,20 +578,19 @@
 }
 .trial-date {
   display: grid;
-  gap: 2px;
-  min-height: 72px;
-  padding: 9px 8px;
+  place-items: center;
+  min-height: 42px;
+  padding: 6px;
   text-align: center;
 }
-.trial-date span,
-.trial-date small {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 750;
-}
 .trial-date strong {
-  font-size: 20px;
+  font-size: 14px;
   line-height: 1.1;
+}
+.trial-date.empty {
+  border-color: transparent;
+  background: transparent;
+  pointer-events: none;
 }
 .trial-date.available,
 .trial-time.available {
@@ -523,6 +603,12 @@
   border-color: #edd0c8;
   background: #fff3f0;
   color: #8a4132;
+  cursor: not-allowed;
+}
+.trial-date:disabled:not(.unavailable) {
+  border-color: #e6ebe4;
+  background: #f7f8f4;
+  color: #9aa59f;
   cursor: not-allowed;
 }
 .trial-date.selected,

@@ -22,17 +22,17 @@ export function toStoredLocation(
   if (!location) return null
   const candidate = location as Partial<LocationSelection>
   return {
-    address: clean(location.address || candidate.location || location.locality || location.city),
-    locality: clean(location.locality || candidate.primary || location.city || candidate.location || ''),
-    city: clean(location.city || ''),
-    district: clean(location.district || ''),
-    state: clean(location.state || ''),
-    country: clean(location.country || 'India'),
-    postalCode: clean(location.postalCode || ''),
+    address: cleanMax(location.address || candidate.location || location.locality || location.city, 500),
+    locality: cleanMax(location.locality || candidate.primary || location.city || candidate.location || '', 120),
+    city: cleanMax(location.city || '', 120),
+    district: cleanMax(location.district || '', 120),
+    state: cleanMax(location.state || '', 120),
+    country: cleanMax(location.country || 'India', 80),
+    postalCode: cleanMax(location.postalCode || '', 20),
     latitude: Number(location.latitude || 0),
     longitude: Number(location.longitude || 0),
     accuracyMeters: Number(location.accuracyMeters || 0),
-    source: clean(location.source || 'browser'),
+    source: cleanMax(location.source || 'browser', 40),
   }
 }
 
@@ -77,6 +77,11 @@ const cityOptions: LocalityOption[] = [
 
 function clean(value: string) {
   return value.replace(/\s+/g, ' ').trim()
+}
+
+function cleanMax(value: string, max: number) {
+  const cleanValue = clean(value)
+  return cleanValue.length > max ? cleanValue.slice(0, max).trim() : cleanValue
 }
 
 function useCurrentLocation(onDetected: (location: LocationSelection) => void) {

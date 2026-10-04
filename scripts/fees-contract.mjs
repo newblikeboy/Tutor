@@ -39,7 +39,7 @@ export function feesContract(schemas, route) {
   schemas.AvailabilityInput = obj(
     Object.fromEntries(
       Object.entries(schemas.Availability.properties).filter(
-        ([key]) => !['tutorId', 'feePaise', 'feePlan', 'feeVersion'].includes(key),
+        ([key]) => !['tutorId', 'feePaise', 'feePlan', 'feePlans', 'feeVersion'].includes(key),
       ),
     ),
   )

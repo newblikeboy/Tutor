@@ -2,9 +2,14 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Monitor } from 'lucide-react'
+import { MapPin, Monitor } from 'lucide-react'
 import { api, send, setCSRF, queryClient, indiaDate, type Schema } from '../lib/api'
 import { Alert, Button, Field, Loading, LoadError, MutationError } from '../components/ui'
+import {
+  CurrentLocationButton,
+  locationLabel,
+  type StoredLocation,
+} from '../components/location-search'
 import '../styles/tuition.css'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
 export default function Account() {
@@ -60,17 +65,36 @@ export default function Account() {
 function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => void }) {
   const { t } = useTranslation(),
     [name, setName] = useState(data.name)
+  const [location, setLocation] = useState<StoredLocation | null>(
+    data.preferences.location ?? null,
+  )
+  const [changingLocation, setChangingLocation] = useState(!data.preferences.location)
   const save = useMutation({
-    mutationFn: () =>
-      send('/account', { name, language: 'en', version: data.preferences.version }, 'PUT'),
+    mutationFn: (nextLocation?: StoredLocation | null) =>
+      send(
+        '/account',
+        {
+          name,
+          language: 'en',
+          location: nextLocation === undefined ? location : nextLocation,
+          version: data.preferences.version,
+        },
+        'PUT',
+      ),
     onSuccess: async () => {
       onSaved()
+      setChangingLocation(false)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['account'] }),
         queryClient.invalidateQueries({ queryKey: ['me'] }),
+        queryClient.invalidateQueries({ queryKey: ['tutors'] }),
       ])
     },
   })
+  const saveDetectedLocation = (nextLocation: StoredLocation) => {
+    setLocation(nextLocation)
+    save.mutate(nextLocation)
+  }
   return (
     <section className="tu-panel">
       <h2>{t('account.details')}</h2>
@@ -95,6 +119,37 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
         <Field label={t('account.email')} hint={t('account.emailHelp')}>
           <input value={data.email} type="email" readOnly autoComplete="email" />
         </Field>
+        <div className="account-location-box">
+          <div className="account-location-title">
+            <MapPin size={18} aria-hidden="true" />
+            <div>
+              <h3>{t('account.location')}</h3>
+              <p>{t('account.locationBody')}</p>
+            </div>
+          </div>
+          {location && !changingLocation ? (
+            <div className="account-location-summary">
+              <span>
+                <small>{t('account.currentLocation')}</small>
+                <strong>{locationLabel(location)}</strong>
+                {(location.city || location.state || location.postalCode) && (
+                  <em>{[location.city, location.state, location.postalCode].filter(Boolean).join(', ')}</em>
+                )}
+              </span>
+              <Button type="button" variant="secondary" onClick={() => setChangingLocation(true)}>
+                {t('account.changeLocation')}
+              </Button>
+            </div>
+          ) : (
+            <>
+              {!location && <p className="hint">{t('account.locationEmpty')}</p>}
+              <CurrentLocationButton onLocationChange={saveDetectedLocation}>
+                {t(location ? 'account.useCurrentLocationAgain' : 'account.useCurrentLocation')}
+              </CurrentLocationButton>
+            </>
+          )}
+          {save.isSuccess && <p className="hint success-text">{t('account.locationSaved')}</p>}
+        </div>
         <MutationError error={save.error} />
         <Button busy={save.isPending}>{t('account.save')}</Button>
       </form>

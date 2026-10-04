@@ -1,5 +1,57 @@
 # Progress
 
+## 2026-10-04: regular class booking uses reviewed-trial teacher cards
+
+The parent Regular classes start flow now shows teacher cards for reviewed trial teachers instead of the old completed-trial dropdown and manual schedule form. Each card has a Book Now action, package selection from staff-confirmed Online/Home weekly/Home monthly fee plans, the same green/red calendar and time-slot picker pattern used for trial booking, and agreement submission from the selected package schedule. The old first-screen fields for direct date, time, class count, duration and teaching-day checkboxes were removed from this flow.
+
+The enrollment API now accepts the selected package mode and period, validates it against the tutor's staff-confirmed fee plans and approved mode, stores the agreement mode from the selected package, and prices Home weekly/monthly agreements from their package total instead of forcing the old online hourly calculation. Tutor availability responses now expose the current staff-confirmed fee plans used by this booking UI.
+
+Validation: `node scripts/contract.mjs`, `npm run contract`, `npm run typecheck`, `npm run lint`, `npm run build`, `go test ./...` and `go vet ./...` passed locally. No commit, push or deployment was performed.
+
+## 2026-10-04: Amit Kumar online tutoring exception
+
+Applied the operator-requested one-time development data exception for approved tutor Amit Kumar. His approved scope now includes both Online and Home modes, his teaching areas include Online, and an Online hourly fee plan was added from the current weekly Home Tuition per-class amount. The local API `/api/v1/tutors?mode=online&subject=Mathematics&class=6` now returns Amit Kumar.
+
+Validation: database update matched one approved Amit Kumar tutor record; API online tutor search returned Amit Kumar. No code deployment, commit or push was performed.
+
+## 2026-10-04: parent location replaces workspace breadcrumb
+
+The parent workspace topbar now replaces the old "Family space > Home" breadcrumb with a compact current-location button. It shows a location symbol with the saved district/city/locality below it, and clicking it refreshes the saved current location without opening Account. The temporary Home-page header location block was removed, while the learner strip remains hidden only on parent Home.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No backend schema, production data, commit, push or deployment was changed.
+
+## 2026-10-04: parent location bar moved into header
+
+The parent saved-location control now renders inside the parent Home header instead of inside the page body. The header version uses the same shared Use current location / Change location behavior as the tutor chooser but with compact header styling. The learner strip remains hidden on parent Home and remains available on learner/session views where it controls record filtering.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No backend schema, production data, commit, push or deployment was changed.
+
+## 2026-10-04: trial booking uses calendar picker before times
+
+The parent tutor-card booking flow now shows a month-style calendar instead of immediately showing date and time choices. Calendar dates are green when trial slots are available and red when the date is within the booking window but unavailable. No time buttons appear until the parent selects an available green date; then only that date's time slots are shown.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No backend schema, production data, commit, push or deployment was changed.
+
+## 2026-10-04: location save no longer rejects long geocoder text
+
+Location normalization now trims browser/reverse-geocoder address fields to the backend's accepted field lengths before validation. The frontend also sends bounded location strings. This prevents parent location saves from failing with 422 when a provider returns a very long formatted address.
+
+Validation: `go test ./...`, `go vet ./...`, `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No commit, push, production data change or deployment was performed.
+
+## 2026-10-04: parent Home shows location instead of learner strip
+
+Parent Home now places the saved Parent location control at the top of the page and hides the learner identity strip there. The learner strip remains on learner/session views where it still controls which learner's records are shown. The shared location control is reused from the tutor chooser, so Use current location / Change location behavior stays consistent.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No backend schema, production data, commit, push or deployment was changed in this checkpoint.
+
+## 2026-10-04: parent saved location for tutor distance matching
+
+Parent accounts now store an optional current-location record in account preferences. The Account profile shows a Parent location block; after the parent uses current location, the saved address remains visible and the current-location action is hidden until the parent chooses Change location.
+
+The parent tutor chooser reads that saved location, calls the public approved-tutor search with the saved coordinates, and shows approximate distance chips on teacher cards when the backend can calculate a home-tuition distance. Recommended sorting now uses distance after learner language fit, and parents can explicitly sort by Nearest home tutor. Manual locality entry and existing requirement locations remain available; exact tutor coordinates are still not returned publicly.
+
+Validation: `go test ./...`, `go vet ./...`, `node scripts/contract.mjs`, `npm run contract`, `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No commit, push, production data change or deployment was performed.
+
 ## 2026-10-04: trial booking controls moved into tutor cards locally
 
 The parent tutor chooser no longer renders a separate preferred date/time and trial-submit section below the card list. Each tutor card now has a Book trial action; selecting a card reveals that tutor's Trial date & time input, trial terms checkbox and Book trial submit button inside the card. Switching tutors clears the previous card's unsent schedule/terms so the requested time stays attached to the chosen tutor. After a trial is reviewed, the existing parent link into the tuition/agreement area now reads Book tutor. The underlying trial and tuition navigation contracts remain unchanged.

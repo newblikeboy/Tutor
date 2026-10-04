@@ -2,7 +2,15 @@ import { useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, CheckCircle2, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { z } from 'zod'
 import { api, indiaDate, queryClient, send } from '../lib/api'
 import type { Dashboard, Learner, Requirement, Schema, Tutor } from '../lib/api'
@@ -10,7 +18,11 @@ import { useAuth, useDashboard } from '../lib/session'
 import { tutorHasMode, tutorModeLabel } from '../lib/tutors'
 import { workspaceLink } from '../lib/workspace'
 import { TrialCard } from '../components/trial-card'
-import { LocationSearchField, type StoredLocation } from '../components/location-search'
+import {
+  LocationSearchField,
+  type StoredLocation,
+} from '../components/location-search'
+import { ParentLocationControl } from '../components/parent-location-control'
 import { TutorFees } from '../components/tutor-fees'
 import '../styles/parent.css'
 import {
@@ -481,6 +493,43 @@ function MatchSteps({ step, profileOnly = false }: { step: number; profileOnly?:
     </ol>
   )
 }
+
+function hasUsableCoordinates(
+  location: StoredLocation | null | undefined,
+): location is StoredLocation {
+  return (
+    !!location &&
+    Number.isFinite(location.latitude) &&
+    Number.isFinite(location.longitude) &&
+    location.latitude >= -90 &&
+    location.latitude <= 90 &&
+    location.longitude >= -180 &&
+    location.longitude <= 180 &&
+    !(location.latitude === 0 && location.longitude === 0)
+  )
+}
+
+function tutorRequestPath(location: StoredLocation | null | undefined) {
+  if (!hasUsableCoordinates(location)) return '/tutors'
+  const params = new URLSearchParams({
+    latitude: String(location.latitude),
+    longitude: String(location.longitude),
+  })
+  return `/tutors?${params}`
+}
+
+function accountLocationKey(location: StoredLocation | null | undefined) {
+  if (!hasUsableCoordinates(location)) return 'no-location'
+  return `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}`
+}
+
+function compareTutorDistance(a: Tutor, b: Tutor) {
+  if (a.distanceKm != null && b.distanceKm != null) return a.distanceKm - b.distanceKm
+  if (a.distanceKm != null) return -1
+  if (b.distanceKm != null) return 1
+  return 0
+}
+
 function TrialRequest({
   requirement,
   learner,
@@ -491,9 +540,15 @@ function TrialRequest({
   selectedTutor: string
 }) {
   const { t, i18n } = useTranslation()
+  const account = useQuery({
+    queryKey: ['account'],
+    queryFn: ({ signal }) => api<Schema['Account']>('/account', { signal }),
+  })
+  const parentLocation = account.data?.preferences.location ?? null
   const tutors = useQuery({
-    queryKey: ['tutors', 'request'],
-    queryFn: ({ signal }) => api<Tutor[]>('/tutors', { signal }),
+    queryKey: ['tutors', 'request', accountLocationKey(parentLocation)],
+    queryFn: ({ signal }) => api<Tutor[]>(tutorRequestPath(parentLocation), { signal }),
+    enabled: !account.isPending,
   })
   const [tutorId, setTutorId] = useState(selectedTutor)
   const [start, setStart] = useState('')
@@ -528,7 +583,7 @@ function TrialRequest({
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
-  if (tutors.isPending) return <Loading />
+  if (account.isPending || tutors.isPending) return <Loading />
   if (tutors.isError) return <LoadError retry={() => void tutors.refetch()} />
   const learnerLanguage = learner?.language ?? ''
   const suitable = tutors.data.filter(
@@ -548,11 +603,17 @@ function TrialRequest({
       return matchesSearch && matchesLanguage && matchesMode
     })
     .sort((a, b) => {
+      if (sort === 'distance') return compareTutorDistance(a, b) || a.name.localeCompare(b.name)
       if (sort === 'experience') return b.experience - a.experience || a.name.localeCompare(b.name)
       if (sort === 'review') return a.scope.expiresAt.localeCompare(b.scope.expiresAt)
       const aLanguage = learnerLanguage && a.language === learnerLanguage ? 1 : 0
       const bLanguage = learnerLanguage && b.language === learnerLanguage ? 1 : 0
-      return bLanguage - aLanguage || b.experience - a.experience || a.name.localeCompare(b.name)
+      return (
+        bLanguage - aLanguage ||
+        compareTutorDistance(a, b) ||
+        b.experience - a.experience ||
+        a.name.localeCompare(b.name)
+      )
     })
   const selected = suitable.find((tutor) => tutor.id === tutorId)
   const chooseTutor = (id: string) => {
@@ -574,6 +635,7 @@ function TrialRequest({
     >
       <h2>{t('requestTrial')}</h2>
       <p className="fine-print">{requirement.goal}</p>
+      {account.data && <ParentLocationControl account={account.data} />}
       {suitable.length === 0 ? (
         <Alert>{t('noTutorsBody')}</Alert>
       ) : (
@@ -619,6 +681,7 @@ function TrialRequest({
                 <span>{t('parentTutorSort')}</span>
                 <select value={sort} onChange={(event) => setSort(event.target.value)}>
                   <option value="recommended">{t('parentTutorSortRecommended')}</option>
+                  <option value="distance">{t('parentTutorSortDistance')}</option>
                   <option value="experience">{t('parentTutorSortExperience')}</option>
                   <option value="review">{t('parentTutorSortReview')}</option>
                 </select>
@@ -649,6 +712,14 @@ function TrialRequest({
                     tutor.experience > 0
                       ? t('teacherProofExperienceValue', { count: tutor.experience })
                       : t('teacherExperienceNew')
+                  const distance =
+                    tutor.distanceKm != null
+                      ? t('teacherDistanceAway', { distance: tutor.distanceKm.toFixed(1) })
+                      : ''
+                  const serviceRadius =
+                    tutor.serviceRadiusKm > 0
+                      ? t('teacherServiceRadius', { count: tutor.serviceRadiusKm })
+                      : ''
                   const classFit = learner
                     ? t('parentTutorClassFit', { class: learner.class })
                     : t('scoped')
@@ -686,6 +757,9 @@ function TrialRequest({
                               <span>{tutorMode}</span>
                               <span>{tutorLanguage}</span>
                               <span>{experience}</span>
+                              {distance && <span>{distance}</span>}
+                              {!distance && tutor.publicLocality && <span>{tutor.publicLocality}</span>}
+                              {serviceRadius && <span>{serviceRadius}</span>}
                             </span>
                             <span className="parent-tutor-approach">{tutor.approach}</span>
                             {tutor.introVideoUrl && (
@@ -782,6 +856,7 @@ function TutorTrialActions({
 }) {
   const { t, i18n } = useTranslation()
   const [pickedDate, setPickedDate] = useState('')
+  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()))
   const availability = useQuery({
     queryKey: ['availability', tutor.id, 'trial'],
     queryFn: ({ signal }) =>
@@ -816,13 +891,23 @@ function TutorTrialActions({
       </div>
     )
   }
-  const dates = upcomingTrialDates(30)
-  const firstAvailableDate = dates.find((date) => hasTrialSlot(availability.data, date.value))?.value
-  const selectedDate = pickedDate || start.slice(0, 10) || firstAvailableDate || dates[0]?.value || ''
-  const slots = trialSlotsForDate(availability.data, selectedDate)
-  const selectedMinute = start.startsWith(`${selectedDate}T`) ? timeToMinute(start.slice(11, 16)) : -1
+  const selectedDate = pickedDate || start.slice(0, 10)
+  const slots = selectedDate ? trialSlotsForDate(availability.data, selectedDate) : []
+  const selectedMinute =
+    selectedDate && start.startsWith(`${selectedDate}T`) ? timeToMinute(start.slice(11, 16)) : -1
   const selectedStillAvailable =
-    selectedMinute >= 0 && slotAvailable(availability.data, selectedDate, selectedMinute)
+    !!selectedDate && selectedMinute >= 0 && slotAvailable(availability.data, selectedDate, selectedMinute)
+  const calendarWeeks = trialCalendarWeeks(calendarMonth)
+  const todayMonth = startOfMonth(new Date())
+  const latest = new Date()
+  latest.setMonth(latest.getMonth() + 1)
+  const latestMonth = startOfMonth(latest)
+  const canGoPrevious = calendarMonth > todayMonth
+  const canGoNext = calendarMonth < latestMonth
+  const monthLabel = new Intl.DateTimeFormat('en-IN', {
+    month: 'long',
+    year: 'numeric',
+  }).format(calendarMonth)
   return (
     <div className="parent-tutor-actions">
       <div className="parent-trial-picker">
@@ -834,48 +919,84 @@ function TutorTrialActions({
           <Alert>{t('tuition.noAvailabilityBody')}</Alert>
         ) : (
           <>
-            <div className="parent-trial-calendar" aria-label={t('availabilityDates')}>
-              {dates.map((date) => {
-                const available = hasTrialSlot(availability.data, date.value)
-                return (
-                  <button
-                    type="button"
-                    key={date.value}
-                    className={`trial-date ${available ? 'available' : 'unavailable'} ${
-                      selectedDate === date.value ? 'selected' : ''
-                    }`}
-                    onClick={() => {
-                      if (!available) return
-                      setPickedDate(date.value)
-                      if (!start.startsWith(`${date.value}T`)) onStartChange('')
-                    }}
-                    disabled={!available}
-                  >
-                    <span>{date.weekday}</span>
-                    <strong>{date.day}</strong>
-                    <small>{date.month}</small>
-                  </button>
-                )
-              })}
-            </div>
-            <div>
-              <p className="parent-trial-section-label">{t('availabilityTimes')}</p>
-              <div className="parent-trial-times" aria-label={t('availabilityTimes')}>
-                {slots.map((slot) => (
-                  <button
-                    type="button"
-                    key={slot.minute}
-                    className={`trial-time ${slot.available ? 'available' : 'unavailable'} ${
-                      selectedMinute === slot.minute ? 'selected' : ''
-                    }`}
-                    disabled={!slot.available}
-                    onClick={() => onStartChange(`${selectedDate}T${slot.label}`)}
-                  >
-                    {formatTrialTime(slot.label, i18n.language)}
-                  </button>
+            <div className="parent-trial-calendar-box" aria-label={t('availabilityDates')}>
+              <div className="parent-trial-calendar-head">
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => setCalendarMonth(addMonths(calendarMonth, -1))}
+                  disabled={!canGoPrevious}
+                  aria-label={t('back')}
+                >
+                  <ChevronLeft size={17} aria-hidden="true" />
+                </button>
+                <strong>{monthLabel}</strong>
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+                  disabled={!canGoNext}
+                  aria-label={t('next')}
+                >
+                  <ChevronRight size={17} aria-hidden="true" />
+                </button>
+              </div>
+              <div className="parent-trial-weekdays" aria-hidden="true">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <span key={day}>{day}</span>
                 ))}
               </div>
+              <div className="parent-trial-calendar" role="grid">
+                {calendarWeeks.flat().map((date, index) => {
+                  if (!date) return <span className="trial-date empty" key={`empty-${index}`} />
+                  const value = dateInputValue(date)
+                  const inMonth = date.getMonth() === calendarMonth.getMonth()
+                  const inRange = trialDateInRange(value)
+                  const available = inMonth && inRange && hasTrialSlot(availability.data, value)
+                  const unavailable = inMonth && inRange && !available
+                  return (
+                    <button
+                      type="button"
+                      key={value}
+                      role="gridcell"
+                      className={`trial-date ${available ? 'available' : ''} ${
+                        unavailable ? 'unavailable' : ''
+                      } ${selectedDate === value ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (!available) return
+                        setPickedDate(value)
+                        if (!start.startsWith(`${value}T`)) onStartChange('')
+                      }}
+                      disabled={!available}
+                    >
+                      <strong>{date.getDate()}</strong>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
+            {selectedDate ? (
+              <div>
+                <p className="parent-trial-section-label">{t('availabilityTimes')}</p>
+                <div className="parent-trial-times" aria-label={t('availabilityTimes')}>
+                  {slots.map((slot) => (
+                    <button
+                      type="button"
+                      key={slot.minute}
+                      className={`trial-time ${slot.available ? 'available' : 'unavailable'} ${
+                        selectedMinute === slot.minute ? 'selected' : ''
+                      }`}
+                      disabled={!slot.available}
+                      onClick={() => onStartChange(`${selectedDate}T${slot.label}`)}
+                    >
+                      {formatTrialTime(slot.label, i18n.language)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="parent-trial-section-label">{t('availabilityPickDate')}</p>
+            )}
           </>
         )}
       </div>
@@ -897,21 +1018,6 @@ function TutorTrialActions({
   )
 }
 
-function upcomingTrialDates(days: number) {
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
-  return Array.from({ length: days }, (_, index) => {
-    const value = new Date(start)
-    value.setDate(start.getDate() + index)
-    return {
-      value: dateInputValue(value),
-      weekday: new Intl.DateTimeFormat('en-IN', { weekday: 'short' }).format(value),
-      day: new Intl.DateTimeFormat('en-IN', { day: '2-digit' }).format(value),
-      month: new Intl.DateTimeFormat('en-IN', { month: 'short' }).format(value),
-    }
-  })
-}
-
 function trialSlotsForDate(availability: Schema['Availability'], date: string) {
   const starts = new Set<number>()
   for (let minute = 6 * 60; minute <= 21 * 60; minute += 30) starts.add(minute)
@@ -928,6 +1034,37 @@ function trialSlotsForDate(availability: Schema['Availability'], date: string) {
       label: minuteLabel(minute),
       available: slotAvailable(availability, date, minute),
     }))
+}
+
+function startOfMonth(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), 1)
+}
+
+function addMonths(value: Date, months: number) {
+  return new Date(value.getFullYear(), value.getMonth() + months, 1)
+}
+
+function trialCalendarWeeks(month: Date) {
+  const first = startOfMonth(month)
+  const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate()
+  const cells: Array<Date | null> = Array.from({ length: first.getDay() }, () => null)
+  for (let day = 1; day <= days; day += 1) {
+    cells.push(new Date(first.getFullYear(), first.getMonth(), day))
+  }
+  while (cells.length % 7 !== 0) cells.push(null)
+  const weeks: Array<Array<Date | null>> = []
+  for (let index = 0; index < cells.length; index += 7) weeks.push(cells.slice(index, index + 7))
+  return weeks
+}
+
+function trialDateInRange(value: string) {
+  const date = localDateTime(value, 12 * 60)
+  if (!date) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const latest = new Date(today)
+  latest.setMonth(latest.getMonth() + 1)
+  return date >= today && date <= latest
 }
 
 function hasTrialSlot(availability: Schema['Availability'], date: string) {

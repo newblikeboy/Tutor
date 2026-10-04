@@ -1697,6 +1697,7 @@ export interface components {
             paused: boolean;
             feePaise: number;
             version: number;
+            feePlans: components["schemas"]["FeePlan"][];
             feePlan: components["schemas"]["FeePlan"] | null;
             feeVersion: number;
         };
@@ -1753,10 +1754,12 @@ export interface components {
         EnrollmentInput: {
             trialId: string;
             schedule: components["schemas"]["RecurrenceInput"];
+            packageMode: string;
+            packagePeriod: string;
             offeringVersion: number;
+            feeVersion: number;
             /** @constant */
             accepted: true;
-            feeVersion: number;
         };
         EnrollmentAction: {
             /** @enum {string} */
@@ -2007,6 +2010,7 @@ export interface components {
         Preferences: {
             /** @enum {string} */
             language: "en" | "hi";
+            location?: components["schemas"]["LocationPoint"] | null;
             version: number;
         };
         Account: {
@@ -2018,6 +2022,7 @@ export interface components {
             name: string;
             /** @enum {string} */
             language: "en" | "hi";
+            location?: components["schemas"]["LocationPoint"] | null;
             version: number;
         };
         PasswordChange: {

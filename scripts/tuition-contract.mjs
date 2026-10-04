@@ -42,6 +42,9 @@ export function tuitionContract(schemas, route) {
       paused: bool,
       feePaise: integer,
       version: integer,
+      feePlans: array('FeePlan'),
+      feePlan: { anyOf: [ref('FeePlan'), { type: 'null' }] },
+      feeVersion: integer,
     }),
     RecurrenceInput: obj({
       startDate: str,
@@ -91,7 +94,10 @@ export function tuitionContract(schemas, route) {
     EnrollmentInput: obj({
       trialId: str,
       schedule: ref('RecurrenceInput'),
+      packageMode: str,
+      packagePeriod: str,
       offeringVersion: integer,
+      feeVersion: integer,
       accepted: { const: true },
     }),
     EnrollmentAction: input(

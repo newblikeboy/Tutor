@@ -303,9 +303,10 @@ const en = {
   bookTutor: 'Book tutor',
   startTime: 'Trial date & time',
   availabilityCalendar: 'Tutor availability',
-  availabilityCalendarHint: 'Green dates and times are open for a one-hour trial.',
+  availabilityCalendarHint: 'Green dates are open for a one-hour trial. Pick a date to see times.',
   availabilityDates: 'Available trial dates',
   availabilityTimes: 'Available trial times',
+  availabilityPickDate: 'Select a green date to see available times.',
   timezone: 'Shown in your device timezone. Class records display India time (Asia/Kolkata).',
   terms: 'I accept the trial terms.',
   termsBody:
@@ -370,6 +371,7 @@ const en = {
   parentTutorAllModes: 'All modes',
   parentTutorSort: 'Sort by',
   parentTutorSortRecommended: 'Recommended for learner',
+  parentTutorSortDistance: 'Nearest home tutor',
   parentTutorSortExperience: 'Most experience',
   parentTutorSortReview: 'Review due soon',
   parentTutorNoFilterResults:

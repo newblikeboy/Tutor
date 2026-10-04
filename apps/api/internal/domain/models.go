@@ -206,4 +206,7 @@ func Fail(status int, code, message string) error { return &Fault{status, code, 
 func Eligible(a Application, class int, now time.Time) bool {
 	return a.Status == "approved" && a.Scope.Subject == "Mathematics" && a.Scope.HasMode("online") && class >= a.Scope.MinClass && class <= a.Scope.MaxClass && a.Scope.ExpiresAt.After(now)
 }
+func EligibleForMode(a Application, class int, mode string, now time.Time) bool {
+	return a.Status == "approved" && a.Scope.Subject == "Mathematics" && a.Scope.HasMode(mode) && class >= a.Scope.MinClass && class <= a.Scope.MaxClass && a.Scope.ExpiresAt.After(now)
+}
 func Overlap(a, b, c, d time.Time) bool { return a.Before(d) && c.Before(b) }

@@ -6234,6 +6234,9 @@
           "paused",
           "feePaise",
           "version",
+          "feePlans",
+          "feePlan",
+          "feeVersion",
           "feePlan",
           "feeVersion"
         ],
@@ -6270,6 +6273,12 @@
           },
           "version": {
             "type": "integer"
+          },
+          "feePlans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeePlan"
+            }
           },
           "feePlan": {
             "anyOf": [
@@ -6504,7 +6513,10 @@
         "required": [
           "trialId",
           "schedule",
+          "packageMode",
+          "packagePeriod",
           "offeringVersion",
+          "feeVersion",
           "accepted",
           "feeVersion"
         ],
@@ -6515,14 +6527,20 @@
           "schedule": {
             "$ref": "#/components/schemas/RecurrenceInput"
           },
+          "packageMode": {
+            "type": "string"
+          },
+          "packagePeriod": {
+            "type": "string"
+          },
           "offeringVersion": {
+            "type": "integer"
+          },
+          "feeVersion": {
             "type": "integer"
           },
           "accepted": {
             "const": true
-          },
-          "feeVersion": {
-            "type": "integer"
           }
         }
       },
@@ -7521,6 +7539,16 @@
               "hi"
             ]
           },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocationPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "version": {
             "type": "integer"
           }
@@ -7563,6 +7591,16 @@
             "enum": [
               "en",
               "hi"
+            ]
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocationPoint"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "version": {

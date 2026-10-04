@@ -237,14 +237,14 @@ func cleanLocationPoint(p *domain.LocationPoint) *domain.LocationPoint {
 	if p == nil {
 		return nil
 	}
-	p.Address = clean(p.Address)
-	p.Locality = clean(p.Locality)
-	p.City = clean(p.City)
-	p.District = clean(p.District)
-	p.State = clean(p.State)
-	p.Country = clean(p.Country)
-	p.PostalCode = clean(p.PostalCode)
-	p.Source = clean(p.Source)
+	p.Address = limitClean(p.Address, 500)
+	p.Locality = limitClean(p.Locality, 120)
+	p.City = limitClean(p.City, 120)
+	p.District = limitClean(p.District, 120)
+	p.State = limitClean(p.State, 120)
+	p.Country = limitClean(p.Country, 80)
+	p.PostalCode = limitClean(p.PostalCode, 20)
+	p.Source = limitClean(p.Source, 40)
 	if p.Latitude < -90 || p.Latitude > 90 || p.Longitude < -180 || p.Longitude > 180 {
 		return nil
 	}
@@ -255,15 +255,24 @@ func cleanLocationPoint(p *domain.LocationPoint) *domain.LocationPoint {
 		return nil
 	}
 	if p.Address == "" {
-		p.Address = strings.Join(uniqueNonEmpty(p.Locality, p.City, p.District, p.State, p.Country), ", ")
+		p.Address = limitClean(strings.Join(uniqueNonEmpty(p.Locality, p.City, p.District, p.State, p.Country), ", "), 500)
 	}
 	if p.Locality == "" {
-		p.Locality = firstNonEmpty(p.City, p.Address)
+		p.Locality = limitClean(firstNonEmpty(p.City, p.Address), 120)
 	}
 	if p.Source == "" {
 		p.Source = "manual"
 	}
 	return p
+}
+
+func limitClean(value string, max int) string {
+	value = clean(value)
+	runes := []rune(value)
+	if len(runes) <= max {
+		return value
+	}
+	return strings.TrimSpace(string(runes[:max]))
 }
 
 func validLocationPoint(p *domain.LocationPoint) bool {

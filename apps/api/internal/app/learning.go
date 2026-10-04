@@ -90,7 +90,7 @@ func (a *App) requestHandover(w http.ResponseWriter, r *http.Request) {
 		if !enum(v.Status, "active", "paused") || v.TutorID == in.TutorID {
 			return domain.Fail(409, "invalid_transition", "Choose another approved tutor for open tuition.")
 		}
-		app, _, er := a.lockOffering(ctx, in.TutorID, v.Class)
+		app, _, er := a.lockOffering(ctx, in.TutorID, v.Class, v.Agreement.Mode)
 		if er != nil {
 			return er
 		}
@@ -190,7 +190,7 @@ func (a *App) handoverAction(w http.ResponseWriter, r *http.Request) {
 			if u.Role != "tutor" || u.ID != h.NewTutorID || h.Status != "awaiting_tutor" {
 				return domain.Fail(403, "forbidden", "Only the invited tutor can accept this prepared handover.")
 			}
-			app, av, er := a.lockOffering(ctx, h.NewTutorID, v.Class)
+			app, av, er := a.lockOffering(ctx, h.NewTutorID, v.Class, v.Agreement.Mode)
 			if er != nil {
 				return er
 			}

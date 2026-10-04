@@ -17,6 +17,7 @@ type Availability struct {
 	Paused        bool           `json:"paused" bson:"paused"`
 	FeePaise      int64          `json:"feePaise" bson:"feePaise"`
 	FeePlan       *FeePlan       `json:"feePlan" bson:"-"`
+	FeePlans      []FeePlan      `json:"feePlans" bson:"-"`
 	FeeVersion    int            `json:"feeVersion" bson:"-"`
 	Version       int            `json:"version" bson:"version"`
 }
