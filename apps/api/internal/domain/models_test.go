@@ -23,7 +23,11 @@ func TestEligibilityRequiresActiveScope(t *testing.T) {
 	}
 	a.Scope.Mode = "home"
 	if Eligible(a, 8, now) {
-		t.Fatal("unimplemented home mode permitted")
+		t.Fatal("home-only mode permitted for an online trial")
+	}
+	a.Scope.Modes = []string{"online", "home"}
+	if !Eligible(a, 8, now) {
+		t.Fatal("online eligibility missing when both modes are approved")
 	}
 }
 func TestOverlapHalfOpenAndDayBoundary(t *testing.T) {

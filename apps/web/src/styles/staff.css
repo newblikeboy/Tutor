@@ -528,6 +528,22 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.staff-mode-checks {
+  border: 1px solid rgba(30, 57, 50, 0.16);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: #fbfcf7;
+}
+.staff-mode-checks legend {
+  padding: 0 6px;
+  font-weight: 700;
+  color: #1e3932;
+}
+.staff-mode-checks p {
+  margin: 4px 0 8px;
+  color: #637465;
+  font-size: 13px;
+}
 .staff-actions .field {
   margin: 0;
 }

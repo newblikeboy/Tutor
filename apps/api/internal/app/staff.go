@@ -135,7 +135,7 @@ func (a *App) staffApplications(w http.ResponseWriter, r *http.Request) {
 			a.error(w, r, domain.Fail(422, "validation", "Choose a teaching mode."))
 			return
 		}
-		filters = append(filters, bson.M{"$or": []bson.M{{"profile.teachingAreas": bson.M{"$elemMatch": bson.M{"modes": mode}}}, {"profile": bson.M{"$exists": false}, "scope.mode": mode}}})
+		filters = append(filters, bson.M{"$or": []bson.M{{"profile.teachingAreas": bson.M{"$elemMatch": bson.M{"modes": mode}}}, {"profile": bson.M{"$exists": false}, "$or": []bson.M{{"scope.mode": mode}, {"scope.modes": mode}}}}})
 	}
 	if q.Get("assignee") == "mine" {
 		filters = append(filters, bson.M{"assessorId": user(r).ID})
@@ -299,12 +299,61 @@ type staffDecisionInput struct {
 	MinClass      int               `json:"minClass"`
 	MaxClass      int               `json:"maxClass"`
 	Mode          string            `json:"mode"`
+	Modes         []string          `json:"modes"`
 	AssessorID    string            `json:"assessorId"`
 	MentorID      string            `json:"mentorId"`
 	ConflictClear bool              `json:"conflictClear"`
 	Eligibility   string            `json:"eligibility"`
 	Interview     *domain.Interview `json:"interview"`
 	FeePlans      []domain.FeePlan  `json:"feePlans"`
+}
+
+func normalizeApprovedModes(modes []string) []string {
+	seen := map[string]bool{}
+	for _, mode := range modes {
+		if mode == "online" || mode == "home" {
+			seen[mode] = true
+		}
+	}
+	out := []string{}
+	for _, mode := range []string{"online", "home"} {
+		if seen[mode] {
+			out = append(out, mode)
+		}
+	}
+	return out
+}
+
+func approvalModes(in staffDecisionInput, current domain.Scope, requested []string) []string {
+	if len(in.Modes) > 0 {
+		return normalizeApprovedModes(in.Modes)
+	}
+	if in.Mode != "" {
+		return normalizeApprovedModes([]string{in.Mode})
+	}
+	if modes := current.ApprovedModes(); len(modes) > 0 {
+		return modes
+	}
+	return normalizeApprovedModes(requested)
+}
+
+func approvedFeePlansComplete(a domain.Application) bool {
+	if a.Fees == nil {
+		return false
+	}
+	seen := map[string]bool{}
+	for _, plan := range a.FeePlans() {
+		seen[plan.Mode+":"+plan.Period] = true
+	}
+	for _, mode := range a.Scope.ApprovedModes() {
+		if mode == "online" && !seen["online:hour"] {
+			return false
+		}
+		if mode == "home" && (!seen["home:week"] || !seen["home:month"]) {
+			return false
+		}
+	}
+	return len(seen) > 0
 }
 
 func validInterview(v *domain.Interview, now time.Time) bool {
@@ -559,37 +608,50 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			v.AssessmentAt = a.Now()
 			v.Status = "assessed"
 		case "approve":
-			if v.Status != "assessed" || v.AssessorID != u.ID || !v.ConflictClear {
-				return domain.Fail(409, "invalid_transition", "Only the assigned reviewer can approve an assessed application.")
+			if !enum(v.Status, "assessed", "approved") || v.AssessorID != u.ID || !v.ConflictClear {
+				return domain.Fail(409, "invalid_transition", "Only the assigned reviewer can approve or update an approved application.")
 			}
 			if in.MinClass < 6 || in.MaxClass > 10 || in.MinClass > in.MaxClass {
 				return domain.Fail(422, "validation", "Approved classes must be within 6-10.")
 			}
-			mode := in.Mode
-			if mode == "" {
-				mode = v.Scope.Mode
-			}
+			selectedModes := approvalModes(in, v.Scope, nil)
 			if v.Profile != nil {
 				if v.Profile.NeedsEligibilityReview() && (v.Eligibility == nil || v.Eligibility.Status != "cleared" || v.Eligibility.ReviewedAt == nil) || v.Eligibility != nil && v.Eligibility.Status == "blocked" {
 					return domain.Fail(409, "eligibility_pending", "An administrator must complete the required eligibility review.")
 				}
 				area, ok := v.Profile.FirstArea()
-				if mode == "" && ok && len(area.Modes) > 0 {
-					mode = area.Modes[0]
+				if len(selectedModes) == 0 && ok {
+					selectedModes = normalizeApprovedModes(area.Modes)
 				}
-				if !ok || area.Subject != "Mathematics" || !enum(mode, area.Modes...) || in.MinClass < area.MinClass || in.MaxClass > area.MaxClass {
+				if !ok || area.Subject != "Mathematics" || len(selectedModes) == 0 || in.MinClass < area.MinClass || in.MaxClass > area.MaxClass {
 					return domain.Fail(409, "requested_scope", "Approve only an assessed, requested teaching area supported by the current booking service.")
 				}
+				for _, mode := range selectedModes {
+					if !enum(mode, area.Modes...) {
+						return domain.Fail(409, "requested_scope", "Approve only an assessed, requested teaching area supported by the current booking service.")
+					}
+				}
 				v.Scope.Subject = area.Subject
-				v.Scope.Mode = mode
 				if v.Profile.About.DisplayName != "" {
 					v.Name = v.Profile.About.DisplayName
 				}
-			} else if !enum(mode, "home", "online") {
+			} else {
+				if len(selectedModes) == 0 {
+					selectedModes = normalizeApprovedModes([]string{v.Scope.Mode})
+				}
+				for _, mode := range selectedModes {
+					if !enum(mode, "home", "online") {
+						return domain.Fail(422, "validation", "Choose an approved teaching mode.")
+					}
+				}
+			}
+			if len(selectedModes) == 0 {
 				return domain.Fail(422, "validation", "Choose an approved teaching mode.")
 			}
+			v.Scope.Mode = selectedModes[0]
+			v.Scope.Modes = selectedModes
 			mentorID := in.MentorID
-			if v.Fees == nil || len(v.FeePlans()) == 0 {
+			if !approvedFeePlansComplete(v) {
 				return domain.Fail(409, "fees_pending", "Finalize the tutor's fees before approval.")
 			}
 			if mentorID == "" && u.Role == "mentor" {

@@ -22,7 +22,7 @@ func (a Application) FeePlans() []FeePlan {
 	plans := []FeePlan{}
 	if a.Fees != nil {
 		for _, plan := range a.Fees.Plans {
-			if plan.Mode == a.Scope.Mode {
+			if a.Scope.HasMode(plan.Mode) {
 				plans = append(plans, plan)
 			}
 		}

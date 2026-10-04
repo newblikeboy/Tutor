@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, CheckCircle2, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react'
@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { api, indiaDate, queryClient, send } from '../lib/api'
 import type { Dashboard, Learner, Requirement, Schema, Tutor } from '../lib/api'
 import { useAuth, useDashboard } from '../lib/session'
+import { tutorHasMode, tutorModeLabel } from '../lib/tutors'
 import { workspaceLink } from '../lib/workspace'
 import { TrialCard } from '../components/trial-card'
 import { LocationSearchField, type StoredLocation } from '../components/location-search'
@@ -62,9 +63,11 @@ function MatchData() {
 }
 function Wizard({ initial }: { initial: Dashboard }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const existingRequest = initial.requirements.find((r) => r.id === params.get('requirement'))
   const addingLearner = params.get('new') === '1'
+  const profileOnly = addingLearner && params.get('profile') === '1'
   const requestedLearner = initial.learners.find((item) => item.id === params.get('learner'))
   const draft =
     !addingLearner && (!params.has('learner') || initial.draft?.learnerId === requestedLearner?.id)
@@ -132,16 +135,22 @@ function Wizard({ initial }: { initial: Dashboard }) {
             setConsentId(consent.id)
           }
         }
+        if (profileOnly) {
+          setStep(2)
+          return
+        }
         await saveDraft(2)
         return
       }
       if (step === 2) {
-        const valid = z
-          .object({
-            goal: z.string().trim().min(10).max(1200),
-            locality: z.string().trim().min(2).max(120),
-          })
-          .safeParse({ goal, locality })
+        const valid = profileOnly
+          ? { success: true }
+          : z
+              .object({
+                goal: z.string().trim().min(10).max(1200),
+                locality: z.string().trim().min(2).max(120),
+              })
+              .safeParse({ goal, locality })
         if (
           !valid.success ||
           (!learnerId && !z.string().trim().min(1).max(80).safeParse(name).success)
@@ -163,6 +172,11 @@ function Wizard({ initial }: { initial: Dashboard }) {
           id = learner.id
           setLearnerId(id)
           setLearners((old) => [...old, learner])
+        }
+        if (profileOnly) {
+          await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          navigate(`${workspaceLink('learners', id)}`, { replace: true })
+          return
         }
         await saveDraft(3, id)
         return
@@ -214,7 +228,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
     )
   return (
     <>
-      <MatchSteps step={step} />
+      <MatchSteps step={step} profileOnly={profileOnly} />
       {draft && (
         <p className="saved-indicator">
           <CheckCircle2 size={16} />
@@ -229,7 +243,13 @@ function Wizard({ initial }: { initial: Dashboard }) {
             next.mutate()
           }}
         >
-          <h2>{t(['parent.who', 'parent.details', 'parent.check'][step - 1])}</h2>
+          <h2>
+            {t(
+              profileOnly
+                ? ['guardianStep', 'parent.childProfile'][step - 1]
+                : ['parent.who', 'parent.details', 'parent.check'][step - 1],
+            )}
+          </h2>
           {validation && (
             <div tabIndex={-1} ref={errorRef}>
               <Alert kind="error">{t(step === 1 ? 'consentHelp' : 'invalidFields')}</Alert>
@@ -359,28 +379,36 @@ function Wizard({ initial }: { initial: Dashboard }) {
                   {learner?.name} · {t('class')} {learner?.class}
                 </p>
               )}
-              <Field
-                label={t('goal')}
-                error={validation && goal.trim().length < 10 ? t('parent.goalError') : undefined}
-              >
-                <textarea
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                  placeholder={t('parent.goalHint')}
-                  maxLength={1200}
-                  aria-invalid={validation && goal.trim().length < 10}
-                />
-              </Field>
-              <LocationSearchField
-                label={t('locality')}
-                value={locality}
-                onChange={setLocality}
-                onLocationChange={setLocation}
-                maxLength={120}
-                required
-                hint={t('localityHelp')}
-                error={validation && locality.trim().length < 2 ? t('parent.cityError') : undefined}
-              />
+              {!profileOnly && (
+                <>
+                  <Field
+                    label={t('goal')}
+                    error={
+                      validation && goal.trim().length < 10 ? t('parent.goalError') : undefined
+                    }
+                  >
+                    <textarea
+                      value={goal}
+                      onChange={(e) => setGoal(e.target.value)}
+                      placeholder={t('parent.goalHint')}
+                      maxLength={1200}
+                      aria-invalid={validation && goal.trim().length < 10}
+                    />
+                  </Field>
+                  <LocationSearchField
+                    label={t('locality')}
+                    value={locality}
+                    onChange={setLocality}
+                    onLocationChange={setLocation}
+                    maxLength={120}
+                    required
+                    hint={t('localityHelp')}
+                    error={
+                      validation && locality.trim().length < 2 ? t('parent.cityError') : undefined
+                    }
+                  />
+                </>
+              )}
             </>
           ) : (
             <>
@@ -410,13 +438,19 @@ function Wizard({ initial }: { initial: Dashboard }) {
                 variant="secondary"
                 busy={previous.isPending}
                 disabled={next.isPending}
-                onClick={() => previous.mutate()}
+                onClick={() => (profileOnly ? setStep(step - 1) : previous.mutate())}
               >
                 {t('back')}
               </Button>
             )}
             <Button type="submit" busy={next.isPending} disabled={previous.isPending}>
-              {t(step === 3 ? 'parent.save' : 'next')}
+              {t(
+                profileOnly && step === 2
+                  ? 'parent.saveChild'
+                  : step === 3
+                    ? 'parent.save'
+                    : 'next',
+              )}
             </Button>
           </div>
         </form>
@@ -424,11 +458,17 @@ function Wizard({ initial }: { initial: Dashboard }) {
     </>
   )
 }
-function MatchSteps({ step }: { step: number }) {
+function MatchSteps({ step, profileOnly = false }: { step: number; profileOnly?: boolean }) {
   const { t } = useTranslation()
+  const steps = profileOnly
+    ? ['guardianStep', 'parent.childProfile']
+    : ['parent.who', 'parent.details', 'parent.check', 'parent.tutor']
   return (
-    <ol className="stepper" aria-label={t('parent.start')}>
-      {['parent.who', 'parent.details', 'parent.check', 'parent.tutor'].map((key, index) => (
+    <ol
+      className={`stepper ${profileOnly ? 'profile-stepper' : ''}`}
+      aria-label={t('parent.start')}
+    >
+      {steps.map((key, index) => (
         <li
           key={key}
           className={step === index + 1 ? 'active' : ''}
@@ -504,7 +544,7 @@ function TrialRequest({
           .toLocaleLowerCase()
           .includes(text)
       const matchesLanguage = !language || tutor.language === language
-      const matchesMode = !mode || tutor.scope.mode === mode
+      const matchesMode = !mode || tutorHasMode(tutor, mode)
       return matchesSearch && matchesLanguage && matchesMode
     })
     .sort((a, b) => {
@@ -516,6 +556,10 @@ function TrialRequest({
     })
   const selected = suitable.find((tutor) => tutor.id === tutorId)
   const chooseTutor = (id: string) => {
+    if (id !== tutorId) {
+      setStart('')
+      setTerms(false)
+    }
     setTutorId(id)
     key.current = crypto.randomUUID()
   }
@@ -524,6 +568,7 @@ function TrialRequest({
       className="panel form-stack trial-form parent-tutor-choice"
       onSubmit={(e) => {
         e.preventDefault()
+        if (!tutorId || !start || !terms) return
         request.mutate()
       }}
     >
@@ -533,12 +578,10 @@ function TrialRequest({
         <Alert>{t('noTutorsBody')}</Alert>
       ) : (
         <>
-          <section className="parent-tutor-browser" aria-labelledby="parent-tutor-browser-title">
+          <section className="parent-tutor-browser" aria-label={t('parentTutorChooserEyebrow')}>
             <div className="parent-tutor-browser-head">
               <div>
                 <p className="eyebrow">{t('parentTutorChooserEyebrow')}</p>
-                <h3 id="parent-tutor-browser-title">{t('parentTutorChooserTitle')}</h3>
-                <p>{t('parentTutorChooserBody')}</p>
               </div>
               <span>
                 <ShieldCheck size={17} aria-hidden="true" />
@@ -600,10 +643,15 @@ function TrialRequest({
               <div className="parent-tutor-grid" role="radiogroup" aria-label={t('selectTutor')}>
                 {visibleTutors.map((tutor) => {
                   const isSelected = tutor.id === tutorId
-                  const tutorMode = t(
-                    tutor.scope.mode === 'home' ? 'applicationForm.home' : 'online',
-                  )
+                  const tutorMode = tutorModeLabel(tutor.scope, t)
                   const tutorLanguage = t(tutor.language === 'Hindi' ? 'hindi' : 'english')
+                  const experience =
+                    tutor.experience > 0
+                      ? t('teacherProofExperienceValue', { count: tutor.experience })
+                      : t('teacherExperienceNew')
+                  const classFit = learner
+                    ? t('parentTutorClassFit', { class: learner.class })
+                    : t('scoped')
                   return (
                     <article
                       className={`parent-tutor-option ${isSelected ? 'selected' : ''}`}
@@ -618,35 +666,47 @@ function TrialRequest({
                           required
                           onChange={() => chooseTutor(tutor.id)}
                         />
-                        <span className="parent-tutor-card-top">
-                          <span className="initial-avatar" aria-hidden="true">
-                            {tutor.name.slice(0, 1)}
+                        <span className="parent-tutor-card-shell">
+                          <span className="parent-tutor-card-main">
+                            <span className="parent-tutor-card-top">
+                              <TutorPhoto tutor={tutor} />
+                              <span>
+                                <small>{tutor.sample ? t('sampleProfile') : t('scoped')}</small>
+                                <strong>{tutor.name}</strong>
+                                <em>
+                                  {tutor.scope.subject === 'Mathematics'
+                                    ? t('math')
+                                    : tutor.scope.subject}{' '}
+                                  - {t('classes')} {tutor.scope.minClass}-{tutor.scope.maxClass}
+                                </em>
+                              </span>
+                            </span>
+                            <span className="parent-tutor-meta">
+                              <span>{classFit}</span>
+                              <span>{tutorMode}</span>
+                              <span>{tutorLanguage}</span>
+                              <span>{experience}</span>
+                            </span>
+                            <span className="parent-tutor-approach">{tutor.approach}</span>
+                            {tutor.introVideoUrl && (
+                              <video
+                                className="parent-tutor-video"
+                                controls
+                                preload="metadata"
+                                src={tutor.introVideoUrl}
+                                aria-label={`${tutor.name} introduction video`}
+                              />
+                            )}
+                            <span className="parent-tutor-review">
+                              {t('teacherProofReview')}:{' '}
+                              {indiaDate(tutor.scope.expiresAt, i18n.language)}
+                            </span>
                           </span>
-                          <span>
-                            <small>{tutor.sample ? t('sampleProfile') : t('scoped')}</small>
-                            <strong>{tutor.name}</strong>
-                            <em>
-                              {tutor.scope.subject === 'Mathematics'
-                                ? t('math')
-                                : tutor.scope.subject}{' '}
-                              - {t('classes')} {tutor.scope.minClass}-{tutor.scope.maxClass}
-                            </em>
+                          <span className="parent-tutor-card-aside">
+                            <span className="parent-tutor-price">
+                              <TutorFees plans={tutor.feePlans} />
+                            </span>
                           </span>
-                        </span>
-                        <span className="parent-tutor-meta">
-                          <span>{tutorMode}</span>
-                          <span>{tutorLanguage}</span>
-                          <span>
-                            {t('teacherProofExperienceValue', { count: tutor.experience })}
-                          </span>
-                        </span>
-                        <span className="parent-tutor-approach">{tutor.approach}</span>
-                        <span className="parent-tutor-review">
-                          {t('teacherProofReview')}:{' '}
-                          {indiaDate(tutor.scope.expiresAt, i18n.language)}
-                        </span>
-                        <span className="parent-tutor-price">
-                          <TutorFees plans={tutor.feePlans} />
                         </span>
                       </label>
                       <Link
@@ -657,6 +717,20 @@ function TrialRequest({
                       >
                         {t('viewCompleteProfile')}
                       </Link>
+                      <TutorTrialActions
+                        tutor={tutor}
+                        selected={isSelected}
+                        start={start}
+                        terms={terms}
+                        pending={request.isPending}
+                        error={request.error}
+                        onSelect={() => chooseTutor(tutor.id)}
+                        onStartChange={(value) => {
+                          setStart(value)
+                          key.current = crypto.randomUUID()
+                        }}
+                        onTermsChange={setTerms}
+                      />
                     </article>
                   )
                 })}
@@ -666,33 +740,253 @@ function TrialRequest({
           {selected && (
             <Alert kind="success">{t('parentTutorSelected', { name: selected.name })}</Alert>
           )}
-          <Field label={t('startTime')} hint={t('timezone')}>
-            <input
-              type="datetime-local"
-              value={start}
-              onChange={(e) => {
-                setStart(e.target.value)
-                key.current = crypto.randomUUID()
-              }}
-              required
-            />
-          </Field>
-          <Alert>{t('termsBody')}</Alert>
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={terms}
-              onChange={(e) => setTerms(e.target.checked)}
-              required
-            />
-            {t('terms')}
-          </label>
-          <MutationError error={request.error} />
-          <Button type="submit" busy={request.isPending} disabled={!tutorId}>
-            {t('requestTrial')}
-          </Button>
         </>
       )}
     </form>
   )
+}
+
+function TutorPhoto({ tutor }: { tutor: Tutor }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <span className="initial-avatar parent-tutor-photo" aria-hidden="true">
+      {tutor.photoUrl && !failed ? (
+        <img src={tutor.photoUrl} alt="" onError={() => setFailed(true)} />
+      ) : (
+        tutor.name.slice(0, 1)
+      )}
+    </span>
+  )
+}
+
+function TutorTrialActions({
+  tutor,
+  selected,
+  start,
+  terms,
+  pending,
+  error,
+  onSelect,
+  onStartChange,
+  onTermsChange,
+}: {
+  tutor: Tutor
+  selected: boolean
+  start: string
+  terms: boolean
+  pending: boolean
+  error: unknown
+  onSelect: () => void
+  onStartChange: (value: string) => void
+  onTermsChange: (value: boolean) => void
+}) {
+  const { t, i18n } = useTranslation()
+  const [pickedDate, setPickedDate] = useState('')
+  const availability = useQuery({
+    queryKey: ['availability', tutor.id, 'trial'],
+    queryFn: ({ signal }) =>
+      api<Schema['Availability']>(`/tutors/${tutor.id}/availability`, { signal }),
+    enabled: selected,
+  })
+  if (!selected) {
+    return (
+      <div className="parent-tutor-actions compact">
+        <Button
+          type="button"
+          variant="secondary"
+          className="parent-tutor-book"
+          onClick={onSelect}
+        >
+          {t('bookTrial')}
+        </Button>
+      </div>
+    )
+  }
+  if (availability.isPending) {
+    return (
+      <div className="parent-tutor-actions">
+        <Loading />
+      </div>
+    )
+  }
+  if (availability.isError) {
+    return (
+      <div className="parent-tutor-actions">
+        <LoadError retry={() => void availability.refetch()} />
+      </div>
+    )
+  }
+  const dates = upcomingTrialDates(30)
+  const firstAvailableDate = dates.find((date) => hasTrialSlot(availability.data, date.value))?.value
+  const selectedDate = pickedDate || start.slice(0, 10) || firstAvailableDate || dates[0]?.value || ''
+  const slots = trialSlotsForDate(availability.data, selectedDate)
+  const selectedMinute = start.startsWith(`${selectedDate}T`) ? timeToMinute(start.slice(11, 16)) : -1
+  const selectedStillAvailable =
+    selectedMinute >= 0 && slotAvailable(availability.data, selectedDate, selectedMinute)
+  return (
+    <div className="parent-tutor-actions">
+      <div className="parent-trial-picker">
+        <div>
+          <p className="eyebrow">{t('availabilityCalendar')}</p>
+          <p className="hint">{t('availabilityCalendarHint')}</p>
+        </div>
+        {availability.data.paused || !availability.data.windows.length ? (
+          <Alert>{t('tuition.noAvailabilityBody')}</Alert>
+        ) : (
+          <>
+            <div className="parent-trial-calendar" aria-label={t('availabilityDates')}>
+              {dates.map((date) => {
+                const available = hasTrialSlot(availability.data, date.value)
+                return (
+                  <button
+                    type="button"
+                    key={date.value}
+                    className={`trial-date ${available ? 'available' : 'unavailable'} ${
+                      selectedDate === date.value ? 'selected' : ''
+                    }`}
+                    onClick={() => {
+                      if (!available) return
+                      setPickedDate(date.value)
+                      if (!start.startsWith(`${date.value}T`)) onStartChange('')
+                    }}
+                    disabled={!available}
+                  >
+                    <span>{date.weekday}</span>
+                    <strong>{date.day}</strong>
+                    <small>{date.month}</small>
+                  </button>
+                )
+              })}
+            </div>
+            <div>
+              <p className="parent-trial-section-label">{t('availabilityTimes')}</p>
+              <div className="parent-trial-times" aria-label={t('availabilityTimes')}>
+                {slots.map((slot) => (
+                  <button
+                    type="button"
+                    key={slot.minute}
+                    className={`trial-time ${slot.available ? 'available' : 'unavailable'} ${
+                      selectedMinute === slot.minute ? 'selected' : ''
+                    }`}
+                    disabled={!slot.available}
+                    onClick={() => onStartChange(`${selectedDate}T${slot.label}`)}
+                  >
+                    {formatTrialTime(slot.label, i18n.language)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+      <Alert>{t('termsBody')}</Alert>
+      <label className="check-label">
+        <input
+          type="checkbox"
+          checked={terms}
+          onChange={(event) => onTermsChange(event.target.checked)}
+          required
+        />
+        {t('terms')}
+      </label>
+      <MutationError error={error} />
+      <Button type="submit" busy={pending} disabled={!selectedStillAvailable || !terms}>
+        {t('bookTrial')}
+      </Button>
+    </div>
+  )
+}
+
+function upcomingTrialDates(days: number) {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  return Array.from({ length: days }, (_, index) => {
+    const value = new Date(start)
+    value.setDate(start.getDate() + index)
+    return {
+      value: dateInputValue(value),
+      weekday: new Intl.DateTimeFormat('en-IN', { weekday: 'short' }).format(value),
+      day: new Intl.DateTimeFormat('en-IN', { day: '2-digit' }).format(value),
+      month: new Intl.DateTimeFormat('en-IN', { month: 'short' }).format(value),
+    }
+  })
+}
+
+function trialSlotsForDate(availability: Schema['Availability'], date: string) {
+  const starts = new Set<number>()
+  for (let minute = 6 * 60; minute <= 21 * 60; minute += 30) starts.add(minute)
+  for (const window of availability.windows) {
+    if (window.day !== weekdayForDate(date)) continue
+    const first = Math.ceil(window.startMinute / 30) * 30
+    const last = window.endMinute - 60
+    for (let minute = first; minute <= last; minute += 30) starts.add(minute)
+  }
+  return Array.from(starts)
+    .sort((a, b) => a - b)
+    .map((minute) => ({
+      minute,
+      label: minuteLabel(minute),
+      available: slotAvailable(availability, date, minute),
+    }))
+}
+
+function hasTrialSlot(availability: Schema['Availability'], date: string) {
+  return trialSlotsForDate(availability, date).some((slot) => slot.available)
+}
+
+function slotAvailable(availability: Schema['Availability'], date: string, minute: number) {
+  if (availability.paused || availability.leaveDates.includes(date)) return false
+  const start = localDateTime(date, minute)
+  const end = localDateTime(date, minute + 60)
+  const now = new Date()
+  const latest = new Date(now)
+  latest.setMonth(latest.getMonth() + 1)
+  if (!start || !end || start <= new Date(now.getTime() + 5 * 60 * 1000) || start > latest) {
+    return false
+  }
+  return availability.windows.some(
+    (window) =>
+      window.day === weekdayForDate(date) &&
+      minute >= window.startMinute &&
+      minute + 60 <= window.endMinute,
+  )
+}
+
+function dateInputValue(value: Date) {
+  return [
+    value.getFullYear(),
+    String(value.getMonth() + 1).padStart(2, '0'),
+    String(value.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function weekdayForDate(value: string) {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day).getDay()
+}
+
+function localDateTime(date: string, minute: number) {
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(year, month - 1, day, Math.floor(minute / 60), minute % 60)
+}
+
+function minuteLabel(minute: number) {
+  return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(
+    2,
+    '0',
+  )}`
+}
+
+function timeToMinute(value: string) {
+  const [hour, minute] = value.split(':').map(Number)
+  return hour * 60 + minute
+}
+
+function formatTrialTime(value: string, language: string) {
+  const [hour, minute] = value.split(':').map(Number)
+  const date = new Date(2000, 0, 1, hour, minute)
+  return new Intl.DateTimeFormat(language === 'hi' ? 'hi-IN' : 'en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
 }

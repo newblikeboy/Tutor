@@ -133,7 +133,8 @@ export const staffEN = {
     academicMentor: 'Academic mentor for ongoing learning',
     approvedMode: 'Approved teaching mode',
     approvedModeHint:
-      'Home Tuition approval publishes weekly and monthly plans. Online approval publishes the hourly plan.',
+      'Select every mode the tutor is approved to teach. Online publishes the hourly plan. Home Tuition publishes weekly and monthly plans.',
+    updateApprovedScope: 'Update approved scope',
     afterInterview: 'Assessment opens when the interview begins.',
     unassigned: 'Unassigned',
     takeReview: 'Start review',

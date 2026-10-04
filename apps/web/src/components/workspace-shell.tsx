@@ -134,7 +134,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
               : pathname === '/availability'
                 ? t('tuition.availability')
                 : pathname === '/match'
-                  ? t('parent.start')
+                  ? t(params.get('profile') === '1' ? 'parent.add' : 'parent.start')
                   : pathname === '/apply'
                     ? t('applicationTitle')
                     : t(

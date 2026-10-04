@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
@@ -245,17 +246,28 @@ func TestMongoStaffOperations(t *testing.T) {
 			t.Fatal("wrong public prices or private fee metadata leaked")
 		}
 		mentor.decide("tutor-a", map[string]any{"action": "reopen", "reason": "Review Home Tuition approval after the initial online approval."}, 403)
-		admin.decide("tutor-a", map[string]any{"action": "reopen", "reason": "Review Home Tuition approval after the initial online approval."}, 200)
-		admin.decide("tutor-a", map[string]any{"action": "assign", "assessorId": "mentor-a", "reason": "Assign reviewer for Home Tuition scope."}, 200)
-		mentor.decide("tutor-a", map[string]any{"action": "confirm_conflict", "conflictClear": true, "reason": "Reviewer remains eligible for Home Tuition assessment."}, 200)
-		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": interview(now.Add(-time.Minute))}, 200)
-		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Observed home tuition readiness and parent communication for class eight."}, 200)
-		mentor.decide("tutor-a", map[string]any{"action": "fees", "feePlans": []domain.FeePlan{{Mode: "online", Period: "hour", AmountPaise: 40000, Classes: 1, Minutes: 60}, {Mode: "home", Period: "week", AmountPaise: 120000, Classes: 3, Minutes: 60}, {Mode: "home", Period: "month", AmountPaise: 480000, Classes: 12, Minutes: 60}}}, 200)
-		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "mode": "home", "reason": "Observed teaching supports class eight Home Tuition Mathematics."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "modes": []string{"online", "home"}, "reason": "Observed teaching supports class eight Online and Home Tuition Mathematics."}, 200)
 		homePub := parent.ok("GET", "/tutors/tutor-a", nil, 200)
 		homePublished := homePub["feePlans"].([]any)
-		if len(homePublished) != 2 || homePublished[0].(map[string]any)["period"] != "week" || homePublished[1].(map[string]any)["period"] != "month" || homePub["scope"].(map[string]any)["mode"] != "home" {
-			t.Fatal("home weekly and monthly fees were not published for a Home Tuition approval")
+		scope := homePub["scope"].(map[string]any)
+		if len(homePublished) != 3 || homePublished[0].(map[string]any)["period"] != "hour" || homePublished[1].(map[string]any)["period"] != "week" || homePublished[2].(map[string]any)["period"] != "month" || scope["mode"] != "online" || len(scope["modes"].([]any)) != 2 {
+			t.Fatal("online hourly plus home weekly and monthly fees were not published for a dual-mode approval")
+		}
+		homeStatus, _, homeRaw := parent.call("GET", "/tutors?mode=home", nil, nil)
+		onlineStatus, _, onlineRaw := parent.call("GET", "/tutors?mode=online", nil, nil)
+		if homeStatus != 200 || onlineStatus != 200 {
+			t.Fatalf("mode-filtered tutor search failed: home=%d online=%d", homeStatus, onlineStatus)
+		}
+		homeResults := []any{}
+		onlineResults := []any{}
+		if err := json.Unmarshal(homeRaw, &homeResults); err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(onlineRaw, &onlineResults); err != nil {
+			t.Fatal(err)
+		}
+		if len(homeResults) == 0 || len(onlineResults) == 0 {
+			t.Fatal("dual-mode approval missing from mode-filtered tutor search")
 		}
 
 		tutor.ok("PUT", "/availability", map[string]any{"feePaise": 1}, 403)

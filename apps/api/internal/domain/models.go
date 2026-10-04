@@ -16,8 +16,38 @@ type Scope struct {
 	MinClass  int       `json:"minClass" bson:"minClass"`
 	MaxClass  int       `json:"maxClass" bson:"maxClass"`
 	Mode      string    `json:"mode" bson:"mode"`
+	Modes     []string  `json:"modes,omitempty" bson:"modes,omitempty"`
 	ExpiresAt time.Time `json:"expiresAt" bson:"expiresAt"`
 }
+
+func (s Scope) ApprovedModes() []string {
+	seen := map[string]bool{}
+	for _, mode := range append([]string{}, s.Modes...) {
+		if mode == "online" || mode == "home" {
+			seen[mode] = true
+		}
+	}
+	if s.Mode == "online" || s.Mode == "home" {
+		seen[s.Mode] = true
+	}
+	out := []string{}
+	for _, mode := range []string{"online", "home"} {
+		if seen[mode] {
+			out = append(out, mode)
+		}
+	}
+	return out
+}
+
+func (s Scope) HasMode(mode string) bool {
+	for _, approved := range s.ApprovedModes() {
+		if approved == mode {
+			return true
+		}
+	}
+	return false
+}
+
 type Application struct {
 	ID            string              `json:"id" bson:"_id"`
 	Name          string              `json:"name" bson:"name"`
@@ -56,6 +86,8 @@ type PublicTutor struct {
 	Scope           Scope     `json:"scope"`
 	AssessmentAt    time.Time `json:"assessmentAt"`
 	Sample          bool      `json:"sample"`
+	PhotoURL        string    `json:"photoUrl,omitempty"`
+	IntroVideoURL   string    `json:"introVideoUrl,omitempty"`
 	PublicLocality  string    `json:"publicLocality"`
 	ServiceRadiusKM int       `json:"serviceRadiusKm"`
 	DistanceKM      *float64  `json:"distanceKm"`
@@ -63,7 +95,7 @@ type PublicTutor struct {
 
 func (a Application) Public() PublicTutor {
 	out := PublicTutor{FeePlans: a.FeePlans(), ID: a.ID, Name: a.Name, Approach: a.Approach, Language: a.Language, Experience: a.Experience, Scope: a.Scope, AssessmentAt: a.AssessmentAt, Sample: a.Sample}
-	if a.Profile != nil {
+	if a.Profile != nil && a.Scope.HasMode("home") {
 		out.PublicLocality = a.Profile.About.Locality
 		if a.Profile.About.Location != nil {
 			if out.PublicLocality == "" {
@@ -74,6 +106,14 @@ func (a Application) Public() PublicTutor {
 			}
 		}
 		out.ServiceRadiusKM = a.Profile.Availability.Home.TravelKM
+	}
+	if a.Profile != nil {
+		if a.Profile.About.PhotoFileID != "" {
+			out.PhotoURL = "/api/v1/tutors/" + a.ID + "/photo"
+		}
+		if a.Profile.Approach.DemoFileID != "" {
+			out.IntroVideoURL = "/api/v1/tutors/" + a.ID + "/intro-video"
+		}
 	}
 	return out
 }
@@ -164,6 +204,6 @@ type Fault struct {
 func (f *Fault) Error() string                    { return f.Message }
 func Fail(status int, code, message string) error { return &Fault{status, code, message} }
 func Eligible(a Application, class int, now time.Time) bool {
-	return a.Status == "approved" && a.Scope.Subject == "Mathematics" && a.Scope.Mode == "online" && class >= a.Scope.MinClass && class <= a.Scope.MaxClass && a.Scope.ExpiresAt.After(now)
+	return a.Status == "approved" && a.Scope.Subject == "Mathematics" && a.Scope.HasMode("online") && class >= a.Scope.MinClass && class <= a.Scope.MaxClass && a.Scope.ExpiresAt.After(now)
 }
 func Overlap(a, b, c, d time.Time) bool { return a.Before(d) && c.Before(b) }

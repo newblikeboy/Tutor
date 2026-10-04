@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { api } from '../lib/api'
 import type { Tutor } from '../lib/api'
+import { tutorHasMode, tutorModeLabel } from '../lib/tutors'
 import { LocationSearchField, type StoredLocation } from '../components/location-search'
 import { TutorFees } from '../components/tutor-fees'
 import {
@@ -108,7 +109,9 @@ export function TutorCard({ tutor }: { tutor: Tutor }) {
   const subject = tutor.scope.subject === 'Mathematics' ? t('math') : tutor.scope.subject
   const classRange = `${tutor.scope.minClass}-${tutor.scope.maxClass}`
   const language = t(tutor.language === 'Hindi' ? 'hindi' : 'english')
-  const mode = t(tutor.scope.mode === 'home' ? 'applicationForm.home' : 'online')
+  const mode = tutorModeLabel(tutor.scope, t)
+  const hasOnline = tutorHasMode(tutor, 'online')
+  const hasHome = tutorHasMode(tutor, 'home')
   const experienceLabel =
     tutor.experience > 0
       ? t('teacherProofExperienceValue', { count: tutor.experience })
@@ -116,10 +119,7 @@ export function TutorCard({ tutor }: { tutor: Tutor }) {
   return (
     <article className="tutor-card tutor-result-card">
       <div className="tutor-card-main">
-        <div className="tutor-photo-symbol" aria-hidden="true">
-          <span>{tutor.name.slice(0, 1)}</span>
-          <GraduationCap size={28} strokeWidth={1.45} />
-        </div>
+        <TutorPhotoSymbol tutor={tutor} />
         <div className="tutor-card-copy">
           <div className="tutor-card-kicker">
             <Badge tone="teal">{t('teacherAvailable')}</Badge>
@@ -134,7 +134,8 @@ export function TutorCard({ tutor }: { tutor: Tutor }) {
           <p className="tutor-approach">{tutor.sample ? t('step3Body') : tutor.approach}</p>
           <div className="tutor-highlights" aria-label={t('teacherProfileFacts')}>
             <span>
-              {tutor.scope.mode === 'home' ? <House size={16} /> : <Monitor size={16} />}
+              {hasOnline && <Monitor size={16} />}
+              {hasHome && <House size={16} />}
               {mode}
             </span>
             <span>
@@ -146,7 +147,7 @@ export function TutorCard({ tutor }: { tutor: Tutor }) {
               {t('staffConfirmed')}
             </span>
           </div>
-          {(tutor.distanceKm != null || tutor.serviceRadiusKm > 0 || tutor.publicLocality) && (
+          {hasHome && (tutor.distanceKm != null || tutor.serviceRadiusKm > 0 || tutor.publicLocality) && (
             <div className="tutor-distance-line">
               <MapPin size={16} aria-hidden="true" />
               <span>
@@ -536,7 +537,7 @@ export function Search() {
   })
   const results =
     query.data?.filter((tutor) => {
-      return !selectedMode || tutor.scope.mode === selectedMode
+      return !selectedMode || tutorHasMode(tutor, selectedMode)
     }) ?? []
   function filter(key: string, value: string) {
     const next = new URLSearchParams(params)
@@ -743,7 +744,9 @@ export function TutorDetail() {
   const subject = tutor.scope.subject === 'Mathematics' ? t('math') : tutor.scope.subject
   const classRange = `${tutor.scope.minClass}-${tutor.scope.maxClass}`
   const language = t(tutor.language === 'Hindi' ? 'hindi' : 'english')
-  const mode = t(tutor.scope.mode === 'home' ? 'applicationForm.home' : 'online')
+  const mode = tutorModeLabel(tutor.scope, t)
+  const hasOnline = tutorHasMode(tutor, 'online')
+  const hasHome = tutorHasMode(tutor, 'home')
   const experienceLabel =
     tutor.experience > 0
       ? t('teacherProofExperienceValue', { count: tutor.experience })
@@ -764,10 +767,7 @@ export function TutorDetail() {
           <section className="teacher-hero-card" aria-labelledby="teacher-profile-title">
             <div className="teacher-hero-main">
               <div className="teacher-identity">
-                <div className="teacher-photo-symbol" aria-hidden="true">
-                  <span>{tutor.name.slice(0, 1)}</span>
-                  <GraduationCap size={36} strokeWidth={1.35} />
-                </div>
+                <TutorPhotoSymbol tutor={tutor} large />
                 <div>
                   <p className="eyebrow">{t('teacherProfileEyebrow')}</p>
                   <h1 id="teacher-profile-title">{tutor.name}</h1>
@@ -782,7 +782,8 @@ export function TutorDetail() {
                   {subject}
                 </span>
                 <span>
-                  {tutor.scope.mode === 'home' ? <House size={16} /> : <Monitor size={16} />}
+                  {hasOnline && <Monitor size={16} />}
+                  {hasHome && <House size={16} />}
                   {mode}
                 </span>
                 <span>
@@ -807,7 +808,7 @@ export function TutorDetail() {
               </strong>
             </article>
             <article>
-              {tutor.scope.mode === 'home' ? <House size={22} /> : <Monitor size={22} />}
+              {hasHome ? <House size={22} /> : <Monitor size={22} />}
               <span>{t('teacherMode')}</span>
               <strong>{mode}</strong>
             </article>
@@ -816,7 +817,7 @@ export function TutorDetail() {
               <span>{t('preferredLanguage')}</span>
               <strong>{language}</strong>
             </article>
-            {tutor.scope.mode === 'home' && (tutor.publicLocality || tutor.serviceRadiusKm > 0) && (
+            {hasHome && (tutor.publicLocality || tutor.serviceRadiusKm > 0) && (
               <article>
                 <MapPin size={22} />
                 <span>{t('homeServiceArea')}</span>
@@ -836,6 +837,15 @@ export function TutorDetail() {
               <h2>{t('teacherApproachTitle')}</h2>
             </div>
             <blockquote>{tutor.sample ? t('step3Body') : tutor.approach}</blockquote>
+            {tutor.introVideoUrl && (
+              <video
+                className="teacher-intro-video"
+                controls
+                preload="metadata"
+                src={tutor.introVideoUrl}
+                aria-label={`${tutor.name} introduction video`}
+              />
+            )}
           </section>
 
           <section className="profile-section teacher-fit-panel">
@@ -879,6 +889,22 @@ export function Info({ page }: { page: string }) {
       <LinkButton to={page === '404' ? '/' : '/match'}>
         {t(page === '404' ? 'returnHome' : 'find')}
       </LinkButton>
+    </div>
+  )
+}
+
+function TutorPhotoSymbol({ tutor, large = false }: { tutor: Tutor; large?: boolean }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <div className={large ? 'teacher-photo-symbol' : 'tutor-photo-symbol'} aria-hidden="true">
+      {tutor.photoUrl && !failed ? (
+        <img src={tutor.photoUrl} alt="" onError={() => setFailed(true)} />
+      ) : (
+        <>
+          <span>{tutor.name.slice(0, 1)}</span>
+          <GraduationCap size={large ? 36 : 28} strokeWidth={large ? 1.35 : 1.45} />
+        </>
+      )}
     </div>
   )
 }

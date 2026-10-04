@@ -1,5 +1,25 @@
 # Progress
 
+## 2026-10-04: trial booking controls moved into tutor cards locally
+
+The parent tutor chooser no longer renders a separate preferred date/time and trial-submit section below the card list. Each tutor card now has a Book trial action; selecting a card reveals that tutor's Trial date & time input, trial terms checkbox and Book trial submit button inside the card. Switching tutors clears the previous card's unsent schedule/terms so the requested time stays attached to the chosen tutor. After a trial is reviewed, the existing parent link into the tuition/agreement area now reads Book tutor. The underlying trial and tuition navigation contracts remain unchanged.
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No backend schema, production data, commit, push or deployment was changed.
+
+## 2026-10-04: parent tutor chooser intro copy removed locally
+
+The parent tutor chooser keeps its existing selection panel, approved-shortlist label, result count, filters and tutor cards, but no longer renders the two intro lines "Choose from teacher profiles" and "Compare approved scope, teaching language, experience, fees and approach before you request a trial."
+
+Validation: `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No backend schema, production data, commit, push or deployment was changed.
+
+## 2026-10-04: parent child setup and tutor card cleanup locally
+
+Parent Add child now creates a child profile as its own two-step setup instead of immediately forcing the full tutor-matching requirement flow. After saving the child, the parent lands on the Learners view and can add learning needs separately for that child. The matching flow still supports the combined child/need/tutor path when a parent starts from Find tutor.
+
+The parent tutor chooser cards were reorganized into clearer teacher decision cards with stronger teacher identity, class-fit/mode/language/experience chips, compact fee panels and an explicit Choose/Selected control. Parent-facing trial copy no longer says development trial, and the child consent copy refers to a learner profile instead of a development profile. Required sample-profile labels remain unchanged for fictional records.
+
+Validation: local browser flow passed for parent signup, Add child, learner landing, Add learning needs and tutor chooser at desktop, plus a mobile Add child breadcrumb check. `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No backend schema, production data, commit, push or deployment was changed.
+
 ## 2026-10-03: tutor finder page simplified locally
 
 The `/tutors` finder page no longer shows the top setup-mode banner. The page heading now starts directly with "Start with what your child needs." The finder card no longer repeats the Quick Tutor Finder eyebrow/title. The old Main need choices were replaced with Teacher needed choices for 1 hr online, weekly and monthly, and preferred time now uses a time input. Search carries the selected plan and time into the tutor results URL.
@@ -655,3 +675,25 @@ Tutor final submission now assigns an active mentor automatically on the server.
 Mentor access is now restricted to applications where they are the saved assessor. The previous ability for any mentor to claim an unassigned submitted application has been removed; administrators can still reassign when needed. The application remains in submitted status until the assigned mentor confirms the review/no-conflict step, preserving the existing academic workflow.
 
 Validation: `go test ./...` in `apps/api` passed locally, including a two-mentor/two-applicant round-robin assignment case and an access check that mentor A cannot open or act on mentor B's application. No commit, push or production deployment was performed.
+
+## 2026-10-04: dual-mode tutor approval for Online and Home Tuition
+
+Tutor approval now supports more than one staff-approved teaching mode for the same tutor. The API keeps the legacy `scope.mode` field for compatibility and adds optional `scope.modes` for the approved mode set. Staff approval accepts `modes`, validates every selected mode against the assessed teaching area, and publishes only the fee plans for those approved modes. Online remains the primary compatibility mode when both Online and Home Tuition are approved, so existing online trial booking behavior stays stable.
+
+Assigned reviewers can now update an already approved tutor's approved scope without reopening the application. This is the path for old records such as Rajan Kumar: his current database record is still online-only until a reviewer uses **Update approved scope** and selects both Online and Home Tuition. Once that action is saved, parent/public tutor cards and mode filters show the online hourly plan plus Home Tuition weekly/monthly plans.
+
+Validation: `go test ./...` in `apps/api`, OpenAPI/schema regeneration, `npm run typecheck`, `npm run lint`, and `npm run build` passed locally. The local API was restarted on `127.0.0.1:8080`. No commit, push, production deployment, or direct database edit was performed.
+
+## 2026-10-04: parent tutor chooser chips tightened
+
+The parent tutor chooser card metadata chips no longer stretch to match the pricing column height. The card grid now aligns content to the top, and the tutor facts render as compact rectangular tags with fixed minimum height and normal inline sizing.
+
+Validation: `npm run build` passed locally. No commit, push or deployment was performed.
+
+## 2026-10-04: tutor media and compact rates in chooser
+
+The parent tutor chooser now displays staff-confirmed fee plans in a compact horizontal row on desktop, wrapping only on narrower screens. Approved tutor responses now include `photoUrl` and `introVideoUrl` when the approved profile has selected a photo or introduction video. New public tutor media endpoints verify that the requested file belongs to the approved tutor profile before redirecting to Cloudinary delivery or serving a scanned local file. Public tutor cards and tutor detail pages use the same approved photo field, and tutor detail pages show the introduction video when present.
+
+A read-only check of Rajan Kumar's current record found no selected `photoFileId`, no selected `demoFileId`, and no application attachments, so his card cannot show a real photo/video until those files are added to his tutor profile. His fee plans now return three published plans locally after the approved-scope update.
+
+Validation: `go test ./...` in `apps/api`, contract regeneration, `npm run typecheck`, `npm run lint`, and `npm run build` passed locally. The local API was restarted on `127.0.0.1:8080`. No commit, push, production deployment, or direct database edit was performed.

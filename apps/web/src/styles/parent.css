@@ -142,6 +142,9 @@
 .parent-match .stepper {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
+.parent-match .stepper.profile-stepper {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .parent-match .stepper li {
   font-size: 13px;
 }
@@ -286,9 +289,9 @@
 .parent-tutor-option {
   position: relative;
   border: 1px solid #d8e4da;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #fffefa;
-  box-shadow: 0 12px 28px #15353b08;
+  box-shadow: 0 8px 20px #15353b06;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -307,24 +310,36 @@
     0 16px 36px #15353b12;
 }
 .parent-tutor-option > label {
-  display: grid;
-  gap: 14px;
-  padding: 18px;
+  display: block;
+  padding: 0;
   cursor: pointer;
 }
 .parent-tutor-option input[type='radio'] {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 20px;
-  height: 20px;
-  accent-color: var(--teal);
+  opacity: 0;
+  pointer-events: none;
+}
+.parent-tutor-card-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.42fr);
+  align-items: start;
+  gap: 22px;
+  padding: 20px;
+}
+.parent-tutor-card-main {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+}
+.parent-tutor-card-aside {
+  display: grid;
+  align-content: start;
+  gap: 13px;
 }
 .parent-tutor-card-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
-  padding-right: 36px;
 }
 .parent-tutor-card-top > span:last-child {
   display: grid;
@@ -339,7 +354,8 @@
 }
 .parent-tutor-card-top strong {
   color: var(--ink);
-  font-size: 21px;
+  font-size: 22px;
+  line-height: 1.25;
   letter-spacing: -0.35px;
 }
 .parent-tutor-card-top em {
@@ -347,35 +363,197 @@
   font-style: normal;
   font-size: 13px;
 }
+.parent-tutor-photo {
+  overflow: hidden;
+  background: #e4eeea;
+}
+.parent-tutor-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .parent-tutor-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  align-self: start;
+  gap: 7px;
 }
 .parent-tutor-meta span {
-  padding: 7px 9px;
-  border: 1px solid #d9e5dc;
-  border-radius: 999px;
-  background: #f6faf6;
-  color: #314d3c;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid #d8e5db;
+  border-radius: 9px;
+  background: #f7faf5;
+  color: #315b4e;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .parent-tutor-approach {
   color: #2c3f55;
   font-size: 14px;
   line-height: 1.75;
 }
+.parent-tutor-video {
+  width: min(100%, 380px);
+  max-height: 150px;
+  border: 1px solid #d8e5db;
+  border-radius: 14px;
+  background: #0f2f33;
+}
 .parent-tutor-review {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
 }
+.parent-tutor-price {
+  display: grid;
+  gap: 8px;
+}
 .parent-tutor-price .fee-list {
   margin: 0;
 }
+.parent-tutor-price .tutor-fees {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.parent-tutor-price .tutor-fees > div {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+}
+.parent-tutor-price .tutor-fees dt {
+  font-size: 11px;
+}
+.parent-tutor-price .tutor-fees strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.25;
+}
+.parent-tutor-price .tutor-fees dd span,
+.parent-tutor-price .tutor-fees dd small {
+  font-size: 11px;
+}
+.parent-tutor-price .tutor-fees dd small {
+  margin-top: 3px;
+}
 .parent-tutor-profile-link {
-  margin: 0 18px 18px;
+  margin: 0 20px 20px;
+}
+.parent-tutor-actions {
+  display: grid;
+  gap: 12px;
+  margin: 0 20px 20px;
+  padding-top: 16px;
+  border-top: 1px solid #dfe9e1;
+}
+.parent-tutor-actions.compact {
+  padding-top: 0;
+  border-top: 0;
+}
+.parent-tutor-actions .field {
+  max-width: 360px;
+}
+.parent-tutor-actions .alert {
+  margin: 0;
+}
+.parent-tutor-actions .check-label {
+  margin: 0;
+}
+.parent-tutor-actions .btn {
+  justify-self: start;
+}
+.parent-tutor-book {
+  min-width: 140px;
+}
+.parent-trial-picker {
+  display: grid;
+  gap: 14px;
+}
+.parent-trial-picker .eyebrow {
+  margin-bottom: 4px;
+}
+.parent-trial-calendar {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+}
+.trial-date,
+.trial-time {
+  border: 1px solid #d8e5db;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+.trial-date {
+  display: grid;
+  gap: 2px;
+  min-height: 72px;
+  padding: 9px 8px;
+  text-align: center;
+}
+.trial-date span,
+.trial-date small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+.trial-date strong {
+  font-size: 20px;
+  line-height: 1.1;
+}
+.trial-date.available,
+.trial-time.available {
+  border-color: #9cc7a6;
+  background: #eff8f0;
+  color: #245441;
+}
+.trial-date.unavailable,
+.trial-time.unavailable {
+  border-color: #edd0c8;
+  background: #fff3f0;
+  color: #8a4132;
+  cursor: not-allowed;
+}
+.trial-date.selected,
+.trial-time.selected {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px #0d7b8420;
+}
+.trial-date:not(:disabled):hover,
+.trial-time:not(:disabled):hover,
+.trial-date:not(:disabled):focus-visible,
+.trial-time:not(:disabled):focus-visible {
+  border-color: var(--teal);
+  box-shadow: 0 10px 22px #15353b12;
+  transform: translateY(-1px);
+}
+.parent-trial-section-label {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.parent-trial-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.trial-time {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 800;
 }
 @media (max-width: 900px) {
   .parent-tutor-filters {
@@ -383,6 +561,16 @@
   }
   .parent-tutor-search {
     grid-column: 1 / -1;
+  }
+  .parent-tutor-card-shell {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .parent-tutor-card-aside {
+    gap: 12px;
+  }
+  .parent-tutor-price .tutor-fees {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   }
 }
 @media (max-width: 600px) {
@@ -397,6 +585,9 @@
   }
   .parent-tutor-card-top {
     align-items: flex-start;
+  }
+  .parent-tutor-card-shell {
+    padding: 18px;
   }
   .parent-tutor-card-top .initial-avatar {
     width: 54px;

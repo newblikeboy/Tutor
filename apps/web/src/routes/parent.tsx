@@ -63,7 +63,7 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
             </li>
           ))}
         </ol>
-        <LinkButton to={data.draft ? '/match' : '/match?new=1'}>
+        <LinkButton to={data.draft ? '/match' : '/match?new=1&profile=1'}>
           {t(data.draft ? 'parent.continue' : 'parent.add')}
         </LinkButton>
       </section>

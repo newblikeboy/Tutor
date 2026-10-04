@@ -4960,6 +4960,16 @@
           "mode": {
             "type": "string"
           },
+          "modes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "online",
+                "home"
+              ]
+            }
+          },
           "expiresAt": {
             "type": "string",
             "format": "date-time"
@@ -5124,6 +5134,12 @@
           },
           "sample": {
             "type": "boolean"
+          },
+          "photoUrl": {
+            "type": "string"
+          },
+          "introVideoUrl": {
+            "type": "string"
           },
           "publicLocality": {
             "type": "string"
@@ -5891,6 +5907,16 @@
           },
           "mode": {
             "type": "string"
+          },
+          "modes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "online",
+                "home"
+              ]
+            }
           },
           "assessorId": {
             "type": "string"

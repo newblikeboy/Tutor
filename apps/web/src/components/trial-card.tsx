@@ -134,7 +134,7 @@ export function TrialCard({
         )}
         {role === 'parent' && v.status === 'reviewed' && (
           <LinkButton to="/tuition" secondary>
-            {t('parent.classes')}
+            {t('bookTutor')}
           </LinkButton>
         )}
         {['requested', 'confirmed'].includes(v.status) && role !== 'mentor' && (

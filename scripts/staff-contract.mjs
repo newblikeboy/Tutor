@@ -169,6 +169,7 @@ export function staffContract(schemas, route, paths) {
         minClass: n,
         maxClass: n,
         mode: s,
+        modes: { type: 'array', items: { type: 'string', enum: ['online', 'home'] } },
         assessorId: s,
         mentorId: s,
         conflictClear: b,

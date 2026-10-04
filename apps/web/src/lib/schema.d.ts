@@ -1391,6 +1391,7 @@ export interface components {
             minClass: number;
             maxClass: number;
             mode: string;
+            modes?: ("online" | "home")[];
             /** Format: date-time */
             expiresAt: string;
         };
@@ -1433,6 +1434,8 @@ export interface components {
             /** Format: date-time */
             assessmentAt: string;
             sample: boolean;
+            photoUrl?: string;
+            introVideoUrl?: string;
             publicLocality: string;
             serviceRadiusKm: number;
             distanceKm: number | null;
@@ -1608,6 +1611,7 @@ export interface components {
             minClass?: number;
             maxClass?: number;
             mode?: string;
+            modes?: ("online" | "home")[];
             assessorId?: string;
             mentorId?: string;
             conflictClear?: boolean;

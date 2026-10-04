@@ -18,6 +18,7 @@ import StaffWorkspace from './staff'
 import { InterviewCard } from '../components/interview'
 import '../styles/teacher.css'
 import type { Dashboard } from '../lib/api'
+import { tutorModeLabel } from '../lib/tutors'
 import { workspaceLink, workspaceView } from '../lib/workspace'
 import type { WorkspaceView } from '../lib/workspace'
 import { useAuth, useDashboard } from '../lib/session'
@@ -78,7 +79,7 @@ function WorkspaceData() {
             <RefreshCw size={17} aria-hidden="true" />
           </Button>
           {d.user.role === 'parent' && view === 'learners' && d.learners.length > 0 && (
-            <LinkButton to="/match?new=1">
+            <LinkButton to="/match?new=1&profile=1">
               <Plus size={17} aria-hidden="true" />
               {t('parent.add')}
             </LinkButton>
@@ -252,7 +253,8 @@ function TutorWorkspace({ data, view }: { data: Dashboard; view: WorkspaceView }
                 {t(app.scope.subject.toLowerCase() === 'mathematics' ? 'math' : app.scope.subject)}
               </h3>
               <p>
-                {t('classes')} {app.scope.minClass}–{app.scope.maxClass} · {t(app.scope.mode)}
+                {t('classes')} {app.scope.minClass}–{app.scope.maxClass} ·{' '}
+                {tutorModeLabel(app.scope, t)}
               </p>
             </>
           ) : (

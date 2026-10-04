@@ -1,5 +1,11 @@
 # Requirement → implementation → acceptance evidence
 
+Latest parent tutor card booking checkpoint: the parent tutor chooser no longer shows a separate preferred date/time and submit area below the cards. Each card has a Book trial action; the selected card contains its own Trial date & time field, terms checkbox and Book trial submit button. After a trial is reviewed, the real parent tuition link now reads Book tutor. Trial and tuition API/navigation contracts are unchanged. `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No deployment was performed.
+
+Latest parent tutor chooser copy checkpoint: the parent tutor selection panel keeps its box, approved-shortlist label, count, filters and teacher cards, but the intro title "Choose from teacher profiles" and descriptive sentence below it no longer render. `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No deployment was performed.
+
+Latest parent child-setup checkpoint: Parent Add child now saves a child profile first and returns to Learners before matching. Parents add learning needs separately from the child profile, while the Find tutor path still supports guided matching. Parent tutor chooser cards now read as teacher decision cards with visible fit facts, compact fees and clear Choose/Selected state. Parent-facing trial copy no longer says development trial. Browser smoke checks covered parent signup, Add child, learning need and tutor chooser, including a mobile Add child breadcrumb check. `npm run typecheck`, `npm run lint` and `npm run build` passed locally. No backend schema or production deployment was performed.
+
 Latest local photo-backed landing checkpoint: the landing hero now restores the learning photo and layers the quick tutor finder with it, keeping parent utility while making the first screen feel warmer and more alive. `npm run typecheck`, `npm run lint` and `npm run build` passed. No commit, push or production deployment was performed.
 
 Latest local landing utility checkpoint: the hero now includes a quick tutor finder with class group, mode, need and timing choices that prefill the parent matching flow. The page also keeps learning-stage cards, a request-detail checklist and up to four approved tutor cards. `npm run typecheck`, `npm run lint` and `npm run build` passed. No commit, push or production deployment was performed.
@@ -182,3 +188,23 @@ After the droplet migration failed with AtlasError code 8000, a read-only invent
 - Boundaries: applicants never send or choose a mentor ID. Mentors no longer have the old claim-any-submitted-application path; mentor queues and details are filtered to their assigned applications. Admin reassignment remains available.
 - Failure mode: if no active mentor exists, final submission returns a mentor-unavailable error rather than creating an unowned review item.
 - Evidence: `go test ./...` in `apps/api` passed locally with round-robin and mentor-access tests. No commit, push or production deployment was performed.
+
+## 2026-10-04: dual-mode tutor approval
+
+- Scope: staff can approve both Online and Home Tuition for one tutor through `DecisionInput.modes`; `scope.modes` is returned publicly while `scope.mode` remains for compatibility.
+- Fee publishing: Online approval publishes the hourly plan; Home Tuition approval publishes weekly and monthly plans; approving both publishes all three staff-confirmed plans.
+- Existing approvals: already approved old records can be corrected from the staff screen with **Update approved scope** instead of reopening the application. Records remain unchanged until that staff action is saved.
+- Evidence: `go test ./...` in `apps/api`; contract regeneration; `npm run typecheck`; `npm run lint`; `npm run build`; local API restarted. No production deployment or direct data edit was performed.
+
+## 2026-10-04: parent tutor chooser chip styling
+
+- Scope: tutor fact chips in the parent `/match` tutor chooser were changed from stretched pill bubbles to compact tags.
+- Evidence: `npm run build` passed locally.
+- Release status: local only. No deployment was performed.
+
+## 2026-10-04: tutor media and compact chooser rates
+
+- Scope: parent tutor chooser fee cards now use a compact row layout on desktop. Approved tutor API responses include optional `photoUrl` and `introVideoUrl` fields.
+- Media boundary: tutor photo/video endpoints authorize each request by checking the file belongs to the approved tutor profile. Raw application file routes remain private to applicant/staff access.
+- Data finding: Rajan Kumar currently has no selected photo/video IDs or application attachments, so the UI falls back to initials for him until media is uploaded/selected.
+- Evidence: `go test ./...` in `apps/api`; contract regeneration; `npm run typecheck`; `npm run lint`; `npm run build`; local API restarted. No deployment or direct data edit was performed.

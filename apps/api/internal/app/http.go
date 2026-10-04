@@ -141,6 +141,8 @@ func (a *App) Routes() http.Handler {
 	r.Get("/api/v1/tutors", a.tutors)
 	r.Post("/api/v1/webhooks/razorpay", a.razorpayWebhook)
 	r.Get("/api/v1/tutors/{id}", a.tutor)
+	r.Get("/api/v1/tutors/{id}/photo", a.tutorPhoto)
+	r.Get("/api/v1/tutors/{id}/intro-video", a.tutorIntroVideo)
 	r.Get("/api/v1/tutors/{id}/availability", a.availability)
 	r.Get("/api/v1/location/reverse", a.reverseLocation)
 	r.Post("/api/v1/auth/signup", a.signup)
@@ -243,7 +245,7 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 		f["language"] = v
 	}
 	if v := r.URL.Query().Get("mode"); enum(v, "home", "online") {
-		f["scope.mode"] = v
+		f["$or"] = []bson.M{{"scope.mode": v}, {"scope.modes": v}}
 	}
 	if v := r.URL.Query().Get("class"); v != "" {
 		klass, er := strconv.Atoi(v)
@@ -293,7 +295,7 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		public := v.Public()
-		if hasLat && v.Scope.Mode == "home" {
+		if hasLat && v.Scope.HasMode("home") {
 			location, ok := tutorBaseLocation(v)
 			if !ok || public.ServiceRadiusKM <= 0 {
 				continue

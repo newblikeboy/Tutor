@@ -140,7 +140,7 @@ const en = {
   teachingApproach: 'How I approach learning',
   trialTitle: 'Start with a conversation and trial',
   trialBody: 'Share your learning needs first. You can then choose this tutor and request a time.',
-  freeTrial: '₹0 development trial',
+  freeTrial: '₹0 trial',
   freeTrialBody: 'One online session · 60 minutes · No payment collected',
   teacherProfileEyebrow: 'Teacher profile',
   teacherProfileLead:
@@ -278,7 +278,7 @@ const en = {
   minorOption: 'My child / a learner in my care',
   adultOption: 'Myself, aged 18 or over',
   guardian: 'I am the parent or legal guardian',
-  consent: 'I agree to the draft privacy notice for this development profile.',
+  consent: 'I agree to the draft privacy notice for this learner profile.',
   consentHelp:
     'This declaration is not guardian verification. Use fictional learner details only in this preview.',
   confirmGuardian: 'Confirm and continue',
@@ -299,9 +299,15 @@ const en = {
     'Choose a tutor whose assessed scope fits. A request becomes a confirmed trial only when the tutor accepts a time.',
   chooseRequirement: 'Learning requirement',
   requestTrial: 'Request a trial',
-  startTime: 'Preferred date & time',
+  bookTrial: 'Book trial',
+  bookTutor: 'Book tutor',
+  startTime: 'Trial date & time',
+  availabilityCalendar: 'Tutor availability',
+  availabilityCalendarHint: 'Green dates and times are open for a one-hour trial.',
+  availabilityDates: 'Available trial dates',
+  availabilityTimes: 'Available trial times',
   timezone: 'Shown in your device timezone. Class records display India time (Asia/Kolkata).',
-  terms: 'I accept the development trial terms.',
+  terms: 'I accept the trial terms.',
   termsBody:
     'One online Mathematics session, 60 minutes, ₹0. Either party may cancel before completion. Mentor review included. No payment or ongoing tuition enrollment.',
   requestSent: 'Trial requested — waiting for tutor acceptance',
@@ -309,7 +315,7 @@ const en = {
   cancelTrial: 'Cancel trial',
   lessonNotes: 'What did the learner work through?',
   nextSteps: 'Practice and next teaching steps',
-  completeLesson: 'Record development lesson',
+  completeLesson: 'Record lesson evidence',
   simulation:
     'Development timeline: a lesson can be recorded before its scheduled end for testing. No real class attendance is asserted.',
   reviewNotes: 'Academic review and evidence',
@@ -358,9 +364,6 @@ const en = {
   recorded: 'Recorded',
   selectTutor: 'Select a tutor',
   parentTutorChooserEyebrow: 'Approved tutor shortlist',
-  parentTutorChooserTitle: 'Choose from teacher profiles',
-  parentTutorChooserBody:
-    'Compare approved scope, teaching language, experience, fees and approach before you request a trial.',
   parentTutorChooserCount: '{{count}} shown',
   parentTutorFilters: 'Tutor filters and sorting',
   parentTutorSearch: 'Search by teacher name or approach',
@@ -372,6 +375,8 @@ const en = {
   parentTutorNoFilterResults:
     'No tutor profiles match these filters. Clear filters or adjust the search.',
   parentTutorSelected: '{{name}} selected for this trial request.',
+  parentTutorSelectedShort: 'Selected',
+  parentTutorClassFit: 'Fits Class {{class}}',
   viewCompleteProfile: 'View complete profile',
   resumeDraft: 'Your saved draft is ready to continue.',
   currentFocus: 'Current learning focus',

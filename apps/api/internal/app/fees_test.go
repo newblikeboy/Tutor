@@ -60,6 +60,14 @@ func TestFeePlanValidationAndPublicScope(t *testing.T) {
 	if len(a.FeePlans()) != 1 || a.FeePlans()[0].Period != "hour" {
 		t.Fatal("unapproved home fees published")
 	}
+	a.Scope.Modes = []string{"online", "home"}
+	if len(a.FeePlans()) != 3 {
+		t.Fatal("all staff-confirmed fees missing when both modes are approved")
+	}
+	if _, ok := a.HourlyFee(); !ok {
+		t.Fatal("online billing missing when both modes are approved")
+	}
+	a.Scope.Modes = nil
 	a.Scope.Mode = "home"
 	if len(a.FeePlans()) != 2 {
 		t.Fatal("home weekly and monthly fees missing")

@@ -18,6 +18,7 @@ import {
   Video,
 } from 'lucide-react'
 import { api, indiaDate, queryClient, send, type Application, type Schema } from '../lib/api'
+import { approvedTutorModes, tutorModeLabel } from '../lib/tutors'
 import { initials, workspaceLink, workspaceView } from '../lib/workspace'
 import { useAuth, useConfig } from '../lib/session'
 import {
@@ -1021,7 +1022,7 @@ function ApplicationDetail({ id }: { id: string }) {
                     <dt>{t('staffOps.scope')}</dt>
                     <dd>
                       {t('math')} · {t('classes')} {a.scope.minClass}–{a.scope.maxClass} ·{' '}
-                      {t(a.scope.mode)}
+                      {tutorModeLabel(a.scope, t)}
                     </dd>
                   </div>
                   <div>
@@ -1156,9 +1157,11 @@ function ApplicationDetail({ id }: { id: string }) {
                     <FeeForm key={`${a.id}:${a.fees?.version ?? 0}`} application={a} />
                   </section>
                 )}
-              {assigned && a.status === 'assessed' && (
+              {assigned && ['assessed', 'approved'].includes(a.status) && (
                 <section className="staff-panel">
-                  <h3>{t('staffOps.approve')}</h3>
+                  <h3>
+                    {t(a.status === 'approved' ? 'staffOps.updateApprovedScope' : 'staffOps.approve')}
+                  </h3>
                   <ApprovalForm application={a} />
                 </section>
               )}
@@ -1576,13 +1579,12 @@ function ApprovalForm({ application }: { application: Application }) {
   const approvalModes = (firstArea?.modes ?? [application.scope.mode]).filter(
     (mode): mode is 'home' | 'online' => mode === 'home' || mode === 'online',
   )
-  const [mode, setMode] = useState<'home' | 'online'>(
-    (application.scope.mode === 'home' || application.scope.mode === 'online'
-      ? application.scope.mode
-      : approvalModes.includes('online')
-        ? 'online'
-        : approvalModes[0]) as 'home' | 'online',
-  )
+  const [modes, setModes] = useState<('home' | 'online')[]>(() => {
+    if (firstArea && approvalModes.length) return approvalModes
+    const saved = approvedTutorModes(application.scope).filter((mode) => approvalModes.includes(mode))
+    if (saved.length) return saved
+    return approvalModes.includes('online') ? ['online'] : approvalModes.slice(0, 1)
+  })
   const [reason, setReason] = useState('')
   const auth = useAuth()
   const [mentorId, setMentorId] = useState(
@@ -1607,7 +1609,7 @@ function ApprovalForm({ application }: { application: Application }) {
       aria-label={t('staffOps.approve')}
       onSubmit={(event) => {
         event.preventDefault()
-        mutation.mutate({ action: 'approve', minClass, maxClass, mode, reason, mentorId })
+        mutation.mutate({ action: 'approve', minClass, maxClass, mode: modes[0], modes, reason, mentorId })
       }}
     >
       {members.isError ? (
@@ -1632,19 +1634,28 @@ function ApprovalForm({ application }: { application: Application }) {
           {t('staffOps.more')}
         </Button>
       )}
-      <Field label={t('staffOps.approvedMode')} hint={t('staffOps.approvedModeHint')}>
-        <select
-          value={mode}
-          onChange={(event) => setMode(event.target.value as 'home' | 'online')}
-          required
-        >
-          {approvalModes.map((choice) => (
-            <option key={choice} value={choice}>
-              {t(choice === 'home' ? 'applicationForm.home' : 'online')}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <fieldset className="staff-mode-checks">
+        <legend>{t('staffOps.approvedMode')}</legend>
+        <p>{t('staffOps.approvedModeHint')}</p>
+        {approvalModes.map((choice) => (
+          <label className="check-label" key={choice}>
+            <input
+              type="checkbox"
+              checked={modes.includes(choice)}
+              onChange={(event) =>
+                setModes((current) =>
+                  event.target.checked
+                    ? [...current, choice].filter(
+                        (mode, index, all) => all.indexOf(mode) === index,
+                      )
+                    : current.filter((mode) => mode !== choice),
+                )
+              }
+            />
+            {t(choice === 'home' ? 'applicationForm.home' : 'online')}
+          </label>
+        ))}
+      </fieldset>
       <div className="staff-score-inputs">
         <Field label={t('minClass')}>
           <input
@@ -1677,9 +1688,9 @@ function ApprovalForm({ application }: { application: Application }) {
         />
       </Field>
       <MutationError error={mutation.error} />
-      <Button type="submit" busy={mutation.isPending}>
+      <Button type="submit" busy={mutation.isPending} disabled={!modes.length}>
         <Check size={17} aria-hidden="true" />
-        {t('staffOps.approve')}
+        {t(application.status === 'approved' ? 'staffOps.updateApprovedScope' : 'staffOps.approve')}
       </Button>
     </form>
   )
