@@ -143,6 +143,162 @@
 .teacher-application h3 {
   margin-top: 12px;
 }
+/* Parent desktop pages share an edge; forms keep their own readable width. */
+@media (min-width: 1100px) {
+  .desk-shell[data-role='parent'] .desk-main {
+    width: 100%;
+    max-width: 1272px;
+    margin-inline: auto;
+  }
+  .desk-shell[data-role='parent'] .desk-main > .tu-page {
+    margin-inline: 0;
+  }
+  .desk-shell[data-role='parent'] .tu-heading h1 {
+    font-size: 23px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+  .desk-shell[data-role='parent'] .tu-stack > h2 {
+    font-size: 20px;
+    line-height: 1.5;
+  }
+  .desk-shell[data-role='parent'] .tu-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    align-items: stretch;
+  }
+  .desk-shell[data-role='parent'] .tu-enrollment {
+    display: flex;
+    flex-direction: column;
+    padding: 22px;
+    border-radius: 14px;
+  }
+  .desk-shell[data-role='parent'] .tu-enrollment h2 {
+    font-size: 21px;
+    overflow-wrap: anywhere;
+    margin-top: 18px;
+  }
+  .desk-shell[data-role='parent'] .tu-enrollment p {
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+  .desk-shell[data-role='parent'] .tu-card-link {
+    margin-top: auto;
+    font-size: 14px;
+    padding: 12px 14px;
+  }
+  .desk-shell[data-role='parent'] .tu-teacher-booking-main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: min-content 1fr;
+    gap: 12px 24px;
+  }
+  .desk-shell[data-role='parent'] .tu-teacher-booking-meta {
+    grid-column: 1;
+    align-self: start;
+  }
+  .desk-shell[data-role='parent'] .tu-teacher-booking-meta span {
+    border-radius: 6px;
+    padding: 5px 8px;
+  }
+  .desk-shell[data-role='parent'] .tu-teacher-booking-main .tutor-fees {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    align-content: start;
+    margin: 0;
+  }
+  .desk-shell[data-role='parent'] .tu-regular-start > .tu-panel-title {
+    margin-bottom: 0;
+  }
+  .desk-shell[data-role='parent'] .tu-regular-start,
+  .desk-shell[data-role='parent'] .tu-teacher-booking-card {
+    border-radius: 14px;
+  }
+  .desk-shell[data-role='parent'] .tu-regular-booking-form:has(.tu-regular-calendar-wrap) {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .desk-shell[data-role='parent'] .tu-package-options {
+    grid-column: 1 / -1;
+  }
+  .desk-shell[data-role='parent'] .tu-regular-booking-summary > .btn {
+    justify-self: start;
+  }
+  .desk-shell[data-role='parent'] .cases-page {
+    max-width: 960px;
+  }
+  .desk-shell[data-role='parent'] .cases-page > .tu-disclosure form {
+    max-width: 720px;
+  }
+  .desk-shell[data-role='parent'] :is(.cases-page, .billing-page):has(> .tu-back) {
+    max-width: 900px;
+  }
+  .desk-shell[data-role='parent'] .account-profile-form,
+  .desk-shell[data-role='parent'] .account-password-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    margin-top: 20px;
+  }
+  .desk-shell[data-role='parent'] :is(.account-profile-form, .account-password-form) > .field {
+    margin: 0;
+  }
+  .desk-shell[data-role='parent'] :is(.account-profile-form, .account-password-form) > :not(.field),
+  .desk-shell[data-role='parent'] .account-password-form > .field:first-child {
+    grid-column: 1 / -1;
+  }
+  .desk-shell[data-role='parent'] .account-password-form > .field:first-child {
+    max-width: 390px;
+    width: 100%;
+  }
+  .desk-shell[data-role='parent'] .account-page .tu-session-list > .tu-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 20px;
+    align-items: center;
+  }
+  .desk-shell[data-role='parent'] .account-page .tu-session-list > .tu-panel > p {
+    grid-column: 1;
+    font-size: 14px;
+    margin: 0;
+  }
+  .desk-shell[data-role='parent'] .account-page .tu-session-list > .tu-panel > .btn {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .desk-shell[data-role='parent'] .inbox-toolbar {
+    margin-bottom: 0;
+  }
+  .desk-shell[data-role='parent'] .activity-updates {
+    width: 100%;
+    margin: 0;
+  }
+  .desk-shell[data-role='parent'] .activity-updates > .tu-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 24px;
+    align-items: center;
+  }
+  .desk-shell[data-role='parent'] .activity-updates > .tu-panel > p {
+    grid-column: 1;
+    margin: 0;
+    font-size: 14px;
+  }
+  .desk-shell[data-role='parent'] .activity-updates > .tu-panel > .tu-actions {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    margin: 0;
+  }
+}
+@media (min-width: 761px) and (max-width: 1099px) {
+  .desk-shell[data-role='parent'] .tu-teacher-booking-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .desk-shell[data-role='parent'] .tu-teacher-booking-main .tutor-fees {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin: 0;
+  }
+}
 @media (max-width: 760px) {
   .desk-shell[data-role='parent'] .desk-page-heading,
   .desk-shell[data-role='tutor'] .desk-page-heading {

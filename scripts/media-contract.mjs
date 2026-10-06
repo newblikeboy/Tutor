@@ -67,6 +67,13 @@ export function mediaContract(schemas, route, paths) {
   schemas.DirectCompleteInput = obj({})
   route('/files/{id}/complete', 'post', 'PrivateFile', 'DirectCompleteInput')
   route('/files/{id}/view', 'get', 'OK')
+  paths['/files/{id}/view'].get.parameters.push({
+    name: 'preview',
+    in: 'query',
+    schema: { type: 'string', enum: ['1'] },
+    description:
+      'Request a signed 640px WebP preview for images. Omit to view the original. Documents and videos retain their original delivery.',
+  })
   delete paths['/files/{id}/view'].get.responses[200]
   for (const action of ['view', 'download']) {
     paths[`/files/{id}/${action}`].get.responses[302] = {

@@ -27,7 +27,7 @@ export default function Cases() {
   const { t } = useTranslation(),
     { id } = useParams()
   return (
-    <div className="tu-page">
+    <div className="tu-page cases-page">
       <h1 className="sr-only">{t(customer ? 'parent.help' : 'cases.title')}</h1>
       {id ? <CaseDetail id={id} /> : <CaseList />}
     </div>
@@ -57,7 +57,7 @@ function CaseList() {
       ) : (
         <>
           {!q.data.items.length ? (
-            <Empty title={t('cases.none')} body={t('cases.noneBody')} />
+            <Empty headingLevel={2} title={t('cases.none')} body={t('cases.noneBody')} />
           ) : (
             <div className="tu-card-grid">
               {q.data.items.map((c) => (

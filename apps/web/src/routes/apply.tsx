@@ -1,4 +1,6 @@
-import { uploadFile } from '../lib/uploads'
+import { prepareProfilePhoto, uploadFile, type UploadProgress } from '../lib/uploads'
+import { LocalImagePreview, UploadFeedback } from '../components/upload-feedback'
+import { teachingSubjects } from '../lib/subjects'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
   FormProvider,
@@ -35,10 +37,7 @@ import {
 import { InterviewCard } from '../components/interview'
 import { TutorFees } from '../components/tutor-fees'
 import { ApplicationScope, ApplicationSummary } from '../components/application-summary'
-import {
-  CurrentLocationButton,
-  type StoredLocation,
-} from '../components/location-search'
+import { CurrentLocationButton, type StoredLocation } from '../components/location-search'
 import { PrivateFiles } from './files'
 import '../styles/application.css'
 import { useClock } from '../lib/clock'
@@ -259,7 +258,7 @@ function Attachment({
     | 'approach.worksheetFileId'
   label: string
   video?: boolean
-  ensureDraft: () => Promise<Application>
+  ensureDraft: (force?: boolean) => Promise<Application>
 }) {
   const c = useCopy(),
     config = useConfig(),
@@ -270,7 +269,10 @@ function Attachment({
   const multiple = name === 'education.educationFileIds'
   const photo = name === 'about.photoFileId'
   const selectedIds = Array.isArray(selected) ? selected : selected ? [selected] : []
-  const [pending, setPending] = useState<{ file: File; key: string; savedId?: string }[]>([])
+  const [pending, setPending] = useState<
+    { file: File; key: string; savedId?: string; prepared?: File }[]
+  >([])
+  const [progress, setProgress] = useState<UploadProgress | null>(null)
   const overLimit =
     multiple &&
     selectedIds.length +
@@ -294,7 +296,7 @@ function Attachment({
           { shouldDirty: true },
         )
       } else setValue(name, '', { shouldDirty: true })
-      await ensureDraft()
+      await ensureDraft(true)
       await send(`/files/${id}`, {}, 'DELETE')
       await queryClient.invalidateQueries({
         queryKey: ['files', 'applications', auth.data!.user.id],
@@ -302,7 +304,10 @@ function Attachment({
     },
   })
   const upload = useMutation({
-    onMutate: () => activity(true),
+    onMutate: () => {
+      activity(true)
+      setProgress({ stage: 'preparing' })
+    },
     onSettled: () => activity(false),
     mutationFn: async () => {
       if (
@@ -322,12 +327,31 @@ function Attachment({
         throw new APIError(422, 'application_file', 'File limit')
       if (overLimit) throw new Error(c('educationDocumentsHint'))
       await ensureDraft()
-      for (const { file, key: uploadKey } of pending) {
+      for (const item of pending) {
+        const { file, key: uploadKey } = item
+        let prepared = file
+        if (photo) {
+          setProgress({ stage: 'preparing' })
+          prepared = item.prepared ?? (await prepareProfilePhoto(file))
+          // Reuse identical bytes and the same idempotency key after a failed response.
+          setPending((items) =>
+            items.map((entry) => (entry.key === uploadKey ? { ...entry, prepared } : entry)),
+          )
+        }
         const saved = await uploadFile(
           `/applications/${auth.data!.user.id}/files`,
-          file,
+          prepared,
           uploadKey,
           (video ? config.data?.videoProvider : config.data?.mediaProvider) === 'cloudinary',
+          setProgress,
+        )
+        queryClient.setQueryData<Schema['FilePage']>(
+          ['files', 'applications', auth.data!.user.id, 'selection'],
+          (current) =>
+            current && {
+              ...current,
+              items: [saved, ...current.items.filter((entry) => entry.id !== saved.id)],
+            },
         )
         if (name === 'education.educationFileIds') {
           setPending((items) =>
@@ -337,12 +361,14 @@ function Attachment({
             shouldDirty: true,
           })
         } else setValue(name, saved.id, { shouldDirty: true })
-        await ensureDraft()
+        setProgress({ stage: 'saving' })
+        await ensureDraft(true)
         setPending((items) => items.filter((item) => item.key !== uploadKey))
-        await queryClient.invalidateQueries({
-          queryKey: ['files', 'applications', auth.data!.user.id],
-        })
       }
+      void queryClient.invalidateQueries({
+        queryKey: ['files', 'applications', auth.data!.user.id],
+        refetchType: 'none',
+      })
     },
     onSuccess: () => {
       if (input.current) input.current.value = ''
@@ -379,6 +405,15 @@ function Attachment({
           disabled={!enabled || upload.isPending || (multiple && selectedIds.length >= 6)}
         />
       </Field>
+      {pending
+        .filter(
+          ({ file }) =>
+            ['image/jpeg', 'image/png'].includes(file.type) && file.size <= 3 * 1024 * 1024,
+        )
+        .map(({ file, key }) => (
+          <LocalImagePreview key={key} file={file} />
+        ))}
+      {upload.isPending && <UploadFeedback progress={progress} />}
       <Button
         type="button"
         variant="secondary"
@@ -398,7 +433,11 @@ function Attachment({
               <li key={id}>
                 {photo ? (
                   <div className="af-photo-preview">
-                    <img src={`/api/v1/files/${id}/view`} alt={c('photoPreviewAlt')} />
+                    <img
+                      src={`/api/v1/files/${id}/view?preview=1`}
+                      alt={c('photoPreviewAlt')}
+                      decoding="async"
+                    />
                   </div>
                 ) : null}
                 <p role="status">
@@ -431,7 +470,7 @@ function StepFields({
 }: {
   step: number
   email: string
-  ensureDraft: () => Promise<Application>
+  ensureDraft: (force?: boolean) => Promise<Application>
 }) {
   const c = useCopy(),
     { register, setValue, getFieldState, formState, clearErrors } =
@@ -475,7 +514,11 @@ function StepFields({
             <input value={p.about.location?.district ?? ''} placeholder={c('district')} readOnly />
           </Field>
           <Field label={c('city')}>
-            <input value={p.about.city || p.about.location?.city || ''} placeholder={c('city')} readOnly />
+            <input
+              value={p.about.city || p.about.location?.city || ''}
+              placeholder={c('city')}
+              readOnly
+            />
           </Field>
           <Field label={c('location')}>
             <input
@@ -593,10 +636,7 @@ function StepFields({
               {c('area')} {i + 1}
             </legend>
             <div className="form-grid">
-              <Select
-                name={`teachingAreas.${i}.subject`}
-                options={['Mathematics', 'Science', 'English', 'Hindi', 'Social Science']}
-              />
+              <Select name={`teachingAreas.${i}.subject`} options={teachingSubjects} />
               <div className="form-grid">
                 <Input name={`teachingAreas.${i}.minClass`} type="number" min={1} max={12} />
                 <Input name={`teachingAreas.${i}.maxClass`} type="number" min={1} max={12} />
@@ -1086,7 +1126,11 @@ function ApplicationForm({
                 <StepFields
                   step={step}
                   email={email}
-                  ensureDraft={() => save.mutateAsync({ next: step })}
+                  ensureDraft={(force = false) =>
+                    !force && app && !form.formState.isDirty
+                      ? Promise.resolve(app)
+                      : save.mutateAsync({ next: step })
+                  }
                 />
                 {step === 5 && (
                   <>

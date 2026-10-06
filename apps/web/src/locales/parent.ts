@@ -20,6 +20,12 @@ export const parentEN = {
     next: 'Next step',
     choose: 'Choose a tutor',
     newNeeds: 'Add learning needs',
+    deleteNeed: 'Delete learning need',
+    needDeleted: 'Learning need deleted.',
+    deleteNeedConfirm: 'Delete this learning need for {{name}}? This cannot be undone.',
+    confirmDelete: 'Delete',
+    needInUse:
+      'This learning need has a trial booking and cannot be deleted, even if the trial was cancelled or declined. Refresh to see the latest status.',
     upcoming: 'Upcoming',
     completed: 'Feedback',
     past: 'Cancelled',

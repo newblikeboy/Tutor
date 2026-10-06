@@ -131,7 +131,7 @@ export function ActivityUpdates() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   })
   return (
-    <div className="tu-page">
+    <div className="tu-page activity-updates">
       <MutationError error={m.error} />
       {q.isPending ? (
         <Loading />
@@ -140,7 +140,7 @@ export function ActivityUpdates() {
       ) : (
         <>
           {!q.data.items.length ? (
-            <Empty title={t('tuition.noNotifications')} />
+            <Empty headingLevel={2} title={t('tuition.noNotifications')} />
           ) : (
             q.data.items.map((n) => (
               <article className="tu-panel" key={n.id}>

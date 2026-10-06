@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -269,24 +269,8 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
       <div className="desk-frame">
         <header className="desk-topbar">
           <div className="desk-breadcrumb">
-            <div className="desk-mobile-menu" key={location.pathname + location.search}>
-              <Dialog.Root>
-                <Dialog.Trigger asChild>
-                  <button className="icon-button" aria-label={t('menu')}>
-                    <Menu aria-hidden="true" />
-                  </button>
-                </Dialog.Trigger>
-                <Dialog.Portal>
-                  <Dialog.Overlay className="dialog-overlay" />
-                  <Dialog.Content className="desk-drawer" aria-describedby={undefined}>
-                    <Dialog.Title className="sr-only">{t('desk.navigation')}</Dialog.Title>
-                    <Dialog.Close className="desk-drawer-close icon-button" aria-label={t('close')}>
-                      <X aria-hidden="true" />
-                    </Dialog.Close>
-                    {navigation}
-                  </Dialog.Content>
-                </Dialog.Portal>
-              </Dialog.Root>
+            <div className="desk-mobile-menu" key={location.key}>
+              <WorkspaceMenu>{navigation}</WorkspaceMenu>
             </div>
             {user.role === 'parent' ? (
               <ParentTopbarLocation account={parentAccount.data} />
@@ -343,6 +327,36 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         </footer>
       </div>
     </div>
+  )
+}
+
+function WorkspaceMenu({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  return (
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger asChild>
+        <button className="icon-button" aria-label={t('menu')}>
+          <Menu aria-hidden="true" />
+        </button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="dialog-overlay" />
+        <Dialog.Content
+          className="desk-drawer"
+          aria-describedby={undefined}
+          onClick={(event) => {
+            if (event.target instanceof Element && event.target.closest('a[href]')) setOpen(false)
+          }}
+        >
+          <Dialog.Title className="sr-only">{t('desk.navigation')}</Dialog.Title>
+          <Dialog.Close className="desk-drawer-close icon-button" aria-label={t('close')}>
+            <X aria-hidden="true" />
+          </Dialog.Close>
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 

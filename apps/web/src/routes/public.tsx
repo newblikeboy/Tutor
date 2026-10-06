@@ -26,6 +26,7 @@ import type { Tutor } from '../lib/api'
 import { tutorHasMode, tutorModeLabel } from '../lib/tutors'
 import { LocationSearchField, type StoredLocation } from '../components/location-search'
 import { TutorFees } from '../components/tutor-fees'
+import { SubjectSelect } from '../components/subject-select'
 import {
   Alert,
   Badge,
@@ -147,19 +148,20 @@ export function TutorCard({ tutor }: { tutor: Tutor }) {
               {t('staffConfirmed')}
             </span>
           </div>
-          {hasHome && (tutor.distanceKm != null || tutor.serviceRadiusKm > 0 || tutor.publicLocality) && (
-            <div className="tutor-distance-line">
-              <MapPin size={16} aria-hidden="true" />
-              <span>
-                {tutor.distanceKm != null
-                  ? t('teacherDistanceAway', { distance: tutor.distanceKm.toFixed(1) })
-                  : tutor.publicLocality || t('locationSearchPlaceholder')}
-                {tutor.serviceRadiusKm > 0
-                  ? ` · ${t('teacherServiceRadius', { count: tutor.serviceRadiusKm })}`
-                  : ''}
-              </span>
-            </div>
-          )}
+          {hasHome &&
+            (tutor.distanceKm != null || tutor.serviceRadiusKm > 0 || tutor.publicLocality) && (
+              <div className="tutor-distance-line">
+                <MapPin size={16} aria-hidden="true" />
+                <span>
+                  {tutor.distanceKm != null
+                    ? t('teacherDistanceAway', { distance: tutor.distanceKm.toFixed(1) })
+                    : tutor.publicLocality || t('locationSearchPlaceholder')}
+                  {tutor.serviceRadiusKm > 0
+                    ? ` · ${t('teacherServiceRadius', { count: tutor.serviceRadiusKm })}`
+                    : ''}
+                </span>
+              </div>
+            )}
         </div>
       </div>
       <aside className="tutor-card-action" aria-label={t('teacherCardAction')}>
@@ -169,7 +171,7 @@ export function TutorCard({ tutor }: { tutor: Tutor }) {
     </article>
   )
 }
-function QuickTutorFinder({ className = 'home-finder' }: { className?: string }) {
+function QuickTutorFinder() {
   const { t } = useTranslation()
   const classOptions = [
     { value: 5, label: t('landing.finderClassPrimary') },
@@ -177,23 +179,33 @@ function QuickTutorFinder({ className = 'home-finder' }: { className?: string })
     { value: 10, label: t('landing.finderClassBoard') },
     { value: 12, label: t('landing.finderClassSenior') },
   ]
-  const teacherOptions = [
-    { value: 'online-hour', mode: 'online', label: t('landing.finderTeacherOnlineHour') },
-    { value: 'home-week', mode: 'home', label: t('landing.finderTeacherWeekly') },
-    { value: 'home-month', mode: 'home', label: t('landing.finderTeacherMonthly') },
+  const modeOptions = [
+    { value: 'online', label: t('online') },
+    { value: 'home', label: t('landing.finderOffline') },
   ]
   const [finderClass, setFinderClass] = useState(classOptions[1].value)
-  const [finderTeacher, setFinderTeacher] = useState(teacherOptions[0].value)
+  const [finderMode, setFinderMode] = useState('online')
+  const [finderSubjects, setFinderSubjects] = useState<string[]>([])
   const [finderTime, setFinderTime] = useState('17:00')
-  const selectedTeacher =
-    teacherOptions.find((option) => option.value === finderTeacher) ?? teacherOptions[0]
   const finderGoal = t('landing.finderGoal', {
-    teacher: selectedTeacher.label,
+    mode: t(finderMode === 'online' ? 'online' : 'landing.finderOffline'),
     time: finderTime,
   })
-  const finderLink = `/tutors?searched=1&subject=Mathematics&class=${finderClass}&mode=${selectedTeacher.mode}&plan=${selectedTeacher.value}&teacher=${encodeURIComponent(selectedTeacher.label)}&time=${encodeURIComponent(finderTime)}&goal=${encodeURIComponent(finderGoal)}`
+  const finderParams = new URLSearchParams({
+    searched: '1',
+    class: String(finderClass),
+    mode: finderMode,
+    time: finderTime,
+    goal: finderGoal,
+  })
+  finderSubjects.forEach((subject) => finderParams.append('subject', subject))
+  const finderLink = `/tutors?${finderParams}`
   return (
-    <aside id="quick-tutor-finder" className={className} aria-label={t('landing.finderTitle')}>
+    <aside
+      id="quick-tutor-finder"
+      className="home-finder tutor-search-finder"
+      aria-label={t('landing.finderTitle')}
+    >
       <div className="home-finder-group">
         <span>{t('landing.finderClassLabel')}</span>
         <div className="home-finder-options">
@@ -210,21 +222,26 @@ function QuickTutorFinder({ className = 'home-finder' }: { className?: string })
         </div>
       </div>
       <div className="home-finder-group">
-        <span>{t('landing.finderTeacherLabel')}</span>
-        <div className="home-finder-options three">
-          {teacherOptions.map((option) => (
+        <span>{t('landing.finderModeLabel')}</span>
+        <div className="home-finder-options two">
+          {modeOptions.map((option) => (
             <button
               key={option.value}
               type="button"
-              aria-pressed={finderTeacher === option.value}
-              onClick={() => setFinderTeacher(option.value)}
+              aria-pressed={finderMode === option.value}
+              onClick={() => setFinderMode(option.value)}
             >
-              {option.mode === 'online' ? <Monitor size={15} /> : <House size={15} />}
+              {option.value === 'online' ? (
+                <Monitor size={15} aria-hidden="true" />
+              ) : (
+                <House size={15} aria-hidden="true" />
+              )}
               {option.label}
             </button>
           ))}
         </div>
       </div>
+      <SubjectSelect value={finderSubjects} onChange={setFinderSubjects} />
       <Field label={t('landing.finderPreferredTime')}>
         <input
           type="time"
@@ -496,13 +513,13 @@ export function Home() {
 export function Search() {
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
-  const subject = params.get('subject') ?? 'Mathematics'
+  const subjects = params.getAll('subject').filter(Boolean)
   const language = params.get('language') ?? ''
   const hasSearched =
     params.get('searched') === '1' ||
     params.has('class') ||
     params.has('mode') ||
-    params.has('plan')
+    params.has('subject')
   const requestedClass = Number(params.get('class'))
   const classFilter =
     Number.isInteger(requestedClass) && requestedClass >= 1 && requestedClass <= 12
@@ -510,7 +527,6 @@ export function Search() {
       : null
   const modeFilter = params.get('mode')
   const selectedMode = modeFilter === 'home' || modeFilter === 'online' ? modeFilter : ''
-  const teacherFilter = params.get('teacher')?.trim() ?? ''
   const timeFilter = params.get('time')?.trim() ?? ''
   const locationText = params.get('locality')?.trim() ?? ''
   const latitude = params.get('latitude') ?? ''
@@ -520,9 +536,19 @@ export function Search() {
     ? t(selectedMode === 'home' ? 'landing.homeMode' : 'landing.onlineMode')
     : t('allModes')
   const query = useQuery({
-    queryKey: ['tutors', subject, language, classFilter, selectedMode, latitude, longitude, radiusKm],
+    queryKey: [
+      'tutors',
+      subjects,
+      language,
+      classFilter,
+      selectedMode,
+      latitude,
+      longitude,
+      radiusKm,
+    ],
     queryFn: ({ signal }) => {
-      const request = new URLSearchParams({ subject })
+      const request = new URLSearchParams()
+      subjects.forEach((subject) => request.append('subject', subject))
       if (language) request.set('language', language)
       if (classFilter) request.set('class', String(classFilter))
       if (selectedMode) request.set('mode', selectedMode)
@@ -571,12 +597,16 @@ export function Search() {
   }
   const fields = (
     <div className="filter-fields">
-      <Field label={t('subject')}>
-        <select value={subject} onChange={(e) => filter('subject', e.target.value)}>
-          <option value="Mathematics">{t('math')}</option>
-          <option value="Science">{t('science')}</option>
-        </select>
-      </Field>
+      <SubjectSelect
+        value={subjects}
+        onChange={(values) => {
+          const next = new URLSearchParams(params)
+          next.delete('subject')
+          values.forEach((subject) => next.append('subject', subject))
+          next.set('searched', '1')
+          setParams(next)
+        }}
+      />
       <Field label={t('preferredLanguage')}>
         <select value={language} onChange={(e) => filter('language', e.target.value)}>
           <option value="">{t('allLanguages')}</option>
@@ -629,7 +659,6 @@ export function Search() {
           <p>
             {classFilter ? `${t('classes')} ${classFilter}` : t('allClasses')}
             {` - ${modeLabel}`}
-            {teacherFilter ? ` - ${teacherFilter}` : ''}
             {timeFilter ? ` - ${timeFilter}` : ''}
             {selectedMode === 'home' && locationText ? ` - ${locationText}` : ''}
           </p>
@@ -644,7 +673,7 @@ export function Search() {
     return (
       <div className="container section tutor-finder-page">
         <PageHeading title={t('landing.finderTitle')} body={t('searchIntro')} />
-        <QuickTutorFinder className="home-finder tutor-search-finder" />
+        <QuickTutorFinder />
       </div>
     )
   }
@@ -686,14 +715,19 @@ export function Search() {
             </div>
           </div>
           <div className="filter-chips">
-            <Badge tone="neutral">{t(subject === 'Science' ? 'science' : 'math')}</Badge>
+            {subjects.map((subject) => (
+              <Badge key={subject} tone="neutral">
+                {subject}
+              </Badge>
+            ))}
             {classFilter && <Badge tone="neutral">{`${t('classes')} ${classFilter}`}</Badge>}
             {selectedMode && <Badge tone="neutral">{modeLabel}</Badge>}
-            {selectedMode === 'home' && locationText && <Badge tone="neutral">{locationText}</Badge>}
+            {selectedMode === 'home' && locationText && (
+              <Badge tone="neutral">{locationText}</Badge>
+            )}
             {selectedMode === 'home' && latitude && longitude && (
               <Badge tone="neutral">{t('radiusKm', { count: Number(radiusKm) })}</Badge>
             )}
-            {teacherFilter && <Badge tone="neutral">{teacherFilter}</Badge>}
             {timeFilter && <Badge tone="neutral">{timeFilter}</Badge>}
             {language && (
               <button className="filter-chip" onClick={() => filter('language', '')}>

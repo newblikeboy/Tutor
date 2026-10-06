@@ -183,6 +183,7 @@ func (a *App) Routes() http.Handler {
 		r.Delete("/api/v1/learner-draft", a.deleteLearnerDraft)
 		r.Put("/api/v1/draft", a.draft)
 		r.Post("/api/v1/requirements", a.requirement)
+		r.Delete("/api/v1/requirements/{id}", a.deleteRequirement)
 		r.Post("/api/v1/trials", a.requestTrial)
 		r.Post("/api/v1/trials/{id}/action", a.trialAction)
 		r.Get("/api/v1/availability", a.availability)
@@ -242,8 +243,18 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 	if a.Config.Env == "production" {
 		f["sample"] = false
 	}
-	if v := r.URL.Query().Get("subject"); v != "" {
-		f["scope.subject"] = v
+	if subjects := r.URL.Query()["subject"]; len(subjects) > 0 {
+		if len(subjects) > 20 {
+			a.error(w, r, domain.Fail(422, "validation", "Choose up to 20 subjects."))
+			return
+		}
+		for _, subject := range subjects {
+			if !validText(subject, 1, 80) {
+				a.error(w, r, domain.Fail(422, "validation", "Choose a valid subject."))
+				return
+			}
+		}
+		f["scope.subject"] = bson.M{"$in": subjects}
 	}
 	if v := r.URL.Query().Get("language"); v != "" {
 		f["language"] = v

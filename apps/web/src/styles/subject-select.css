@@ -1,0 +1,71 @@
+.subject-select {
+  min-width: 0;
+}
+.subject-select-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.subject-select details {
+  position: relative;
+}
+.subject-select summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 50px;
+  padding: 12px 14px;
+  border: 1px solid #cad7be;
+  border-radius: 12px;
+  background: #fffefa;
+  color: #183b36;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+}
+.subject-select summary::-webkit-details-marker {
+  display: none;
+}
+.subject-select summary > span {
+  overflow-wrap: anywhere;
+}
+.subject-select summary svg {
+  flex-shrink: 0;
+}
+.subject-select details[open] summary svg {
+  transform: rotate(180deg);
+}
+.subject-select-options {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: grid;
+  padding: 6px;
+  border: 1px solid #cad7be;
+  border-radius: 12px;
+  background: #fffefa;
+  box-shadow: 0 12px 28px #15353b20;
+}
+.subject-select-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.subject-select-options label:hover,
+.subject-select-options label:focus-within {
+  background: #edf1df;
+}
+.subject-select-options input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #315b4e;
+}

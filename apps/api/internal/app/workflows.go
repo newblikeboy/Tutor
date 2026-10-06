@@ -175,6 +175,36 @@ func (a *App) requirement(w http.ResponseWriter, r *http.Request) {
 	}
 	a.json(w, 201, v)
 }
+func (a *App) deleteRequirement(w http.ResponseWriter, r *http.Request) {
+	if !a.role(w, r, "parent") {
+		return
+	}
+	id, owner := chi.URLParam(r, "id"), user(r).ID
+	err := a.Store.Tx(r.Context(), func(ctx context.Context) error {
+		// Deleting first takes the same document lock as trial booking. Any
+		// existing trial aborts this transaction, restoring the learning need.
+		result, err := a.Store.C("requirements").DeleteOne(ctx, bson.M{"_id": id, "ownerId": owner})
+		if err != nil {
+			return err
+		}
+		if result.DeletedCount == 0 {
+			return mongo.ErrNoDocuments
+		}
+		err = a.Store.C("trials").FindOne(ctx, bson.M{"requirementId": id}).Err()
+		if err == nil {
+			return domain.Fail(409, "requirement_in_use", "Learning needs with a trial booking cannot be deleted, including cancelled or declined trials.")
+		}
+		if err != mongo.ErrNoDocuments {
+			return err
+		}
+		return a.audit(ctx, owner, "requirement.deleted", id)
+	})
+	if err != nil {
+		a.error(w, r, err)
+		return
+	}
+	a.json(w, 200, map[string]bool{"ok": true})
+}
 func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 	u := user(r)
 	ctx := r.Context()

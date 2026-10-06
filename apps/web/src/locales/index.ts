@@ -82,9 +82,9 @@ const en = {
     'Tutor profiles show staff-confirmed prices where available. After you share a requirement, the academic team can review the fit, trial timing and learning plan before regular classes begin.',
   finalTitle: 'Let’s start with your child.',
   finalBody: 'Their questions. Their pace. Their next step.',
-  searchTitle: 'Tutors that match your child?s need.',
+  searchTitle: 'Tutors that match your child’s needs.',
   searchIntro:
-    'Choose the class, tuition type and time. Then compare teachers by fit, price and teaching style.',
+    'Choose the class, teaching mode, subjects and preferred time. Then compare tutors by fit, price and teaching style.',
   filters: 'Refine results',
   subject: 'Subject',
   preferredLanguage: 'Teaching language',
@@ -130,7 +130,8 @@ const en = {
   locationDenied: 'Location permission was blocked. You can still search or type the locality.',
   locationUnsupported: 'Current location is not available in this browser.',
   locationUnavailable: 'Could not read current location. Search or type the locality instead.',
-  locationResolveFailed: 'Your location was found, but its address could not be retrieved. Please try again.',
+  locationResolveFailed:
+    'Your location was found, but its address could not be retrieved. Please try again.',
   addCurrentLocality: 'Add my locality',
   serviceLocalitiesSelected: 'Selected service localities',
   assessment: 'Assessment',

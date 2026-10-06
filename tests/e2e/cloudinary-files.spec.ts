@@ -24,12 +24,26 @@ test('direct Cloudinary uploads persist references and privately deliver images 
   expect(response.status()).toBe(201)
   const auth = await response.json()
   const headers = { Origin: origin, 'X-CSRF-Token': auth.csrf }
+  const profile = applicationProfile('Fictional Cloudinary applicant')
+  profile.about.location = {
+    address: 'Fictional test location',
+    locality: 'Line Bazar',
+    city: 'Purnea',
+    district: 'Purnea',
+    state: 'Bihar',
+    country: 'India',
+    postalCode: '854301',
+    latitude: 25.77,
+    longitude: 87.47,
+    accuracyMeters: 100,
+    source: 'manual',
+  }
   const draft = await page.request.put('/api/v1/application', {
     headers,
     data: {
       version: 0,
       step: 0,
-      profile: applicationProfile('Fictional Cloudinary applicant'),
+      profile,
       submit: false,
     },
   })
@@ -56,15 +70,17 @@ test('direct Cloudinary uploads persist references and privately deliver images 
     mimeType: 'image/png',
     buffer: Buffer.from(image, 'base64'),
   })
+  await expect(photo.getByRole('img', { name: 'Selected image preview' })).toBeVisible()
+  await expect(photo.getByText(/Preview only/)).toBeVisible()
   const remoteUpload = page.waitForRequest(
     (r) => r.url() === 'http://127.0.0.1:7998/image/upload' && r.method() === 'POST',
   )
   await photo.getByRole('button', { name: 'Upload', exact: true }).click()
   await remoteUpload
-  await expect(photo.getByRole('status')).toContainText('sample-photo.png')
+  await expect(photo.locator('.af-attachment-list [role=status]')).toContainText('sample-photo.png')
   await expect(page.getByRole('button', { name: 'Save draft', exact: true })).toBeEnabled()
   await page.reload()
-  await expect(photo.getByRole('status')).toContainText('sample-photo.png')
+  await expect(photo.locator('.af-attachment-list [role=status]')).toContainText('sample-photo.png')
   await page.getByRole('tab', { name: /Education/ }).click()
   const resumeInput = page.getByLabel('Resume (optional)', { exact: true })
   const resume = page.locator('.af-attachment').filter({ has: resumeInput })
@@ -74,7 +90,9 @@ test('direct Cloudinary uploads persist references and privately deliver images 
     buffer: Buffer.from('%PDF-1.4\n1 0 obj <<>> endobj\n%%EOF'),
   })
   await resume.getByRole('button', { name: 'Upload', exact: true }).click()
-  await expect(resume.getByRole('status')).toContainText('sample-resume.pdf')
+  await expect(resume.locator('.af-attachment-list [role=status]')).toContainText(
+    'sample-resume.pdf',
+  )
   await expect(page.getByRole('button', { name: 'Save draft', exact: true })).toBeEnabled()
   expect(
     posted.filter((p) => p.url.includes('/files')).every((p) => !p.body.includes('"content":')),
@@ -153,6 +171,23 @@ test('direct Cloudinary uploads persist references and privately deliver images 
   const files = (
     await (await page.request.get(`/api/v1/applications/${auth.user.id}/files`)).json()
   ).items
+  const storedPhoto = files.find((f: { contentType: string }) => f.contentType.startsWith('image/'))
+  const previewRedirect = await page.request.get(`/api/v1/files/${storedPhoto.id}/view?preview=1`, {
+    maxRedirects: 0,
+  })
+  expect(previewRedirect.status()).toBe(302)
+  const previewParams = new URL(previewRedirect.headers().location).searchParams
+  expect(previewParams.get('transformation')).toBe('c_limit,h_640,w_640/q_auto')
+  expect(previewParams.get('format')).toBe('webp')
+  expect(previewParams.get('type')).toBe('authenticated')
+  expect(Number(previewParams.get('expires_at')) - Number(previewParams.get('timestamp'))).toBe(300)
+  const originalRedirect = await page.request.get(
+    `/api/v1/files/${storedPhoto.id}/download?preview=1`,
+    { maxRedirects: 0 },
+  )
+  expect(new URL(originalRedirect.headers().location).searchParams.has('transformation')).toBe(
+    false,
+  )
   expect(
     files.every(
       (f: { status: string; scannedAt?: string }) => f.status === 'ready' && !f.scannedAt,

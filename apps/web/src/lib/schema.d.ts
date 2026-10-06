@@ -331,6 +331,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/requirements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** DELETE /requirements/{id} */
+        delete: operations["delete__requirements__id_"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/location/reverse": {
         parameters: {
             query?: never;
@@ -2628,7 +2645,8 @@ export interface operations {
     get__tutors: {
         parameters: {
             query?: {
-                subject?: string;
+                /** @description Match any selected subject. Omit for all subjects; repeat the subject parameter for multiple selections. */
+                subject?: string[];
                 language?: string;
                 class?: string;
                 mode?: string;
@@ -3291,6 +3309,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Requirement"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    delete__requirements__id_: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
@@ -4900,7 +4956,10 @@ export interface operations {
     };
     get__files__id__view: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Request a signed 640px WebP preview for images. Omit to view the original. Documents and videos retain their original delivery. */
+                preview?: "1";
+            };
             header?: never;
             path: {
                 id: string;

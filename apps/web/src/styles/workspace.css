@@ -1046,7 +1046,7 @@
   border-color: var(--border);
   padding: 36px 24px;
 }
-.desk-shell .empty h3 {
+.desk-shell .empty :is(h2, h3) {
   font-size: 18px;
   font-weight: 500;
 }

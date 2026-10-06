@@ -2633,7 +2633,7 @@ footer {
   .empty {
     padding: 34px 22px;
   }
-  .empty h3 {
+  .empty :is(h2, h3) {
     font-size: 19px;
   }
   .empty p {

@@ -120,7 +120,7 @@ func TestMongoDirectCloudinaryFiles(t *testing.T) {
 		if e != nil || count != 0 {
 			t.Fatal("Cloudinary queued a local scan")
 		}
-		for _, action := range []string{"view", "download"} {
+		for _, action := range []string{"view", "view?preview=1", "download", "download?preview=1"} {
 			tutor.ok("GET", "/files/"+id+"/"+action, nil, 302)
 			other.ok("GET", "/files/"+id+"/"+action, nil, 404)
 			admin.ok("GET", "/files/"+id+"/"+action, nil, 302)
@@ -140,10 +140,12 @@ func TestMongoDirectCloudinaryFiles(t *testing.T) {
 		t.Fatal(e)
 	}
 	mentor.ok("GET", "/files/"+ids[0]+"/view", nil, 302)
+	mentor.ok("GET", "/files/"+ids[0]+"/view?preview=1", nil, 302)
 	if _, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-a"}, bson.M{"$set": bson.M{"assessorId": "mentor-b"}}); e != nil {
 		t.Fatal(e)
 	}
 	mentor.ok("GET", "/files/"+ids[0]+"/view", nil, 404)
+	mentor.ok("GET", "/files/"+ids[0]+"/view?preview=1", nil, 404)
 	// References survive a second API instance; an old signed link has a bounded TTL.
 	b := New(s, cfg)
 	if e = b.ConfigureMedia(); e != nil {

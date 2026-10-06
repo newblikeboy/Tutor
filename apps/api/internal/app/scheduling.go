@@ -103,7 +103,9 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 		if in.Start.Before(a.Now().Add(5*time.Minute)) || in.Start.After(a.Now().AddDate(0, 1, 0)) {
 			return domain.Fail(422, "validation", "Select a trial time between five minutes and one month from now.")
 		}
-		req, er := storage.One[domain.Requirement](ctx, a.Store, "requirements", bson.M{"_id": in.RequirementID, "ownerId": u.ID})
+		// Serialize booking with deletion of an unused learning need.
+		var req domain.Requirement
+		er = a.Store.C("requirements").FindOneAndUpdate(ctx, bson.M{"_id": in.RequirementID, "ownerId": u.ID}, bson.M{"$inc": bson.M{"bookingRevision": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&req)
 		if er != nil {
 			return er
 		}

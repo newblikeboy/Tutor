@@ -205,7 +205,7 @@ export default function Billing() {
   if (!['parent', 'finance', 'admin'].includes(auth.data?.user.role ?? ''))
     return <Alert>{t('permission')}</Alert>
   return (
-    <div className="tu-page">
+    <div className="tu-page billing-page">
       <h1 className="sr-only">
         {t(auth.data?.user.role === 'parent' ? 'parent.payments' : 'billing.title')}
       </h1>
@@ -268,7 +268,7 @@ function PaymentList() {
       ) : (
         <>
           {!q.data.items.length ? (
-            <Empty title={t('billing.none')} body={t('billing.noneBody')} />
+            <Empty headingLevel={2} title={t('billing.none')} body={t('billing.noneBody')} />
           ) : (
             <div className="tu-card-grid">
               {q.data.items.map((v) => (

@@ -111,12 +111,23 @@ http
           res.writeHead(404).end()
           return
         }
+        // Verify the preview protocol without pretending to implement Cloudinary's encoder.
+        // This fixture returns original bytes; live provider size/format checks are separate.
+        if (
+          params.transformation &&
+          (resource !== 'image' ||
+            params.format !== 'webp' ||
+            params.transformation !== 'c_limit,h_640,w_640/q_auto')
+        ) {
+          res.writeHead(400).end()
+          return
+        }
         const type = {
           png: 'image/png',
           jpg: 'image/jpeg',
           pdf: 'application/pdf',
           mp4: 'video/mp4',
-        }[params.format]
+        }[params.transformation ? asset.metadata.format : params.format]
         res.setHeader('Content-Type', type || 'application/octet-stream')
         res.setHeader('Content-Disposition', params.attachment === 'true' ? 'attachment' : 'inline')
         res.setHeader('Accept-Ranges', 'bytes')

@@ -88,6 +88,7 @@ function Updates({ user }: { user: User }) {
     )
   return (
     <div className="tu-page inbox-page">
+      <h1 className="sr-only">{t('inbox.title')}</h1>
       <div className="inbox-toolbar">
         <nav className="inbox-tabs" aria-label={t('inbox.title')}>
           {user.role !== 'admin' && (

@@ -233,10 +233,6 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.home-finder-options.three {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
 .home-finder-options button {
   min-height: 36px;
   border: 1px solid #cad7be;
@@ -254,8 +250,7 @@
     color 160ms,
     transform 160ms;
 }
-.home-finder-options.two button,
-.home-finder-options.three button {
+.home-finder-options.two button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -271,27 +266,6 @@
   background: #315b4e;
   color: #fff;
 }
-.home-finder-summary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 14px 0 11px;
-  padding: 11px 12px;
-  border: 1px solid #d8e2ce;
-  border-radius: 16px;
-  background: #fffefa;
-  color: #315b4e;
-}
-.home-finder-summary select {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  color: #183b36;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  outline: 0;
-}
 .home-finder .field {
   margin-top: 14px;
 }
@@ -306,6 +280,7 @@
 .home-finder > .btn {
   width: 100%;
   justify-content: center;
+  margin-top: 14px;
 }
 .home-finder-note {
   margin-top: 12px;
@@ -1515,14 +1490,10 @@
     inset: -5px;
     border-radius: 25px;
   }
-  .tutor-search-finder .home-finder-options,
-  .tutor-search-finder .home-finder-options.three {
+  .tutor-search-finder .home-finder-options {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-  }
-  .tutor-search-finder .home-finder-options.three button:first-child {
-    grid-column: 1 / -1;
   }
   .tutor-search-finder .home-finder-options button {
     min-height: 44px;

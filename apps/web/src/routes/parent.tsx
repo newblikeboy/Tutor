@@ -1,15 +1,86 @@
+import { useRef, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, BookOpen, CalendarDays, ClipboardCheck, Users } from 'lucide-react'
-import type { Dashboard } from '../lib/api'
+import { api, errorKey, queryClient, type Dashboard, type Requirement } from '../lib/api'
 import { initials, workspaceLink, type WorkspaceView } from '../lib/workspace'
-import { Field, LinkButton } from '../components/ui'
+import { Alert, Button, Field, LinkButton } from '../components/ui'
 import { TabBar, TabPanel } from '../components/workspace-tabs'
 import { TrialCard } from '../components/trial-card'
 import '../styles/parent.css'
 
+function DeleteLearningNeed({
+  request,
+  learnerName,
+  onDeleted,
+}: {
+  request: Requirement
+  learnerName: string
+  onDeleted: () => void
+}) {
+  const { t } = useTranslation()
+  const [confirming, setConfirming] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const remove = useMutation({
+    mutationFn: () => api(`/requirements/${encodeURIComponent(request.id)}`, { method: 'DELETE' }),
+    onSuccess: async () => {
+      onDeleted()
+      queryClient.setQueryData<Dashboard>(
+        ['dashboard'],
+        (current) =>
+          current && {
+            ...current,
+            requirements: current.requirements.filter((item) => item.id !== request.id),
+          },
+      )
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+  return (
+    <div className="parent-delete-need">
+      <button
+        ref={trigger}
+        type="button"
+        className="text-link"
+        aria-expanded={confirming}
+        onClick={() => {
+          remove.reset()
+          setConfirming(!confirming)
+        }}
+        disabled={remove.isPending}
+      >
+        {t('parent.deleteNeed')}
+      </button>
+      {confirming && (
+        <div className="parent-delete-confirm">
+          <p>{t('parent.deleteNeedConfirm', { name: learnerName })}</p>
+          {remove.isError && <Alert kind="error">{t(errorKey(remove.error))}</Alert>}
+          <div className="parent-delete-buttons">
+            <Button
+              variant="secondary"
+              disabled={remove.isPending}
+              onClick={() => {
+                setConfirming(false)
+                trigger.current?.focus()
+              }}
+            >
+              {t('cancel')}
+            </Button>
+            <Button variant="danger" busy={remove.isPending} onClick={() => remove.mutate()}>
+              {t('parent.confirmDelete')}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Parent({ data, view }: { data: Dashboard; view: WorkspaceView }) {
   const { t } = useTranslation()
+  const [deleted, setDeleted] = useState(false)
+  const needsHeading = useRef<HTMLHeadingElement>(null)
   const [params, setParams] = useSearchParams()
   const learner =
     data.learners.find((item) => item.id === params.get('learner')) ?? data.learners[0]
@@ -71,31 +142,13 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
 
   return (
     <div className="parent-content">
-      <section className="desk-learner-bar" aria-label={t('selected')}>
-        <span className="desk-learner-avatar" aria-hidden="true">
-          {initials(learner.name)}
-        </span>
-        <div className="desk-learner-identity">
-          <h2>{learner.name}</h2>
-          <span>
-            {t('class')} {learner.class} · {learner.board} ·{' '}
-            {t(learner.language === 'Hindi' ? 'hindi' : 'english')}
-          </span>
-        </div>
-        {view === 'learners' && (
-          <Link
-            className="text-link"
-            to={`/match?profile=1&edit=1&learner=${encodeURIComponent(selected)}`}
-          >
-            {t('parent.edit')}
-          </Link>
-        )}
-        {data.learners.length > 1 && (
+      {view === 'overview' && (
+        <section className="parent-home-learner" aria-label={t('selected')}>
           <Field label={t('parent.learner')}>
             <select
               value={selected}
               onChange={(event) => {
-                const next = new URLSearchParams(window.location.search)
+                const next = new URLSearchParams(params)
                 next.set('learner', event.target.value)
                 setParams(next)
               }}
@@ -107,8 +160,52 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
               ))}
             </select>
           </Field>
-        )}
-      </section>
+          <p>
+            {t('class')} {learner.class} · {learner.board} ·{' '}
+            {t(learner.language === 'Hindi' ? 'hindi' : 'english')}
+          </p>
+        </section>
+      )}
+      {view !== 'overview' && (
+        <section className="desk-learner-bar" aria-label={t('selected')}>
+          <span className="desk-learner-avatar" aria-hidden="true">
+            {initials(learner.name)}
+          </span>
+          <div className="desk-learner-identity">
+            <h2>{learner.name}</h2>
+            <span>
+              {t('class')} {learner.class} · {learner.board} ·{' '}
+              {t(learner.language === 'Hindi' ? 'hindi' : 'english')}
+            </span>
+          </div>
+          {view === 'learners' && (
+            <Link
+              className="text-link"
+              to={`/match?profile=1&edit=1&learner=${encodeURIComponent(selected)}`}
+            >
+              {t('parent.edit')}
+            </Link>
+          )}
+          {data.learners.length > 1 && (
+            <Field label={t('parent.learner')}>
+              <select
+                value={selected}
+                onChange={(event) => {
+                  const next = new URLSearchParams(window.location.search)
+                  next.set('learner', event.target.value)
+                  setParams(next)
+                }}
+              >
+                {data.learners.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+        </section>
+      )}
 
       {view === 'overview' && (
         <>
@@ -188,12 +285,17 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
       {view === 'learners' && (
         <section className="parent-requests">
           <div className="section-label">
-            <h2>{t('parent.needs')}</h2>
+            <h2 ref={needsHeading} tabIndex={-1}>
+              {t('parent.needs')}
+            </h2>
             <Link className="text-link" to={newNeeds}>
               {t('parent.newNeeds')}
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
+          <p className="sr-only" role="status">
+            {deleted ? t('parent.needDeleted') : ''}
+          </p>
           {requests.length ? (
             requests.map((request) => {
               const trial = trials
@@ -209,21 +311,33 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
                     {t('math')} · {t('class')} {learner.class}
                   </h3>
                   <p>{request.goal}</p>
-                  <Link
-                    className="text-link"
-                    to={
-                      trial
-                        ? trialLink(
-                            ['completed', 'reviewed'].includes(trial.status)
-                              ? 'completed'
-                              : 'upcoming',
-                          )
-                        : requestLink(request.id)
-                    }
-                  >
-                    {t(trial ? `parent.trialStatus.${trial.status}` : 'parent.choose')}
-                    <ArrowRight size={16} aria-hidden="true" />
-                  </Link>
+                  <div className="parent-request-actions">
+                    <Link
+                      className="text-link"
+                      to={
+                        trial
+                          ? trialLink(
+                              ['completed', 'reviewed'].includes(trial.status)
+                                ? 'completed'
+                                : 'upcoming',
+                            )
+                          : requestLink(request.id)
+                      }
+                    >
+                      {t(trial ? `parent.trialStatus.${trial.status}` : 'parent.choose')}
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </Link>
+                    {!trials.some((item) => item.requirementId === request.id) && (
+                      <DeleteLearningNeed
+                        request={request}
+                        learnerName={learner.name}
+                        onDeleted={() => {
+                          setDeleted(true)
+                          needsHeading.current?.focus()
+                        }}
+                      />
+                    )}
+                  </div>
                 </article>
               )
             })

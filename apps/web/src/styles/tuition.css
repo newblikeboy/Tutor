@@ -315,6 +315,7 @@
   padding-top: 16px;
 }
 .tu-regular-booking-form,
+.tu-regular-booking-summary,
 .tu-regular-calendar-wrap {
   display: grid;
   gap: 16px;
@@ -422,11 +423,6 @@
 .trial-date strong {
   font-size: 14px;
   line-height: 1.1;
-}
-.trial-date.empty {
-  border-color: transparent;
-  background: transparent;
-  pointer-events: none;
 }
 .trial-date.available,
 .trial-time.available {

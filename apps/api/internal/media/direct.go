@@ -32,7 +32,7 @@ type UploadGrant struct {
 type DirectStore interface {
 	Grant(string, string, string, time.Time) UploadGrant
 	Verify(context.Context, string, string) (Asset, error)
-	Delivery(string, string, string, bool, time.Time) string
+	Delivery(string, string, string, bool, bool, time.Time) string
 	Delete(context.Context, string, string, time.Time) error
 }
 type CloudinaryDirect struct {
@@ -108,10 +108,15 @@ func (c *CloudinaryDirect) Delete(ctx context.Context, id, resource string, now 
 	return nil
 }
 
-func (c *CloudinaryDirect) Delivery(id, resource, format string, attachment bool, now time.Time) string {
+func (c *CloudinaryDirect) Delivery(id, resource, format string, attachment, preview bool, now time.Time) string {
 	p := url.Values{"public_id": {id}, "type": {"authenticated"}, "timestamp": {strconv.FormatInt(now.Unix(), 10)}, "expires_at": {strconv.FormatInt(now.Add(5*time.Minute).Unix(), 10)}, "attachment": {strconv.FormatBool(attachment)}}
 	if format != "" {
 		p.Set("format", format)
+	}
+	if preview && resource == "image" && !attachment {
+		// Fixed, signed preview; originals remain available via view/download.
+		p.Set("format", "webp")
+		p.Set("transformation", "c_limit,h_640,w_640/q_auto")
 	}
 	c.signer.sign(p)
 	return c.endpoint + "/" + resource + "/download?" + p.Encode()

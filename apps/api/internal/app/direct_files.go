@@ -251,7 +251,7 @@ func (a *App) deliverDirectFile(w http.ResponseWriter, r *http.Request, f domain
 		return
 	}
 	format := map[string]string{"image/jpeg": "jpg", "image/png": "png", "application/pdf": "pdf", "video/mp4": "mp4"}[f.ContentType]
-	location := a.DirectFiles.Delivery(f.PublicID, f.ResourceType, format, attachment, a.Now())
+	location := a.DirectFiles.Delivery(f.PublicID, f.ResourceType, format, attachment, r.URL.Query().Get("preview") == "1", a.Now())
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	http.Redirect(w, r, location, http.StatusFound)

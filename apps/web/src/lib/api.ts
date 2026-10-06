@@ -91,6 +91,7 @@ export function errorKey(error: unknown): string {
         guardian_unconfigured: 'parent.guardianUnavailable',
         learner_draft_stale: 'parent.draftStale',
         learner_stale: 'parent.editStale',
+        requirement_in_use: 'parent.needInUse',
         idempotency_conflict: 'parent.saveConflict',
         unauthenticated: 'authRequired',
         forbidden: 'permission',

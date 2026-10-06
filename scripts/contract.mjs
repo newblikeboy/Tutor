@@ -334,7 +334,23 @@ function route(path, method, response, request, publicRoute = false, isArray = f
       'longitude',
       'radiusKm',
     ])
-      operation.parameters.push({ name, in: 'query', schema: str })
+      operation.parameters.push(
+        name === 'subject'
+          ? {
+              name,
+              in: 'query',
+              style: 'form',
+              explode: true,
+              description:
+                'Match any selected subject. Omit for all subjects; repeat the subject parameter for multiple selections.',
+              schema: {
+                type: 'array',
+                maxItems: 20,
+                items: { type: 'string', minLength: 1, maxLength: 80 },
+              },
+            }
+          : { name, in: 'query', schema: str },
+      )
   if (path === '/location/reverse')
     for (const name of ['latitude', 'longitude', 'accuracyMeters'])
       operation.parameters.push({ name, in: 'query', schema: str })
@@ -407,6 +423,7 @@ route('/learner-draft', 'put', 'LearnerDraft', 'LearnerDraft')
 route('/learner-draft', 'delete', 'OK', 'LearnerDraftDelete')
 route('/draft', 'put', 'Draft', 'Draft')
 route('/requirements', 'post', 'Requirement', 'RequirementInput')
+route('/requirements/{id}', 'delete', 'OK')
 route('/location/reverse', 'get', 'ReverseLocation', null, true)
 route('/trials', 'post', 'Trial', 'TrialInput')
 route('/trials/{id}/action', 'post', 'OK', 'ActionInput')

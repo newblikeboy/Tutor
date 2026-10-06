@@ -15,7 +15,7 @@ export const applicationEN = {
       'Choose a valid PDF, JPG or PNG up to 3 MiB, or a demonstration MP4 up to 25 MiB. Only saved files belonging to your application can be attached.',
     attached: 'Attached privately',
     photoFileId: 'Passport-size photo (optional)',
-    photoHint: 'JPG or PNG · up to 3 MiB',
+    photoHint: 'JPG or PNG · up to 3 MiB. Large profile photos are resized for faster upload.',
     photoError: 'Choose a JPG or PNG up to 3 MiB.',
     title: 'Tutor application',
     about: 'About you',
@@ -59,7 +59,8 @@ export const applicationEN = {
     district: 'District',
     location: 'Location',
     detectedLocationDetails: 'Detected location details',
-    locationRequired: 'Use current location to fill your State, District, City, Location and PIN code.',
+    locationRequired:
+      'Use current location to fill your State, District, City, Location and PIN code.',
     useCurrentLocation: 'Use current location',
     useCurrentLocationAgain: 'Use current location again',
     changeLocation: 'Change location',

@@ -1,4 +1,5 @@
-import { uploadFile } from '../lib/uploads'
+import { uploadFile, type UploadProgress } from '../lib/uploads'
+import { LocalImagePreview, UploadFeedback } from '../components/upload-feedback'
 import { useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -79,6 +80,7 @@ export function PrivateFiles({
       queryFn: ({ signal }) =>
         api<Schema['FilePage']>(`${path}?cursor=${encodeURIComponent(cursor)}`, { signal }),
     })
+  const [progress, setProgress] = useState<UploadProgress | null>(null)
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['files', target, id] }),
@@ -89,13 +91,13 @@ export function PrivateFiles({
     mutationFn: async () => {
       if (!file || file.size > 3 * 1024 * 1024 || file.size === 0)
         throw new APIError(422, 'file_type', 'Invalid file')
-      return uploadFile(path, file, key, config.data?.mediaProvider === 'cloudinary')
+      return uploadFile(path, file, key, config.data?.mediaProvider === 'cloudinary', setProgress)
     },
     onSuccess: async () => {
       setFile(null)
       setKey(crypto.randomUUID())
       if (input.current) input.current.value = ''
-      await refresh()
+      await queryClient.invalidateQueries({ queryKey: ['files', target, id] })
     },
   })
   const download = useMutation({
@@ -161,6 +163,10 @@ export function PrivateFiles({
                   }}
                 />
               </Field>
+              {file &&
+                ['image/jpeg', 'image/png'].includes(file.type) &&
+                file.size <= 3 * 1024 * 1024 && <LocalImagePreview key={key} file={file} />}
+              {upload.isPending && <UploadFeedback progress={progress} />}
               <MutationError error={upload.error} />
               {upload.isSuccess && <Alert kind="success">{t('files.saved')}</Alert>}
               <Button busy={upload.isPending} disabled={!file}>
@@ -197,9 +203,10 @@ export function PrivateFiles({
               )}
               {f.status === 'ready' && f.contentType.startsWith('image/') && (
                 <img
-                  src={`/api/v1/files/${f.id}/view`}
+                  src={`/api/v1/files/${f.id}/view?preview=1`}
                   alt={f.name}
                   loading="lazy"
+                  decoding="async"
                   style={{
                     maxWidth: '100%',
                     maxHeight: 260,

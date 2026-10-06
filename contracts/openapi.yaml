@@ -135,8 +135,17 @@
           {
             "name": "subject",
             "in": "query",
+            "style": "form",
+            "explode": true,
+            "description": "Match any selected subject. Omit for all subjects; repeat the subject parameter for multiple selections.",
             "schema": {
-              "type": "string"
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
             }
           },
           {
@@ -1155,6 +1164,78 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RequirementInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/requirements/{id}": {
+      "delete": {
+        "operationId": "delete__requirements__id_",
+        "summary": "DELETE /requirements/{id}",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
               }
             }
           }
@@ -3898,6 +3979,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "preview",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "Request a signed 640px WebP preview for images. Omit to view the original. Documents and videos retain their original delivery."
           }
         ]
       }

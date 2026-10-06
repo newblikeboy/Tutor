@@ -30,10 +30,28 @@ func TestDirectCloudinaryCapabilities(t *testing.T) {
 			t.Fatal("secret exposed")
 		}
 	}
-	raw := c.Delivery(id, "image", "png", false, now)
+	raw := c.Delivery(id, "image", "png", false, false, now)
 	u, _ := url.Parse(raw)
 	if u.Query().Get("expires_at") != "1700000300" || u.Query().Get("attachment") != "false" || u.Query().Get("type") != "authenticated" {
 		t.Fatal("delivery is not bounded/private")
+	}
+	preview, _ := url.Parse(c.Delivery(id, "image", "png", false, true, now))
+	p := preview.Query()
+	if p.Get("format") != "webp" || p.Get("transformation") != "c_limit,h_640,w_640/q_auto" || p.Get("expires_at") != "1700000300" || p.Get("type") != "authenticated" {
+		t.Fatal("preview is not optimized and private")
+	}
+	signature := p.Get("signature")
+	p.Del("signature")
+	p.Del("api_key")
+	c.signer.sign(p)
+	if p.Get("signature") != signature {
+		t.Fatal("preview transformation is not signed")
+	}
+	for _, kind := range []string{"image", "raw", "video"} {
+		original, _ := url.Parse(c.Delivery(id, kind, "png", true, true, now))
+		if original.Query().Get("transformation") != "" || original.Query().Get("format") != "png" {
+			t.Fatal("download changed the original")
+		}
 	}
 	response := Asset{PublicID: id, ResourceType: "image", Type: "authenticated", Format: "png", Bytes: 50, Version: 1, AssetID: "asset-id", ETag: "etag", URL: "https://attacker.invalid/file"}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

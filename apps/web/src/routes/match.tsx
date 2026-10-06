@@ -914,9 +914,9 @@ function TutorTrialActions({
                   <span key={day}>{day}</span>
                 ))}
               </div>
-              <div className="parent-trial-calendar" role="grid">
+              <div className="parent-trial-calendar" role="group" aria-label={monthLabel}>
                 {calendarWeeks.flat().map((date, index) => {
-                  if (!date) return <span className="trial-date empty" key={`empty-${index}`} />
+                  if (!date) return <span aria-hidden="true" key={`empty-${index}`} />
                   const value = dateInputValue(date)
                   const inMonth = date.getMonth() === calendarMonth.getMonth()
                   const inRange = trialDateInRange(value)
@@ -926,7 +926,8 @@ function TutorTrialActions({
                     <button
                       type="button"
                       key={value}
-                      role="gridcell"
+                      aria-label={new Intl.DateTimeFormat('en-IN', { dateStyle: 'full' }).format(date)}
+                      aria-pressed={selectedDate === value}
                       className={`trial-date ${available ? 'available' : ''} ${
                         unavailable ? 'unavailable' : ''
                       } ${selectedDate === value ? 'selected' : ''}`}

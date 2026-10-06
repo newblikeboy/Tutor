@@ -99,7 +99,7 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
     <section className="tu-panel">
       <h2>{t('account.details')}</h2>
       <form
-        className="tu-stack"
+        className="tu-stack account-profile-form"
         onSubmit={(e) => {
           e.preventDefault()
           save.mutate()
@@ -179,7 +179,7 @@ function PasswordChange() {
       <h2>{t('account.security')}</h2>
       <p>{t('account.securityBody')}</p>
       <form
-        className="tu-stack"
+        className="tu-stack account-password-form"
         onSubmit={(e) => {
           e.preventDefault()
           setMismatch(next !== confirm)

@@ -350,6 +350,7 @@ function TuitionList() {
         <>
           {q.data.items.length === 0 ? (
             <Empty
+              headingLevel={2}
               title={t(auth.data?.user.role === 'parent' ? 'tuition.none' : 'tuition.noAssigned')}
               body={t(
                 auth.data?.user.role === 'parent' ? 'tuition.noneBody' : 'tuition.noAssignedBody',
@@ -522,12 +523,12 @@ function RegularTeacherCard({
           <small>{t('tuition.completedTrial')}</small>
           <h3>{tutor.name}</h3>
           <p>
-            {trial.learnerName} ? {dateLabel}
+            {trial.learnerName} · {dateLabel}
           </p>
         </div>
         <div className="tu-teacher-booking-meta">
           <span>
-            {t('math')} ? {t('class')} {trial.class}
+            {t('math')} · {t('class')} {trial.class}
           </span>
           <span>{tutor.scope.minClass}-{tutor.scope.maxClass}</span>
           <span>{tutor.language === 'Hindi' ? t('hindi') : t('english')}</span>
@@ -593,7 +594,7 @@ function RegularTeacherCard({
                       <span>
                         <strong>{t(`tutorFees.${feeLabel(plan)}`)}</strong>
                         <small>
-                          {money(plan.amountPaise, i18n.language)} ? {packageDetail(plan, t)}
+                          {money(plan.amountPaise, i18n.language)} · {packageDetail(plan, t)}
                         </small>
                       </span>
                     </label>
@@ -622,33 +623,35 @@ function RegularTeacherCard({
                   }}
                 />
               )}
-              {selectedPlan && (
-                <div className="tu-quote">
-                  <div>
-                    <span>{t('tuition.perSession')}</span>
-                    <strong>{money(perClassPaise(selectedPlan), i18n.language)}</strong>
+              <div className="tu-regular-booking-summary">
+                {selectedPlan && (
+                  <div className="tu-quote">
+                    <div>
+                      <span>{t('tuition.perSession')}</span>
+                      <strong>{money(perClassPaise(selectedPlan), i18n.language)}</strong>
+                    </div>
+                    <div>
+                      <span>{t('tuition.total')}</span>
+                      <strong>{money(selectedPlan.amountPaise, i18n.language)}</strong>
+                    </div>
                   </div>
-                  <div>
-                    <span>{t('tuition.total')}</span>
-                    <strong>{money(selectedPlan.amountPaise, i18n.language)}</strong>
-                  </div>
-                </div>
-              )}
-              <Policy />
-              <label className="tu-check">
-                <input
-                  type="checkbox"
-                  required
-                  disabled={!selectedPlan || !selectedStillAvailable}
-                  checked={acceptedQuote === quoteKey}
-                  onChange={(event) => setAcceptedQuote(event.target.checked ? quoteKey : '')}
-                />
-                {t('tuition.acceptTerms')}
-              </label>
-              <MutationError error={mutation.error} />
-              <Button busy={mutation.isPending} disabled={!canSubmit}>
-                {t('tuition.proposeAgreement')}
-              </Button>
+                )}
+                <Policy />
+                <label className="tu-check">
+                  <input
+                    type="checkbox"
+                    required
+                    disabled={!selectedPlan || !selectedStillAvailable}
+                    checked={acceptedQuote === quoteKey}
+                    onChange={(event) => setAcceptedQuote(event.target.checked ? quoteKey : '')}
+                  />
+                  {t('tuition.acceptTerms')}
+                </label>
+                <MutationError error={mutation.error} />
+                <Button busy={mutation.isPending} disabled={!canSubmit}>
+                  {t('tuition.proposeAgreement')}
+                </Button>
+              </div>
             </form>
           )}
         </div>
@@ -692,9 +695,9 @@ function RegularAvailabilityPicker({
     <div className="tu-regular-calendar-wrap">
       <div>
         <p className="eyebrow">{t('availabilityCalendar')}</p>
-        <p className="hint">{t('availabilityCalendarHint')}</p>
+        <p className="hint">{t('tuition.calendarHint')}</p>
       </div>
-      <div className="parent-trial-calendar-box" aria-label={t('availabilityDates')}>
+      <div className="parent-trial-calendar-box" aria-label={t('tuition.availableDates')}>
         <div className="parent-trial-calendar-head">
           <button
             type="button"
@@ -721,9 +724,9 @@ function RegularAvailabilityPicker({
             <span key={day}>{day}</span>
           ))}
         </div>
-        <div className="parent-trial-calendar" role="grid">
+        <div className="parent-trial-calendar" role="group" aria-label={monthLabel}>
           {calendarWeeks.flat().map((date, index) => {
-            if (!date) return <span className="trial-date empty" key={`empty-${index}`} />
+            if (!date) return <span aria-hidden="true" key={`empty-${index}`} />
             const value = dateInputValue(date)
             const inMonth = date.getMonth() === calendarMonth.getMonth()
             const inRange = bookingDateInRange(value)
@@ -734,7 +737,8 @@ function RegularAvailabilityPicker({
               <button
                 type="button"
                 key={value}
-                role="gridcell"
+                aria-label={new Intl.DateTimeFormat('en-IN', { dateStyle: 'full' }).format(date)}
+                aria-pressed={selectedDate === value}
                 className={`trial-date ${available ? 'available' : ''} ${
                   unavailable ? 'unavailable' : ''
                 } ${selectedDate === value ? 'selected' : ''}`}
@@ -749,8 +753,8 @@ function RegularAvailabilityPicker({
       </div>
       {selectedDate ? (
         <div>
-          <p className="parent-trial-section-label">{t('availabilityTimes')}</p>
-          <div className="parent-trial-times" aria-label={t('availabilityTimes')}>
+          <p className="parent-trial-section-label">{t('tuition.availableTimes')}</p>
+          <div className="parent-trial-times" aria-label={t('tuition.availableTimes')}>
             {slots.map((slot) => (
               <button
                 type="button"
@@ -759,6 +763,7 @@ function RegularAvailabilityPicker({
                   selectedMinute === slot.minute ? 'selected' : ''
                 }`}
                 disabled={!slot.available}
+                aria-pressed={selectedMinute === slot.minute}
                 onClick={() => onTimeChange(slot.label)}
               >
                 {formatRegularTime(slot.label, i18n.language)}

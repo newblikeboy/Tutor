@@ -1,0 +1,26 @@
+.upload-feedback {
+  display: grid;
+  gap: 6px;
+  margin-block: 12px;
+  font-size: 14px;
+}
+.upload-feedback progress {
+  width: min(100%, 360px);
+  accent-color: #315b4e;
+}
+.upload-local-preview {
+  margin: 12px 0;
+}
+.upload-local-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: 12px;
+  object-fit: contain;
+}
+.upload-local-preview figcaption {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}

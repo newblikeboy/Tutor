@@ -142,17 +142,20 @@ export function Empty({
   title,
   body,
   children,
+  headingLevel = 3,
 }: {
   title: string
   body?: string
   children?: ReactNode
+  headingLevel?: 2 | 3
 }) {
+  const Heading = headingLevel === 2 ? 'h2' : 'h3'
   return (
     <div className="empty">
       <span className="empty-icon">
         <Inbox size={26} />
       </span>
-      <h3>{title}</h3>
+      <Heading>{title}</Heading>
       {body && <p>{body}</p>}
       {children}
     </div>
