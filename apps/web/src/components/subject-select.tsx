@@ -53,8 +53,14 @@ export function SubjectSelect({
       </span>
       <details
         ref={details}
-        onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false
+        onKeyDown={(event) => {
+          // Close after Tab moves focus, never during a label's pointer activation.
+          // Pointer clicks outside and Escape are handled separately above.
+          if (event.key === 'Tab')
+            requestAnimationFrame(() => {
+              if (details.current && !details.current.contains(document.activeElement))
+                details.current.open = false
+            })
         }}
       >
         <summary ref={summary} aria-labelledby={`${id}-label ${id}-value`}>

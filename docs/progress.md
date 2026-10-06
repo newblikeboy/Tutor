@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-10-07: subject-name click crash
+
+Reproduced a Chromium renderer crash when clicking a subject label rather than its checkbox. During label activation, focus temporarily moves from the dropdown to the surrounding main element; the synchronous blur handler closed the native details element before activation completed. Removed that blur handler. Keyboard Tab dismissal now checks focus after the native focus move, while existing outside-pointer and Escape dismissal remain.
+
+Extended the quick finder E2E to click label text for selection/deselection on desktop/mobile, change a subject through the results-filter label, select every subject by its name, and exercise forward/reverse Tab dismissal. The full isolated Go/MongoDB discovery E2E passed, including persistence, checkbox clicks, Escape, accessibility and overflow assertions. A separate Pixel 7 touch-emulation check passed label tap selection/deselection. Production build/TypeScript and lint passed. No API or data changes; production deployment remains an operator action.
+
 ## 2026-10-07: smaller photo uploads and responsive upload feedback
 
 Compared the direct Cloudinary flow with Zumers and removed redundant application draft/list round trips. Profile photos now use browser-side 1280px JPEG preparation, retaining a smaller original when no resizing is needed. Prepared bytes survive retries in memory; documents/PDFs/videos are unchanged. Added immediate selected-image previews and real upload progress followed by verification/saving stages. Confirmed file metadata updates the selection cache; attachment references still save individually for partial-batch recovery.
