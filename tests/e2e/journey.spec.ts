@@ -123,6 +123,9 @@ test('complete application → scoped approval → requirement → trial → rev
   await parent.getByLabel('I agree to the draft privacy notice').check()
   await parent.getByRole('button', { name: 'Continue', exact: true }).click()
   await parent.getByLabel('First name or nickname').fill('Aarohi · sample')
+  await parent.getByLabel('Class', { exact: true }).selectOption('8')
+  await parent.getByLabel('Board', { exact: true }).selectOption('CBSE')
+  await parent.getByLabel('Teaching language', { exact: true }).selectOption('Hindi')
   await parent
     .getByLabel('What would you like help with?')
     .fill('Build understanding of equivalent fractions and explain each step with confidence.')
@@ -343,6 +346,9 @@ test('Adult learner with Hindi authored text completes the saved requirement flo
   await page.getByLabel('Myself, aged 18 or over').check()
   await page.getByRole('button', { name: 'Continue setup', exact: true }).click()
   await page.getByLabel('First name or nickname').fill('काल्पनिक वयस्क विद्यार्थी')
+  await page.getByLabel('Class', { exact: true }).selectOption('8')
+  await page.getByLabel('Board', { exact: true }).selectOption('CBSE')
+  await page.getByLabel('Teaching language', { exact: true }).selectOption('Hindi')
   await page
     .getByLabel('What would you like help with?')
     .fill('भिन्न और अनुपात को रोज़मर्रा के उदाहरणों से समझना और अभ्यास करना।')

@@ -56,33 +56,38 @@ func (a *App) learner(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "parent") {
 		return
 	}
-	var in struct {
-		Name      string `json:"name"`
-		Class     int    `json:"class"`
-		Board     string `json:"board"`
-		Language  string `json:"language"`
-		Kind      string `json:"kind"`
-		ConsentID string `json:"consentId"`
-	}
+	var in LearnerInput
 	if !a.decode(w, r, &in) {
 		return
 	}
-	if !validText(in.Name, 1, 80) || in.Class < 6 || in.Class > 10 || (in.Board != "CBSE" && in.Board != "BSEB" && in.Board != "ICSE") || (in.Language != "Hindi" && in.Language != "English") || (in.Kind != "minor" && in.Kind != "adult_self") {
+	in.Name = strings.TrimSpace(in.Name)
+	if !validLearner(in, false) {
 		a.error(w, r, domain.Fail(422, "validation", "Check learner name, class, board and language."))
 		return
 	}
-	if in.Kind == "minor" {
-		if a.Config.Env == "production" {
-			a.error(w, r, domain.Fail(503, "guardian_unconfigured", "Guardian verification is not enabled."))
-			return
+	v := domain.Learner{ID: token(), OwnerID: user(r).ID, Name: in.Name, Class: in.Class, Board: in.Board, Language: in.Language, Kind: in.Kind, ConsentID: in.ConsentID, Version: 1}
+	e := a.Store.Tx(r.Context(), func(ctx context.Context) error {
+		actor := "learner:" + user(r).ID
+		prior, fp, err := a.receipt(ctx, actor, r.Header.Get("Idempotency-Key"), in)
+		if err != nil {
+			return err
 		}
-		if _, e := storage.One[domain.Consent](r.Context(), a.Store, "consents", bson.M{"_id": in.ConsentID, "ownerId": user(r).ID, "version": "guardian-draft-v1"}); e != nil {
-			a.error(w, r, domain.Fail(403, "guardian_required", "Guardian consent is required before collecting learner details."))
-			return
+		if prior != "" {
+			v, err = storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": prior, "ownerId": user(r).ID})
+			return err
 		}
-	}
-	v := domain.Learner{ID: token(), OwnerID: user(r).ID, Name: in.Name, Class: in.Class, Board: in.Board, Language: in.Language, Kind: in.Kind, ConsentID: in.ConsentID}
-	if _, e := a.Store.C("learners").InsertOne(r.Context(), v); e != nil {
+		if err = a.checkLearnerConsent(ctx, user(r).ID, in); err != nil {
+			return err
+		}
+		if _, err = a.Store.C("learners").InsertOne(ctx, v); err != nil {
+			return err
+		}
+		if err = a.saveReceipt(ctx, actor, r.Header.Get("Idempotency-Key"), fp, v.ID); err != nil {
+			return err
+		}
+		return a.audit(ctx, user(r).ID, "learner.created", v.ID)
+	})
+	if e != nil {
 		a.error(w, r, e)
 		return
 	}

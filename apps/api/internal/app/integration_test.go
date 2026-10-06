@@ -32,6 +32,9 @@ func (tc *testClient) call(method, path string, body any, headers map[string]str
 	r, _ := http.NewRequest(method, tc.base+"/api/v1"+path, bytes.NewReader(raw))
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Origin", "http://test.local")
+	if method == "POST" && path == "/learners" {
+		r.Header.Set("Idempotency-Key", token())
+	}
 	if tc.csrf != "" {
 		r.Header.Set("X-CSRF-Token", tc.csrf)
 	}

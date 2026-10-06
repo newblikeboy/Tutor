@@ -1,5 +1,7 @@
 # Project instructions
 
+- User code-quality rule (2026-10-06): do not leave dead code in the codebase. Remove unused or obsolete code when making changes. Do not introduce unnecessary fallbacks; add fallback behavior only for a concrete requirement, and surface failures explicitly instead of masking them.
+
 - User Updates override (2026-09-26, latest): remove end-to-end encryption entirely. Updates is an ordinary one-way inbox with recipient-only read receipts: admins send to parents/tutors, approved tutors send only to parents in current assignments, and recipients cannot reply. No inbox activation, passphrase, device linking or encryption claims. Preserve HTTPS, account sessions/CSRF, assignment checks, rate limits and immutable first-read timestamps. Retain legacy encrypted records untouched, separate from new messages; see `docs/updates-inbox.md`.
 
 - User password-policy override (2026-09-25): passwords require 8–128 characters across public signup, password changes, staff provisioning and fixtures. Preserve existing hashes, password-only staff login, rate limits, session/CSRF protection and the existing common-password checks. Keep UI hints and OpenAPI bounds aligned.

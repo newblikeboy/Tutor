@@ -110,23 +110,7 @@ function useCurrentLocation(onDetected: (location: LocationSelection) => void) {
             setStatus(t('locationDetected', { location: location.location }))
           })
           .catch(() => {
-            const fallback = {
-              location: 'Near current location',
-              primary: 'Near current location',
-              address: 'Near current location',
-              locality: 'Near current location',
-              city: '',
-              district: '',
-              state: '',
-              country: 'India',
-              postalCode: '',
-              latitude,
-              longitude,
-              accuracyMeters: position.coords.accuracy || 0,
-              source: 'browser',
-            }
-            onDetected(fallback)
-            setStatus(t('locationDetected', { location: fallback.location }))
+            setStatus(t('locationResolveFailed'))
           })
           .finally(() => setBusy(false))
       },

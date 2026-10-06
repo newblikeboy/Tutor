@@ -130,6 +130,7 @@ const en = {
   locationDenied: 'Location permission was blocked. You can still search or type the locality.',
   locationUnsupported: 'Current location is not available in this browser.',
   locationUnavailable: 'Could not read current location. Search or type the locality instead.',
+  locationResolveFailed: 'Your location was found, but its address could not be retrieved. Please try again.',
   addCurrentLocality: 'Add my locality',
   serviceLocalitiesSelected: 'Selected service localities',
   assessment: 'Assessment',

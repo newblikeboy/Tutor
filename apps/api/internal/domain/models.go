@@ -135,6 +135,7 @@ type Learner struct {
 	Language  string `json:"language" bson:"language"`
 	Kind      string `json:"kind" bson:"kind"`
 	ConsentID string `json:"-" bson:"consentId"`
+	Version   int    `json:"version" bson:"version"`
 }
 type Requirement struct {
 	ID        string         `json:"id" bson:"_id"`

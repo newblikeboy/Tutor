@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -18,12 +18,10 @@ import { useAuth, useDashboard } from '../lib/session'
 import { tutorHasMode, tutorModeLabel } from '../lib/tutors'
 import { workspaceLink } from '../lib/workspace'
 import { TrialCard } from '../components/trial-card'
-import {
-  LocationSearchField,
-  type StoredLocation,
-} from '../components/location-search'
+import { LocationSearchField, type StoredLocation } from '../components/location-search'
 import { ParentLocationControl } from '../components/parent-location-control'
 import { TutorFees } from '../components/tutor-fees'
+import { LearnerFields, LearnerProfile } from '../components/learner-profile'
 import '../styles/parent.css'
 import {
   Alert,
@@ -48,7 +46,15 @@ export default function Match() {
         <ArrowLeft size={16} aria-hidden="true" />
         {t('parent.back')}
       </Link>
-      <h1 className="sr-only">{t('parent.start')}</h1>
+      <h1 className="sr-only">
+        {t(
+          params.get('edit') === '1'
+            ? 'parent.edit'
+            : params.get('profile') === '1'
+              ? 'parent.add'
+              : 'parent.start',
+        )}
+      </h1>
       {auth.isPending ? (
         <Loading />
       ) : !auth.data ? (
@@ -71,15 +77,27 @@ function MatchData() {
   const [params] = useSearchParams()
   if (q.isPending) return <Loading />
   if (q.isError) return <LoadError retry={() => void q.refetch()} />
+  if (params.get('profile') === '1') {
+    const learner = q.data.learners.find((item) => item.id === params.get('learner'))
+    if (params.get('edit') === '1' && !learner) return <MissingLearner />
+    return (
+      <LearnerProfile
+        key={params.toString()}
+        learner={params.get('edit') === '1' ? learner : undefined}
+      />
+    )
+  }
   return <Wizard key={params.toString()} initial={q.data} />
+}
+function MissingLearner() {
+  const { t } = useTranslation()
+  return <Alert>{t('parent.learnerMissing')}</Alert>
 }
 function Wizard({ initial }: { initial: Dashboard }) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const existingRequest = initial.requirements.find((r) => r.id === params.get('requirement'))
   const addingLearner = params.get('new') === '1'
-  const profileOnly = addingLearner && params.get('profile') === '1'
   const requestedLearner = initial.learners.find((item) => item.id === params.get('learner'))
   const draft =
     !addingLearner && (!params.has('learner') || initial.draft?.learnerId === requestedLearner?.id)
@@ -101,12 +119,13 @@ function Wizard({ initial }: { initial: Dashboard }) {
   const initialClass =
     Number.isInteger(requestedClass) && requestedClass >= 1 && requestedClass <= 12
       ? requestedClass
-      : 8
+      : 0
   const requestedGoal = params.get('goal')?.trim() ?? ''
   const requestedLocality = params.get('locality')?.trim() ?? ''
   const [classNumber, setClassNumber] = useState(initialClass)
-  const [board, setBoard] = useState('CBSE')
-  const [language, setLanguage] = useState('Hindi')
+  const [board, setBoard] = useState<Schema['LearnerDraft']['board']>('')
+  const [language, setLanguage] = useState<Schema['LearnerDraft']['language']>('')
+  const [learnerKey] = useState(() => crypto.randomUUID())
   const [goal, setGoal] = useState(draft?.goal ?? requestedGoal)
   const [locality, setLocality] = useState((draft?.locality ?? requestedLocality) || 'Purnea')
   const [location, setLocation] = useState<StoredLocation | null>(
@@ -147,22 +166,16 @@ function Wizard({ initial }: { initial: Dashboard }) {
             setConsentId(consent.id)
           }
         }
-        if (profileOnly) {
-          setStep(2)
-          return
-        }
         await saveDraft(2)
         return
       }
       if (step === 2) {
-        const valid = profileOnly
-          ? { success: true }
-          : z
-              .object({
-                goal: z.string().trim().min(10).max(1200),
-                locality: z.string().trim().min(2).max(120),
-              })
-              .safeParse({ goal, locality })
+        const valid = z
+          .object({
+            goal: z.string().trim().min(10).max(1200),
+            locality: z.string().trim().min(2).max(120),
+          })
+          .safeParse({ goal, locality })
         if (
           !valid.success ||
           (!learnerId && !z.string().trim().min(1).max(80).safeParse(name).success)
@@ -173,27 +186,32 @@ function Wizard({ initial }: { initial: Dashboard }) {
         }
         let id = learnerId
         if (!id) {
-          const learner = await send<Learner>('/learners', {
-            name,
-            class: classNumber,
-            board,
-            language,
-            kind,
-            consentId,
-          })
+          const learner = await send<Learner>(
+            '/learners',
+            {
+              name,
+              class: classNumber,
+              board,
+              language,
+              kind,
+              consentId,
+            },
+            'POST',
+            { 'Idempotency-Key': learnerKey },
+          )
           id = learner.id
           setLearnerId(id)
           setLearners((old) => [...old, learner])
         }
-        if (profileOnly) {
-          await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-          navigate(`${workspaceLink('learners', id)}`, { replace: true })
-          return
-        }
         await saveDraft(3, id)
         return
       }
-      const result = await send<Requirement>('/requirements', { learnerId, goal, locality, location })
+      const result = await send<Requirement>('/requirements', {
+        learnerId,
+        goal,
+        locality,
+        location,
+      })
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       const updated = new URLSearchParams(params)
       updated.delete('new')
@@ -240,7 +258,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
     )
   return (
     <>
-      <MatchSteps step={step} profileOnly={profileOnly} />
+      <MatchSteps step={step} />
       {draft && (
         <p className="saved-indicator">
           <CheckCircle2 size={16} />
@@ -255,13 +273,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
             next.mutate()
           }}
         >
-          <h2>
-            {t(
-              profileOnly
-                ? ['guardianStep', 'parent.childProfile'][step - 1]
-                : ['parent.who', 'parent.details', 'parent.check'][step - 1],
-            )}
-          </h2>
+          <h2>{t(['parent.who', 'parent.details', 'parent.check'][step - 1])}</h2>
           {validation && (
             <div tabIndex={-1} ref={errorRef}>
               <Alert kind="error">{t(step === 1 ? 'consentHelp' : 'invalidFields')}</Alert>
@@ -269,7 +281,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
           )}
           {step === 1 ? (
             <>
-              {learners.length > 0 && (
+              {!addingLearner && learners.length > 0 && (
                 <Field label={t('existingLearner')}>
                   <select
                     value={learnerId}
@@ -344,54 +356,22 @@ function Wizard({ initial }: { initial: Dashboard }) {
           ) : step === 2 ? (
             <>
               {!learnerId ? (
-                <>
-                  <Field
-                    label={t('parent.name')}
-                    error={validation && !name.trim() ? t('required') : undefined}
-                  >
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      maxLength={80}
-                      autoComplete="off"
-                      aria-invalid={validation && !name.trim()}
-                    />
-                  </Field>
-                  <div className="form-grid">
-                    <Field label={t('class')}>
-                      <select
-                        value={classNumber}
-                        onChange={(e) => setClassNumber(Number(e.target.value))}
-                      >
-                        {[6, 7, 8, 9, 10].map((n) => (
-                          <option key={n} value={n}>
-                            {n}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Field label={t('board')}>
-                      <select value={board} onChange={(e) => setBoard(e.target.value)}>
-                        {['CBSE', 'BSEB', 'ICSE'].map((b) => (
-                          <option key={b}>{b}</option>
-                        ))}
-                      </select>
-                    </Field>
-                  </div>
-                  <Field label={t('preferredLanguage')}>
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-                      <option value="Hindi">{t('hindi')}</option>
-                      <option value="English">{t('english')}</option>
-                    </select>
-                  </Field>
-                </>
+                <LearnerFields
+                  value={{ name, class: classNumber, board, language }}
+                  onChange={(value) => {
+                    setName(value.name)
+                    setClassNumber(value.class)
+                    setBoard(value.board)
+                    setLanguage(value.language)
+                  }}
+                />
               ) : (
                 <p className="saved-indicator">
                   <CheckCircle2 size={17} />
                   {learner?.name} · {t('class')} {learner?.class}
                 </p>
               )}
-              {!profileOnly && (
+              {
                 <>
                   <Field
                     label={t('goal')}
@@ -420,7 +400,7 @@ function Wizard({ initial }: { initial: Dashboard }) {
                     }
                   />
                 </>
-              )}
+              }
             </>
           ) : (
             <>
@@ -450,19 +430,13 @@ function Wizard({ initial }: { initial: Dashboard }) {
                 variant="secondary"
                 busy={previous.isPending}
                 disabled={next.isPending}
-                onClick={() => (profileOnly ? setStep(step - 1) : previous.mutate())}
+                onClick={() => previous.mutate()}
               >
                 {t('back')}
               </Button>
             )}
             <Button type="submit" busy={next.isPending} disabled={previous.isPending}>
-              {t(
-                profileOnly && step === 2
-                  ? 'parent.saveChild'
-                  : step === 3
-                    ? 'parent.save'
-                    : 'next',
-              )}
+              {t(step === 3 ? 'parent.save' : 'next')}
             </Button>
           </div>
         </form>
@@ -470,16 +444,11 @@ function Wizard({ initial }: { initial: Dashboard }) {
     </>
   )
 }
-function MatchSteps({ step, profileOnly = false }: { step: number; profileOnly?: boolean }) {
+function MatchSteps({ step }: { step: number }) {
   const { t } = useTranslation()
-  const steps = profileOnly
-    ? ['guardianStep', 'parent.childProfile']
-    : ['parent.who', 'parent.details', 'parent.check', 'parent.tutor']
+  const steps = ['parent.who', 'parent.details', 'parent.check', 'parent.tutor']
   return (
-    <ol
-      className={`stepper ${profileOnly ? 'profile-stepper' : ''}`}
-      aria-label={t('parent.start')}
-    >
+    <ol className="stepper" aria-label={t('parent.start')}>
       {steps.map((key, index) => (
         <li
           key={key}
@@ -758,7 +727,9 @@ function TrialRequest({
                               <span>{tutorLanguage}</span>
                               <span>{experience}</span>
                               {distance && <span>{distance}</span>}
-                              {!distance && tutor.publicLocality && <span>{tutor.publicLocality}</span>}
+                              {!distance && tutor.publicLocality && (
+                                <span>{tutor.publicLocality}</span>
+                              )}
                               {serviceRadius && <span>{serviceRadius}</span>}
                             </span>
                             <span className="parent-tutor-approach">{tutor.approach}</span>
@@ -866,12 +837,7 @@ function TutorTrialActions({
   if (!selected) {
     return (
       <div className="parent-tutor-actions compact">
-        <Button
-          type="button"
-          variant="secondary"
-          className="parent-tutor-book"
-          onClick={onSelect}
-        >
+        <Button type="button" variant="secondary" className="parent-tutor-book" onClick={onSelect}>
           {t('bookTrial')}
         </Button>
       </div>
@@ -896,7 +862,9 @@ function TutorTrialActions({
   const selectedMinute =
     selectedDate && start.startsWith(`${selectedDate}T`) ? timeToMinute(start.slice(11, 16)) : -1
   const selectedStillAvailable =
-    !!selectedDate && selectedMinute >= 0 && slotAvailable(availability.data, selectedDate, selectedMinute)
+    !!selectedDate &&
+    selectedMinute >= 0 &&
+    slotAvailable(availability.data, selectedDate, selectedMinute)
   const calendarWeeks = trialCalendarWeeks(calendarMonth)
   const todayMonth = startOfMonth(new Date())
   const latest = new Date()

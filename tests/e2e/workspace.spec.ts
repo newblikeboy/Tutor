@@ -239,7 +239,7 @@ test('family learner selection uses real owned records and persists across views
     ['Kabir · fictional learner', 'Understand ratios through everyday examples.'],
   ]) {
     const learner = await page.request.post('/api/v1/learners', {
-      headers,
+      headers: { ...headers, 'Idempotency-Key': crypto.randomUUID() },
       data: { name, class: 8, board: 'CBSE', language: 'Hindi', kind: 'minor', consentId },
     })
     expect(learner.ok()).toBe(true)

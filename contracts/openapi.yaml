@@ -753,6 +753,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
           }
         ],
         "requestBody": {
@@ -808,6 +818,225 @@
             }
           }
         ]
+      },
+      "put": {
+        "operationId": "put__learners__id_",
+        "summary": "PUT /learners/{id}",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Learner"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearnerUpdate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/learner-draft": {
+      "get": {
+        "operationId": "get__learner_draft",
+        "summary": "GET /learner-draft",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerDraftResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      },
+      "put": {
+        "operationId": "put__learner_draft",
+        "summary": "PUT /learner-draft",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerDraft"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearnerDraft"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__learner_draft",
+        "summary": "DELETE /learner-draft",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearnerDraftDelete"
+              }
+            }
+          }
+        }
       }
     },
     "/draft": {
@@ -5323,7 +5552,8 @@
           "class",
           "board",
           "language",
-          "kind"
+          "kind",
+          "version"
         ],
         "properties": {
           "id": {
@@ -5333,7 +5563,9 @@
             "type": "string"
           },
           "class": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
           },
           "board": {
             "type": "string"
@@ -5343,6 +5575,9 @@
           },
           "kind": {
             "type": "string"
+          },
+          "version": {
+            "type": "integer"
           }
         }
       },
@@ -5979,16 +6214,29 @@
         ],
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
           },
           "class": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
           },
           "board": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "CBSE",
+              "BSEB",
+              "ICSE"
+            ]
           },
           "language": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Hindi",
+              "English"
+            ]
           },
           "kind": {
             "type": "string",
@@ -5999,6 +6247,140 @@
           },
           "consentId": {
             "type": "string"
+          }
+        }
+      },
+      "LearnerUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "class",
+          "board",
+          "language",
+          "expectedVersion"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "class": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "board": {
+            "type": "string",
+            "enum": [
+              "CBSE",
+              "BSEB",
+              "ICSE"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "Hindi",
+              "English"
+            ]
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "LearnerDraft": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "class",
+          "board",
+          "language",
+          "kind",
+          "consentId",
+          "step",
+          "requestId",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "class": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12
+          },
+          "board": {
+            "type": "string",
+            "enum": [
+              "",
+              "CBSE",
+              "BSEB",
+              "ICSE"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "",
+              "Hindi",
+              "English"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "minor",
+              "adult_self"
+            ]
+          },
+          "consentId": {
+            "type": "string"
+          },
+          "step": {
+            "type": "integer",
+            "enum": [
+              2
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 100
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "LearnerDraftResult": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/LearnerDraft"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "LearnerDraftDelete": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 100
           }
         }
       },

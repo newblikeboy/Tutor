@@ -82,6 +82,14 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
             {t(learner.language === 'Hindi' ? 'hindi' : 'english')}
           </span>
         </div>
+        {view === 'learners' && (
+          <Link
+            className="text-link"
+            to={`/match?profile=1&edit=1&learner=${encodeURIComponent(selected)}`}
+          >
+            {t('parent.edit')}
+          </Link>
+        )}
         {data.learners.length > 1 && (
           <Field label={t('parent.learner')}>
             <select

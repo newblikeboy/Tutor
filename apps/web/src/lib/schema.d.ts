@@ -269,9 +269,29 @@ export interface paths {
         };
         /** GET /learners/{id} */
         get: operations["get__learners__id_"];
-        put?: never;
+        /** PUT /learners/{id} */
+        put: operations["put__learners__id_"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /learner-draft */
+        get: operations["get__learner_draft"];
+        /** PUT /learner-draft */
+        put: operations["put__learner_draft"];
+        post?: never;
+        /** DELETE /learner-draft */
+        delete: operations["delete__learner_draft"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1477,6 +1497,7 @@ export interface components {
             board: string;
             language: string;
             kind: string;
+            version: number;
         };
         Requirement: {
             id: string;
@@ -1628,11 +1649,41 @@ export interface components {
         LearnerInput: {
             name: string;
             class: number;
-            board: string;
-            language: string;
+            /** @enum {string} */
+            board: "CBSE" | "BSEB" | "ICSE";
+            /** @enum {string} */
+            language: "Hindi" | "English";
             /** @enum {string} */
             kind: "minor" | "adult_self";
             consentId: string;
+        };
+        LearnerUpdate: {
+            name: string;
+            class: number;
+            /** @enum {string} */
+            board: "CBSE" | "BSEB" | "ICSE";
+            /** @enum {string} */
+            language: "Hindi" | "English";
+            expectedVersion: number;
+        };
+        LearnerDraft: {
+            name: string;
+            class: number;
+            /** @enum {string} */
+            board: "" | "CBSE" | "BSEB" | "ICSE";
+            /** @enum {string} */
+            language: "" | "Hindi" | "English";
+            /** @enum {string} */
+            kind: "minor" | "adult_self";
+            consentId: string;
+            /** @enum {integer} */
+            step: 2;
+            requestId: string;
+            version: number;
+        };
+        LearnerDraftResult: components["schemas"]["LearnerDraft"] | null;
+        LearnerDraftDelete: {
+            requestId: string;
         };
         RequirementInput: {
             learnerId: string;
@@ -2980,6 +3031,7 @@ export interface operations {
             header: {
                 Origin: string;
                 "X-CSRF-Token": string;
+                "Idempotency-Key": string;
             };
             path?: never;
             cookie?: never;
@@ -3028,6 +3080,145 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Learner"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    put__learners__id_: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Learner"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__learner_draft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerDraftResult"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    put__learner_draft: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerDraft"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerDraft"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    delete__learner_draft: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerDraftDelete"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */

@@ -121,7 +121,15 @@ const schemas = {
     updatedAt: date,
     version: num,
   }),
-  Learner: obj({ id: str, name: str, class: num, board: str, language: str, kind: str }),
+  Learner: obj({
+    id: str,
+    name: str,
+    class: { ...num, minimum: 1, maximum: 12 },
+    board: str,
+    language: str,
+    kind: str,
+    version: num,
+  }),
   Requirement: obj({
     id: str,
     learnerId: str,
@@ -234,13 +242,33 @@ const schemas = {
     accepted: bool,
   }),
   LearnerInput: obj({
-    name: str,
-    class: num,
-    board: str,
-    language: str,
+    name: { ...str, minLength: 1, maxLength: 80 },
+    class: { ...num, minimum: 1, maximum: 12 },
+    board: { ...str, enum: ['CBSE', 'BSEB', 'ICSE'] },
+    language: { ...str, enum: ['Hindi', 'English'] },
     kind: { type: 'string', enum: ['minor', 'adult_self'] },
     consentId: str,
   }),
+  LearnerUpdate: obj({
+    name: { ...str, minLength: 1, maxLength: 80 },
+    class: { ...num, minimum: 1, maximum: 12 },
+    board: { ...str, enum: ['CBSE', 'BSEB', 'ICSE'] },
+    language: { ...str, enum: ['Hindi', 'English'] },
+    expectedVersion: { ...num, minimum: 0 },
+  }),
+  LearnerDraft: obj({
+    name: { ...str, maxLength: 80 },
+    class: { ...num, minimum: 0, maximum: 12 },
+    board: { ...str, enum: ['', 'CBSE', 'BSEB', 'ICSE'] },
+    language: { ...str, enum: ['', 'Hindi', 'English'] },
+    kind: { ...str, enum: ['minor', 'adult_self'] },
+    consentId: str,
+    step: { ...num, enum: [2] },
+    requestId: { ...str, minLength: 8, maxLength: 100 },
+    version: { ...num, minimum: 0 },
+  }),
+  LearnerDraftResult: { anyOf: [ref('LearnerDraft'), { type: 'null' }] },
+  LearnerDraftDelete: obj({ requestId: { ...str, minLength: 8, maxLength: 100 } }),
   RequirementInput: obj({
     learnerId: str,
     goal: str,
@@ -297,7 +325,15 @@ function route(path, method, response, request, publicRoute = false, isArray = f
   if (path.includes('{id}'))
     operation.parameters.push({ name: 'id', in: 'path', required: true, schema: str })
   if (path === '/tutors')
-    for (const name of ['subject', 'language', 'class', 'mode', 'latitude', 'longitude', 'radiusKm'])
+    for (const name of [
+      'subject',
+      'language',
+      'class',
+      'mode',
+      'latitude',
+      'longitude',
+      'radiusKm',
+    ])
       operation.parameters.push({ name, in: 'query', schema: str })
   if (path === '/location/reverse')
     for (const name of ['latitude', 'longitude', 'accuracyMeters'])
@@ -324,6 +360,7 @@ function route(path, method, response, request, publicRoute = false, isArray = f
       operation.parameters.push({ name: 'X-CSRF-Token', in: 'header', required: true, schema: str })
     if (
       [
+        '/learners',
         '/trials',
         '/cases',
         '/enrollments',
@@ -364,6 +401,10 @@ route('/applications/{id}/decision', 'post', 'OK', 'DecisionInput')
 route('/consents', 'post', 'Consent', 'ConsentInput')
 route('/learners', 'post', 'Learner', 'LearnerInput')
 route('/learners/{id}', 'get', 'Learner')
+route('/learners/{id}', 'put', 'Learner', 'LearnerUpdate')
+route('/learner-draft', 'get', 'LearnerDraftResult')
+route('/learner-draft', 'put', 'LearnerDraft', 'LearnerDraft')
+route('/learner-draft', 'delete', 'OK', 'LearnerDraftDelete')
 route('/draft', 'put', 'Draft', 'Draft')
 route('/requirements', 'post', 'Requirement', 'RequirementInput')
 route('/location/reverse', 'get', 'ReverseLocation', null, true)
