@@ -1160,7 +1160,9 @@ function ApplicationDetail({ id }: { id: string }) {
               {assigned && ['assessed', 'approved'].includes(a.status) && (
                 <section className="staff-panel">
                   <h3>
-                    {t(a.status === 'approved' ? 'staffOps.updateApprovedScope' : 'staffOps.approve')}
+                    {t(
+                      a.status === 'approved' ? 'staffOps.updateApprovedScope' : 'staffOps.approve',
+                    )}
                   </h3>
                   <ApprovalForm application={a} />
                 </section>
@@ -1567,21 +1569,28 @@ function FeeForm({ application }: { application: Application }) {
 function ApprovalForm({ application }: { application: Application }) {
   const { t } = useTranslation()
   const mutation = useDecision(application)
-  const firstArea = application.profile?.teachingAreas.find(
-    (a) => a.id === application.profile?.firstAreaId,
+  const requestedAreas = application.profile?.teachingAreas.filter(
+    (area) =>
+      area.subject === 'Mathematics' &&
+      area.minClass <= 10 &&
+      area.maxClass >= 6 &&
+      area.modes.some((mode) => mode === 'home' || mode === 'online'),
   )
+  const requestedArea = requestedAreas?.[0]
   const [minClass, setMinClass] = useState(
-    firstArea ? Math.max(6, firstArea.minClass) : application.scope.minClass,
+    requestedArea ? Math.max(6, requestedArea.minClass) : application.scope.minClass,
   )
   const [maxClass, setMaxClass] = useState(
-    firstArea ? Math.min(10, firstArea.maxClass) : application.scope.maxClass,
+    requestedArea ? Math.min(10, requestedArea.maxClass) : application.scope.maxClass,
   )
-  const approvalModes = (firstArea?.modes ?? [application.scope.mode]).filter(
-    (mode): mode is 'home' | 'online' => mode === 'home' || mode === 'online',
-  )
+  const approvalModes = [
+    ...new Set(requestedAreas?.flatMap((area) => area.modes) ?? [application.scope.mode]),
+  ].filter((mode): mode is 'home' | 'online' => mode === 'home' || mode === 'online')
   const [modes, setModes] = useState<('home' | 'online')[]>(() => {
-    if (firstArea && approvalModes.length) return approvalModes
-    const saved = approvedTutorModes(application.scope).filter((mode) => approvalModes.includes(mode))
+    if (requestedArea) return approvalModes.filter((mode) => requestedArea.modes.includes(mode))
+    const saved = approvedTutorModes(application.scope).filter((mode) =>
+      approvalModes.includes(mode),
+    )
     if (saved.length) return saved
     return approvalModes.includes('online') ? ['online'] : approvalModes.slice(0, 1)
   })
@@ -1591,14 +1600,7 @@ function ApprovalForm({ application }: { application: Application }) {
     application.mentorId || (auth.data!.user.role === 'mentor' ? auth.data!.user.id : ''),
   )
   const members = useStaffPage<Schema['StaffMembers']>('/staff/members')
-  if (
-    application.profile &&
-    (!firstArea ||
-      firstArea.subject !== 'Mathematics' ||
-      !approvalModes.length ||
-      firstArea.minClass > 10 ||
-      firstArea.maxClass < 6)
-  )
+  if (application.profile && !requestedArea)
     return <Alert>{t('applicationForm.scopeBoundary')}</Alert>
   if (application.eligibility && ['pending', 'blocked'].includes(application.eligibility.status))
     return <Alert>{t('applicationForm.eligibilityPending')}</Alert>
@@ -1609,7 +1611,15 @@ function ApprovalForm({ application }: { application: Application }) {
       aria-label={t('staffOps.approve')}
       onSubmit={(event) => {
         event.preventDefault()
-        mutation.mutate({ action: 'approve', minClass, maxClass, mode: modes[0], modes, reason, mentorId })
+        mutation.mutate({
+          action: 'approve',
+          minClass,
+          maxClass,
+          mode: modes[0],
+          modes,
+          reason,
+          mentorId,
+        })
       }}
     >
       {members.isError ? (
@@ -1645,9 +1655,7 @@ function ApprovalForm({ application }: { application: Application }) {
               onChange={(event) =>
                 setModes((current) =>
                   event.target.checked
-                    ? [...current, choice].filter(
-                        (mode, index, all) => all.indexOf(mode) === index,
-                      )
+                    ? [...current, choice].filter((mode, index, all) => all.indexOf(mode) === index)
                     : current.filter((mode) => mode !== choice),
                 )
               }

@@ -518,6 +518,20 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 			return domain.Fail(422, "validation", "Unknown class action.")
 		}
 		s.Version++
+		if er = a.recognizeEarning(ctx, s); er != nil {
+			return er
+		}
+		if s.Status == "reviewed" && v.PaymentIntentID != "" {
+			jobID := "earning:" + s.ID
+			if er = a.enqueue(ctx, jobID, "finance_earning", bson.M{"classId": s.ID}, "pending"); er != nil {
+				return er
+			}
+			if s.End.After(a.Now()) {
+				if _, er = a.Store.C("outbox").UpdateOne(ctx, bson.M{"_id": jobID, "status": "pending"}, bson.M{"$set": bson.M{"availableAt": s.End}}); er != nil {
+					return er
+				}
+			}
+		}
 		if _, er = a.Store.C("classes").ReplaceOne(ctx, bson.M{"_id": s.ID}, s); er != nil {
 			return er
 		}

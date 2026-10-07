@@ -141,7 +141,7 @@ func (a *App) expireHolds(ctx context.Context) error {
 	return nil
 }
 func (a *App) runOneJob(ctx context.Context) error {
-	kinds := []string{}
+	kinds := []string{"finance_earning"}
 	if a.Meetings != nil {
 		kinds = append(kinds, "zoom_meeting")
 	}
@@ -150,9 +150,6 @@ func (a *App) runOneJob(ctx context.Context) error {
 	}
 	if (a.Files != nil || a.Videos != nil) && a.Scanner != nil {
 		kinds = append(kinds, "file_scan")
-	}
-	if len(kinds) == 0 {
-		return nil
 	}
 	owner := token()
 	now := a.Now()
@@ -187,6 +184,15 @@ func (a *App) runOneJob(ctx context.Context) error {
 	return persistErr
 }
 func (a *App) processJob(ctx context.Context, j job) error {
+	if j.Kind == "finance_earning" {
+		return a.Store.Tx(ctx, func(ctx context.Context) error {
+			s, e := storage.One[domain.ClassSession](ctx, a.Store, "classes", bson.M{"_id": j.Payload["classId"]})
+			if e != nil {
+				return e
+			}
+			return a.recognizeEarning(ctx, s)
+		})
+	}
 	if j.Kind == "zoom_meeting" {
 		return a.processMeeting(ctx, j)
 	}
@@ -258,7 +264,7 @@ func (a *App) jobs(w http.ResponseWriter, r *http.Request) {
 	}
 	f := bson.M{}
 	if user(r).Role == "finance" || r.URL.Query().Get("category") == "payments" {
-		f["kind"] = bson.M{"$in": []string{"razorpay_refund", "razorpay_event", "payment_operator_review"}}
+		f["kind"] = bson.M{"$in": []string{"razorpay_refund", "razorpay_event", "payment_operator_review", "finance_earning"}}
 	}
 	p, e := pageRecords[job](r.Context(), a.Store, "outbox", f, r.URL.Query().Get("cursor"))
 	if e != nil {
@@ -283,7 +289,7 @@ func (a *App) retryJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	e := a.Store.Tx(r.Context(), func(ctx context.Context) error {
-		f := bson.M{"_id": chi.URLParam(r, "id"), "status": "failed", "kind": bson.M{"$in": []string{"razorpay_event", "razorpay_refund"}}}
+		f := bson.M{"_id": chi.URLParam(r, "id"), "status": "failed", "kind": bson.M{"$in": []string{"razorpay_event", "razorpay_refund", "finance_earning"}}}
 		result, er := a.Store.C("outbox").UpdateOne(ctx, f, bson.M{"$set": bson.M{"status": "pending", "attempts": 0, "availableAt": a.Now(), "retryReason": clean(in.Reason), "retryActor": user(r).ID}, "$inc": bson.M{"operatorRetries": 1}})
 		if er != nil {
 			return er

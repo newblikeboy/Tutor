@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Operator-invoked update for the existing /srv/tutor + systemd deployment.
-# Builds this commit and applies only the additive Updates inbox migration.
+# Builds this commit and applies the additive Updates and finance migrations.
 # Never seeds, resets data, or edits private settings.
 set -Eeuo pipefail
 umask 022
@@ -72,12 +72,14 @@ printf '%s\n' "$commit" > "$release/REVISION"
 printf '%s\n' "$previous" > "$release/PREVIOUS_RELEASE"
 
 # systemd reads the private environment without sourcing or printing secrets.
-# This migration only adds inbox collections/indexes; old releases ignore them.
-systemd-run --quiet --wait --pipe --collect \
-  --property="User=$migration_user" --property="Group=$migration_group" \
-  --property="SupplementaryGroups=$migration_supplementary_groups" \
-  --property=EnvironmentFile=/etc/tutor/api.env \
-  "$release/tutor-migrate" --inbox-only
+# Both migrations preserve records and must succeed before activating this release.
+for scope in --inbox-only --finance-only; do
+  systemd-run --quiet --wait --pipe --collect \
+    --property="User=$migration_user" --property="Group=$migration_group" \
+    --property="SupplementaryGroups=$migration_supplementary_groups" \
+    --property=EnvironmentFile=/etc/tutor/api.env \
+    "$release/tutor-migrate" "$scope"
+done
 
 ln -s "$release" "$next"
 switched=1

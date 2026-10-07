@@ -63,7 +63,12 @@
 .subject-select-options label:focus-within {
   background: #edf1df;
 }
+.subject-select-options label > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .subject-select-options input {
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
   margin: 0;

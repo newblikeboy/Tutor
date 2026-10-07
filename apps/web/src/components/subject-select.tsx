@@ -7,14 +7,26 @@ import '../styles/subject-select.css'
 export function SubjectSelect({
   value,
   onChange,
+  label,
+  placeholder,
+  options = teachingSubjects,
+  hint,
+  error,
 }: {
   value: string[]
   onChange: (subjects: string[]) => void
+  label?: string
+  placeholder?: string
+  options?: string[]
+  hint?: string
+  error?: string
 }) {
   const { t } = useTranslation()
   const id = useId()
   const details = useRef<HTMLDetailsElement>(null)
   const summary = useRef<HTMLElement>(null)
+  const describedBy =
+    [hint ? `${id}-hint` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined
   useEffect(() => {
     const closeOutside = (event: PointerEvent) => {
       if (
@@ -49,7 +61,7 @@ export function SubjectSelect({
   return (
     <div className="subject-select field">
       <span id={`${id}-label`} className="subject-select-label">
-        {t('landing.finderSubjectLabel')}
+        {label ?? t('landing.finderSubjectLabel')}
       </span>
       <details
         ref={details}
@@ -63,14 +75,19 @@ export function SubjectSelect({
             })
         }}
       >
-        <summary ref={summary} aria-labelledby={`${id}-label ${id}-value`}>
+        <summary
+          ref={summary}
+          aria-labelledby={`${id}-label ${id}-value`}
+          aria-describedby={describedBy}
+          aria-invalid={!!error}
+        >
           <span id={`${id}-value`}>
-            {value.length ? value.join(', ') : t('landing.finderAnySubject')}
+            {value.length ? value.join(', ') : (placeholder ?? t('landing.finderAnySubject'))}
           </span>
           <ChevronDown size={18} aria-hidden="true" />
         </summary>
         <div className="subject-select-options" role="group" aria-labelledby={`${id}-label`}>
-          {teachingSubjects.map((subject) => (
+          {options.map((subject) => (
             <label key={subject}>
               <input
                 type="checkbox"
@@ -88,6 +105,16 @@ export function SubjectSelect({
           ))}
         </div>
       </details>
+      {hint && (
+        <span id={`${id}-hint`} className="hint">
+          {hint}
+        </span>
+      )}
+      {error && (
+        <span id={`${id}-error`} className="field-error" role="alert">
+          {error}
+        </span>
+      )}
     </div>
   )
 }

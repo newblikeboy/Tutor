@@ -162,9 +162,39 @@
 .af-group-title:first-child {
   margin-top: 0;
 }
+.af-home-location {
+  min-width: 0;
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid #d8e1d6;
+  border-radius: 16px;
+  background: #f8fbf3;
+}
+.af-home-location legend {
+  padding-inline: 6px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.af-home-location > .hint {
+  margin: 0 0 12px;
+}
+.af-home-location .location-detail-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0;
+  border: 0;
+}
+.af-home-address {
+  grid-column: 1 / -1;
+}
+@media (max-width: 600px) {
+  .af-home-location .location-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .af-document-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 16px;
 }
 .af-document-grid .af-attachment {
@@ -385,6 +415,29 @@
 }
 .af-attachment-list .btn {
   flex-shrink: 0;
+}
+.af-attachment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.af-attachment-list.documents {
+  display: grid;
+  gap: 12px;
+}
+.af-attachment-list.documents li {
+  display: grid;
+  justify-content: stretch;
+  padding: 12px;
+  border: 1px solid #d8e2d7;
+  border-radius: 14px;
+  background: #fffefa;
+}
+.af-document-preview {
+  width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  border-radius: 8px;
 }
 .af-attachment {
   padding: 16px;

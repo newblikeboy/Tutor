@@ -13,6 +13,7 @@ type PaymentIntent struct {
 	PaymentID      string    `json:"paymentId" bson:"paymentId"`
 	RefundReserved int64     `json:"refundReservedPaise" bson:"refundReservedPaise"`
 	Refunded       int64     `json:"refundedPaise" bson:"refundedPaise"`
+	EarnedGross    int64     `json:"-" bson:"earnedGrossPaise"`
 	CreatedAt      time.Time `json:"createdAt" bson:"createdAt"`
 }
 type RefundRequest struct {
@@ -30,7 +31,7 @@ type RefundRequest struct {
 }
 
 // Each immutable journal contains equal debit and credit amounts in paise.
-// Gateway receivables are not bank settlements; tutor allocation needs reviewed policy.
+// Gateway receivables are not bank settlements.
 type LedgerEntry struct {
 	ID        string    `json:"id" bson:"_id"`
 	OwnerID   string    `json:"-" bson:"ownerId"`

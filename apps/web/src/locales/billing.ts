@@ -73,7 +73,21 @@ export const billingEN = {
       failed: 'Needs operator attention',
       pending_operator: 'Operator review',
     },
-    account: { gateway_receivable: 'Gateway receivable', family_prepaid: 'Family prepaid balance' },
+    account: {
+      gateway_receivable: 'Gateway receivable',
+      family_prepaid: 'Family prepaid balance',
+      tutor_payable: 'Tutor payable',
+      platform_revenue: 'Platform revenue',
+      tutor_tax_protection: 'Platform-funded tutor taxes',
+      gateway_expense: 'Payment processing cost',
+      tds_payable: 'TDS payable',
+      tcs_payable: 'GST TCS payable',
+      tuition_gst_payable: 'Tuition GST payable',
+      cgst_payable: 'CGST payable',
+      sgst_payable: 'SGST payable',
+      igst_payable: 'IGST payable',
+      bank: 'Bank',
+    },
     failureHold:
       'This payment reservation expired. Review the agreement and arrange a new schedule.',
     failurePending:

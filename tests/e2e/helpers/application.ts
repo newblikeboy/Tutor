@@ -57,14 +57,10 @@ export function applicationProfile(name: string) {
       priorExperience: 'no',
     },
   ]
-  p.firstAreaId = 'math'
   Object.assign(p.availability, {
     slots: [{ day: 1, start: '16:00', end: '18:00' }],
     earliestStart: new Date(Date.now() + 172800000).toISOString().slice(0, 10),
-    weeklyHours: 10,
-    maxStudents: 3,
     durations: [60],
-    period: 'ongoing',
     home: {
       localities: ['Line Bazar', 'Bhatta Bazar'],
       travelKm: 5,
@@ -117,9 +113,16 @@ export async function fillApplication(
   await page.getByLabel('Hindi', { exact: true }).check()
   await next(0)
   await page.getByLabel('Highest completed qualification').fill('BSc')
-  await page.getByLabel('Main subject or specialisation').fill('Mathematics')
-  await page.getByLabel('Institution', { exact: true }).fill('Fictional test college')
-  await page.getByLabel('Year completed').fill('2020')
+  const specialisation = page
+    .locator('.subject-select')
+    .filter({ hasText: 'Main subject or specialisation' })
+  await specialisation.locator('summary').click()
+  await specialisation.getByRole('checkbox', { name: 'Mathematics', exact: true }).check()
+  await specialisation.getByRole('checkbox', { name: 'Mathematics', exact: true }).press('Escape')
+  await page
+    .getByLabel('From Which Institution/University/College', { exact: true })
+    .fill('Fictional test college')
+  await page.getByLabel('Completion Year').fill('2020')
   await page.getByLabel('Currently studying?').selectOption('no')
   await page.getByLabel('I am new to tutoring').check()
   await page.getByLabel('Current occupation').selectOption('independent_tutor')
@@ -134,13 +137,9 @@ export async function fillApplication(
   await page.getByLabel('Home Tuition', { exact: true }).check()
   await page.getByLabel('Online', { exact: true }).check()
   await page.getByLabel('Have you taught this subject and class range?').selectOption('no')
-  await page.getByLabel('Subject to assess first').selectOption({ index: 1 })
   await next(2)
   await page.getByRole('button', { name: 'Add time slot' }).click()
   await page.getByLabel('Earliest start date').fill(p.availability.earliestStart)
-  await page.getByLabel('Hours available per week').fill('10')
-  await page.getByLabel('Additional students you can take').fill('3')
-  await page.getByLabel('How long can you teach with us?').selectOption('ongoing')
   await page.getByLabel('60', { exact: true }).check()
   await page.getByLabel('Your locality').fill('Line Bazar')
   await page.getByLabel('PIN code').fill('854301')

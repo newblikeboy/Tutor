@@ -123,7 +123,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = location.pathname.replace(/\/+$/, '')
   if (
     applicant &&
-    !['/apply', '/account', '/notifications'].includes(pathname) &&
+    !['/apply', '/account', '/notifications', '/billing'].includes(pathname) &&
     !pathname.startsWith('/cases')
   )
     return <Navigate to="/apply" replace />
@@ -135,7 +135,11 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         : pathname === '/notifications'
           ? t('tuition.notifications')
           : pathname.startsWith('/billing')
-            ? t(user.role === 'parent' ? 'parent.payments' : 'billing.title')
+            ? user.role === 'tutor'
+              ? 'Earnings & payouts'
+              : params.get('tab') === 'business'
+                ? 'Business & taxes'
+                : t(user.role === 'parent' ? 'parent.payments' : 'billing.title')
             : pathname.startsWith('/tuition')
               ? t(user.role === 'parent' ? 'parent.classes' : 'tuition.title')
               : pathname === '/availability'
@@ -193,14 +197,38 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             {t(user.role === 'parent' ? 'parent.classes' : 'tuition.title')}
           </Link>
         )}
-        {['parent', 'finance', 'admin'].includes(user.role) && (
+        {['parent', 'tutor', 'finance', 'admin'].includes(user.role) && (
           <Link
             to="/billing"
-            className={pathname.startsWith('/billing') ? 'active' : undefined}
-            aria-current={pathname.startsWith('/billing') ? 'page' : undefined}
+            className={
+              pathname.startsWith('/billing') && params.get('tab') !== 'business'
+                ? 'active'
+                : undefined
+            }
+            aria-current={
+              pathname.startsWith('/billing') && params.get('tab') !== 'business'
+                ? 'page'
+                : undefined
+            }
           >
             <FileText size={19} aria-hidden="true" />
-            {t(user.role === 'parent' ? 'parent.payments' : 'billing.title')}
+            {user.role === 'tutor'
+              ? 'Earnings & payouts'
+              : t(user.role === 'parent' ? 'parent.payments' : 'billing.title')}
+          </Link>
+        )}
+        {user.role === 'admin' && (
+          <Link
+            to="/billing?tab=business"
+            className={
+              pathname === '/billing' && params.get('tab') === 'business' ? 'active' : undefined
+            }
+            aria-current={
+              pathname === '/billing' && params.get('tab') === 'business' ? 'page' : undefined
+            }
+          >
+            <FileText size={19} aria-hidden="true" />
+            Business &amp; taxes
           </Link>
         )}
         {user.role === 'tutor' && !applicant && (

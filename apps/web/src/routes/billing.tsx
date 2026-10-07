@@ -17,6 +17,8 @@ import {
   MutationError,
 } from '../components/ui'
 import '../styles/tuition.css'
+import { BusinessSettings, FinanceOverview, TutorEarnings } from './finance'
+import { PaidInvoice, InvoiceForm } from '../components/paid-invoice'
 
 const price = (n: number, lang: string) =>
   new Intl.NumberFormat(lang === 'hi' ? 'hi-IN' : 'en-IN', {
@@ -84,8 +86,7 @@ export function Checkout({ enrollment }: { enrollment: Schema['Enrollment'] }) {
   const { t } = useTranslation(),
     config = useConfig()
   const [message, setMessage] = useState(''),
-    [key, setKey] = useState(() => crypto.randomUUID()),
-    [record, setRecord] = useState(enrollment.paymentIntentId)
+    [key, setKey] = useState(() => crypto.randomUUID())
   const verify = useMutation({
     mutationFn: (input: { id: string; paymentId: string; signature: string }) =>
       send(`/billing/${input.id}/verify`, {
@@ -106,7 +107,6 @@ export function Checkout({ enrollment }: { enrollment: Schema['Enrollment'] }) {
         'POST',
         { 'Idempotency-Key': key },
       )
-      setRecord(checkout.intent.id)
       if (checkout.intent.state !== 'created') {
         setMessage(
           checkout.intent.state === 'reconciliation_required'
@@ -174,11 +174,6 @@ export function Checkout({ enrollment }: { enrollment: Schema['Enrollment'] }) {
       >
         {t('billing.pay')}
       </Button>
-      {record && (
-        <Link to={`/billing/${record}`} className="text-link">
-          {t('billing.view')}
-        </Link>
-      )}
     </section>
   )
 }
@@ -202,8 +197,14 @@ export default function Billing() {
   const { t } = useTranslation(),
     auth = useAuth(),
     { id } = useParams()
-  if (!['parent', 'finance', 'admin'].includes(auth.data?.user.role ?? ''))
+  if (!['parent', 'tutor', 'finance', 'admin'].includes(auth.data?.user.role ?? ''))
     return <Alert>{t('permission')}</Alert>
+  if (auth.data?.user.role === 'tutor')
+    return (
+      <div className="tu-page billing-page">
+        <TutorEarnings />
+      </div>
+    )
   return (
     <div className="tu-page billing-page">
       <h1 className="sr-only">
@@ -222,7 +223,9 @@ export default function Billing() {
 function StaffPaymentTabs() {
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'operations' ? 'operations' : 'payments'
+  const requested = params.get('tab')
+  const tab =
+    requested && ['operations', 'revenue', 'business'].includes(requested) ? requested : 'payments'
   return (
     <>
       <TabBar
@@ -232,6 +235,8 @@ function StaffPaymentTabs() {
         options={[
           { value: 'payments', label: t('billing.recordsTab') },
           { value: 'operations', label: t('billing.operationsTab') },
+          { value: 'revenue', label: 'Revenue & payouts' },
+          { value: 'business', label: 'Business & taxes' },
         ]}
         onChange={(value) => {
           const next = new URLSearchParams(params)
@@ -246,6 +251,12 @@ function StaffPaymentTabs() {
       </TabPanel>
       <TabPanel id="staff-payments" value="operations" active={tab === 'operations'}>
         <Jobs />
+      </TabPanel>
+      <TabPanel id="staff-payments" value="revenue" active={tab === 'revenue'}>
+        <FinanceOverview />
+      </TabPanel>
+      <TabPanel id="staff-payments" value="business" active={tab === 'business'}>
+        <BusinessSettings />
       </TabPanel>
     </>
   )
@@ -359,7 +370,7 @@ function PaymentDetail({ id }: { id: string }) {
             </div>
           ))}
         </div>
-        <p>{t('billing.receiptBody')}</p>
+        {!q.data.invoice && <p>{t('billing.receiptBody')}</p>}
         <div>
           <h3>{t('billing.reference')}</h3>
           <p>{v.paymentId || v.orderId || '—'}</p>
@@ -379,6 +390,8 @@ function PaymentDetail({ id }: { id: string }) {
           </>
         )}
       </article>
+      {q.data.invoice && <PaidInvoice invoice={q.data.invoice} />}
+      {staff && v.paymentId && !q.data.invoice && <InvoiceForm id={id} />}
       {v.paymentId && v.amountPaise - v.refundedPaise - v.refundReservedPaise > 0 && (
         <RefundForm intent={v} />
       )}
@@ -392,20 +405,22 @@ function PaymentDetail({ id }: { id: string }) {
           ))
         )}
       </section>
-      <section className="tu-panel tu-stack">
-        <h2>{t('billing.ledger')}</h2>
-        <p>{t('billing.ledgerBody')}</p>
-        {q.data.ledger.map((entry) => (
-          <div className="tu-policy" key={entry.id}>
-            <strong>{price(entry.amountPaise, i18n.language)}</strong>
-            <p>
-              {t('billing.debit')}: {t(`billing.account.${entry.debit}`)} · {t('billing.credit')}:{' '}
-              {t(`billing.account.${entry.credit}`)}
-            </p>
-            <small>{indiaDate(entry.createdAt, i18n.language)}</small>
-          </div>
-        ))}
-      </section>
+      {staff && (
+        <section className="tu-panel tu-stack">
+          <h2>{t('billing.ledger')}</h2>
+          <p>{t('billing.ledgerBody')}</p>
+          {q.data.ledger.map((entry) => (
+            <div className="tu-policy" key={entry.id}>
+              <strong>{price(entry.amountPaise, i18n.language)}</strong>
+              <p>
+                {t('billing.debit')}: {t(`billing.account.${entry.debit}`)} · {t('billing.credit')}:{' '}
+                {t(`billing.account.${entry.credit}`)}
+              </p>
+              <small>{indiaDate(entry.createdAt, i18n.language)}</small>
+            </div>
+          ))}
+        </section>
+      )}
     </>
   )
 }

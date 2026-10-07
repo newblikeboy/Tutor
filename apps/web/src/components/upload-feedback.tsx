@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { FileText } from 'lucide-react'
 import type { UploadProgress } from '../lib/uploads'
 import '../styles/upload-feedback.css'
 
@@ -24,10 +25,11 @@ export function UploadFeedback({ progress }: { progress: UploadProgress | null }
   )
 }
 
-export function LocalImagePreview({ file }: { file: File }) {
+export function LocalFilePreview({ file }: { file: File }) {
   const { t } = useTranslation()
   const [url, setURL] = useState('')
   useEffect(() => {
+    if (file.type === 'application/pdf') return
     const reader = new FileReader()
     reader.onload = () => setURL(String(reader.result))
     reader.readAsDataURL(file)
@@ -37,7 +39,14 @@ export function LocalImagePreview({ file }: { file: File }) {
   }, [file])
   return (
     <figure className="upload-local-preview">
-      {url && <img src={url} alt={t('files.localPreviewAlt')} />}
+      {file.type === 'application/pdf' ? (
+        <div className="upload-document-preview">
+          <FileText size={32} aria-hidden="true" />
+          <span>{t('files.pdfDocument')}</span>
+        </div>
+      ) : (
+        url && <img src={url} alt={t('files.localPreviewAlt')} />
+      )}
       <figcaption>
         {file.name} · {t('files.localPreview')}
       </figcaption>

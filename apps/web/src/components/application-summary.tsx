@@ -19,7 +19,7 @@ export function ApplicationSummary({
     if (key.endsWith('FileId')) return v ? c('attached') : ''
     if (key === 'educationFileIds')
       return Array.isArray(v) && v.length ? `${v.length} · ${c('attached')}` : ''
-    if (key === 'firstAreaId' || key === 'demoAreaId' || key === 'areaId') {
+    if (key === 'demoAreaId' || key === 'areaId') {
       const a = p.teachingAreas.find((a) => a.id === v)
       return a ? `${c(a.subject)} · ${a.minClass}–${a.maxClass}` : ''
     }
@@ -66,7 +66,6 @@ export function ApplicationSummary({
         <div className="af-summary-area" key={a.id}>
           <h4>
             {c('area')} {i + 1}
-            {a.id === p.firstAreaId ? ` · ${c('firstAreaId')}` : ''}
           </h4>
           <dl className="af-summary-grid">{rows(a)}</dl>
         </div>

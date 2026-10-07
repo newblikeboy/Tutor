@@ -48,8 +48,8 @@ export const staffEN = {
     },
     founderReportTitle: 'Founder control report',
     founderReportBody:
-      'A real-data view of families, tutor onboarding, enrollments and revenue generated through saved payment records.',
-    revenueGenerated: 'Revenue generated',
+      'Families, tutor onboarding, enrollments and payment collections. Platform revenue after the tutor allocation is available in Payments & records.',
+    revenueGenerated: 'Net payment collections',
     grossRevenue: 'Gross {{amount}}',
     refundedRevenue: 'Refunded {{amount}}',
     founderParents: 'Parents',

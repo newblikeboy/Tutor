@@ -1,5 +1,5 @@
 import { uploadFile, type UploadProgress } from '../lib/uploads'
-import { LocalImagePreview, UploadFeedback } from '../components/upload-feedback'
+import { LocalFilePreview, UploadFeedback } from '../components/upload-feedback'
 import { useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -164,8 +164,8 @@ export function PrivateFiles({
                 />
               </Field>
               {file &&
-                ['image/jpeg', 'image/png'].includes(file.type) &&
-                file.size <= 3 * 1024 * 1024 && <LocalImagePreview key={key} file={file} />}
+                ['image/jpeg', 'image/png', 'application/pdf'].includes(file.type) &&
+                file.size <= 3 * 1024 * 1024 && <LocalFilePreview key={key} file={file} />}
               {upload.isPending && <UploadFeedback progress={progress} />}
               <MutationError error={upload.error} />
               {upload.isSuccess && <Alert kind="success">{t('files.saved')}</Alert>}

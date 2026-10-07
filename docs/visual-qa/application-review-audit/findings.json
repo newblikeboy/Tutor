@@ -1,0 +1,43 @@
+[
+  {
+    "width": 1440,
+    "overflow": false,
+    "axe": []
+  },
+  {
+    "width": 390,
+    "overflow": false,
+    "axe": []
+  },
+  {
+    "editStep": 0,
+    "works": true
+  },
+  {
+    "editStep": 1,
+    "works": true
+  },
+  {
+    "editStep": 2,
+    "works": true
+  },
+  {
+    "editStep": 3,
+    "works": true
+  },
+  {
+    "editStep": 4,
+    "works": true
+  },
+  {
+    "localityErrorRoutesToWrongStep": true
+  },
+  {
+    "missingInstitutionOmittedFromSummary": true
+  },
+  {
+    "removedDemoChoiceAppearsAfterSubmission": true,
+    "submissionWorks": true,
+    "pageErrors": []
+  }
+]

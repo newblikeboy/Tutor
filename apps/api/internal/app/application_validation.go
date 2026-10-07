@@ -66,6 +66,10 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 	text("about.fullName", b.FullName, 2, 80)
 	text("about.displayName", b.DisplayName, 0, 80)
 	text("about.mobile", b.Mobile, 10, 16)
+	text("about.whatsapp", b.WhatsApp, 0, 16)
+	if b.WhatsApp != "" && !regexp.MustCompile(`^(\+91[ -]?)?[6-9][0-9]{9}$`).MatchString(b.WhatsApp) {
+		errors["about.whatsapp"] = "phone"
+	}
 	if submit && !regexp.MustCompile(`^(\+91[ -]?)?[6-9][0-9]{9}$`).MatchString(b.Mobile) {
 		errors["about.mobile"] = "phone"
 	}
@@ -79,7 +83,7 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 	choices("about.communicationLanguages", b.CommunicationLanguages, true, "Hindi", "English")
 	e := p.Education
 	text("education.qualification", e.Qualification, 2, 120)
-	text("education.specialisation", e.Specialisation, 2, 120)
+	text("education.specialisation", e.Specialisation, 2, 240)
 	text("education.institution", e.Institution, 2, 160)
 	number("education.completionYear", e.CompletionYear, 1900, now.Year())
 	choice("education.pursuing", e.Pursuing, true, "yes", "no")
@@ -146,10 +150,6 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 		choices(prefix+"modes", a.Modes, true, "home", "online")
 		choice(prefix+"priorExperience", a.PriorExperience, true, "yes", "no")
 	}
-	text("firstAreaId", p.FirstAreaID, 0, 60)
-	if _, exists := areas[p.FirstAreaID]; submit && !exists {
-		errors["firstAreaId"] = "required"
-	}
 	v := p.Availability
 	choice("availability.timezone", v.Timezone, true, "Asia/Kolkata")
 	validateApplicationSlots(errors, "availability.slots", v.Slots, submit)
@@ -158,8 +158,6 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 	if submit && v.EarliestStart < now.In(location).Format("2006-01-02") {
 		errors["availability.earliestStart"] = "future_date"
 	}
-	number("availability.weeklyHours", v.WeeklyHours, 1, 60)
-	number("availability.maxStudents", v.MaxStudents, 1, 30)
 	if len(v.Durations) > 3 || submit && len(v.Durations) == 0 {
 		errors["availability.durations"] = "required"
 	}
@@ -170,12 +168,6 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 		}
 		durations[n] = true
 	}
-	choice("availability.period", v.Period, true, "ongoing", "until", "unsure")
-	date("availability.untilDate", v.UntilDate, v.Period == "until")
-	if submit && v.Period == "until" && v.UntilDate < v.EarliestStart {
-		errors["availability.untilDate"] = "range"
-	}
-	text("availability.interruptions", v.Interruptions, 0, 600)
 	h := v.Home
 	if p.HasMode("home") {
 		text("about.locality", b.Locality, 2, 120)

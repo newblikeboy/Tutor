@@ -24,11 +24,11 @@ func completeApplication(name string, now time.Time) domain.TutorApplication {
 			Address: "Line Bazar, Purnea, Bihar, India", Locality: "Line Bazar", City: "Purnea", District: "Purnea", State: "Bihar", Country: "India", PostalCode: "854301", Latitude: 25.777, Longitude: 87.475, AccuracyMeters: 30, Source: "browser",
 		}, CommunicationLanguages: []string{"Hindi", "English"}},
 		Education:     domain.ApplicantEducation{Qualification: "BSc", Specialisation: "Mathematics", Institution: "Fictional test college", CompletionYear: 2020, Pursuing: "no", NewToTutoring: true, Occupation: "independent_tutor", OutsideWork: "none"},
-		TeachingAreas: []domain.RequestedTeachingArea{{ID: "math", Subject: "Mathematics", MinClass: 6, MaxClass: 10, Boards: []string{"CBSE"}, Languages: []string{"Hindi"}, Modes: []string{"home", "online"}, PriorExperience: "no"}}, FirstAreaID: "math",
-		Availability: domain.ApplicantAvailability{Timezone: "Asia/Kolkata", Slots: []domain.ApplicationSlot{{Day: 1, Start: "16:00", End: "18:00"}}, EarliestStart: now.AddDate(0, 0, 2).Format("2006-01-02"), WeeklyHours: 10, MaxStudents: 3, Durations: []int{60}, Period: "ongoing", Home: domain.HomeTeachingRequest{TravelKM: 5}, Online: domain.OnlineTeachingRequest{Device: "laptop", Camera: "ready", Microphone: "ready", Internet: "reliable", PrivateSpace: "yes", ScreenSharing: "yes", DigitalWriting: "yes"}},
-		Approach:     domain.ApplicantApproach{Introduction: "I use clear examples and check how the learner explains each concept in their own words.", Scenario: "I try a simpler example and identify which step needs clarification.", Understanding: "I ask the learner to explain the idea and solve a different example.", Demonstration: "live", AssessmentSlots: []domain.ApplicationSlot{{Day: 2, Start: "16:00", End: "18:00"}}},
-		Fees:         domain.ApplicantFees{Preference: "expected", SessionMinutes: 60, Rates: []domain.ExpectedRate{{AreaID: "math", Mode: "home", AmountPaise: 50000}, {AreaID: "math", Mode: "online", AmountPaise: 40000}}},
-		Declarations: domain.ApplicantDeclarations{Accuracy: true, Conduct: true, DataUse: true, NoticeVersion: domain.ApplicationNoticeVersion},
+		TeachingAreas: []domain.RequestedTeachingArea{{ID: "math", Subject: "Mathematics", MinClass: 6, MaxClass: 10, Boards: []string{"CBSE"}, Languages: []string{"Hindi"}, Modes: []string{"home", "online"}, PriorExperience: "no"}},
+		Availability:  domain.ApplicantAvailability{Timezone: "Asia/Kolkata", Slots: []domain.ApplicationSlot{{Day: 1, Start: "16:00", End: "18:00"}}, EarliestStart: now.AddDate(0, 0, 2).Format("2006-01-02"), Durations: []int{60}, Home: domain.HomeTeachingRequest{TravelKM: 5}, Online: domain.OnlineTeachingRequest{Device: "laptop", Camera: "ready", Microphone: "ready", Internet: "reliable", PrivateSpace: "yes", ScreenSharing: "yes", DigitalWriting: "yes"}},
+		Approach:      domain.ApplicantApproach{Introduction: "I use clear examples and check how the learner explains each concept in their own words.", Scenario: "I try a simpler example and identify which step needs clarification.", Understanding: "I ask the learner to explain the idea and solve a different example.", Demonstration: "live", AssessmentSlots: []domain.ApplicationSlot{{Day: 2, Start: "16:00", End: "18:00"}}},
+		Fees:          domain.ApplicantFees{Preference: "expected", SessionMinutes: 60, Rates: []domain.ExpectedRate{{AreaID: "math", Mode: "home", AmountPaise: 50000}, {AreaID: "math", Mode: "online", AmountPaise: 40000}}},
+		Declarations:  domain.ApplicantDeclarations{Accuracy: true, Conduct: true, DataUse: true, NoticeVersion: domain.ApplicationNoticeVersion},
 	}
 }
 func applicationTestInput(name string, now time.Time) map[string]any {
@@ -79,6 +79,109 @@ func TestApplicationValidation(t *testing.T) {
 	}
 	if errors := applicationErrors(p, true, now); len(errors) > 0 {
 		t.Fatal(errors)
+	}
+}
+func TestApplicationOnlineSetupFollowsTeachingModes(t *testing.T) {
+	now := time.Now()
+	for _, tc := range []struct {
+		name   string
+		modes  []string
+		online bool
+	}{
+		{"home only", []string{"home"}, false},
+		{"online only", []string{"online"}, true},
+		{"both modes", []string{"home", "online"}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := completeApplication("Sample applicant", now)
+			p.TeachingAreas[0].Modes = tc.modes
+			p.Availability.Online = domain.OnlineTeachingRequest{}
+			normalizeApplication(&p)
+			errors := applicationErrors(p, true, now)
+			if tc.online {
+				if len(errors) != 7 {
+					t.Fatalf("expected seven online setup errors: %v", errors)
+				}
+				for field := range errors {
+					if !strings.HasPrefix(field, "availability.online.") {
+						t.Fatalf("unexpected required field: %s", field)
+					}
+				}
+			} else if len(errors) != 0 {
+				t.Fatalf("home-only application requires online setup: %v", errors)
+			}
+		})
+	}
+	p := completeApplication("Sample applicant", now)
+	p.TeachingAreas[0].Modes = []string{"home"}
+	onlineArea := p.TeachingAreas[0]
+	onlineArea.ID, onlineArea.Modes = "online", []string{"online"}
+	p.TeachingAreas = append(p.TeachingAreas, onlineArea)
+	p.Availability.Online.Device = ""
+	normalizeApplication(&p)
+	if applicationErrors(p, true, now)["availability.online.device"] == "" {
+		t.Fatal("online mode in a later teaching area must require setup")
+	}
+	p.TeachingAreas = p.TeachingAreas[:1]
+	normalizeApplication(&p)
+	if p.Availability.Online != (domain.OnlineTeachingRequest{}) {
+		t.Fatal("removing the last online area must clear obsolete setup")
+	}
+}
+
+func TestApplicationWhatsApp(t *testing.T) {
+	now := time.Now()
+	for _, tc := range []struct {
+		input, normalized string
+		valid             bool
+	}{
+		{"", "", true},
+		{"9876543210", "9876543210", true},
+		{" +91 98765-43210 ", "+919876543210", true},
+		{"123", "123", false},
+		{"1234567890", "1234567890", false},
+		{"9876543210<script>", "9876543210<script>", false},
+	} {
+		p := completeApplication("Sample applicant", now)
+		p.About.WhatsApp = tc.input
+		normalizeApplication(&p)
+		if p.About.WhatsApp != tc.normalized {
+			t.Fatal("WhatsApp normalization failed")
+		}
+		for _, submit := range []bool{false, true} {
+			if valid := applicationErrors(p, submit, now)["about.whatsapp"] == ""; valid != tc.valid {
+				t.Fatalf("WhatsApp validation: input %q submit=%v", tc.input, submit)
+			}
+		}
+	}
+}
+func TestApplicationMultipleSpecialisations(t *testing.T) {
+	now := time.Now()
+	for _, value := range []string{
+		"Mathematics, Science, English, Hindi, Social Science",
+		strings.Repeat("x", 120) + ", Mathematics, Science, English, Hindi, Social Science",
+	} {
+		p := completeApplication("Sample applicant", now)
+		p.Education.Specialisation = value
+		normalizeApplication(&p)
+		if p.Education.Specialisation != value {
+			t.Fatal("authored education subjects changed")
+		}
+		if errors := applicationErrors(p, true, now); len(errors) != 0 {
+			t.Fatal(errors)
+		}
+	}
+	p := completeApplication("Sample applicant", now)
+	p.Education.Specialisation = ""
+	if applicationErrors(p, false, now)["education.specialisation"] != "" {
+		t.Fatal("incomplete draft rejected")
+	}
+	if applicationErrors(p, true, now)["education.specialisation"] == "" {
+		t.Fatal("empty submission accepted")
+	}
+	p.Education.Specialisation = strings.Repeat("x", 241)
+	if applicationErrors(p, false, now)["education.specialisation"] == "" {
+		t.Fatal("unbounded subjects accepted")
 	}
 }
 func TestApplicationHomeLocationAndRadius(t *testing.T) {
@@ -245,7 +348,7 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 409)
+	mentor.decide("tutor-a", map[string]any{"action": "approve", "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 409)
 	mentor.decide("tutor-a", map[string]any{"action": "eligibility", "eligibility": "cleared", "reason": "Fictional employment permission evidence reviewed."}, 403)
 	admin.decide("tutor-a", map[string]any{"action": "eligibility", "eligibility": "cleared", "reason": "Fictional employer permission evidence reviewed."}, 200)
 	// A home-only request must never become an online permission.
@@ -253,11 +356,19 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 409)
-	_, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-a"}, bson.M{"$set": bson.M{"profile.teachingAreas.0.modes": []string{"online", "home"}}})
+	mentor.decide("tutor-a", map[string]any{"action": "approve", "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 409)
+	// An old priority pointing at a different subject must not block a requested Mathematics scope.
+	mathArea := p.TeachingAreas[0]
+	mathArea.Modes = []string{"online", "home"}
+	scienceArea := mathArea
+	scienceArea.ID, scienceArea.Subject = "science", "Science"
+	_, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-a"}, bson.M{"$set": bson.M{
+		"profile.teachingAreas": []domain.RequestedTeachingArea{scienceArea, mathArea},
+		"profile.firstAreaId":   "science",
+	}})
 	if e != nil {
 		t.Fatal(e)
 	}
 	mentor.setTestFees("tutor-a", 0)
-	mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 200)
+	mentor.decide("tutor-a", map[string]any{"action": "approve", "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 200)
 }

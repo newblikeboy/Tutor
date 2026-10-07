@@ -776,6 +776,195 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/{id}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /billing/{id}/invoice */
+        post: operations["post__billing__id__invoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /finance/holds */
+        get: operations["get__finance_holds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/classes/{id}/tax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /finance/classes/{id}/tax */
+        post: operations["post__finance_classes__id__tax"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/business": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /finance/business */
+        get: operations["get__finance_business"];
+        /** PUT /finance/business */
+        put: operations["put__finance_business"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /finance/bookings */
+        get: operations["get__finance_bookings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/bookings/{id}/tax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /finance/bookings/{id}/tax */
+        post: operations["post__finance_bookings__id__tax"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/bookings/{id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /finance/bookings/{id}/reconcile */
+        post: operations["post__finance_bookings__id__reconcile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/earnings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /finance/earnings */
+        get: operations["get__finance_earnings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /finance/summary */
+        get: operations["get__finance_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /finance/payouts */
+        get: operations["get__finance_payouts"];
+        put?: never;
+        /** POST /finance/payouts */
+        post: operations["post__finance_payouts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/finance/payouts/{id}/action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /finance/payouts/{id}/action */
+        post: operations["post__finance_payouts__id__action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cases": {
         parameters: {
             query?: never;
@@ -2007,6 +2196,7 @@ export interface components {
             refunds: components["schemas"]["RefundRequest"][];
             ledger: components["schemas"]["LedgerEntry"][];
             sandbox: boolean;
+            invoice?: components["schemas"]["PaidInvoice"];
         };
         Job: {
             id: string;
@@ -2025,6 +2215,153 @@ export interface components {
         };
         JobRetry: {
             reason: string;
+        };
+        FinancialAmounts: {
+            grossPaise: number;
+            tutorNetPaise: number;
+            platformPaise: number;
+            gstPaise: number;
+            tuitionGstPaise: number;
+            tdsPaise: number;
+            tcsPaise: number;
+            gatewayCostPaise: number;
+            revenuePaise: number;
+            contributionPaise: number;
+        };
+        BusinessSettings: {
+            version: number;
+            legalName: string;
+            address: string;
+            stateCode: string;
+            gstin: string;
+            sac: string;
+            commissionGstBps: number;
+            taxPolicy: string;
+            reviewed: boolean;
+            updatedBy: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TaxReview: {
+            tuitionGstPaise: number;
+            tdsBasePaise: number;
+            tdsBps: number;
+            tcsBasePaise: number;
+            tcsBps: number;
+            gatewayCostPaise: number;
+            interstate: boolean;
+            reason: string;
+        };
+        FinanceBooking: {
+            id: string;
+            enrollmentId: string;
+            tutorId: string;
+            tutorName: string;
+            status: string;
+            amounts: components["schemas"]["FinancialAmounts"];
+            reviewedBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            business?: components["schemas"]["BusinessSettings"];
+            tax?: components["schemas"]["TaxReview"];
+        };
+        ClassEarning: {
+            id: string;
+            intentId: string;
+            enrollmentId: string;
+            tutorId: string;
+            amounts: components["schemas"]["FinancialAmounts"];
+            /** Format: date-time */
+            dueAt: string;
+            /** Format: date-time */
+            earnedAt: string;
+            batchId: string;
+        };
+        PayoutBatch: {
+            id: string;
+            tutorId: string;
+            amountPaise: number;
+            classIds: string[];
+            status: string;
+            createdBy: string;
+            reference: string;
+            recordedBy: string;
+            confirmedBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            paidAt?: string;
+        };
+        PayoutInput: {
+            tutorId: string;
+        };
+        EarningHold: {
+            id: string;
+            intentId: string;
+            tutorId: string;
+            kind: string;
+            grossPaise: number;
+            reason: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PayoutAction: {
+            /** @enum {string} */
+            action: "record" | "confirm";
+            reference: string;
+            /** Format: date-time */
+            paidAt: string;
+        };
+        InvoiceInput: {
+            number: string;
+            issuerName: string;
+            issuerAddress: string;
+            issuerGstin: string;
+            customerName: string;
+            customerAddress: string;
+            supplyState: string;
+            sac: string;
+            description: string;
+            gstBps: number;
+            /** Format: date-time */
+            issuedAt: string;
+            confirmed: boolean;
+        };
+        PaidInvoice: {
+            number: string;
+            issuerName: string;
+            issuerAddress: string;
+            issuerGstin: string;
+            customerName: string;
+            customerAddress: string;
+            supplyState: string;
+            sac: string;
+            description: string;
+            gstBps: number;
+            /** Format: date-time */
+            issuedAt: string;
+            id: string;
+            totalPaise: number;
+            taxablePaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            igstPaise: number;
+        };
+        FinanceBookingPage: {
+            items: components["schemas"]["FinanceBooking"][];
+            nextCursor: string;
+        };
+        ClassEarningPage: {
+            items: components["schemas"]["ClassEarning"][];
+            nextCursor: string;
+        };
+        PayoutBatchPage: {
+            items: components["schemas"]["PayoutBatch"][];
+            nextCursor: string;
+        };
+        EarningHoldPage: {
+            items: components["schemas"]["EarningHold"][];
+            nextCursor: string;
         };
         ServiceCase: {
             id: string;
@@ -2349,9 +2686,12 @@ export interface components {
             photoFileId: string;
             location: components["schemas"]["LocationPoint"] | null;
             communicationLanguages: string[];
+            /** @description Optional private WhatsApp contact number. Indian mobile number, optionally prefixed with +91. */
+            whatsapp?: string;
         };
         ApplicantEducation: {
             qualification: string;
+            /** @description Selected education subjects, separated by commas. Existing authored specialisation text is retained. */
             specialisation: string;
             institution: string;
             pursuing: string;
@@ -2405,12 +2745,7 @@ export interface components {
         ApplicantAvailability: {
             timezone: string;
             earliestStart: string;
-            period: string;
-            untilDate: string;
-            interruptions: string;
             slots: components["schemas"]["ApplicationSlot"][];
-            weeklyHours: number;
-            maxStudents: number;
             durations: number[];
             home: components["schemas"]["HomeTeachingRequest"];
             online: components["schemas"]["OnlineTeachingRequest"];
@@ -2449,7 +2784,6 @@ export interface components {
             about: components["schemas"]["ApplicantAbout"];
             education: components["schemas"]["ApplicantEducation"];
             teachingAreas: components["schemas"]["RequestedTeachingArea"][];
-            firstAreaId: string;
             availability: components["schemas"]["ApplicantAvailability"];
             approach: components["schemas"]["ApplicantApproach"];
             fees: components["schemas"]["ApplicantFees"];
@@ -4323,6 +4657,442 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["JobRetry"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__billing__id__invoice: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaidInvoice"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__finance_holds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarningHoldPage"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__finance_classes__id__tax: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxReview"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__finance_business: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessSettings"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    put__finance_business: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessSettings"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessSettings"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__finance_bookings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceBookingPage"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__finance_bookings__id__tax: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxReview"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__finance_bookings__id__reconcile: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__finance_earnings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassEarningPage"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__finance_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialAmounts"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__finance_payouts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutBatchPage"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__finance_payouts: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutBatch"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__finance_payouts__id__action: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutAction"];
             };
         };
         responses: {

@@ -127,9 +127,11 @@ const en = {
     'Location found: {{location}}. Address and coordinates will be saved with this request.',
   locationOutsidePurnea:
     'This location is outside the launch area. You can still save the address for staff review.',
-  locationDenied: 'Location permission was blocked. You can still search or type the locality.',
+  locationDenied:
+    'Location permission was blocked. Allow location access in your browser settings, then try again.',
   locationUnsupported: 'Current location is not available in this browser.',
-  locationUnavailable: 'Could not read current location. Search or type the locality instead.',
+  locationUnavailable:
+    'Could not read your current location. Check that device location is enabled, then try again.',
   locationResolveFailed:
     'Your location was found, but its address could not be retrieved. Please try again.',
   addCurrentLocality: 'Add my locality',

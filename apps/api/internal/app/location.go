@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -31,11 +32,6 @@ type googleGeocodeResponse struct {
 	} `json:"results"`
 }
 
-type nominatimReverseResponse struct {
-	DisplayName string            `json:"display_name"`
-	Address     map[string]string `json:"address"`
-}
-
 func (a *App) reverseLocation(w http.ResponseWriter, r *http.Request) {
 	lat, e := queryCoordinate(r, "latitude", -90, 90)
 	if e != nil {
@@ -56,18 +52,17 @@ func (a *App) reverseLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	accuracy, _ := strconv.ParseFloat(strings.TrimSpace(r.URL.Query().Get("accuracyMeters")), 64)
-	if accuracy < 0 || accuracy > 100000 {
+	if math.IsNaN(accuracy) || math.IsInf(accuracy, 0) || accuracy < 0 || accuracy > 100000 {
 		accuracy = 0
 	}
-	var out reverseLocationResponse
-	if strings.TrimSpace(a.Config.GoogleMapsAPIKey) != "" {
-		out, e = reverseWithGoogle(r.Context(), lat, lng, a.Config.GoogleMapsAPIKey)
+	if strings.TrimSpace(a.Config.GoogleMapsAPIKey) == "" {
+		a.error(w, r, domain.Fail(503, "location_unavailable", "Address lookup is unavailable. Please try again later."))
+		return
 	}
-	if out.Location == "" || e != nil {
-		out, e = reverseWithNominatim(r.Context(), lat, lng)
-	}
+	out, e := reverseWithGoogle(r.Context(), lat, lng, a.Config.GoogleMapsAPIKey)
 	if e != nil || out.Location == "" {
-		out = reverseLocationResponse{Location: "Near current location", Primary: "Near current location"}
+		a.error(w, r, domain.Fail(503, "location_unavailable", "Your address could not be resolved. Please try again."))
+		return
 	}
 	out.Latitude = lat
 	out.Longitude = lng
@@ -84,7 +79,7 @@ func (a *App) reverseLocation(w http.ResponseWriter, r *http.Request) {
 
 func queryCoordinate(r *http.Request, key string, min, max float64) (float64, error) {
 	value, e := strconv.ParseFloat(strings.TrimSpace(r.URL.Query().Get(key)), 64)
-	if e != nil || value < min || value > max {
+	if e != nil || math.IsNaN(value) || math.IsInf(value, 0) || value < min || value > max {
 		return 0, fmt.Errorf("invalid %s", key)
 	}
 	return value, nil
@@ -166,66 +161,6 @@ func buildGoogleLocation(result struct {
 			State:      component("administrative_area_level_1"),
 			Country:    component("country"),
 			PostalCode: component("postal_code"),
-		},
-		Location:  location,
-		Primary:   primary,
-		Secondary: strings.Join(secondaryParts, ", "),
-	}
-}
-
-func reverseWithNominatim(ctx context.Context, latitude, longitude float64) (reverseLocationResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
-	defer cancel()
-	query := url.Values{}
-	query.Set("format", "jsonv2")
-	query.Set("lat", fmt.Sprintf("%.7f", latitude))
-	query.Set("lon", fmt.Sprintf("%.7f", longitude))
-	query.Set("zoom", "16")
-	query.Set("addressdetails", "1")
-	req, e := http.NewRequestWithContext(ctx, http.MethodGet, "https://nominatim.openstreetmap.org/reverse?"+query.Encode(), nil)
-	if e != nil {
-		return reverseLocationResponse{}, e
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "GyanSetu/1.0 location resolver")
-	res, e := http.DefaultClient.Do(req)
-	if e != nil {
-		return reverseLocationResponse{}, e
-	}
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return reverseLocationResponse{}, fmt.Errorf("nominatim status %d", res.StatusCode)
-	}
-	var payload nominatimReverseResponse
-	if e = json.NewDecoder(io.LimitReader(res.Body, 1<<20)).Decode(&payload); e != nil {
-		return reverseLocationResponse{}, e
-	}
-	out := buildNominatimLocation(payload)
-	if out.Location == "" {
-		return reverseLocationResponse{}, fmt.Errorf("empty reverse geocode")
-	}
-	return out, nil
-}
-
-func buildNominatimLocation(payload nominatimReverseResponse) reverseLocationResponse {
-	address := payload.Address
-	primary := firstNonEmpty(address["neighbourhood"], address["suburb"], address["quarter"], address["city_district"], address["city"], address["town"], address["village"], address["county"])
-	if primary == "" && payload.DisplayName != "" {
-		primary = strings.TrimSpace(strings.Split(payload.DisplayName, ",")[0])
-	}
-	secondaryParts := uniqueNonEmpty(address["suburb"], address["city_district"], address["city"], address["town"], address["state"], address["country"])
-	secondaryParts = removeString(secondaryParts, primary)
-	parts := append([]string{primary}, secondaryParts...)
-	location := strings.Join(uniqueNonEmpty(parts...), ", ")
-	return reverseLocationResponse{
-		LocationPoint: domain.LocationPoint{
-			Address:    strings.TrimSpace(payload.DisplayName),
-			Locality:   primary,
-			City:       firstNonEmpty(address["city"], address["town"], address["village"]),
-			District:   firstNonEmpty(address["county"], address["state_district"], address["city_district"]),
-			State:      address["state"],
-			Country:    address["country"],
-			PostalCode: address["postcode"],
 		},
 		Location:  location,
 		Primary:   primary,

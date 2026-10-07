@@ -76,6 +76,7 @@ func normalizeApplication(p *domain.TutorApplication) {
 	p.About.FullName = clean(p.About.FullName)
 	p.About.DisplayName = clean(p.About.DisplayName)
 	p.About.Mobile = strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(p.About.Mobile), " ", ""), "-", "")
+	p.About.WhatsApp = strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(p.About.WhatsApp), " ", ""), "-", "")
 	p.About.City = clean(p.About.City)
 	p.About.Locality = clean(p.About.Locality)
 	p.About.PIN = strings.TrimSpace(p.About.PIN)
@@ -108,9 +109,6 @@ func normalizeApplication(p *domain.TutorApplication) {
 	}
 	if !p.HasMode("online") {
 		p.Availability.Online = domain.OnlineTeachingRequest{}
-	}
-	if p.Availability.Period != "until" {
-		p.Availability.UntilDate = ""
 	}
 	if p.Approach.Demonstration != "recorded" {
 		p.Approach.DemoAreaID = ""
@@ -228,8 +226,8 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 		result.Experience = in.Profile.Education.ExperienceYears
 		result.Approach = in.Profile.Approach.Introduction
 		result.Language = ""
-		if first, ok := in.Profile.FirstArea(); ok && len(first.Languages) > 0 {
-			result.Language = first.Languages[0]
+		if len(in.Profile.TeachingAreas) > 0 && len(in.Profile.TeachingAreas[0].Languages) > 0 {
+			result.Language = in.Profile.TeachingAreas[0].Languages[0]
 		}
 		if result.Status == "" {
 			result.Status = "draft"

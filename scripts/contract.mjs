@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { tuitionContract } from './tuition-contract.mjs'
 import { inboxContract } from './inbox-contract.mjs'
 import { billingContract } from './billing-contract.mjs'
+import { financeContract } from './finance-contract.mjs'
 import { casesContract } from './cases-contract.mjs'
 import { accountContract } from './account-contract.mjs'
 import { mediaContract } from './media-contract.mjs'
@@ -429,6 +430,7 @@ route('/trials', 'post', 'Trial', 'TrialInput')
 route('/trials/{id}/action', 'post', 'OK', 'ActionInput')
 tuitionContract(schemas, route)
 billingContract(schemas, route)
+financeContract(schemas, route)
 casesContract(schemas, route)
 accountContract(schemas, route)
 mediaContract(schemas, route, paths)

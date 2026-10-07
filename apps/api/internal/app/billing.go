@@ -30,7 +30,11 @@ func (a *App) billing(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "parent", "finance", "admin") {
 		return
 	}
-	p, e := pageRecords[domain.PaymentIntent](r.Context(), a.Store, "payment_intents", a.billingFilter(user(r)), r.URL.Query().Get("cursor"))
+	f := a.billingFilter(user(r))
+	if user(r).Role == "parent" {
+		f["paymentId"] = bson.M{"$gt": ""}
+	}
+	p, e := pageRecords[domain.PaymentIntent](r.Context(), a.Store, "payment_intents", f, r.URL.Query().Get("cursor"))
 	if e != nil {
 		a.error(w, r, e)
 		return
@@ -43,6 +47,9 @@ func (a *App) billingDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	f := a.billingFilter(user(r))
 	f["_id"] = chi.URLParam(r, "id")
+	if user(r).Role == "parent" {
+		f["paymentId"] = bson.M{"$gt": ""}
+	}
 	v, e := storage.One[domain.PaymentIntent](r.Context(), a.Store, "payment_intents", f)
 	if e != nil {
 		a.error(w, r, e)
@@ -53,12 +60,23 @@ func (a *App) billingDetail(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
-	ledger, e := storage.Many[domain.LedgerEntry](r.Context(), a.Store, "ledger", bson.M{"intentId": v.ID})
-	if e != nil {
+	ledger := []domain.LedgerEntry{}
+	if enum(user(r).Role, "admin", "finance") {
+		ledger, e = storage.Many[domain.LedgerEntry](r.Context(), a.Store, "ledger", bson.M{"intentId": v.ID})
+		if e != nil {
+			a.error(w, r, e)
+			return
+		}
+	}
+	response := map[string]any{"intent": v, "refunds": refunds, "ledger": ledger, "sandbox": a.Config.Env != "production"}
+	invoice, e := storage.One[domain.PaidInvoice](r.Context(), a.Store, "paid_invoices", bson.M{"_id": v.ID, "ownerId": v.OwnerID})
+	if e == nil {
+		response["invoice"] = invoice
+	} else if !errors.Is(e, mongo.ErrNoDocuments) {
 		a.error(w, r, e)
 		return
 	}
-	a.json(w, 200, map[string]any{"intent": v, "refunds": refunds, "ledger": ledger, "sandbox": a.Config.Env != "production"})
+	a.json(w, 200, response)
 }
 func (a *App) createPayment(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "parent") || !a.paymentEnabled(w, r) {
@@ -248,6 +266,9 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 			}
 		}
 		if usable {
+			if e = a.createFinanceBooking(ctx, v, enrollment); e != nil {
+				return e
+			}
 			if _, e = a.Store.C("enrollments").UpdateOne(ctx, bson.M{"_id": enrollment.ID}, bson.M{"$set": bson.M{"status": "active", "holdUntil": nil}}); e != nil {
 				return e
 			}
@@ -354,7 +375,7 @@ func (a *App) requestRefund(w http.ResponseWriter, r *http.Request) {
 		if er != nil {
 			return er
 		}
-		if v.PaymentID == "" || v.Amount-v.RefundReserved-v.Refunded < in.Amount {
+		if v.PaymentID == "" || v.Amount-v.RefundReserved-v.Refunded-v.EarnedGross < in.Amount {
 			return domain.Fail(409, "refund_amount", "This amount exceeds the unreserved payment balance.")
 		}
 		out = domain.RefundRequest{ID: id, IntentID: v.ID, OwnerID: v.OwnerID, Amount: in.Amount, Reason: clean(in.Reason), Status: "requested", RequestedBy: u.ID, CreatedAt: a.Now()}
@@ -419,6 +440,11 @@ func (a *App) refundAction(w http.ResponseWriter, r *http.Request) {
 				return er
 			}
 		}
+		if in.Action == "reject" {
+			if er = a.reconcileBookingEarnings(ctx, v.IntentID); er != nil {
+				return er
+			}
+		}
 		return a.audit(ctx, u.ID, "refund."+v.Status, v.ID)
 	})
 	if e != nil {
@@ -466,6 +492,11 @@ func (a *App) applyRefund(ctx context.Context, requestID string, p payments.Refu
 		}
 		if _, e = a.Store.C("refunds").ReplaceOne(ctx, bson.M{"_id": r.ID}, r); e != nil {
 			return e
+		}
+		if enum(r.Status, "processed", "failed") {
+			if e = a.reconcileBookingEarnings(ctx, v.ID); e != nil {
+				return e
+			}
 		}
 		return a.audit(ctx, "razorpay", "refund."+r.Status, r.ID)
 	})

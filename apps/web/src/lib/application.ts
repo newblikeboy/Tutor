@@ -36,6 +36,7 @@ export function emptyApplication(name: string, noticeVersion: string): Applicati
       fullName: name,
       displayName: '',
       mobile: '',
+      whatsapp: '',
       city: '',
       locality: '',
       pin: '',
@@ -65,17 +66,11 @@ export function emptyApplication(name: string, noticeVersion: string): Applicati
       educationFileIds: [],
     },
     teachingAreas: [],
-    firstAreaId: '',
     availability: {
       timezone: 'Asia/Kolkata',
       slots: [],
       earliestStart: '',
-      weeklyHours: 0,
-      maxStudents: 0,
       durations: [],
-      period: '',
-      untilDate: '',
-      interruptions: '',
       home: {
         localities: [],
         serviceLocations: [],
@@ -116,7 +111,7 @@ export function emptyApplication(name: string, noticeVersion: string): Applicati
 }
 export function fieldStep(key: string) {
   if (key === 'about.locality' || key === 'about.pin') return 3
-  if (key.startsWith('teachingAreas') || key === 'firstAreaId') return 2
+  if (key.startsWith('teachingAreas')) return 2
   return Math.max(
     0,
     ['about', 'education', '', 'availability', 'approach', 'declarations'].indexOf(
@@ -135,6 +130,7 @@ export function applicationDefaults(
       fees: { preference: 'staff', sessionMinutes: 60, rates: [], comments: '' },
       about: {
         ...application.profile.about,
+        whatsapp: application.profile.about.whatsapp ?? '',
         location: application.profile.about.location ?? null,
         photoFileId: application.profile.about.photoFileId ?? '',
       },

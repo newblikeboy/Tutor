@@ -9,6 +9,7 @@ export const filesEN = {
     upload: 'Upload file',
     localPreview: 'Preview only · not saved yet',
     localPreviewAlt: 'Selected image preview',
+    pdfDocument: 'PDF document',
     progress: {
       preparing: 'Preparing upload…',
       uploading: 'Uploading',

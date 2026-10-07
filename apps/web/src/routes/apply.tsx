@@ -1,6 +1,7 @@
 import { prepareProfilePhoto, uploadFile, type UploadProgress } from '../lib/uploads'
-import { LocalImagePreview, UploadFeedback } from '../components/upload-feedback'
+import { LocalFilePreview, UploadFeedback } from '../components/upload-feedback'
 import { teachingSubjects } from '../lib/subjects'
+import { SubjectSelect } from '../components/subject-select'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
   FormProvider,
@@ -12,7 +13,7 @@ import {
 } from 'react-hook-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Check, Plus } from 'lucide-react'
+import { Check, FileText, Plus } from 'lucide-react'
 import { api, APIError, queryClient, send, type Application, type Schema } from '../lib/api'
 import { useAuth, useConfig, useTutorApplication } from '../lib/session'
 import {
@@ -247,17 +248,10 @@ function Slots({ name }: { name: 'availability.slots' | 'approach.assessmentSlot
 function Attachment({
   name,
   label,
-  video = false,
   ensureDraft,
 }: {
-  name:
-    | 'about.photoFileId'
-    | 'education.resumeFileId'
-    | 'education.educationFileIds'
-    | 'approach.demoFileId'
-    | 'approach.worksheetFileId'
+  name: 'about.photoFileId' | 'education.resumeFileId' | 'education.educationFileIds'
   label: string
-  video?: boolean
   ensureDraft: (force?: boolean) => Promise<Application>
 }) {
   const c = useCopy(),
@@ -265,9 +259,13 @@ function Attachment({
     auth = useAuth(),
     { setValue, getValues } = useFormContext<ApplicationProfile>()
   const activity = useContext(UploadActivity)
+  const { t } = useTranslation()
   const selected = useWatch<ApplicationProfile, typeof name>({ name })
   const multiple = name === 'education.educationFileIds'
   const photo = name === 'about.photoFileId'
+  const acceptedTypes = photo
+    ? ['image/jpeg', 'image/png']
+    : ['image/jpeg', 'image/png', 'application/pdf']
   const selectedIds = Array.isArray(selected) ? selected : selected ? [selected] : []
   const [pending, setPending] = useState<
     { file: File; key: string; savedId?: string; prepared?: File }[]
@@ -279,7 +277,7 @@ function Attachment({
       pending.filter((item) => !item.savedId || !selectedIds.includes(item.savedId)).length >
       6
   const input = useRef<HTMLInputElement>(null)
-  const enabled = video ? config.data?.videoUploadsEnabled : config.data?.uploadsEnabled
+  const enabled = config.data?.uploadsEnabled
   const files = useQuery({
     queryKey: ['files', 'applications', auth.data!.user.id, 'selection'],
     queryFn: () => api<Schema['FilePage']>(`/applications/${auth.data!.user.id}/files`),
@@ -311,20 +309,13 @@ function Attachment({
     onSettled: () => activity(false),
     mutationFn: async () => {
       if (
-        photo &&
+        !pending.length ||
         pending.some(
           ({ file }) =>
-            !['image/jpeg', 'image/png'].includes(file.type) ||
-            file.size === 0 ||
-            file.size > 3 * 1024 * 1024,
+            !acceptedTypes.includes(file.type) || file.size === 0 || file.size > 3 * 1024 * 1024,
         )
       )
-        throw new APIError(422, 'application_photo', 'Invalid photo')
-      if (
-        !pending.length ||
-        pending.some(({ file }) => file.size === 0 || file.size > (video ? 25 : 3) * 1024 * 1024)
-      )
-        throw new APIError(422, 'application_file', 'File limit')
+        throw new APIError(422, photo ? 'application_photo' : 'file_type', 'Invalid file')
       if (overLimit) throw new Error(c('educationDocumentsHint'))
       await ensureDraft()
       for (const item of pending) {
@@ -342,7 +333,7 @@ function Attachment({
           `/applications/${auth.data!.user.id}/files`,
           prepared,
           uploadKey,
-          (video ? config.data?.videoProvider : config.data?.mediaProvider) === 'cloudinary',
+          config.data?.mediaProvider === 'cloudinary',
           setProgress,
         )
         queryClient.setQueryData<Schema['FilePage']>(
@@ -378,10 +369,7 @@ function Attachment({
     <div className="af-attachment">
       <Field
         label={c(label)}
-        hint={[
-          multiple ? c('educationDocumentsHint') : '',
-          c(video ? 'videoHint' : photo ? 'photoHint' : 'docHint'),
-        ]
+        hint={[multiple ? c('educationDocumentsHint') : '', c(photo ? 'photoHint' : 'docHint')]
           .filter(Boolean)
           .join(' · ')}
       >
@@ -389,13 +377,7 @@ function Attachment({
           ref={input}
           type="file"
           multiple={multiple}
-          accept={
-            video
-              ? 'video/mp4,.mp4'
-              : photo
-                ? 'image/jpeg,image/png'
-                : 'application/pdf,image/jpeg,image/png'
-          }
+          accept={acceptedTypes.join(',')}
           onChange={(e) => {
             setPending(
               Array.from(e.target.files ?? []).map((file) => ({ file, key: crypto.randomUUID() })),
@@ -408,10 +390,10 @@ function Attachment({
       {pending
         .filter(
           ({ file }) =>
-            ['image/jpeg', 'image/png'].includes(file.type) && file.size <= 3 * 1024 * 1024,
+            acceptedTypes.includes(file.type) && file.size > 0 && file.size <= 3 * 1024 * 1024,
         )
         .map(({ file, key }) => (
-          <LocalImagePreview key={key} file={file} />
+          <LocalFilePreview key={key} file={file} />
         ))}
       {upload.isPending && <UploadFeedback progress={progress} />}
       <Button
@@ -426,9 +408,10 @@ function Attachment({
       {!enabled && !config.isPending && <Alert>{c('uploadUnavailable')}</Alert>}
       {overLimit && <Alert kind="error">{c('educationDocumentsHint')}</Alert>}
       {selectedIds.length > 0 && (
-        <ul className={`af-attachment-list ${photo ? 'photo' : ''}`}>
+        <ul className={`af-attachment-list ${photo ? 'photo' : 'documents'}`}>
           {selectedIds.map((id) => {
             const file = files.data?.items.find((item) => item.id === id)
+            const ready = file && (file.status === 'ready' || file.status === 'clean')
             return (
               <li key={id}>
                 {photo ? (
@@ -440,19 +423,47 @@ function Attachment({
                     />
                   </div>
                 ) : null}
+                {!photo &&
+                  ready &&
+                  (file.contentType.startsWith('image/') ? (
+                    <img
+                      className="af-document-preview"
+                      src={`/api/v1/files/${id}/view?preview=1`}
+                      alt={file.name}
+                      decoding="async"
+                      loading="lazy"
+                    />
+                  ) : file.contentType === 'application/pdf' ? (
+                    <div className="upload-document-preview">
+                      <FileText size={32} aria-hidden="true" />
+                      <span>{t('files.pdfDocument')}</span>
+                    </div>
+                  ) : null)}
                 <p role="status">
                   <strong>{file?.name ?? c('attachmentLoading')}</strong>
                   <span>{c('attachmentSaved')}</span>
                 </p>
-                <Button
-                  type="button"
-                  variant="text"
-                  busy={remove.isPending}
-                  disabled={remove.isPending || upload.isPending}
-                  onClick={() => remove.mutate(id)}
-                >
-                  {c('remove')}
-                </Button>
+                <div className="af-attachment-actions">
+                  {ready && (
+                    <a
+                      className="btn secondary"
+                      href={`/api/v1/files/${id}/view`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t('files.view')}
+                    </a>
+                  )}
+                  <Button
+                    type="button"
+                    variant="text"
+                    busy={remove.isPending}
+                    disabled={remove.isPending || upload.isPending}
+                    onClick={() => remove.mutate(id)}
+                  >
+                    {c('remove')}
+                  </Button>
+                </div>
               </li>
             )
           })}
@@ -477,16 +488,20 @@ function StepFields({
       useFormContext<ApplicationProfile>()
   const p = useWatch<ApplicationProfile>() as ApplicationProfile
   const [changingLocation, setChangingLocation] = useState(false)
+  const specialisations = [
+    ...new Set(
+      p.education.specialisation
+        .split(',')
+        .map((subject) => subject.trim())
+        .filter(Boolean),
+    ),
+  ]
   const locationError =
     getFieldState('about.location', formState).error ||
     getFieldState('about.city', formState).error ||
     getFieldState('about.locality', formState).error
   const home = p.teachingAreas.some((a) => a.modes.includes('home')),
     online = p.teachingAreas.some((a) => a.modes.includes('online'))
-  const options = p.teachingAreas.map((a, i) => ({
-    value: a.id,
-    label: `${i + 1}. ${a.subject ? c(a.subject) : c('area')} · ${a.minClass}–${a.maxClass}`,
-  }))
   const saveDetectedLocation = (location: StoredLocation) => {
     clearErrors(['about.location', 'about.city', 'about.locality', 'about.pin'])
     setValue('about.location', location, { shouldDirty: true })
@@ -505,46 +520,64 @@ function StepFields({
             <input value={email} readOnly type="email" />
           </Field>
           <Input name="about.mobile" type="tel" max={16} />
+          <Input name="about.whatsapp" type="tel" optional min={10} max={16} hint="whatsappHint" />
         </div>
-        <div className="location-detail-grid" aria-label={c('detectedLocationDetails')}>
-          <Field label={c('state')}>
-            <input value={p.about.location?.state ?? ''} placeholder={c('state')} readOnly />
-          </Field>
-          <Field label={c('district')}>
-            <input value={p.about.location?.district ?? ''} placeholder={c('district')} readOnly />
-          </Field>
-          <Field label={c('city')}>
-            <input
-              value={p.about.city || p.about.location?.city || ''}
-              placeholder={c('city')}
-              readOnly
-            />
-          </Field>
-          <Field label={c('location')}>
-            <input
-              value={p.about.locality || p.about.location?.locality || ''}
-              placeholder={c('location')}
-              readOnly
-            />
-          </Field>
-          <Field label={c('pin')}>
-            <input
-              value={p.about.pin || p.about.location?.postalCode || ''}
-              placeholder={c('pin')}
-              readOnly
-            />
-          </Field>
-        </div>
-        {locationError && <p className="field-error">{c('locationRequired')}</p>}
-        {p.about.location && !changingLocation ? (
-          <Button type="button" variant="secondary" onClick={() => setChangingLocation(true)}>
-            {c('changeLocation')}
-          </Button>
-        ) : (
-          <CurrentLocationButton onLocationChange={saveDetectedLocation}>
-            {c(p.about.location ? 'useCurrentLocationAgain' : 'useCurrentLocation')}
-          </CurrentLocationButton>
-        )}
+        <fieldset className="af-home-location">
+          <legend>{c('homeLocation')}</legend>
+          <p className="hint">{c('homeLocationHint')}</p>
+          {p.about.location && !changingLocation ? (
+            <Button type="button" variant="secondary" onClick={() => setChangingLocation(true)}>
+              {c('changeLocation')}
+            </Button>
+          ) : (
+            <CurrentLocationButton onLocationChange={saveDetectedLocation}>
+              {c(p.about.location ? 'useCurrentLocationAgain' : 'useCurrentLocation')}
+            </CurrentLocationButton>
+          )}
+          {locationError && (
+            <p className="field-error" role="alert">
+              {c('locationRequired')}
+            </p>
+          )}
+          <div className="location-detail-grid">
+            <div className="af-home-address">
+              <Field label={c('homeAddress')}>
+                <textarea value={p.about.location?.address ?? ''} readOnly rows={2} />
+              </Field>
+            </div>
+            <Field label={c('state')}>
+              <input value={p.about.location?.state ?? ''} placeholder={c('state')} readOnly />
+            </Field>
+            <Field label={c('district')}>
+              <input
+                value={p.about.location?.district ?? ''}
+                placeholder={c('district')}
+                readOnly
+              />
+            </Field>
+            <Field label={c('city')}>
+              <input
+                value={p.about.city || p.about.location?.city || ''}
+                placeholder={c('city')}
+                readOnly
+              />
+            </Field>
+            <Field label={c('location')}>
+              <input
+                value={p.about.locality || p.about.location?.locality || ''}
+                placeholder={c('location')}
+                readOnly
+              />
+            </Field>
+            <Field label={c('pin')}>
+              <input
+                value={p.about.pin || p.about.location?.postalCode || ''}
+                placeholder={c('pin')}
+                readOnly
+              />
+            </Field>
+          </div>
+        </fieldset>
         <Checks name="about.communicationLanguages" options={['Hindi', 'English']} />
         <Attachment name="about.photoFileId" label="photoFileId" ensureDraft={ensureDraft} />
       </>
@@ -555,7 +588,23 @@ function StepFields({
         <h3 className="af-group-title">{c('qualificationsTitle')}</h3>
         <div className="form-grid">
           <Input name="education.qualification" min={2} max={120} hint="qualificationHint" />
-          <Input name="education.specialisation" min={2} max={120} />
+          <SubjectSelect
+            label={c('specialisation')}
+            placeholder={c('chooseSubjects')}
+            hint={c('specialisationHint')}
+            value={specialisations}
+            // Keep authored subjects from older applications selectable until removed.
+            options={[...new Set([...teachingSubjects, ...specialisations])]}
+            onChange={(subjects) => {
+              setValue('education.specialisation', subjects.join(', '), { shouldDirty: true })
+              clearErrors('education.specialisation')
+            }}
+            error={
+              getFieldState('education.specialisation', formState).error
+                ? c('specialisationRequired')
+                : undefined
+            }
+          />
           <Input name="education.institution" min={2} max={160} />
           <Input
             name="education.completionYear"
@@ -674,7 +723,6 @@ function StepFields({
           <Plus size={16} />
           {c('addArea')}
         </Button>
-        <Select name="firstAreaId" options={options} />
       </>
     )
   if (step === 3)
@@ -683,10 +731,6 @@ function StepFields({
         <Slots name="availability.slots" />
         <div className="form-grid">
           <Input name="availability.earliestStart" type="date" />
-          <Input name="availability.weeklyHours" type="number" min={1} max={60} />
-          <Input name="availability.maxStudents" type="number" min={1} max={30} />
-          <Select name="availability.period" options={['ongoing', 'until', 'unsure']} />
-          {p.availability.period === 'until' && <Input name="availability.untilDate" type="date" />}
         </div>
         <fieldset
           className="af-checks"
@@ -717,7 +761,6 @@ function StepFields({
             <p className="field-error">{c('required')}</p>
           )}
         </fieldset>
-        <Input name="availability.interruptions" optional multiline max={600} />
         {home && (
           <fieldset className="af-area">
             <legend>{c('homeTitle')}</legend>
@@ -937,6 +980,7 @@ function ApplicationForm({
         missing.push('about.communicationLanguages')
       if (step === 1 && !p.education.newToTutoring && !p.education.settings.length)
         missing.push('education.settings')
+      if (step === 1 && !p.education.specialisation.trim()) missing.push('education.specialisation')
       if (step === 2) {
         if (!p.teachingAreas.length) missing.push('teachingAreas')
         p.teachingAreas.forEach((a, i) => {

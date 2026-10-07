@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 const ApplicationNoticeVersion = "application-2026-09-23-v1-draft"
 
@@ -10,7 +13,6 @@ type TutorApplication struct {
 	About         ApplicantAbout          `json:"about" bson:"about"`
 	Education     ApplicantEducation      `json:"education" bson:"education"`
 	TeachingAreas []RequestedTeachingArea `json:"teachingAreas" bson:"teachingAreas"`
-	FirstAreaID   string                  `json:"firstAreaId" bson:"firstAreaId"`
 	Availability  ApplicantAvailability   `json:"availability" bson:"availability"`
 	Approach      ApplicantApproach       `json:"approach" bson:"approach"`
 	Fees          ApplicantFees           `json:"fees" bson:"fees"`
@@ -34,6 +36,7 @@ type ApplicantAbout struct {
 	FullName               string         `json:"fullName" bson:"fullName"`
 	DisplayName            string         `json:"displayName" bson:"displayName"`
 	Mobile                 string         `json:"mobile" bson:"mobile"`
+	WhatsApp               string         `json:"whatsapp" bson:"whatsapp"`
 	City                   string         `json:"city" bson:"city"`
 	Locality               string         `json:"locality" bson:"locality"`
 	PIN                    string         `json:"pin" bson:"pin"`
@@ -81,12 +84,7 @@ type ApplicantAvailability struct {
 	Timezone      string                `json:"timezone" bson:"timezone"`
 	Slots         []ApplicationSlot     `json:"slots" bson:"slots"`
 	EarliestStart string                `json:"earliestStart" bson:"earliestStart"`
-	WeeklyHours   int                   `json:"weeklyHours" bson:"weeklyHours"`
-	MaxStudents   int                   `json:"maxStudents" bson:"maxStudents"`
 	Durations     []int                 `json:"durations" bson:"durations"`
-	Period        string                `json:"period" bson:"period"`
-	UntilDate     string                `json:"untilDate" bson:"untilDate"`
-	Interruptions string                `json:"interruptions" bson:"interruptions"`
 	Home          HomeTeachingRequest   `json:"home" bson:"home"`
 	Online        OnlineTeachingRequest `json:"online" bson:"online"`
 }
@@ -160,9 +158,25 @@ func (p TutorApplication) HasMode(mode string) bool {
 func (p TutorApplication) NeedsEligibilityReview() bool {
 	return p.Education.Occupation == "employed_teacher" || p.Education.OutsideWork != "none"
 }
-func (p TutorApplication) FirstArea() (RequestedTeachingArea, bool) {
+
+// RequestedArea requires one complete requested area to cover the approved scope.
+// Separate cards must not be combined into an unrequested class/mode combination.
+func (p TutorApplication) RequestedArea(subject string, minClass, maxClass int, modes []string) (RequestedTeachingArea, bool) {
+	if len(modes) == 0 {
+		return RequestedTeachingArea{}, false
+	}
 	for _, area := range p.TeachingAreas {
-		if area.ID == p.FirstAreaID {
+		if area.Subject != subject || minClass < area.MinClass || maxClass > area.MaxClass {
+			continue
+		}
+		matches := true
+		for _, mode := range modes {
+			if !slices.Contains(area.Modes, mode) {
+				matches = false
+				break
+			}
+		}
+		if matches {
 			return area, true
 		}
 	}

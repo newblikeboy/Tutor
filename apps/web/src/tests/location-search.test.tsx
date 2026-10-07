@@ -80,7 +80,7 @@ test('permission denial does not call the address service or save a location', a
   render(<CurrentLocationButton onLocationChange={onLocationChange} />)
   fireEvent.click(screen.getByRole('button', { name: 'Use current location' }))
   await screen.findByText(
-    'Location permission was blocked. You can still search or type the locality.',
+    'Location permission was blocked. Allow location access in your browser settings, then try again.',
   )
   expect(api).not.toHaveBeenCalled()
   expect(onLocationChange).not.toHaveBeenCalled()

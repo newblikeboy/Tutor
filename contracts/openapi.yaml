@@ -2907,6 +2907,676 @@
         }
       }
     },
+    "/billing/{id}/invoice": {
+      "post": {
+        "operationId": "post__billing__id__invoice",
+        "summary": "POST /billing/{id}/invoice",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaidInvoice"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/holds": {
+      "get": {
+        "operationId": "get__finance_holds",
+        "summary": "GET /finance/holds",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarningHoldPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/finance/classes/{id}/tax": {
+      "post": {
+        "operationId": "post__finance_classes__id__tax",
+        "summary": "POST /finance/classes/{id}/tax",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxReview"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/business": {
+      "get": {
+        "operationId": "get__finance_business",
+        "summary": "GET /finance/business",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessSettings"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      },
+      "put": {
+        "operationId": "put__finance_business",
+        "summary": "PUT /finance/business",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessSettings"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BusinessSettings"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/bookings": {
+      "get": {
+        "operationId": "get__finance_bookings",
+        "summary": "GET /finance/bookings",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceBookingPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/finance/bookings/{id}/tax": {
+      "post": {
+        "operationId": "post__finance_bookings__id__tax",
+        "summary": "POST /finance/bookings/{id}/tax",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxReview"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/bookings/{id}/reconcile": {
+      "post": {
+        "operationId": "post__finance_bookings__id__reconcile",
+        "summary": "POST /finance/bookings/{id}/reconcile",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/earnings": {
+      "get": {
+        "operationId": "get__finance_earnings",
+        "summary": "GET /finance/earnings",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassEarningPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/finance/summary": {
+      "get": {
+        "operationId": "get__finance_summary",
+        "summary": "GET /finance/summary",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialAmounts"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/finance/payouts": {
+      "get": {
+        "operationId": "get__finance_payouts",
+        "summary": "GET /finance/payouts",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutBatchPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      },
+      "post": {
+        "operationId": "post__finance_payouts",
+        "summary": "POST /finance/payouts",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutBatch"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayoutInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/payouts/{id}/action": {
+      "post": {
+        "operationId": "post__finance_payouts__id__action",
+        "summary": "POST /finance/payouts/{id}/action",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayoutAction"
+              }
+            }
+          }
+        }
+      }
+    },
     "/cases": {
       "get": {
         "operationId": "get__cases",
@@ -7726,6 +8396,9 @@
           },
           "sandbox": {
             "type": "boolean"
+          },
+          "invoice": {
+            "$ref": "#/components/schemas/PaidInvoice"
           }
         }
       },
@@ -7794,6 +8467,576 @@
         ],
         "properties": {
           "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "FinancialAmounts": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "grossPaise",
+          "tutorNetPaise",
+          "platformPaise",
+          "gstPaise",
+          "tuitionGstPaise",
+          "tdsPaise",
+          "tcsPaise",
+          "gatewayCostPaise",
+          "revenuePaise",
+          "contributionPaise"
+        ],
+        "properties": {
+          "grossPaise": {
+            "type": "integer"
+          },
+          "tutorNetPaise": {
+            "type": "integer"
+          },
+          "platformPaise": {
+            "type": "integer"
+          },
+          "gstPaise": {
+            "type": "integer"
+          },
+          "tuitionGstPaise": {
+            "type": "integer"
+          },
+          "tdsPaise": {
+            "type": "integer"
+          },
+          "tcsPaise": {
+            "type": "integer"
+          },
+          "gatewayCostPaise": {
+            "type": "integer"
+          },
+          "revenuePaise": {
+            "type": "integer"
+          },
+          "contributionPaise": {
+            "type": "integer"
+          }
+        }
+      },
+      "BusinessSettings": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "legalName",
+          "address",
+          "stateCode",
+          "gstin",
+          "sac",
+          "commissionGstBps",
+          "taxPolicy",
+          "reviewed",
+          "updatedBy",
+          "updatedAt"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "stateCode": {
+            "type": "string"
+          },
+          "gstin": {
+            "type": "string"
+          },
+          "sac": {
+            "type": "string"
+          },
+          "commissionGstBps": {
+            "type": "integer"
+          },
+          "taxPolicy": {
+            "type": "string"
+          },
+          "reviewed": {
+            "type": "boolean"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TaxReview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tuitionGstPaise",
+          "tdsBasePaise",
+          "tdsBps",
+          "tcsBasePaise",
+          "tcsBps",
+          "gatewayCostPaise",
+          "interstate",
+          "reason"
+        ],
+        "properties": {
+          "tuitionGstPaise": {
+            "type": "integer"
+          },
+          "tdsBasePaise": {
+            "type": "integer"
+          },
+          "tdsBps": {
+            "type": "integer"
+          },
+          "tcsBasePaise": {
+            "type": "integer"
+          },
+          "tcsBps": {
+            "type": "integer"
+          },
+          "gatewayCostPaise": {
+            "type": "integer"
+          },
+          "interstate": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "FinanceBooking": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "enrollmentId",
+          "tutorId",
+          "tutorName",
+          "status",
+          "amounts",
+          "reviewedBy",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "enrollmentId": {
+            "type": "string"
+          },
+          "tutorId": {
+            "type": "string"
+          },
+          "tutorName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "amounts": {
+            "$ref": "#/components/schemas/FinancialAmounts"
+          },
+          "reviewedBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "business": {
+            "$ref": "#/components/schemas/BusinessSettings"
+          },
+          "tax": {
+            "$ref": "#/components/schemas/TaxReview"
+          }
+        }
+      },
+      "ClassEarning": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "intentId",
+          "enrollmentId",
+          "tutorId",
+          "amounts",
+          "dueAt",
+          "earnedAt",
+          "batchId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "intentId": {
+            "type": "string"
+          },
+          "enrollmentId": {
+            "type": "string"
+          },
+          "tutorId": {
+            "type": "string"
+          },
+          "amounts": {
+            "$ref": "#/components/schemas/FinancialAmounts"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "earnedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "batchId": {
+            "type": "string"
+          }
+        }
+      },
+      "PayoutBatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tutorId",
+          "amountPaise",
+          "classIds",
+          "status",
+          "createdBy",
+          "reference",
+          "recordedBy",
+          "confirmedBy",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tutorId": {
+            "type": "string"
+          },
+          "amountPaise": {
+            "type": "integer"
+          },
+          "classIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "recordedBy": {
+            "type": "string"
+          },
+          "confirmedBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PayoutInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tutorId"
+        ],
+        "properties": {
+          "tutorId": {
+            "type": "string"
+          }
+        }
+      },
+      "EarningHold": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "intentId",
+          "tutorId",
+          "kind",
+          "grossPaise",
+          "reason",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "intentId": {
+            "type": "string"
+          },
+          "tutorId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "grossPaise": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PayoutAction": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "reference",
+          "paidAt"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "record",
+              "confirm"
+            ]
+          },
+          "reference": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "InvoiceInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "number",
+          "issuerName",
+          "issuerAddress",
+          "issuerGstin",
+          "customerName",
+          "customerAddress",
+          "supplyState",
+          "sac",
+          "description",
+          "gstBps",
+          "issuedAt",
+          "confirmed"
+        ],
+        "properties": {
+          "number": {
+            "type": "string"
+          },
+          "issuerName": {
+            "type": "string"
+          },
+          "issuerAddress": {
+            "type": "string"
+          },
+          "issuerGstin": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerAddress": {
+            "type": "string"
+          },
+          "supplyState": {
+            "type": "string"
+          },
+          "sac": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "gstBps": {
+            "type": "integer"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PaidInvoice": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "number",
+          "issuerName",
+          "issuerAddress",
+          "issuerGstin",
+          "customerName",
+          "customerAddress",
+          "supplyState",
+          "sac",
+          "description",
+          "gstBps",
+          "issuedAt",
+          "id",
+          "totalPaise",
+          "taxablePaise",
+          "cgstPaise",
+          "sgstPaise",
+          "igstPaise"
+        ],
+        "properties": {
+          "number": {
+            "type": "string"
+          },
+          "issuerName": {
+            "type": "string"
+          },
+          "issuerAddress": {
+            "type": "string"
+          },
+          "issuerGstin": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerAddress": {
+            "type": "string"
+          },
+          "supplyState": {
+            "type": "string"
+          },
+          "sac": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "gstBps": {
+            "type": "integer"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string"
+          },
+          "totalPaise": {
+            "type": "integer"
+          },
+          "taxablePaise": {
+            "type": "integer"
+          },
+          "cgstPaise": {
+            "type": "integer"
+          },
+          "sgstPaise": {
+            "type": "integer"
+          },
+          "igstPaise": {
+            "type": "integer"
+          }
+        }
+      },
+      "FinanceBookingPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinanceBooking"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "ClassEarningPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClassEarning"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "PayoutBatchPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayoutBatch"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "EarningHoldPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EarningHold"
+            }
+          },
+          "nextCursor": {
             "type": "string"
           }
         }
@@ -9143,6 +10386,11 @@
             "items": {
               "type": "string"
             }
+          },
+          "whatsapp": {
+            "type": "string",
+            "maxLength": 16,
+            "description": "Optional private WhatsApp contact number. Indian mobile number, optionally prefixed with +91."
           }
         }
       },
@@ -9175,7 +10423,9 @@
             "type": "string"
           },
           "specialisation": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 240,
+            "description": "Selected education subjects, separated by commas. Existing authored specialisation text is retained."
           },
           "institution": {
             "type": "string"
@@ -9386,12 +10636,7 @@
         "required": [
           "timezone",
           "earliestStart",
-          "period",
-          "untilDate",
-          "interruptions",
           "slots",
-          "weeklyHours",
-          "maxStudents",
           "durations",
           "home",
           "online"
@@ -9403,26 +10648,11 @@
           "earliestStart": {
             "type": "string"
           },
-          "period": {
-            "type": "string"
-          },
-          "untilDate": {
-            "type": "string"
-          },
-          "interruptions": {
-            "type": "string"
-          },
           "slots": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApplicationSlot"
             }
-          },
-          "weeklyHours": {
-            "type": "integer"
-          },
-          "maxStudents": {
-            "type": "integer"
           },
           "durations": {
             "type": "array",
@@ -9568,7 +10798,6 @@
           "about",
           "education",
           "teachingAreas",
-          "firstAreaId",
           "availability",
           "approach",
           "fees",
@@ -9589,9 +10818,6 @@
             "items": {
               "$ref": "#/components/schemas/RequestedTeachingArea"
             }
-          },
-          "firstAreaId": {
-            "type": "string"
           },
           "availability": {
             "$ref": "#/components/schemas/ApplicantAvailability"

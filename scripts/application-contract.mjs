@@ -17,6 +17,12 @@ export function applicationContract(schemas, route) {
     location: { anyOf: [ref('LocationPoint'), { type: 'null' }] },
     communicationLanguages: array(s),
   })
+  schemas.ApplicantAbout.properties.whatsapp = {
+    type: 'string',
+    maxLength: 16,
+    description:
+      'Optional private WhatsApp contact number. Indian mobile number, optionally prefixed with +91.',
+  }
   schemas.ApplicantEducation = obj({
     ...strings(
       'qualification specialisation institution pursuing programme currentInstitution currentStage expectedCompletion additional summary occupation outsideWork resumeFileId',
@@ -28,6 +34,12 @@ export function applicationContract(schemas, route) {
     settings: array(s),
     educationFileIds: { ...array(s), type: ['array', 'null'], maxItems: 6, uniqueItems: true },
   })
+  schemas.ApplicantEducation.properties.specialisation = {
+    type: 'string',
+    maxLength: 240,
+    description:
+      'Selected education subjects, separated by commas. Existing authored specialisation text is retained.',
+  }
   schemas.RequestedTeachingArea = obj({
     ...strings('id subject priorExperience'),
     minClass: n,
@@ -48,10 +60,8 @@ export function applicationContract(schemas, route) {
     strings('device camera microphone internet privateSpace screenSharing digitalWriting'),
   )
   schemas.ApplicantAvailability = obj({
-    ...strings('timezone earliestStart period untilDate interruptions'),
+    ...strings('timezone earliestStart'),
     slots: array(ref('ApplicationSlot')),
-    weeklyHours: n,
-    maxStudents: n,
     durations: array(n),
     home: ref('HomeTeachingRequest'),
     online: ref('OnlineTeachingRequest'),
@@ -81,7 +91,6 @@ export function applicationContract(schemas, route) {
     about: ref('ApplicantAbout'),
     education: ref('ApplicantEducation'),
     teachingAreas: array(ref('RequestedTeachingArea')),
-    firstAreaId: s,
     availability: ref('ApplicantAvailability'),
     approach: ref('ApplicantApproach'),
     fees: ref('ApplicantFees'),

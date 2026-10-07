@@ -1,0 +1,70 @@
+.finance-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.finance-metrics > div {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--paper);
+}
+.finance-metrics dt {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.finance-metrics dd {
+  margin: 0.4rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.finance-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.finance-form-wide {
+  grid-column: 1 / -1;
+}
+.finance-form-grid input:not([type='checkbox']),
+.finance-form-grid textarea {
+  width: 100%;
+}
+.finance-reference {
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+}
+.finance-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .finance-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media print {
+  body:has(.paid-invoice) * {
+    visibility: hidden;
+  }
+  body .paid-invoice,
+  body .paid-invoice * {
+    visibility: visible;
+  }
+  .paid-invoice {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    margin: 0;
+  }
+  .paid-invoice button {
+    display: none;
+  }
+}
