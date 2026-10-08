@@ -1,5 +1,5 @@
 [Unit]
-Description=GyanSetu Go API
+Description=GoCoaching Go API
 After=network-online.target
 Wants=network-online.target
 

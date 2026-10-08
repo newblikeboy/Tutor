@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Operator-invoked correction of the existing GyanSetu Nginx location policy."""
+"""Operator-invoked correction of the existing GoCoaching Nginx location policy."""
 
 import os
 from pathlib import Path
@@ -19,14 +19,14 @@ def site_config(dump):
         names = set()
         for value in re.findall(r"(?m)^\s*server_name\s+([^;]+);", content):
             names.update(value.split())
-        if "thegyansetu.in" in names and re.search(
+        if "gocoaching.in" in names and re.search(
             r"(?m)^\s*add_header\s+Permissions-Policy\s", content
         ):
-            if not names.issubset({"thegyansetu.in", "www.thegyansetu.in"}):
+            if not names.issubset({"gocoaching.in", "www.gocoaching.in"}):
                 raise RuntimeError("Site config also serves unrelated domains; review it manually.")
             candidates.append(Path(filename).resolve())
     if len(set(candidates)) != 1:
-        raise RuntimeError("Could not identify exactly one active GyanSetu policy config.")
+        raise RuntimeError("Could not identify exactly one active GoCoaching policy config.")
     return candidates[0]
 
 

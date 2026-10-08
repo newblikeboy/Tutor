@@ -283,8 +283,16 @@ textarea[aria-invalid='true'] {
 }
 .wordmark {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   white-space: nowrap;
+}
+.brand-mark {
+  display: block;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 .wordmark > span {
   font-weight: 800;
@@ -292,11 +300,9 @@ textarea[aria-invalid='true'] {
   letter-spacing: -1px;
   line-height: 1.3;
 }
-.wordmark i {
-  color: var(--teal);
-  font-style: normal;
-}
 .wordmark small {
+  display: block;
+  font-weight: 500;
   font-size: 10px;
   letter-spacing: 0.55px;
   margin-top: 4px;
@@ -874,9 +880,20 @@ footer {
   justify-content: space-between;
 }
 .footer-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
   font-size: 21px;
   letter-spacing: -0.8px;
+}
+.invoice-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #15353b;
 }
 .footer-grid p {
   font-size: 12px;

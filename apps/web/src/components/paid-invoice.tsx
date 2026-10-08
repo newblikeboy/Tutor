@@ -1,12 +1,16 @@
 import { useMutation } from '@tanstack/react-query'
 import { send, queryClient, indiaDate, type Schema } from '../lib/api'
 import { Button, Field, MutationError } from './ui'
+import { BrandMark } from './brand-mark'
 
 const money = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n / 100)
 export function PaidInvoice({ invoice: v }: { invoice: Schema['PaidInvoice'] }) {
   return (
     <article className="tu-panel tu-stack paid-invoice">
+      <div className="invoice-brand">
+        <BrandMark /> GoCoaching
+      </div>
       <div className="tu-card-top">
         <h2>Paid invoice · {v.number}</h2>
         <Button variant="secondary" onClick={() => window.print()}>
@@ -44,8 +48,8 @@ export function PaidInvoice({ invoice: v }: { invoice: Schema['PaidInvoice'] }) 
         ))}
       </dl>
       <p>
-        Payment collected through GyanSetu. Subsequent refunds are shown separately in your payment
-        history.
+        Payment collected through GoCoaching. Subsequent refunds are shown separately in your
+        payment history.
       </p>
     </article>
   )

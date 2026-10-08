@@ -12,7 +12,7 @@ for tool in git npm go curl python3 flock nginx systemctl systemd-run getent; do
   command -v "$tool" >/dev/null || fail "Required command is missing: $tool"
 done
 exec 9>/run/lock/gyansetu-deploy.lock
-flock -n 9 || fail 'Another GyanSetu deployment is running.'
+flock -n 9 || fail 'Another GoCoaching deployment is running.'
 
 current=/srv/tutor/current
 [[ -L "$current" ]] || fail '/srv/tutor/current must be the existing release symlink; no files were changed.'
@@ -22,7 +22,8 @@ previous=$(readlink -e "$current")
 grep -qx 'APP_ENV=production' /etc/tutor/api.env || fail 'Expected APP_ENV=production in /etc/tutor/api.env.'
 grep -qx 'AUTH_PROVIDER=password' /etc/tutor/api.env || fail 'Expected the existing password authentication configuration.'
 grep -qx 'HTTP_ADDR=127.0.0.1:8080' /etc/tutor/api.env || fail 'Expected the existing loopback API binding.'
-grep -qx 'WEB_ORIGIN=https://thegyansetu.in' /etc/tutor/api.env || fail 'Expected the existing HTTPS domain origin.'
+grep -qx 'APP_NAME=GoCoaching' /etc/tutor/api.env || fail 'Set APP_NAME=GoCoaching in /etc/tutor/api.env before deploying the rebrand.'
+grep -qx 'WEB_ORIGIN=https://gocoaching.in' /etc/tutor/api.env || fail 'Expected the existing HTTPS domain origin.'
 systemctl show tutor-api --property=ExecStart --value | grep -Fq '/srv/tutor/current/tutor-api' || fail 'The service does not use the expected release path.'
 source scripts/deploy-identity.sh
 resolve_migration_identity tutor-api || fail 'Could not resolve the existing API service identity; the running release was not changed.'
@@ -30,7 +31,7 @@ printf 'Migration will use the existing API service account: %s (group %s).\n' "
 nginx -t
 
 commit=$(git rev-parse HEAD)
-printf 'Building GyanSetu commit %s. The current site stays running during the build.\n' "$commit"
+printf 'Building GoCoaching commit %s. The current site stays running during the build.\n' "$commit"
 # Limit build concurrency for the existing 1 GiB droplet.
 export GOMAXPROCS=1
 export NODE_OPTIONS=--max-old-space-size=512
@@ -86,13 +87,13 @@ switched=1
 mv -Tf "$next" "$current"
 systemctl restart tutor-api
 curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --max-time 10 \
-  --resolve thegyansetu.in:443:127.0.0.1 https://thegyansetu.in/api/v1/ready
+  --resolve gocoaching.in:443:127.0.0.1 https://gocoaching.in/api/v1/ready
 curl --fail --silent --show-error --max-time 15 \
-  --resolve thegyansetu.in:443:127.0.0.1 https://thegyansetu.in/api/v1/config |
-  python3 -c 'import json,sys; c=json.load(sys.stdin); assert c["appName"] == "GyanSetu" and c["authEnabled"] is True and c["development"] is False, "Unexpected production app configuration"'
+  --resolve gocoaching.in:443:127.0.0.1 https://gocoaching.in/api/v1/config |
+  python3 -c 'import json,sys; c=json.load(sys.stdin); assert c["appName"] == "GoCoaching" and c["authEnabled"] is True and c["development"] is False, "Unexpected production app configuration"'
 curl --fail --silent --show-error --max-time 15 \
-  --resolve thegyansetu.in:443:127.0.0.1 https://thegyansetu.in/ |
+  --resolve gocoaching.in:443:127.0.0.1 https://gocoaching.in/ |
   cmp -s "$release/web/index.html" -
 systemctl is-active --quiet tutor-api
 trap - ERR INT TERM
-printf '\nDeployed %s to https://thegyansetu.in\nPrevious release retained: %s\n' "$commit" "$previous"
+printf '\nDeployed %s to https://gocoaching.in\nPrevious release retained: %s\n' "$commit" "$previous"

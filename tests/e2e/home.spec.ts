@@ -7,16 +7,16 @@ test('photo homepage keeps its English layout, keyboard access and real entry po
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.goto('/')
-  await page.locator('.home-tutors .tutor-card').first().waitFor()
+  await page.locator('#home-title').waitFor()
   await expect(page.locator('#home-title')).toHaveText(
     'Find the right tutor for your child. Get support beyond the first class.',
   )
-  await expect(page.locator('.wordmark')).toContainText('GyanSetu')
-  await expect(page.locator('body')).not.toContainText('TheGyanSetu')
+  await expect(page.locator('.wordmark')).toContainText('GoCoaching')
+  await expect(page.locator('body')).not.toContainText('GyanSetu')
   await expect(page.getByRole('region', { name: 'Development preview', exact: true })).toHaveCount(
     0,
   )
-  await expect(page.locator('.home-image-credit')).toHaveText('AI-generated illustrative scene')
+  await expect(page.locator('.home-hero-image')).toHaveAttribute('alt', /AI-generated/)
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused()
   await page.keyboard.press('Enter')
@@ -57,7 +57,7 @@ test('photo homepage keeps its English layout, keyboard access and real entry po
           .analyze()
         expect(accessibility.violations).toEqual([])
         await page.screenshot({
-          path: `docs/visual-qa/gyansetu-home/home-${width}.png`,
+          path: `docs/visual-qa/gocoaching-home/home-${width}.png`,
           fullPage: true,
           animations: 'disabled',
         })
@@ -75,7 +75,7 @@ test('photo homepage keeps its English layout, keyboard access and real entry po
     })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({
-      path: `docs/visual-qa/gyansetu-home/landing-${language}-200-percent.png`,
+      path: `docs/visual-qa/gocoaching-home/landing-${language}-200-percent.png`,
       fullPage: false,
     })
     await page.evaluate(() => {
@@ -94,51 +94,41 @@ test('photo homepage keeps its English layout, keyboard access and real entry po
   await expect(page).toHaveURL(/\/login\?return=%2Fapply$/)
   await expect(page.getByRole('heading', { name: 'Tutor sign in', exact: true })).toBeVisible()
   await page.goto('/')
-  await page.locator('.home-tutors > .home-section-heading .text-link').click()
-  await expect(page).toHaveURL(/\/tutors$/)
-  await page
-    .locator('.tutor-card')
-    .first()
-    .getByRole('link', { name: 'View teaching profile' })
-    .click()
-  await expect(page.locator('.profile-header')).toBeVisible()
-  await page.goto('/')
   await page.locator('.home-actions .btn').click()
-  await expect(page).toHaveURL(/\/login\?return=%2Fmatch$/)
-  await expect(page.getByLabel('Email address', { exact: true })).toBeVisible()
+  await expect(page).toHaveURL(/\/tutors$/)
+  await page.goto('/tutors?searched=1')
+  await page.locator('.tutor-card').first().getByRole('link').first().click()
+  await expect(page.locator('#teacher-profile-title')).toBeVisible()
   expect(errors).toEqual([])
 })
 
-test('homepage remains usable while tutors load and recovers from a failed request', async ({
-  page,
-}) => {
+test('branded tutor discovery recovers from a failed request', async ({ page }) => {
   let release!: () => void
   const pending = new Promise<void>((resolve) => {
     release = resolve
   })
-  await page.route('**/api/v1/tutors', async (route) => {
+  await page.route('**/api/v1/tutors?*', async (route) => {
     await pending
     await route.abort('failed')
   })
-  await page.goto('/')
-  await expect(page.locator('.home-tutors').getByRole('status')).toBeVisible()
-  await page.locator('.home-hero-image').evaluate((image: HTMLImageElement) => image.decode())
-  await expect(page.locator('.home-actions .btn')).toBeVisible()
+  await page.goto('/tutors?searched=1')
+  await expect(page.locator('#main').getByRole('status')).toBeVisible()
+  await expect(page.locator('.wordmark')).toContainText('GoCoaching')
   await page
-    .locator('.home-tutors')
-    .screenshot({ path: 'docs/visual-qa/gyansetu-home/landing-tutors-loading.png' })
+    .locator('#main')
+    .screenshot({ path: 'docs/visual-qa/gocoaching-home/landing-tutors-loading.png' })
   release()
-  await expect(page.locator('.home-tutors').getByRole('alert')).toBeVisible()
+  await expect(page.locator('#main').getByRole('alert')).toBeVisible()
   await page
-    .locator('.home-tutors')
-    .screenshot({ path: 'docs/visual-qa/gyansetu-home/landing-tutors-error.png' })
-  await page.unroute('**/api/v1/tutors')
+    .locator('#main')
+    .screenshot({ path: 'docs/visual-qa/gocoaching-home/landing-tutors-error.png' })
+  await page.unroute('**/api/v1/tutors?*')
   await page.getByRole('button', { name: 'Try again', exact: true }).click()
-  await expect(page.locator('.home-tutors .tutor-card').first()).toBeVisible()
-  await expect(page.locator('.home-tutors').getByRole('alert')).toHaveCount(0)
+  await expect(page.locator('.tutor-card').first()).toBeVisible()
+  await expect(page.locator('#main').getByRole('alert')).toHaveCount(0)
 })
 
-test('landing section link works with reduced motion and high contrast', async ({ page }) => {
+test('landing entry points work with reduced motion and high contrast', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
   await expect(page.locator('.home-hero-image')).toBeVisible()
@@ -147,16 +137,15 @@ test('landing section link works with reduced motion and high contrast', async (
       .locator('.home-hero')
       .evaluate((hero) => hero.getAnimations({ subtree: true }).length),
   ).toBe(0)
-  await page.locator('.home-discover').focus()
+  await page.locator('.home-actions .btn').focus()
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/#home-process-title$/)
-  await expect(page.locator('#home-process-title')).toBeInViewport()
+  await expect(page).toHaveURL(/\/tutors$/)
   await page.emulateMedia({ forcedColors: 'active' })
   await page.goto('/')
   await expect(page.locator('.home-actions .btn')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({
-    path: 'docs/visual-qa/gyansetu-home/high-contrast.png',
+    path: 'docs/visual-qa/gocoaching-home/high-contrast.png',
     animations: 'disabled',
   })
   await page.locator('.home-actions .home-apply-link').click()

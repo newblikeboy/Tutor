@@ -1,0 +1,178 @@
+[
+  {
+    "name": "home",
+    "width": 1440,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "home",
+    "width": 390,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "login",
+    "width": 1440,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "login",
+    "width": 390,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "signup",
+    "width": 1440,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "signup",
+    "width": 390,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "discovery",
+    "width": 1440,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "discovery",
+    "width": 390,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "parent",
+    "width": 1440,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "parent",
+    "width": 390,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "tutor",
+    "width": 1440,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "tutor",
+    "width": 390,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "admin",
+    "width": 1440,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "admin",
+    "width": 390,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "finance",
+    "width": 1440,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  },
+  {
+    "name": "finance",
+    "width": 390,
+    "logo": {
+      "loaded": true,
+      "width": 40,
+      "height": 40
+    },
+    "pageErrors": [],
+    "axeViolations": 0
+  }
+]

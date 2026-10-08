@@ -1,7 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 const en = {
-  brand: 'GyanSetu',
+  brand: 'GoCoaching',
   provisional: 'A considered approach to learning',
   home: 'Home',
   tutors: 'Find a tutor',
@@ -73,7 +73,7 @@ const en = {
   faqTitle: 'What parents usually want to know.',
   faq1: 'How do I know which tutor is right for my child?',
   faq1Body:
-    'Start with your child’s class, subject, learning need, timing and preferred mode. GyanSetu then shows tutors only within their approved teaching scope, so you can compare fit before moving ahead.',
+    'Start with your child’s class, subject, learning need, timing and preferred mode. GoCoaching then shows tutors only within their approved teaching scope, so you can compare fit before moving ahead.',
   faq2: 'Can I choose between home tuition and online classes?',
   faq2Body:
     'Yes. You can search by home tuition or online tuition. Each tutor profile shows the mode, class range and subject that staff approved for that tutor.',

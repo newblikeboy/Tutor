@@ -1,5 +1,20 @@
 # Progress
 
+## 2026-10-08: GoCoaching GitHub handoff
+
+The operator requested committing and pushing the validated GoCoaching rebrand to `origin/main`. Remote history was fetched and confirmed aligned with the local base before committing. This handoff includes the generated logo assets and reviewed visual evidence; ignored local environment files, development binaries and test databases are excluded. Existing validation is recorded below. The actual push result and commit are reported in the task response. Production deployment remains operator-run with `APP_NAME=GoCoaching` and `WEB_ORIGIN=https://gocoaching.in` configured first.
+
+## 2026-10-08: GoCoaching rebrand and generated WebP logo
+
+Implemented the requested visible rebrand to **GoCoaching**, with **gocoaching.in** as the canonical production domain. Public headers/footer, login/signup, workspace navigation and loading state, inbox copy, invoice/checkout attribution, interview calendar metadata, HTML/share metadata, API defaults/contract and package label now use the new identity. A shared decorative image component pairs the generated open-book/rising-page mark with accessible live text. Transparent 512px and 128px WebP assets plus a PNG browser/touch icon are in `apps/web/public/brand/`; generation/refinement prompts and provenance are in `docs/assets.md`. Removed the old SVG favicon, old-brand compatibility mappings and obsolete wordmark dot styles.
+
+Deployment readiness checks and the geolocation helper now target the new domain. The Nginx template includes the apex/www certificate paths and canonical www redirect. The deploy script checks `APP_NAME=GoCoaching` before building; production environment/TLS/Nginx changes remain operator-run. Existing service names, database/session identifiers, deployment locking/backup paths and saved legal invoice identities remain intact. No historical records were rewritten. Updated the current brand instructions and retained historical evidence.
+
+Validation passed: production build/TypeScript, lint, six frontend unit tests, full Go unit suite and vet, four geolocation helper tests, Bash deployment syntax and service-identity checks, and three homepage/discovery Playwright tests against isolated local MongoDB. The initial homepage tests referenced previously removed homepage tutor sections/links; updated those stale selectors and exercised actual discovery loading/retry and current entry points before the passing rerun. An additional browser audit verified 16 desktop/mobile public/login/signup/discovery/parent/tutor/admin/finance views with zero page errors, axe findings or horizontal overflow. Footer and fictional render-only invoice desktop/mobile/print checks also passed. Screenshots were individually reviewed in `docs/visual-qa/gocoaching-rebrand/` and `docs/visual-qa/gocoaching-home/`; no existing screenshot baselines were replaced.
+
+Rebuilt/restarted the verified local API and updated only the local `APP_NAME` setting; proxied config reports GoCoaching with password authentication enabled. The isolated E2E database `tutor_e2e_1791480238007` is retained. No commit, push, production deployment, provider-dashboard change or real payment action was performed. Native Nginx validation and live-domain checks must run on the droplet after its configuration is updated.
+
+
 ## 2026-10-08: requested release preparation
 
 User requested a GitHub push and the existing-droplet deployment command. Deployment review found that `deploy-existing.sh` ran only the Updates inbox migration, which would omit the finance validators and unique payout/invoice indexes. Extracted the existing finance schema/index definitions into reusable `MigrateFinance`, added `tutor-migrate --finance-only`, and made the existing deployment run both additive scopes before switching releases. The full development migration uses the same finance function. No duplicate schema definitions, seed operation or historical record rewrite was added.

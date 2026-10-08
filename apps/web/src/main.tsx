@@ -14,6 +14,7 @@ import './styles/home.css'
 import { queryClient, send, setCSRF } from './lib/api'
 import { useAuth, useConfig } from './lib/session'
 import { Button, Loading, Modal, MutationError } from './components/ui'
+import { BrandMark } from './components/brand-mark'
 import { Home, Info, Search, TutorDetail, Showcase } from './routes/public'
 const Login = lazy(() => import('./routes/login'))
 const WorkspaceShell = lazy(() => import('./components/workspace-shell'))
@@ -134,11 +135,11 @@ function Layout() {
       <header className="site-header">
         <div className="header-inner">
           <Link to="/" className="wordmark">
+            <BrandMark />
             <span>
               {config.data?.appName ?? t('brand')}
-              <i aria-hidden="true">.</i>
+              <small>{t('provisional')}</small>
             </span>
-            <small>{t('provisional')}</small>
           </Link>
           <nav className="desktop-nav" aria-label={t('menu')}>
             {navigation}
@@ -184,7 +185,8 @@ function Layout() {
         <div className="container footer-grid">
           <div>
             <Link to="/" className="footer-wordmark">
-              {config.data?.appName ?? t('brand')}.
+              <BrandMark />
+              {config.data?.appName ?? t('brand')}
             </Link>
             <p>{t('footer')}</p>
             {!publicLanding && <small>{t('noFounder')}</small>}

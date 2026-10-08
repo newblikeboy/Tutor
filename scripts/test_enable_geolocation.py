@@ -13,12 +13,12 @@ spec.loader.exec_module(policy)
 
 class GeolocationDeploymentTests(unittest.TestCase):
     def test_selects_only_the_active_site_and_rejects_ambiguity(self):
-        dump = f"# configuration file /etc/nginx/nginx.conf:\nhttp {{}}\n# configuration file /etc/nginx/sites-enabled/gyansetu:\nserver_name thegyansetu.in www.thegyansetu.in;\n{policy.OLD}\n"
+        dump = f"# configuration file /etc/nginx/nginx.conf:\nhttp {{}}\n# configuration file /etc/nginx/sites-enabled/gyansetu:\nserver_name gocoaching.in www.gocoaching.in;\n{policy.OLD}\n"
         self.assertEqual(policy.site_config(dump).name, "gyansetu")
         with self.assertRaises(RuntimeError):
-            policy.site_config(dump + f"# configuration file /etc/nginx/other:\nserver_name thegyansetu.in;\n{policy.OLD}\n")
+            policy.site_config(dump + f"# configuration file /etc/nginx/other:\nserver_name gocoaching.in;\n{policy.OLD}\n")
         with self.assertRaises(RuntimeError):
-            policy.site_config(dump.replace("www.thegyansetu.in", "unrelated.example"))
+            policy.site_config(dump.replace("www.gocoaching.in", "unrelated.example"))
 
     def test_preserves_other_settings_and_keeps_a_backup(self):
         with tempfile.TemporaryDirectory() as directory:

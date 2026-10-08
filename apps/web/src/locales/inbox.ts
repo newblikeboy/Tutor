@@ -8,7 +8,7 @@ export const inboxEN = {
     title: 'Updates',
     adminIntro: 'Send private updates and see when they are read.',
     tutorIntro: 'Updates from the team. A direct line to your assigned families.',
-    parentIntro: 'Private updates from your tutor and the GyanSetu team.',
+    parentIntro: 'Private updates from your tutor and the GoCoaching team.',
     received: 'Inbox',
     sent: 'Sent',
     activity: 'Activity',

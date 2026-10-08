@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { BrandMark } from './brand-mark'
 import { Suspense, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -104,7 +105,10 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     return (
       <div className="desk-gate">
         <header>
-          <span className="desk-gate-brand">{config.data?.appName ?? t('brand')}.</span>
+          <span className="desk-gate-brand">
+            <BrandMark />
+            {config.data?.appName ?? t('brand')}
+          </span>
         </header>
         <main>
           <h1 className="sr-only">{t('workspace')}</h1>
@@ -161,7 +165,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     <>
       <Link className="desk-brand" to={applicant ? '/apply' : '/workspace'}>
         <span className="desk-brand-icon">
-          <BookOpen size={24} strokeWidth={1.7} aria-hidden="true" />
+          <BrandMark />
         </span>
         <span>
           {config.data?.appName ?? t('brand')}

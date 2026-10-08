@@ -59,11 +59,10 @@
 .desk-brand-icon {
   display: grid;
   place-items: center;
-  width: 37px;
+  width: 43px;
   height: 43px;
   flex-shrink: 0;
-  color: #dfe8bc;
-  border: 1px solid #66816d;
+  background: #f5f3ed;
   border-radius: 10px;
 }
 .desk-brand small {
@@ -1128,7 +1127,9 @@
   padding: 35px max(24px, calc((100vw - 900px) / 2));
 }
 .desk-gate-brand {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 23px;
   font-weight: 700;
   letter-spacing: -0.8px;

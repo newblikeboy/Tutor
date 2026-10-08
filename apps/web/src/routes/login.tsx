@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BrandMark } from '../components/brand-mark'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -132,9 +133,11 @@ export default function Login() {
       </a>
       <header className="auth-header">
         <div className="auth-wordmark">
-          {config.data?.appName ?? t('brand')}
-          <span>.</span>
-          <small>{t('authBrandLine')}</small>
+          <BrandMark />
+          <div>
+            {config.data?.appName ?? t('brand')}
+            <small>{t('authBrandLine')}</small>
+          </div>
         </div>
       </header>
       <main

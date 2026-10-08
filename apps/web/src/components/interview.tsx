@@ -31,7 +31,7 @@ export function InterviewCard({ application }: { application: Application }) {
     const content = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//GyanSetu//Interviews//EN',
+      'PRODID:-//GoCoaching//Interviews//EN',
       'BEGIN:VEVENT',
       `UID:interview-${application.id}@tutor-platform`,
       `DTSTAMP:${stamp(application.updatedAt)}`,

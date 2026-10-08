@@ -34,9 +34,6 @@
   color: var(--navy);
   letter-spacing: -1.2px;
 }
-.landing-shell .wordmark i {
-  color: #6e8555;
-}
 .landing-shell .sign-link,
 .landing-shell .btn.primary {
   border: 1px solid #234741;
@@ -1027,6 +1024,11 @@
 }
 .landing-shell .footer-wordmark {
   color: #f5f7ed;
+}
+.landing-shell .footer-wordmark .brand-mark {
+  background: #f5f3ed;
+  border-radius: 8px;
+  padding: 3px;
 }
 .landing-shell .footer-grid p {
   color: #bfcebd;
