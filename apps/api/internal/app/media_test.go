@@ -78,7 +78,7 @@ func TestMongoPrivateFiles(t *testing.T) {
 		}
 		p.ok("GET", "/files/"+fileID+"/download", nil, 409)
 		p.ok("POST", "/files/"+fileID+"/scan", map[string]any{}, 503)
-		if e = a.runOneJob(ctx); e != nil {
+		if _, e = a.runOneJob(ctx); e != nil {
 			t.Fatal(e)
 		}
 		p.ok("GET", "/files/"+fileID+"/download", nil, 409)

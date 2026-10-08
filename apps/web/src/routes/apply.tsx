@@ -1,3 +1,6 @@
+import '../locales/application'
+import '../locales/experience'
+import '../locales/files'
 import { prepareProfilePhoto, uploadFile, type UploadProgress } from '../lib/uploads'
 import { LocalFilePreview, UploadFeedback } from '../components/upload-feedback'
 import { teachingSubjects } from '../lib/subjects'

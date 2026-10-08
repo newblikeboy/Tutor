@@ -1,4 +1,5 @@
-export const filesEN = {
+import i18n from 'i18next'
+const filesEN = {
   files: {
     title: 'Private files',
     intro: 'Shared with your current learning team.',
@@ -41,3 +42,5 @@ export const filesEN = {
     failureQuota: 'Your private file allowance is reached. Please contact support.',
   },
 }
+
+i18n.addResourceBundle('en', 'translation', filesEN, true, true)

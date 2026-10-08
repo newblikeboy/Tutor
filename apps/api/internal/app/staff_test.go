@@ -124,7 +124,7 @@ func TestMongoStaffOperations(t *testing.T) {
 		created.csrf = auth["csrf"].(string)
 		created.ok("GET", "/staff/overview", nil, 200)
 		admin.ok("POST", "/staff/members/"+id+"/action", map[string]any{"action": "suspend", "reason": "Pause mentor access during founder review."}, 200)
-		created.ok("GET", "/staff/overview", nil, 403)
+		created.ok("GET", "/staff/overview", nil, 401)
 		created.ok("POST", "/auth/login", map[string]any{"email": email, "password": pass}, 403)
 		admin.ok("POST", "/staff/members/"+id+"/action", map[string]any{"action": "activate", "reason": "Founder review is complete; restore mentor access."}, 200)
 		auth = created.ok("POST", "/auth/login", map[string]any{"email": email, "password": pass}, 200)
@@ -229,7 +229,7 @@ func TestMongoStaffOperations(t *testing.T) {
 		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": interview(now.Add(-time.Minute))}, 200)
 		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4}, "evidence": "Two scores are insufficient for approval."}, 422)
 		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Observed explanation and misconception checks using a number line."}, 200)
-		pending := mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "reason": "Cannot publish a tutor before staff confirms fees."}, 409)
+		pending := mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "mode": "online", "reason": "Cannot publish a tutor before staff confirms fees."}, 409)
 		if pending["code"] != "fees_pending" {
 			t.Fatalf("wrong fee gate: %v", pending)
 		}

@@ -118,6 +118,14 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Next-Cursor": {
+                "description": "Cursor for the next page of up to 100 eligible tutors; empty when complete.",
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           },
           "default": {
@@ -188,6 +196,15 @@
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque cursor from the preceding X-Next-Cursor header. Omit for the first page; retain the same search filters.",
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
             }
           }
         ]

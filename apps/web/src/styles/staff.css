@@ -54,12 +54,6 @@
   right: 16px;
   top: 24px;
 }
-.staff-overview-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
 .staff-team-grid {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
@@ -191,16 +185,6 @@
   margin-top: 6px;
   color: #315b4e;
   font-weight: 600;
-}
-.staff-upcoming .staff-row {
-  flex-wrap: wrap;
-  padding-inline: 0;
-}
-.staff-upcoming .staff-row .badge {
-  margin-left: 60px;
-}
-.staff-upcoming .staff-row-person {
-  flex-basis: calc(100% - 60px);
 }
 .staff-followup-alert {
   display: flex;
@@ -385,18 +369,6 @@
 .staff-family-card.assignment {
   grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1fr);
 }
-.staff-search {
-  position: relative;
-}
-.staff-search svg {
-  position: absolute;
-  top: 15px;
-  left: 13px;
-  color: #64765f;
-}
-.staff-search input {
-  padding-left: 40px;
-}
 .staff-back {
   display: inline-flex;
   gap: 8px;
@@ -449,9 +421,6 @@
 .staff-actions {
   display: grid;
   gap: 20px;
-}
-.staff-detail-history {
-  grid-column: 1 / -1;
 }
 .staff-facts {
   display: grid;
@@ -675,9 +644,6 @@
   }
   .staff-detail-grid {
     grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
-  }
-  .staff-overview-grid {
-    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 760px) {

@@ -1,4 +1,5 @@
-export const accountEN = {
+import i18n from 'i18next'
+const accountEN = {
   'account.title': 'Account',
   'account.intro': 'Your details and control over where you are signed in.',
   'account.details': 'Profile',
@@ -37,3 +38,5 @@ export const accountEN = {
     'Recovery email and staff multi-factor setup still need operator configuration. A support request does not reset a password.',
   'account.support': 'Open support & requests',
 }
+
+i18n.addResourceBundle('en', 'translation', accountEN, true, true)

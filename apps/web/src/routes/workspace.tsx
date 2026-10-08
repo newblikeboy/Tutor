@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react'
+import '../locales/workspace'
+import '../locales/parent'
+import '../locales/tuition'
+import { lazy, useEffect, useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -12,9 +15,9 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { APIError, indiaDate } from '../lib/api'
-import Parent from './parent'
+const Parent = lazy(() => import('./parent'))
 import { TrialCard } from '../components/trial-card'
-import StaffWorkspace from './staff'
+const StaffWorkspace = lazy(() => import('./staff'))
 import { InterviewCard } from '../components/interview'
 import '../styles/teacher.css'
 import type { Dashboard } from '../lib/api'
@@ -54,7 +57,7 @@ function WorkspaceData() {
           <LoadError retry={() => void q.refetch()} />
         )}
       </div>
-  )
+    )
   const d = q.data
   const view = workspaceView(d.user.role, params.get('view'))
   return (

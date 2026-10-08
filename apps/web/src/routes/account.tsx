@@ -1,3 +1,5 @@
+import '../locales/account'
+import '../locales/experience'
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'

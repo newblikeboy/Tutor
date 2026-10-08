@@ -1,4 +1,5 @@
-export const casesEN = {
+import i18n from 'i18next'
+const casesEN = {
   cases: {
     title: 'Support & requests',
     intro: 'A clear place to ask for help, follow a request and keep the response on record.',
@@ -48,3 +49,5 @@ export const casesEN = {
     openUpdate: 'Open request update',
   },
 }
+
+i18n.addResourceBundle('en', 'translation', casesEN, true, true)

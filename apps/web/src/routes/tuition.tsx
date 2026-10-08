@@ -1,3 +1,7 @@
+import '../locales/tuition'
+import '../locales/experience'
+import '../locales/files'
+import { allTutors } from '../lib/tutors'
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -409,7 +413,7 @@ function NewAgreement() {
   const dashboard = useDashboard()
   const tutors = useQuery({
     queryKey: ['tutors', 'regular-classes'],
-    queryFn: ({ signal }) => api<Tutor[]>('/tutors?subject=Mathematics', { signal }),
+    queryFn: ({ signal }) => allTutors('/tutors?subject=Mathematics', signal),
   })
   const [openKey, setOpenKey] = useState('')
   const reviewedTrials = useMemo(() => {

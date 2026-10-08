@@ -1,3 +1,5 @@
+import '../locales/parent'
+import '../locales/tuition'
 import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -15,7 +17,7 @@ import { z } from 'zod'
 import { api, indiaDate, queryClient, send } from '../lib/api'
 import type { Dashboard, Learner, Requirement, Schema, Tutor } from '../lib/api'
 import { useAuth, useDashboard } from '../lib/session'
-import { tutorHasMode, tutorModeLabel } from '../lib/tutors'
+import { allTutors, tutorHasMode, tutorModeLabel } from '../lib/tutors'
 import { workspaceLink } from '../lib/workspace'
 import { TrialCard } from '../components/trial-card'
 import { LocationSearchField, type StoredLocation } from '../components/location-search'
@@ -516,7 +518,7 @@ function TrialRequest({
   const parentLocation = account.data?.preferences.location ?? null
   const tutors = useQuery({
     queryKey: ['tutors', 'request', accountLocationKey(parentLocation)],
-    queryFn: ({ signal }) => api<Tutor[]>(tutorRequestPath(parentLocation), { signal }),
+    queryFn: ({ signal }) => allTutors(tutorRequestPath(parentLocation), signal),
     enabled: !account.isPending,
   })
   const [tutorId, setTutorId] = useState(selectedTutor)

@@ -1,6 +1,6 @@
-import { useId, useMemo, useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LocateFixed, Plus, Search, X } from 'lucide-react'
+import { LocateFixed, Search } from 'lucide-react'
 import { api, type Schema } from '../lib/api'
 
 type LocalityOption = { value: string; detail?: string }
@@ -22,8 +22,14 @@ export function toStoredLocation(
   if (!location) return null
   const candidate = location as Partial<LocationSelection>
   return {
-    address: cleanMax(location.address || candidate.location || location.locality || location.city, 500),
-    locality: cleanMax(location.locality || candidate.primary || location.city || candidate.location || '', 120),
+    address: cleanMax(
+      location.address || candidate.location || location.locality || location.city,
+      500,
+    ),
+    locality: cleanMax(
+      location.locality || candidate.primary || location.city || candidate.location || '',
+      120,
+    ),
     city: cleanMax(location.city || '', 120),
     district: cleanMax(location.district || '', 120),
     state: cleanMax(location.state || '', 120),
@@ -184,7 +190,8 @@ export function LocationSearchField({
   const options = city ? cityOptions : purneaLocalities
   const { status, busy, detect } = useCurrentLocation((location) => {
     onChange(
-      currentValue ?? (city ? location.city || location.primary || location.locality : location.location),
+      currentValue ??
+        (city ? location.city || location.primary || location.locality : location.location),
     )
     onLocationChange?.(toStoredLocation(location))
   })
@@ -229,170 +236,6 @@ export function LocationSearchField({
         <LocateFixed size={16} aria-hidden="true" />
         {busy ? t('locationDetecting') : t('locationUseCurrent')}
       </button>
-      {hint && (
-        <span id={`${id}-hint`} className="hint">
-          {hint}
-        </span>
-      )}
-      {status && (
-        <span id={`${id}-status`} className="hint location-status" role="status">
-          {status}
-        </span>
-      )}
-      {error && (
-        <span id={`${id}-error`} className="field-error">
-          {error}
-        </span>
-      )}
-    </div>
-  )
-}
-
-export function ServiceLocalityPicker({
-  label,
-  value,
-  onChange,
-  error,
-  hint,
-  currentLocality,
-  locations = [],
-  onLocationsChange,
-}: {
-  label: string
-  value: string[]
-  onChange: (value: string[]) => void
-  locations?: StoredLocation[]
-  onLocationsChange?: (value: StoredLocation[]) => void
-  error?: string
-  hint?: string
-  currentLocality?: string
-}) {
-  const { t } = useTranslation()
-  const id = useId()
-  const listId = `${id}-options`
-  const [query, setQuery] = useState('')
-  const { status, busy, detect } = useCurrentLocation((location) => add(location.location, location))
-  const selected = useMemo(() => value.map(clean).filter(Boolean), [value])
-  const filtered = useMemo(() => {
-    const text = query.toLocaleLowerCase()
-    return purneaLocalities
-      .filter(
-        (option) =>
-          !selected.some((item) => item.toLocaleLowerCase() === option.value.toLocaleLowerCase()),
-      )
-      .filter(
-        (option) =>
-          !text ||
-          option.value.toLocaleLowerCase().includes(text) ||
-          option.detail?.toLocaleLowerCase().includes(text),
-      )
-      .slice(0, 6)
-  }, [query, selected])
-  function add(raw = query, location?: LocationSelection) {
-    const next = clean(raw)
-    if (!next) return
-    if (selected.some((item) => item.toLocaleLowerCase() === next.toLocaleLowerCase())) {
-      setQuery('')
-      return
-    }
-    onChange([...selected, next])
-    if (location) {
-      const stored = toStoredLocation(location)
-      if (!stored) return
-      onLocationsChange?.([
-        ...locations.filter(
-          (item) => locationLabel(item).toLocaleLowerCase() !== next.toLocaleLowerCase(),
-        ),
-        stored,
-      ])
-    }
-    setQuery('')
-  }
-  function remove(item: string) {
-    onChange(selected.filter((value) => value !== item))
-    onLocationsChange?.(
-      locations.filter(
-        (location) =>
-          locationLabel(location).toLocaleLowerCase() !== item.toLocaleLowerCase(),
-      ),
-    )
-  }
-  const described =
-    [hint ? `${id}-hint` : '', error ? `${id}-error` : '', status ? `${id}-status` : '']
-      .filter(Boolean)
-      .join(' ') || undefined
-  return (
-    <div className="field location-field location-picker">
-      <label htmlFor={id}>{label}</label>
-      <div className="location-add-row">
-        <div className="location-input-shell">
-          <Search size={17} aria-hidden="true" />
-          <input
-            id={id}
-            type="search"
-            list={listId}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                add()
-              }
-            }}
-            maxLength={100}
-            autoComplete="off"
-            placeholder={t('serviceLocalityPlaceholder')}
-            aria-invalid={!!error}
-            aria-describedby={described}
-          />
-          <datalist id={listId}>
-            {purneaLocalities.map((option) => (
-              <option key={option.value} value={option.value} label={option.detail} />
-            ))}
-          </datalist>
-        </div>
-        <button className="btn secondary location-add-btn" type="button" onClick={() => add()}>
-          <Plus size={16} aria-hidden="true" />
-          {t('add')}
-        </button>
-      </div>
-      <div className="location-quick-actions">
-        {currentLocality && clean(currentLocality) && (
-          <button type="button" onClick={() => add(currentLocality)}>
-            {t('addCurrentLocality')}
-          </button>
-        )}
-        <button type="button" onClick={detect} disabled={busy}>
-          <LocateFixed size={15} aria-hidden="true" />
-          {busy ? t('locationDetecting') : t('locationUseCurrent')}
-        </button>
-      </div>
-      {filtered.length > 0 && (
-        <div className="location-suggestions" aria-label={t('locationSuggestions')}>
-          {filtered.map((option) => (
-            <button key={option.value} type="button" onClick={() => add(option.value)}>
-              <span>{option.value}</span>
-              {option.detail && <small>{option.detail}</small>}
-            </button>
-          ))}
-        </div>
-      )}
-      {selected.length > 0 && (
-        <ul className="location-chip-list" aria-label={t('serviceLocalitiesSelected')}>
-          {selected.map((item) => (
-            <li key={item}>
-              <span>{item}</span>
-              <button
-                type="button"
-                onClick={() => remove(item)}
-                aria-label={`${t('remove')} ${item}`}
-              >
-                <X size={14} aria-hidden="true" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
       {hint && (
         <span id={`${id}-hint`} className="hint">
           {hint}

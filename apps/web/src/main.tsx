@@ -10,12 +10,19 @@ import '@fontsource/manrope/latin-500.css'
 import '@fontsource/manrope/latin-600.css'
 import '@fontsource/manrope/latin-700.css'
 import './styles/index.css'
-import './styles/home.css'
 import { queryClient, send, setCSRF } from './lib/api'
 import { useAuth, useConfig } from './lib/session'
 import { Button, Loading, Modal, MutationError } from './components/ui'
 import { BrandMark } from './components/brand-mark'
-import { Home, Info, Search, TutorDetail, Showcase } from './routes/public'
+const Home = lazy(() => import('./routes/public-home').then((m) => ({ default: m.Home })))
+const Info = lazy(() => import('./routes/public-info').then((m) => ({ default: m.Info })))
+const Search = lazy(() => import('./routes/public-search').then((m) => ({ default: m.Search })))
+const TutorDetail = lazy(() =>
+  import('./routes/public-tutor').then((m) => ({ default: m.TutorDetail })),
+)
+const Showcase = lazy(() =>
+  import('./routes/public-showcase').then((m) => ({ default: m.Showcase })),
+)
 const Login = lazy(() => import('./routes/login'))
 const WorkspaceShell = lazy(() => import('./components/workspace-shell'))
 const Workspace = lazy(() => import('./routes/workspace'))

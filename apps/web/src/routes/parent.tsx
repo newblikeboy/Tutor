@@ -1,3 +1,4 @@
+import '../locales/parent'
 import { useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'

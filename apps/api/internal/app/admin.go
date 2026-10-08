@@ -4,13 +4,11 @@ import (
 	"context"
 	"net/http"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"tutorplatform/internal/domain"
 	"tutorplatform/internal/storage"
 )
@@ -125,12 +123,7 @@ func (a *App) founderReport(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
-	revenue, e := a.revenue(ctx)
-	if e != nil {
-		a.error(w, r, e)
-		return
-	}
-	monthly, e := a.monthlyRevenue(ctx)
+	revenue, monthly, e := a.paymentCollections(ctx)
 	if e != nil {
 		a.error(w, r, e)
 		return
@@ -230,7 +223,7 @@ func (a *App) mentorAcademicReport(w http.ResponseWriter, r *http.Request) {
 	if u.Role == "mentor" {
 		filter["mentorId"] = u.ID
 	}
-	tutors, e := storage.Many[domain.Application](r.Context(), a.Store, "applications", filter)
+	tutors, e := reportRows[domain.Application](r.Context(), a.Store, "applications", bson.A{bson.M{"$match": filter}, bson.M{"$sort": bson.M{"_id": 1}}, bson.M{"$project": bson.M{"name": 1, "status": 1}}})
 	if e != nil {
 		a.error(w, r, e)
 		return
@@ -239,7 +232,7 @@ func (a *App) mentorAcademicReport(w http.ResponseWriter, r *http.Request) {
 	if u.Role == "mentor" {
 		assignFilter["mentorId"] = u.ID
 	}
-	assignments, e := storage.Many[domain.Enrollment](r.Context(), a.Store, "enrollments", assignFilter)
+	assignments, e := reportRows[domain.Enrollment](r.Context(), a.Store, "enrollments", bson.A{bson.M{"$match": assignFilter}, bson.M{"$sort": bson.M{"_id": 1}}, bson.M{"$project": bson.M{"learnerName": 1, "tutorId": 1, "tutorName": 1, "status": 1, "planVersion": 1}}})
 	if e != nil {
 		a.error(w, r, e)
 		return
@@ -270,68 +263,6 @@ func (a *App) mentorAcademicReport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	a.json(w, 200, domain.MentorAcademicReport{Metrics: metrics, Tutors: tutorReports, Assignments: assignmentReports})
-}
-
-func (a *App) mentorTutorReports(ctx context.Context, tutors []domain.Application, assignments []domain.Enrollment) ([]domain.MentorTutorReport, error) {
-	out := []domain.MentorTutorReport{}
-	for _, tutor := range tutors {
-		row := domain.MentorTutorReport{TutorID: tutor.ID, TutorName: tutor.Name, Status: tutor.Status}
-		for _, enrollment := range assignments {
-			if enrollment.TutorID == tutor.ID && enum(enrollment.Status, "active", "paused") {
-				row.ActiveLearners++
-			}
-		}
-		reviewed, e := a.Store.C("classes").CountDocuments(ctx, bson.M{"tutorId": tutor.ID, "status": "reviewed"})
-		if e != nil {
-			return nil, e
-		}
-		missed, e := a.Store.C("classes").CountDocuments(ctx, bson.M{"tutorId": tutor.ID, "status": "missed"})
-		if e != nil {
-			return nil, e
-		}
-		awaiting, e := a.Store.C("classes").CountDocuments(ctx, bson.M{"tutorId": tutor.ID, "status": "awaiting_review"})
-		if e != nil {
-			return nil, e
-		}
-		row.ReviewedClasses, row.MissedClasses, row.AwaitingReviews = reviewed, missed, awaiting
-		out = append(out, row)
-	}
-	return out, nil
-}
-
-func (a *App) mentorAssignmentReports(ctx context.Context, assignments []domain.Enrollment) ([]domain.MentorAssignmentReport, error) {
-	out := []domain.MentorAssignmentReport{}
-	for _, v := range assignments {
-		row := domain.MentorAssignmentReport{EnrollmentID: v.ID, LearnerName: v.LearnerName, TutorID: v.TutorID, TutorName: v.TutorName, Status: v.Status, PlanVersion: v.PlanVersion}
-		classes, e := storage.Many[domain.ClassSession](ctx, a.Store, "classes", bson.M{"enrollmentId": v.ID})
-		if e != nil {
-			return nil, e
-		}
-		for _, class := range classes {
-			if class.Status == "reviewed" {
-				row.DeliveredClasses++
-			}
-			if !enum(class.Status, "reviewed", "missed", "cancelled_consumed", "cancelled") {
-				row.RemainingClasses++
-			}
-		}
-		plans, e := storage.Many[domain.LearningPlan](ctx, a.Store, "learning_plans", bson.M{"enrollmentId": v.ID})
-		if e != nil {
-			return nil, e
-		}
-		for _, plan := range plans {
-			if row.NextReviewDate == "" || plan.ReviewDate.After(parseReportDate(row.NextReviewDate)) {
-				row.NextReviewDate = plan.ReviewDate.UTC().Format(time.RFC3339)
-			}
-		}
-		out = append(out, row)
-	}
-	return out, nil
-}
-
-func parseReportDate(value string) time.Time {
-	at, _ := time.Parse(time.RFC3339, value)
-	return at
 }
 
 func (a *App) distinctCount(ctx context.Context, collection string, filter bson.M, field string) (int64, error) {
@@ -396,61 +327,6 @@ func (a *App) mentorStatusCounts(ctx context.Context) (map[string]int64, error) 
 	out := map[string]int64{"active": 0, "suspended": 0, "deactivated": 0}
 	for _, row := range rows {
 		out[row.ID] = row.Count
-	}
-	return out, nil
-}
-
-func (a *App) revenue(ctx context.Context) (domain.FounderRevenue, error) {
-	cur, e := a.Store.C("payment_intents").Find(ctx, bson.M{"state": bson.M{"$in": []string{"captured", "refund_review"}}}, options.Find().SetProjection(bson.M{"amountPaise": 1, "refundedPaise": 1}))
-	if e != nil {
-		return domain.FounderRevenue{}, e
-	}
-	defer cur.Close(ctx)
-	var rows []domain.PaymentIntent
-	if e = cur.All(ctx, &rows); e != nil {
-		return domain.FounderRevenue{}, e
-	}
-	out := domain.FounderRevenue{}
-	for _, row := range rows {
-		out.GrossPaise += row.Amount
-		out.RefundedPaise += row.Refunded
-	}
-	out.NetPaise = out.GrossPaise - out.RefundedPaise
-	return out, nil
-}
-
-func (a *App) monthlyRevenue(ctx context.Context) ([]domain.FinanceMonth, error) {
-	cur, e := a.Store.C("payment_intents").Find(ctx, bson.M{"state": bson.M{"$in": []string{"captured", "refund_review"}}}, options.Find().SetProjection(bson.M{"amountPaise": 1, "refundedPaise": 1, "createdAt": 1}))
-	if e != nil {
-		return nil, e
-	}
-	defer cur.Close(ctx)
-	var rows []domain.PaymentIntent
-	if e = cur.All(ctx, &rows); e != nil {
-		return nil, e
-	}
-	months := map[string]*domain.FinanceMonth{}
-	for _, row := range rows {
-		month := row.CreatedAt.UTC().Format("2006-01")
-		if month == "0001-01" {
-			month = "unknown"
-		}
-		if months[month] == nil {
-			months[month] = &domain.FinanceMonth{Month: month}
-		}
-		months[month].GrossPaise += row.Amount
-		months[month].RefundedPaise += row.Refunded
-		months[month].NetPaise += row.Amount - row.Refunded
-		months[month].Payments++
-	}
-	keys := []string{}
-	for key := range months {
-		keys = append(keys, key)
-	}
-	sort.Sort(sort.Reverse(sort.StringSlice(keys)))
-	out := []domain.FinanceMonth{}
-	for _, key := range keys {
-		out = append(out, *months[key])
 	}
 	return out, nil
 }

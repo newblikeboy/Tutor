@@ -1,4 +1,5 @@
-export const workspaceEN = {
+import i18n from 'i18next'
+const workspaceEN = {
   desk: {
     brandLabel: 'THE LEARNING SPACE',
     workspaceLabel: 'YOUR WORKSPACE',
@@ -140,3 +141,5 @@ export const workspaceEN = {
     teachingScopes: 'Applications & teaching scopes',
   },
 }
+
+i18n.addResourceBundle('en', 'translation', workspaceEN, true, true)

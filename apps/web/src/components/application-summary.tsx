@@ -1,3 +1,5 @@
+import '../locales/application'
+import '../locales/staff'
 import { useTranslation } from 'react-i18next'
 import { applicationSteps, weekDays, type ApplicationProfile } from '../lib/application'
 import { Button } from './ui'

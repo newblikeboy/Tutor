@@ -25,7 +25,7 @@ export class APIError extends Error {
     super(message)
   }
 }
-export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request(path: string, options: RequestInit = {}): Promise<Response> {
   const response = await fetch(`/api/v1${path}`, {
     ...options,
     credentials: 'same-origin',
@@ -49,7 +49,20 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       data.fieldErrors,
     )
   }
-  return response.json() as Promise<T>
+  return response
+}
+export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return (await request(path, options)).json() as Promise<T>
+}
+export async function apiPage<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<{ items: T[]; nextCursor: string }> {
+  const response = await request(path, options)
+  return {
+    items: (await response.json()) as T[],
+    nextCursor: response.headers.get('X-Next-Cursor') ?? '',
+  }
 }
 export const send = <T>(
   path: string,

@@ -1,5 +1,7 @@
 # Asset provenance
 
+Runtime caching update (2026-10-09): the logo mark and four responsive hero files are imported from `apps/web/src/assets/`, so Vite emits content-hashed `/assets/` URLs covered by the existing one-year cache policy. Their original public files remain as compatibility snapshots for already-published URLs and older open tabs; the public logo/share image and browser icons remain at their documented URLs. The imported copies have the same image bytes and provenance described below.
+
 ## GoCoaching logo, 2026-10-08
 
 Generated and refined with the built-in `image_gen` tool for the user-requested rebrand. The symbol is an open book with a rising sage page, in dark ink and sage on a transparent background. It accompanies accessible live-text GoCoaching wordmarks, rather than embedding small text in the image. The same mark appears in public, sign-in, workspace and invoice branding. No external image service is called at runtime.

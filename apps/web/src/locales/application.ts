@@ -1,4 +1,5 @@
-export const applicationEN = {
+import i18n from 'i18next'
+const applicationEN = {
   applicationForm: {
     introductionVideo: 'Video introduction',
     journey: 'Application stages',
@@ -217,3 +218,5 @@ export const applicationEN = {
     noAnswer: 'Not provided',
   },
 }
+
+i18n.addResourceBundle('en', 'translation', applicationEN, true, true)

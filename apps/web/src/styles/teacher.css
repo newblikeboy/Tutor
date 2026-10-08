@@ -112,8 +112,7 @@
   margin-bottom: 17px;
 }
 .teacher-section-heading h2,
-.teacher-application h2,
-.teacher-tools h2 {
+.teacher-application h2 {
   font-size: 17px;
   font-weight: 600;
   line-height: 1.5;
@@ -148,8 +147,7 @@
   font-weight: 500;
   margin: 0;
 }
-.teacher-application,
-.teacher-tools {
+.teacher-application {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 24px;
@@ -185,28 +183,6 @@
   font-size: 13px;
   font-weight: 700;
   color: #315b4e;
-}
-.teacher-tools {
-  background: linear-gradient(135deg, #ffffff, #f0f3e8);
-}
-.teacher-tools h2 {
-  margin-bottom: 16px;
-}
-.teacher-tools a {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 60px;
-  font-size: 13px;
-  font-weight: 500;
-  border-top: 1px solid var(--border);
-}
-.teacher-tools a > svg {
-  flex-shrink: 0;
-  color: #56724c;
-}
-.teacher-tools a > svg:last-child {
-  margin-left: auto;
 }
 .teacher-filters {
   display: flex;
@@ -277,7 +253,6 @@
     gap: 20px;
   }
   .teacher-application,
-  .teacher-tools,
   .teacher-empty {
     padding: 22px;
   }

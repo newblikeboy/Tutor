@@ -585,9 +585,6 @@
   display: grid;
   gap: 8px;
 }
-.parent-tutor-price .fee-list {
-  margin: 0;
-}
 .parent-tutor-price .tutor-fees {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;

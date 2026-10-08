@@ -1,3 +1,4 @@
+import '../locales/staff'
 import { CalendarDays, ExternalLink, Video } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { indiaDate, send, queryClient, type Application } from '../lib/api'

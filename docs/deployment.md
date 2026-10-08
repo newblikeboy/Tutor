@@ -10,6 +10,8 @@ Review a supported Linux droplet image, sizing, firewall/SSH policy, backups and
 
 ## Build and release layout
 
+Asset retention (2026-10-09): `deploy-existing.sh` uses `scripts/stage-release-assets.py` to stage hashed bundles and write `ASSET_RETENTION.json` in each new release. Assets retired from the current build remain available for 30 days; already-retired bundles do not accumulate indefinitely in new releases. A release without a manifest receives a full migration grace period. The script does not delete any existing release directory or rollback artifact. Review actual disk usage and current/rollback targets before authorizing historical release deletion. Tabs older than the compatibility window may require a refresh. Logo/hero URLs in new builds are hashed and use the existing `/assets/` cache configuration; no Nginx change is needed for them.
+
 ### GoCoaching rebrand (2026-10-08)
 
 Before deploying this release, set `APP_NAME=GoCoaching` and `WEB_ORIGIN=https://gocoaching.in` in the existing `/etc/tutor/api.env`. The deploy script validates both before building. It does not rewrite private environment settings. Update the active Nginx domain/certificate configuration separately; the reviewed template now uses `gocoaching.in` and redirects `www.gocoaching.in` to the apex so account requests have the exact configured Origin. Obtain a certificate covering both names first. Validate `nginx -t` on the droplet before reloading.

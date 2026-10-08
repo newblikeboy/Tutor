@@ -1,3 +1,8 @@
+import '../locales/staff'
+import '../locales/audit'
+import '../locales/application'
+import '../locales/experience'
+import '../locales/files'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'

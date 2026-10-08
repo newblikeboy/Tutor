@@ -1,4 +1,5 @@
-export const auditEN = {
+import i18n from 'i18next'
+const auditEN = {
   auditOpenHistory: 'Open decision history',
   auditLatestLimit: 'Showing the {{count}} most recent decisions.',
   auditAction: {
@@ -58,3 +59,5 @@ export const auditEN = {
     staff: { provisioned: 'Staff account provisioned' },
   },
 }
+
+i18n.addResourceBundle('en', 'translation', auditEN, true, true)

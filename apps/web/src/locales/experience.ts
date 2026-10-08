@@ -1,4 +1,5 @@
-export const experienceEN = {
+import i18n from 'i18next'
+const experienceEN = {
   experience: {
     profile: 'Profile',
     password: 'Password',
@@ -20,3 +21,5 @@ export const experienceEN = {
     practice: 'Practice for next time',
   },
 }
+
+i18n.addResourceBundle('en', 'translation', experienceEN, true, true)

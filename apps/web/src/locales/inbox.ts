@@ -1,4 +1,5 @@
-export const inboxEN = {
+import i18n from 'i18next'
+const inboxEN = {
   inbox: {
     roles: {
       parent: 'Parent',
@@ -60,3 +61,5 @@ export const inboxEN = {
     sample: 'Sample account',
   },
 }
+
+i18n.addResourceBundle('en', 'translation', inboxEN, true, true)

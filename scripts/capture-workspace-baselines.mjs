@@ -17,9 +17,9 @@ const origin = e2e ? 'http://127.0.0.1:5174' : 'http://127.0.0.1:5173'
 await mkdir('docs/visual-qa/candidates', { recursive: true })
 const browser = await chromium.launch()
 try {
-  for (const [language, width, suffix] of [
-    ['en', 1440, 'desktop'],
-    ['hi', 390, 'mobile'],
+  for (const [width, suffix] of [
+    [1440, 'desktop'],
+    [390, 'mobile'],
   ]) {
     const context = await browser.newContext({
       viewport: { width, height: 1000 },
@@ -36,13 +36,12 @@ try {
     const records = await (await context.request.get(`${origin}/api/v1/dashboard`)).json()
     if (!auth.user.sample || auth.user.id !== 'parent-b' || records.learners.length !== 0)
       throw new Error('Capture requires the untouched, empty fictional parent-b fixture')
-    await context.addInitScript((lng) => localStorage.setItem('language', lng), language)
     const page = await context.newPage()
     await page.goto(`${origin}/workspace`)
-    await page.locator('.desk-start-card').waitFor()
+    await page.locator('.parent-welcome').waitFor()
     await page.evaluate(() => document.fonts.ready)
     await page.screenshot({
-      path: `docs/visual-qa/candidates/workspace-parent-${language}-${suffix}.png`,
+      path: `docs/visual-qa/candidates/workspace-parent-en-${suffix}.png`,
       fullPage: true,
       animations: 'disabled',
     })

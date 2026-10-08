@@ -10,3 +10,4 @@ playwright-report/
 *.log
 coverage/
 *.tsbuildinfo
+__pycache__/

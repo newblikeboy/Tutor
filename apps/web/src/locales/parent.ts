@@ -1,4 +1,5 @@
-export const parentEN = {
+import i18n from 'i18next'
+const parentEN = {
   parent: {
     nav: {
       overview: 'Home',
@@ -81,3 +82,5 @@ export const parentEN = {
     cityError: 'Enter a city or locality.',
   },
 }
+
+i18n.addResourceBundle('en', 'translation', parentEN, true, true)

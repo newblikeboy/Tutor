@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 	"tutorplatform/internal/domain"
@@ -110,8 +112,12 @@ func (a *App) RunJobs(ctx context.Context) {
 			return
 		case <-ticker.C:
 			work, cancel := context.WithTimeout(ctx, 12*time.Second)
-			_ = a.expireHolds(work)
-			_ = a.runOneJob(work)
+			if err := a.expireHolds(work); err != nil {
+				slog.Error("hold expiry failed", "type", fmt.Sprintf("%T", err))
+			}
+			if _, err := a.runJobBatch(work, 25); err != nil {
+				slog.Error("job batch failed", "type", fmt.Sprintf("%T", err))
+			}
 			cancel()
 		}
 	}
@@ -140,7 +146,25 @@ func (a *App) expireHolds(ctx context.Context) error {
 	}
 	return nil
 }
-func (a *App) runOneJob(ctx context.Context) error {
+
+// runJobBatch bounds both work and empty-queue polling. Each job retains its own lease.
+func (a *App) runJobBatch(ctx context.Context, limit int) (int, error) {
+	for processed := 0; processed < limit; processed++ {
+		if err := ctx.Err(); err != nil {
+			return processed, err
+		}
+		found, err := a.runOneJob(ctx)
+		if err != nil {
+			return processed, err
+		}
+		if !found {
+			return processed, nil
+		}
+	}
+	return limit, nil
+}
+
+func (a *App) runOneJob(ctx context.Context) (bool, error) {
 	kinds := []string{"finance_earning"}
 	if a.Meetings != nil {
 		kinds = append(kinds, "zoom_meeting")
@@ -156,10 +180,10 @@ func (a *App) runOneJob(ctx context.Context) error {
 	var j job
 	e := a.Store.C("outbox").FindOneAndUpdate(ctx, bson.M{"kind": bson.M{"$in": kinds}, "$or": []bson.M{{"status": "pending", "availableAt": bson.M{"$lte": now}}, {"status": "processing", "leaseUntil": bson.M{"$lte": now}}}}, bson.M{"$set": bson.M{"status": "processing", "leaseOwner": owner, "leaseUntil": now.Add(40 * time.Second)}, "$inc": bson.M{"attempts": 1}}, options.FindOneAndUpdate().SetSort(bson.D{{Key: "availableAt", Value: 1}}).SetReturnDocument(options.After)).Decode(&j)
 	if errors.Is(e, mongo.ErrNoDocuments) {
-		return nil
+		return false, nil
 	}
 	if e != nil {
-		return e
+		return false, e
 	}
 	e = a.processJob(ctx, j)
 	status, last := "done", ""
@@ -176,12 +200,13 @@ func (a *App) runOneJob(ctx context.Context) error {
 		}
 		backoff := time.Second * time.Duration(1<<min(j.Attempts, 8))
 		next = next.Add(backoff)
+		slog.Warn("job processing deferred", "kind", j.Kind, "attempt", j.Attempts, "status", status, "type", fmt.Sprintf("%T", e))
 	}
 	_, persistErr := a.Store.C("outbox").UpdateOne(ctx, bson.M{"_id": j.ID, "leaseOwner": owner}, bson.M{"$set": bson.M{"status": status, "lastError": last, "availableAt": next}, "$unset": bson.M{"leaseOwner": "", "leaseUntil": ""}})
 	if persistErr == nil && j.Kind == "zoom_meeting" && status == "failed" {
 		_, persistErr = a.Store.C("applications").UpdateOne(ctx, bson.M{"_id": j.Payload["applicationId"], "interview.jobId": j.ID}, bson.M{"$set": bson.M{"interview.syncStatus": "failed", "updatedAt": a.Now()}, "$inc": bson.M{"version": 1}})
 	}
-	return persistErr
+	return true, persistErr
 }
 func (a *App) processJob(ctx context.Context, j job) error {
 	if j.Kind == "finance_earning" {

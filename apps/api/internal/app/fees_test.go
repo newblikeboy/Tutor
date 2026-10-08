@@ -75,7 +75,4 @@ func TestFeePlanValidationAndPublicScope(t *testing.T) {
 	if _, ok := a.HourlyFee(); ok {
 		t.Fatal("home fees treated as online billing")
 	}
-	if plans[0].LessonFee(30) != 25051 || plans[0].LessonFee(90) != 75152 {
-		t.Fatal("hourly fees not rounded to nearest paise")
-	}
 }

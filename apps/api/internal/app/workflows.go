@@ -246,7 +246,7 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case "mentor":
-		d.Applications, e = storage.Many[domain.Application](ctx, a.Store, "applications", bson.M{"$or": []bson.M{{"status": "submitted"}, {"assessorId": u.ID}}})
+		d.Applications, e = storage.Many[domain.Application](ctx, a.Store, "applications", staffApplicationFilter(u))
 		if e == nil {
 			d.Trials, e = storage.Many[domain.Trial](ctx, a.Store, "trials", bson.M{"mentorId": u.ID})
 		}

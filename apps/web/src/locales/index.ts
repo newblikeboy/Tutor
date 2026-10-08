@@ -16,11 +16,6 @@ const en = {
   dev: 'Setup mode',
   devDetail: 'Sample profiles and disabled providers are clearly labelled',
   eyebrow: 'THOUGHTFUL TUITION · PURNEA',
-  heroA: 'The right support.',
-  heroB: 'A clearer way',
-  heroC: 'forward.',
-  heroBody:
-    'More than finding a tutor. A considered match, a purposeful learning plan, and an academic team that stays involved.',
   find: 'Find the right tutor for my child',
   browse: 'Back to tutors',
   assessed: 'Assessed for what they teach',
@@ -46,17 +41,12 @@ const en = {
   step2Body: 'Review assessed teaching scope and choose a tutor for an introductory trial.',
   step3: 'Build a learning rhythm',
   step3Body: 'See lesson evidence, clear next steps, and a review from the academic team.',
-  continuousTitle: 'A tutor may change. The learning should carry on.',
-  continuousBody:
-    'The family’s learning record keeps the starting point, completed work and next steps together. A supported change can build on what came before.',
   viewApproach: 'Explore our academic approach',
-  availableTitle: 'Meet the teaching approach.',
-  availableBody:
-    'Approval is specific. Explore the subject, class range and mode each tutor has been assessed for.',
   sample: 'Illustrative sample',
   sampleProfile: 'Fictional development profile',
   math: 'Mathematics',
   online: 'Online',
+  homeTuition: 'Home Tuition',
   class: 'Class',
   classes: 'Classes',
   allClasses: 'All classes',
@@ -80,8 +70,6 @@ const en = {
   faq3: 'When will I see fees, availability and next steps?',
   faq3Body:
     'Tutor profiles show staff-confirmed prices where available. After you share a requirement, the academic team can review the fit, trial timing and learning plan before regular classes begin.',
-  finalTitle: 'Let’s start with your child.',
-  finalBody: 'Their questions. Their pace. Their next step.',
   searchTitle: 'Tutors that match your child’s needs.',
   searchIntro:
     'Choose the class, teaching mode, subjects and preferred time. Then compare tutors by fit, price and teaching style.',
@@ -119,8 +107,6 @@ const en = {
   remove: 'Remove',
   citySearchPlaceholder: 'Search city',
   locationSearchPlaceholder: 'Search locality or landmark',
-  serviceLocalityPlaceholder: 'Search service locality',
-  locationSuggestions: 'Suggested localities',
   locationUseCurrent: 'Use current location',
   locationDetecting: 'Checking location...',
   locationDetected:
@@ -134,8 +120,6 @@ const en = {
     'Could not read your current location. Check that device location is enabled, then try again.',
   locationResolveFailed:
     'Your location was found, but its address could not be retrieved. Please try again.',
-  addCurrentLocality: 'Add my locality',
-  serviceLocalitiesSelected: 'Selected service localities',
   assessment: 'Assessment',
   assessedOn: 'Assessment recorded',
   scopeTitle: 'What this approval covers',
@@ -403,21 +387,9 @@ const en = {
   welcome: 'YOUR LEARNING, IN FOCUS',
 }
 
-import { parentEN } from './parent'
-import { experienceEN } from './experience'
 import { authEN } from './auth'
 import { homeEN } from './home'
-import { workspaceEN } from './workspace'
-import { tuitionEN } from './tuition'
-import { billingEN } from './billing'
-import { casesEN } from './cases'
-import { accountEN } from './account'
-import { filesEN } from './files'
-import { auditEN } from './audit'
-import { staffEN } from './staff'
-import { applicationEN } from './application'
 import { feesEN } from './fees'
-import { inboxEN } from './inbox'
 // Remove obsolete browser preferences; the interface now always uses English.
 try {
   localStorage.removeItem('language')
@@ -431,19 +403,7 @@ void i18n.use(initReactI18next).init({
         ...en,
         ...authEN,
         ...homeEN,
-        ...workspaceEN,
-        ...tuitionEN,
-        ...billingEN,
-        ...casesEN,
-        ...accountEN,
-        ...filesEN,
-        ...auditEN,
-        ...staffEN,
-        ...applicationEN,
         ...feesEN,
-        ...inboxEN,
-        ...parentEN,
-        ...experienceEN,
       },
     },
   },

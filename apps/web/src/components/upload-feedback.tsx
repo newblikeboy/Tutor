@@ -1,3 +1,4 @@
+import '../locales/files'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FileText } from 'lucide-react'

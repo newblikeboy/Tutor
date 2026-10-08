@@ -64,10 +64,8 @@ for binary in api migrate staff; do
   (cd apps/api && CGO_ENABLED=0 go build -p 1 -trimpath -o "$release/tutor-$binary" "./cmd/$binary")
 done
 mkdir -p "$release/web/assets"
-# Keep prior hashed bundles available to tabs opened before the deployment.
-if [[ -d "$previous/web/assets" ]]; then
-  cp -a "$previous/web/assets/." "$release/web/assets/"
-fi
+# Keep retired bundles for 30 days, and preserve all existing release directories.
+python3 scripts/stage-release-assets.py "$previous" "$release" apps/web/dist/assets
 cp -a apps/web/dist/. "$release/web/"
 printf '%s\n' "$commit" > "$release/REVISION"
 printf '%s\n' "$previous" > "$release/PREVIOUS_RELEASE"

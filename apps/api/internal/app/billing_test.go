@@ -210,7 +210,7 @@ func TestMongoBillingLifecycle(t *testing.T) {
 				t.Fatal("webhook rejected", res.StatusCode)
 			}
 		}
-		if e = a.runOneJob(ctx); e != nil {
+		if _, e = a.runOneJob(ctx); e != nil {
 			t.Fatal(e)
 		}
 		n, _ := s.C("ledger").CountDocuments(ctx, bson.M{"intentId": intent.ID})
@@ -231,7 +231,7 @@ func TestMongoBillingLifecycle(t *testing.T) {
 		}
 		p.ok("POST", "/refunds/"+id+"/action", map[string]any{"action": "approve", "reason": "Parent cannot approve their refund."}, 403)
 		finance.ok("POST", "/refunds/"+id+"/action", map[string]any{"action": "approve", "reason": "Finance reviewed the unused teaching balance."}, 200)
-		if e = a.runOneJob(ctx); e != nil {
+		if _, e = a.runOneJob(ctx); e != nil {
 			t.Fatal(e)
 		}
 		stored, _ := storage.One[domain.PaymentIntent](ctx, s, "payment_intents", bson.M{"_id": intent.ID})

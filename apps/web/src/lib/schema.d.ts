@@ -2987,6 +2987,8 @@ export interface operations {
                 latitude?: string;
                 longitude?: string;
                 radiusKm?: string;
+                /** @description Opaque cursor from the preceding X-Next-Cursor header. Omit for the first page; retain the same search filters. */
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -2997,6 +2999,8 @@ export interface operations {
             /** @description Success */
             200: {
                 headers: {
+                    /** @description Cursor for the next page of up to 100 eligible tutors; empty when complete. */
+                    "X-Next-Cursor"?: string;
                     [name: string]: unknown;
                 };
                 content: {

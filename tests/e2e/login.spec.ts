@@ -42,7 +42,7 @@ for (const scenario of [
   },
   {
     language: 'en',
-    identity: 'tutor-a',
+    identity: 'tutor-meera',
     role: 'tutor',
     width: 390,
     staff: false,

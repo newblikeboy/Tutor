@@ -1,4 +1,5 @@
-export const billingEN = {
+import i18n from 'i18next'
+const billingEN = {
   billing: {
     recordsTab: 'Payment records',
     operationsTab: 'Payment follow-ups',
@@ -96,3 +97,5 @@ export const billingEN = {
     failureRefund: 'That refund exceeds the available payment balance.',
   },
 }
+
+i18n.addResourceBundle('en', 'translation', billingEN, true, true)

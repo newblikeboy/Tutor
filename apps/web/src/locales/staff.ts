@@ -1,4 +1,5 @@
-export const staffEN = {
+import i18n from 'i18next'
+const staffEN = {
   terminated: 'Terminated',
   no_show: 'Did not attend',
   scheduled: 'Scheduled',
@@ -237,3 +238,5 @@ export const staffEN = {
     },
   },
 }
+
+i18n.addResourceBundle('en', 'translation', staffEN, true, true)

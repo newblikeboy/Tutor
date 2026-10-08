@@ -1,8 +1,10 @@
+import mark from '../assets/gocoaching-mark.webp'
+
 export function BrandMark() {
   return (
     <img
       className="brand-mark"
-      src="/brand/gocoaching-mark.webp"
+      src={mark}
       width={40}
       height={40}
       alt=""

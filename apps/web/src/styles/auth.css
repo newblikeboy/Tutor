@@ -39,13 +39,6 @@
   align-items: center;
   gap: 34px;
 }
-.auth-browse {
-  display: inline-flex;
-  gap: 9px;
-  align-items: center;
-  font-size: 13px;
-  font-weight: 600;
-}
 .auth-stage {
   max-width: 1360px;
   margin: auto;
@@ -528,32 +521,6 @@
 .auth-submit.btn:disabled {
   opacity: 0.75;
 }
-.auth-form-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 10px;
-  color: #6a7772;
-  letter-spacing: 0.3px;
-  margin-top: 30px;
-}
-.auth-form-divider > span {
-  flex: 1;
-  border-top: 1px solid #e4e8e3;
-}
-.auth-trust-points {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 18px;
-  font-size: 10px;
-  color: #52695f;
-}
-.auth-trust-points > span {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-}
 .auth-form-bottom {
   display: flex;
   align-items: center;
@@ -570,26 +537,6 @@
   gap: 6px;
   align-items: center;
   font-weight: 600;
-}
-.auth-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  background: none;
-  border: 0;
-  max-width: 1360px;
-  margin: auto;
-  padding: 24px 4px 32px;
-  font-size: 11px;
-}
-.auth-footer p {
-  color: #64716a;
-}
-.auth-footer a {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #476658;
 }
 .auth-role-picker {
   border: 0;
@@ -713,10 +660,6 @@
 .auth-signup-stage .auth-form {
   gap: 14px;
 }
-.auth-signup-stage .auth-form-divider,
-.auth-signup-stage .auth-trust-points {
-  display: none;
-}
 @media (min-width: 1100px) {
   .auth-stage {
     min-height: 745px;
@@ -768,9 +711,6 @@
   .auth-header nav {
     gap: 14px;
   }
-  .auth-browse {
-    display: none;
-  }
   .auth-stage {
     display: flex;
     flex-direction: column;
@@ -809,9 +749,6 @@
   .auth-story-footer {
     margin-top: 26px;
     padding-top: 17px;
-  }
-  .auth-footer {
-    font-size: 10px;
   }
 }
 @media (max-width: 420px) {
@@ -857,13 +794,6 @@
   .auth-help-link {
     font-size: 10px;
   }
-  .auth-trust-points {
-    gap: 8px;
-    font-size: 9px;
-  }
-  .auth-trust-points svg {
-    width: 14px;
-  }
   .auth-story {
     padding: 26px 22px;
   }
@@ -872,11 +802,6 @@
   }
   .auth-story-footer {
     font-size: 9px;
-  }
-  .auth-footer {
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-inline: 6px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

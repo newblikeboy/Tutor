@@ -12,7 +12,6 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -286,67 +285,26 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 	}
 	queryLat, hasLat := optionalCoordinate(r, "latitude", -90, 90)
 	queryLng, hasLng := optionalCoordinate(r, "longitude", -180, 180)
-	if hasLat != hasLng {
+	if hasLat != hasLng || !hasLat && (r.URL.Query().Get("latitude") != "" || r.URL.Query().Get("longitude") != "") {
 		a.error(w, r, domain.Fail(422, "validation", "Choose a complete location."))
 		return
 	}
 	searchRadiusKM := 0.0
 	if raw := strings.TrimSpace(r.URL.Query().Get("radiusKm")); raw != "" {
 		v, er := strconv.ParseFloat(raw, 64)
-		if er != nil || v < 1 || v > 100 {
+		if er != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 1 || v > 100 {
 			a.error(w, r, domain.Fail(422, "validation", "Choose a valid search radius."))
 			return
 		}
 		searchRadiusKM = v
 	}
-	items, e := storage.Many[domain.Application](r.Context(), a.Store, "applications", f)
+	items, next, e := a.tutorPage(r.Context(), f, r.URL.Query().Get("cursor"), hasLat, queryLat, queryLng, searchRadiusKM)
 	if e != nil {
 		a.error(w, r, e)
 		return
 	}
-	out := []domain.PublicTutor{}
-	ids := []string{}
-	for _, v := range items {
-		ids = append(ids, v.ID)
-	}
-	paused, e := storage.Many[domain.Availability](r.Context(), a.Store, "availability", bson.M{"_id": bson.M{"$in": ids}, "paused": true})
-	if e != nil {
-		a.error(w, r, e)
-		return
-	}
-	unavailable := map[string]bool{}
-	for _, v := range paused {
-		unavailable[v.ID] = true
-	}
-	for _, v := range items {
-		if unavailable[v.ID] {
-			continue
-		}
-		public := v.Public()
-		if hasLat && v.Scope.HasMode("home") {
-			location, ok := tutorBaseLocation(v)
-			if !ok || public.ServiceRadiusKM <= 0 {
-				continue
-			}
-			distance := haversineKM(queryLat, queryLng, location.Latitude, location.Longitude)
-			if distance > float64(public.ServiceRadiusKM) {
-				continue
-			}
-			if searchRadiusKM > 0 && distance > searchRadiusKM {
-				continue
-			}
-			rounded := math.Round(distance*10) / 10
-			public.DistanceKM = &rounded
-		}
-		out = append(out, public)
-	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].DistanceKM != nil && out[j].DistanceKM != nil {
-			return *out[i].DistanceKM < *out[j].DistanceKM
-		}
-		return out[i].Name < out[j].Name
-	})
-	a.json(w, 200, out)
+	w.Header().Set("X-Next-Cursor", next)
+	a.json(w, 200, items)
 }
 
 func optionalCoordinate(r *http.Request, key string, min, max float64) (float64, bool) {
@@ -355,7 +313,7 @@ func optionalCoordinate(r *http.Request, key string, min, max float64) (float64,
 		return 0, false
 	}
 	value, err := strconv.ParseFloat(raw, 64)
-	if err != nil || value < min || value > max {
+	if err != nil || math.IsNaN(value) || math.IsInf(value, 0) || value < min || value > max {
 		return 0, false
 	}
 	return value, true

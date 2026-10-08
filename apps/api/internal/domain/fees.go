@@ -38,7 +38,3 @@ func (a Application) HourlyFee() (FeePlan, bool) {
 	}
 	return FeePlan{}, false
 }
-
-func (p FeePlan) LessonFee(minutes int) int64 {
-	return (p.AmountPaise*int64(minutes) + 30) / 60
-}

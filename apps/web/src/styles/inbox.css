@@ -10,12 +10,6 @@
   margin-bottom: 16px;
   border-bottom: 1px solid var(--inbox-line);
 }
-.inbox-header-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 .inbox-compose-link {
   flex: 0 0 auto;
   margin-bottom: 8px;

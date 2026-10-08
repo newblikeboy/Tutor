@@ -1,4 +1,5 @@
-export const tuitionEN = {
+import i18n from 'i18next'
+const tuitionEN = {
   tuition: {
     reviewAgreement: 'Review class request',
     messages: 'Messages',
@@ -174,3 +175,5 @@ export const tuitionEN = {
     failureDispute: 'The attendance concern needs an academic decision before review can finish.',
   },
 }
+
+i18n.addResourceBundle('en', 'translation', tuitionEN, true, true)
