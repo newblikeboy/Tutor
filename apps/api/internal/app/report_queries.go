@@ -44,7 +44,7 @@ func (a *App) mentorTutorReports(ctx context.Context, tutors []domain.Applicatio
 		Count int64 `bson:"count"`
 	}
 	rows, err := reportRows[count](ctx, a.Store, "classes", bson.A{
-		bson.M{"$match": bson.M{"tutorId": bson.M{"$in": ids}, "status": bson.M{"$in": []string{"reviewed", "missed", "awaiting_review"}}}},
+		bson.M{"$match": bson.M{"tutorId": bson.M{"$in": ids}, "status": bson.M{"$in": []string{"completed", "reviewed", "missed", "awaiting_review"}}}},
 		bson.M{"$group": bson.M{"_id": bson.M{"tutor": "$tutorId", "status": "$status"}, "count": bson.M{"$sum": 1}}},
 	})
 	if err != nil {
@@ -59,7 +59,7 @@ func (a *App) mentorTutorReports(ctx context.Context, tutors []domain.Applicatio
 	}
 	for _, tutor := range tutors {
 		c := counts[tutor.ID]
-		out = append(out, domain.MentorTutorReport{TutorID: tutor.ID, TutorName: tutor.Name, Status: tutor.Status, ActiveLearners: active[tutor.ID], ReviewedClasses: c["reviewed"], MissedClasses: c["missed"], AwaitingReviews: c["awaiting_review"]})
+		out = append(out, domain.MentorTutorReport{TutorID: tutor.ID, TutorName: tutor.Name, Status: tutor.Status, ActiveLearners: active[tutor.ID], ReviewedClasses: c["reviewed"] + c["completed"], MissedClasses: c["missed"], AwaitingReviews: c["awaiting_review"]})
 	}
 	return out, nil
 }
@@ -89,10 +89,10 @@ func (a *App) mentorAssignmentReports(ctx context.Context, assignments []domain.
 	}
 	delivered, remaining := map[string]int64{}, map[string]int64{}
 	for _, row := range classes {
-		if row.ID.Status == "reviewed" {
+		if enum(row.ID.Status, "completed", "reviewed") {
 			delivered[row.ID.Enrollment] += row.Count
 		}
-		if !enum(row.ID.Status, "reviewed", "missed", "cancelled_consumed", "cancelled") {
+		if !enum(row.ID.Status, "completed", "reviewed", "missed", "cancelled_consumed", "cancelled") {
 			remaining[row.ID.Enrollment] += row.Count
 		}
 	}

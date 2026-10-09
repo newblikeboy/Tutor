@@ -170,7 +170,7 @@ func TestMongoRecruitmentProviders(t *testing.T) {
 		if v.Interview.SyncStatus != "pending" || v.Interview.JoinURL != "" || gateway.creates != 0 {
 			t.Fatal("meeting fabricated before provider confirmation")
 		}
-		admin.decide("tutor-a", map[string]any{"action": "approve", "reason": "Cannot approve before the final assessment.", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a"}, 409)
+		admin.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "reason": "Cannot approve before the final assessment.", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a"}, 409)
 		// Another reviewer sharing the same configured Zoom host cannot overlap.
 		other := domain.Application{ID: "other-applicant", Name: "Fictional other applicant", Status: "under_review", AssessorID: "mentor-a", ConflictClear: true, Sample: true}
 		if _, e = s.C("users").InsertOne(ctx, domain.User{ID: other.ID, Name: other.Name, Email: "other-applicant@example.test", Role: "tutor", Sample: true}); e != nil {
@@ -251,7 +251,7 @@ func TestMongoRecruitmentProviders(t *testing.T) {
 		now = now.Add(4 * time.Hour)
 		admin.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Fictional assessment met the subject and teaching criteria."}, 200)
 		admin.setTestFees("tutor-a", 0)
-		admin.decide("tutor-a", map[string]any{"action": "approve", "reason": "Final interview and academic assessment passed.", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a"}, 200)
+		admin.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "reason": "Final interview and academic assessment passed.", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a"}, 200)
 		tutor.ok("GET", "/enrollments", nil, 200)
 		if _, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-a"}, bson.M{"$set": bson.M{"scope.expiresAt": now.Add(-time.Minute)}}); e != nil {
 			t.Fatal(e)

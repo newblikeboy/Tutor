@@ -296,6 +296,7 @@ type staffDecisionInput struct {
 	Reason        string            `json:"reason"`
 	Evidence      string            `json:"evidence"`
 	Scores        []int             `json:"scores"`
+	Subjects      []string          `json:"subjects"`
 	MinClass      int               `json:"minClass"`
 	MaxClass      int               `json:"maxClass"`
 	Mode          string            `json:"mode"`
@@ -608,19 +609,36 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			if !enum(v.Status, "assessed", "approved") || v.AssessorID != u.ID || !v.ConflictClear {
 				return domain.Fail(409, "invalid_transition", "Only the assigned reviewer can approve or update an approved application.")
 			}
-			if in.MinClass < 6 || in.MaxClass > 10 || in.MinClass > in.MaxClass {
-				return domain.Fail(422, "validation", "Approved classes must be within 6-10.")
+			if in.MinClass < 1 || in.MaxClass > 12 || in.MinClass > in.MaxClass {
+				return domain.Fail(422, "validation", "Approved classes must be within 1-12.")
 			}
 			selectedModes := approvalModes(in, v.Scope)
+			subjects := in.Subjects
+			if len(subjects) == 0 {
+				subjects = v.Scope.ApprovedSubjects()
+			}
+			seenSubjects := map[string]bool{}
+			for _, subject := range subjects {
+				if !domain.ValidSubject(subject) || seenSubjects[subject] {
+					return domain.Fail(422, "validation", "Choose unique teaching subjects.")
+				}
+				seenSubjects[subject] = true
+			}
+			if len(subjects) > 6 || len(subjects) == 0 || seenSubjects[domain.AllSubjects] && in.MaxClass > 5 {
+				return domain.Fail(422, "validation", "All Subjects approval is limited to Classes 1–5.")
+			}
 			if v.Profile != nil {
 				if v.Profile.NeedsEligibilityReview() && (v.Eligibility == nil || v.Eligibility.Status != "cleared" || v.Eligibility.ReviewedAt == nil) || v.Eligibility != nil && v.Eligibility.Status == "blocked" {
 					return domain.Fail(409, "eligibility_pending", "An administrator must complete the required eligibility review.")
 				}
-				area, ok := v.Profile.RequestedArea("Mathematics", in.MinClass, in.MaxClass, selectedModes)
-				if !ok {
-					return domain.Fail(409, "requested_scope", "Approve only an assessed, requested teaching area supported by the current booking service.")
+				var area domain.RequestedTeachingArea
+				for _, subject := range subjects {
+					var ok bool
+					area, ok = v.Profile.RequestedArea(subject, in.MinClass, in.MaxClass, selectedModes)
+					if !ok {
+						return domain.Fail(409, "requested_scope", "Approve only assessed, requested subject/class/mode combinations.")
+					}
 				}
-				v.Scope.Subject = area.Subject
 				if len(area.Languages) > 0 {
 					v.Language = area.Languages[0]
 				}
@@ -640,6 +658,8 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			if len(selectedModes) == 0 {
 				return domain.Fail(422, "validation", "Choose an approved teaching mode.")
 			}
+			v.Scope.Subject = subjects[0]
+			v.Scope.Subjects = subjects
 			v.Scope.Mode = selectedModes[0]
 			v.Scope.Modes = selectedModes
 			mentorID := in.MentorID

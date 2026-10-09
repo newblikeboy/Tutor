@@ -6,25 +6,22 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Search,
   ShieldCheck,
   SlidersHorizontal,
 } from 'lucide-react'
-import { z } from 'zod'
 import { api, indiaDate, queryClient, send } from '../lib/api'
-import type { Dashboard, Learner, Requirement, Schema, Tutor } from '../lib/api'
+import type { Dashboard, Learner, Schema, Tutor } from '../lib/api'
 import { useAuth, useDashboard } from '../lib/session'
-import { allTutors, tutorHasMode, tutorModeLabel } from '../lib/tutors'
+import { allTutors, approvedTutorSubjects, tutorHasMode, tutorModeLabel } from '../lib/tutors'
 import { workspaceLink } from '../lib/workspace'
-import { TrialCard } from '../components/trial-card'
-import { LocationSearchField, type StoredLocation } from '../components/location-search'
 import { ParentLocationControl } from '../components/parent-location-control'
 import { TutorFees } from '../components/tutor-fees'
-import { LearnerFields, LearnerProfile } from '../components/learner-profile'
-import '../styles/parent.css'
+import { LearnerProfile } from '../components/learner-profile'
+import { SubjectSelect } from '../components/subject-select'
+import { teachingSubjects } from '../lib/subjects'
 import {
   Alert,
   Button,
@@ -34,464 +31,189 @@ import {
   LoadError,
   MutationError,
 } from '../components/ui'
+import '../styles/parent.css'
+
 export default function Match() {
   const { t } = useTranslation()
   const auth = useAuth()
+  const dashboard = useDashboard()
   const [params] = useSearchParams()
-  const returnTo = `/match${params.toString() ? `?${params}` : ''}`
+  if (auth.isPending || dashboard.isPending) return <Loading />
+  if (dashboard.isError) return <LoadError retry={() => void dashboard.refetch()} />
+  if (auth.data?.user.role !== 'parent') return <Alert>{t('permission')}</Alert>
+  const learner = dashboard.data.learners.find((item) => item.id === params.get('learner'))
+  const profile = params.get('profile') === '1'
   return (
     <div className="container section wizard-container parent-match">
-      <Link
-        className="text-link parent-match-back"
-        to={workspaceLink('overview', params.get('learner'))}
-      >
+      <Link className="text-link parent-match-back" to={workspaceLink('overview', learner?.id)}>
         <ArrowLeft size={16} aria-hidden="true" />
         {t('parent.back')}
       </Link>
-      <h1 className="sr-only">
-        {t(
-          params.get('edit') === '1'
-            ? 'parent.edit'
-            : params.get('profile') === '1'
-              ? 'parent.add'
-              : 'parent.start',
-        )}
+      <h1>
+        {t(profile ? (params.get('edit') === '1' ? 'parent.edit' : 'parent.add') : 'parent.start')}
       </h1>
-      {auth.isPending ? (
-        <Loading />
-      ) : !auth.data ? (
-        <div className="panel">
-          <p>{t('privacyNote')}</p>
-          <LinkButton to={`/login?return=${encodeURIComponent(returnTo)}`}>
-            {t('authRequired')}
-          </LinkButton>
-        </div>
-      ) : auth.data.user.role !== 'parent' ? (
-        <Alert>{t('permission')}</Alert>
+      {profile ? (
+        params.get('edit') === '1' && !learner ? (
+          <Alert>{t('parent.learnerMissing')}</Alert>
+        ) : (
+          <LearnerProfile learner={params.get('edit') === '1' ? learner : undefined} />
+        )
       ) : (
-        <MatchData />
+        <ParentTutorFinder key={params.toString()} data={dashboard.data} />
       )}
     </div>
   )
 }
-function MatchData() {
-  const q = useDashboard()
-  const [params] = useSearchParams()
-  if (q.isPending) return <Loading />
-  if (q.isError) return <LoadError retry={() => void q.refetch()} />
-  if (params.get('profile') === '1') {
-    const learner = q.data.learners.find((item) => item.id === params.get('learner'))
-    if (params.get('edit') === '1' && !learner) return <MissingLearner />
-    return (
-      <LearnerProfile
-        key={params.toString()}
-        learner={params.get('edit') === '1' ? learner : undefined}
-      />
-    )
-  }
-  return <Wizard key={params.toString()} initial={q.data} />
-}
-function MissingLearner() {
-  const { t } = useTranslation()
-  return <Alert>{t('parent.learnerMissing')}</Alert>
-}
-function Wizard({ initial }: { initial: Dashboard }) {
+
+function ParentTutorFinder({ data }: { data: Dashboard }) {
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
-  const existingRequest = initial.requirements.find((r) => r.id === params.get('requirement'))
-  const addingLearner = params.get('new') === '1'
-  const requestedLearner = initial.learners.find((item) => item.id === params.get('learner'))
-  const draft =
-    !addingLearner && (!params.has('learner') || initial.draft?.learnerId === requestedLearner?.id)
-      ? initial.draft
-      : undefined
-  const initialLearnerId = addingLearner
-    ? ''
-    : (requestedLearner?.id ?? draft?.learnerId ?? initial.learners[0]?.id ?? '')
-  // A new minor's consent is intentionally never recovered from browser storage.
-  const [step, setStep] = useState(draft?.learnerId ? draft.step : requestedLearner ? 2 : 1)
-  const [learnerId, setLearnerId] = useState(initialLearnerId)
-  const [learners, setLearners] = useState(initial.learners)
-  const [kind, setKind] = useState<'minor' | 'adult_self'>('minor')
-  const [guardian, setGuardian] = useState(false)
-  const [accepted, setAccepted] = useState(false)
-  const [consentId, setConsentId] = useState('')
-  const [name, setName] = useState('')
-  const requestedClass = Number(params.get('class'))
-  const initialClass =
-    Number.isInteger(requestedClass) && requestedClass >= 1 && requestedClass <= 12
-      ? requestedClass
-      : 0
-  const requestedGoal = params.get('goal')?.trim() ?? ''
-  const requestedLocality = params.get('locality')?.trim() ?? ''
-  const [classNumber, setClassNumber] = useState(initialClass)
-  const [board, setBoard] = useState<Schema['LearnerDraft']['board']>('')
-  const [language, setLanguage] = useState<Schema['LearnerDraft']['language']>('')
-  const [learnerKey] = useState(() => crypto.randomUUID())
-  const [goal, setGoal] = useState(draft?.goal ?? requestedGoal)
-  const [locality, setLocality] = useState((draft?.locality ?? requestedLocality) || 'Purnea')
-  const [location, setLocation] = useState<StoredLocation | null>(
-    (draft?.location as StoredLocation | null | undefined) ?? null,
+  const [learnerId, setLearnerId] = useState(params.get('learner') ?? data.learners[0]?.id ?? '')
+  const learner = data.learners.find((item) => item.id === learnerId)
+  const [mode, setMode] = useState(params.get('mode') === 'home' ? 'home' : 'online')
+  const [subjects, setSubjects] = useState<string[]>(() =>
+    learner && learner.class <= 5
+      ? ['All Subjects']
+      : params.getAll('subject').filter((subject) => teachingSubjects.includes(subject)),
   )
-  const [validation, setValidation] = useState(false)
-  const errorRef = useRef<HTMLDivElement>(null)
-  const saveDraft = async (next: number, id = learnerId) => {
-    await send('/draft', { step: next, learnerId: id, goal, locality, location }, 'PUT')
-    setStep(next)
-    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    if (id) {
-      const updated = new URLSearchParams(params)
-      updated.delete('new')
-      updated.set('learner', id)
-      setParams(updated, { replace: true })
-    }
-  }
-  const next = useMutation({
-    mutationFn: async () => {
-      setValidation(false)
-      if (step === 1) {
-        if (learnerId) {
-          await saveDraft(2)
-          return
-        }
-        if (kind === 'minor') {
-          if (!guardian || !accepted) {
-            setValidation(true)
-            requestAnimationFrame(() => errorRef.current?.focus())
+  const [radius, setRadius] = useState(Number(params.get('radiusKm') ?? 5))
+  const [selection, setSelection] = useState<{
+    learner: Learner
+    mode: string
+    subjects: string[]
+    radius: number
+  } | null>(() =>
+    params.get('searched') === '1' && learner && subjects.length
+      ? { learner, mode, subjects, radius }
+      : null,
+  )
+  const [invalid, setInvalid] = useState(false)
+  const account = useQuery({
+    queryKey: ['account'],
+    queryFn: ({ signal }) => api<Schema['Account']>('/account', { signal }),
+  })
+  if (!data.learners.length)
+    return <LinkButton to="/match?new=1&profile=1">{t('parent.add')}</LinkButton>
+  return (
+    <div className="form-stack">
+      {account.data && <ParentLocationControl account={account.data} />}
+      <form
+        className="panel parent-finder"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (
+            !learner ||
+            !subjects.length ||
+            (mode === 'home' && !account.data?.preferences.location)
+          ) {
+            setInvalid(true)
             return
           }
-          if (!consentId) {
-            const consent = await send<Schema['Consent']>('/consents', {
-              relationship: 'parent',
-              accepted: true,
-            })
-            setConsentId(consent.id)
-          }
-        }
-        await saveDraft(2)
-        return
-      }
-      if (step === 2) {
-        const valid = z
-          .object({
-            goal: z.string().trim().min(10).max(1200),
-            locality: z.string().trim().min(2).max(120),
+          setInvalid(false)
+          const next = new URLSearchParams({
+            learner: learner.id,
+            mode,
+            radiusKm: String(radius),
+            searched: '1',
           })
-          .safeParse({ goal, locality })
-        if (
-          !valid.success ||
-          (!learnerId && !z.string().trim().min(1).max(80).safeParse(name).success)
-        ) {
-          setValidation(true)
-          requestAnimationFrame(() => errorRef.current?.focus())
-          return
-        }
-        let id = learnerId
-        if (!id) {
-          const learner = await send<Learner>(
-            '/learners',
-            {
-              name,
-              class: classNumber,
-              board,
-              language,
-              kind,
-              consentId,
-            },
-            'POST',
-            { 'Idempotency-Key': learnerKey },
-          )
-          id = learner.id
-          setLearnerId(id)
-          setLearners((old) => [...old, learner])
-        }
-        await saveDraft(3, id)
-        return
-      }
-      const result = await send<Requirement>('/requirements', {
-        learnerId,
-        goal,
-        locality,
-        location,
-      })
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      const updated = new URLSearchParams(params)
-      updated.delete('new')
-      updated.set('learner', learnerId)
-      updated.set('requirement', result.id)
-      setParams(updated, { replace: true })
-    },
-  })
-  const previous = useMutation({ mutationFn: () => saveDraft(step - 1) })
-  const learner = learners.find((l) => l.id === learnerId)
-  if (params.has('requirement') && !existingRequest)
-    return <Alert>{t('parent.requestMissing')}</Alert>
-  const currentTrial =
-    existingRequest &&
-    initial.trials
-      .filter(
-        (trial) =>
-          trial.requirementId === existingRequest.id &&
-          !['cancelled', 'declined'].includes(trial.status),
-      )
-      .sort((a, b) => b.start.localeCompare(a.start))[0]
-  if (currentTrial)
-    return (
-      <div className="form-stack">
-        <h2>{t('parent.nav.sessions')}</h2>
-        <TrialCard trial={currentTrial} role="parent" />
-        <LinkButton
-          to={`${workspaceLink('sessions', currentTrial.learnerId)}&tab=${['completed', 'reviewed'].includes(currentTrial.status) ? 'completed' : 'upcoming'}`}
-        >
-          {t('parent.allTrials')}
-        </LinkButton>
-      </div>
-    )
-  if (existingRequest)
-    return (
-      <>
-        <MatchSteps step={4} />
+          subjects.forEach((subject) => next.append('subject', subject))
+          if (params.get('tutor')) next.set('tutor', params.get('tutor')!)
+          setParams(next)
+        }}
+      >
+        <div className="parent-finder-fields">
+          <Field label={t('parent.learner')}>
+            <select
+              value={learnerId}
+              onChange={(event) => {
+                const next = data.learners.find((item) => item.id === event.target.value)
+                setLearnerId(event.target.value)
+                setSubjects(next && next.class <= 5 ? ['All Subjects'] : [])
+                setSelection(null)
+              }}
+            >
+              {data.learners.map((item) => (
+                <option value={item.id} key={item.id}>
+                  {item.name} · Class {item.class}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Teaching mode">
+            <select
+              value={mode}
+              onChange={(event) => {
+                setMode(event.target.value)
+                setSelection(null)
+              }}
+            >
+              <option value="online">Online</option>
+              <option value="home">Home Tuition</option>
+            </select>
+          </Field>
+          {learner && learner.class <= 5 ? (
+            <Field label="Subject">
+              <select defaultValue="All Subjects">
+                <option>All Subjects</option>
+              </select>
+            </Field>
+          ) : (
+            <SubjectSelect
+              label="Subjects"
+              placeholder="Select subjects"
+              value={subjects}
+              onChange={(value) => {
+                setSubjects(value)
+                setSelection(null)
+              }}
+              error={invalid && !subjects.length ? 'Select at least one subject.' : undefined}
+            />
+          )}
+          <Field
+            label="Teacher distance"
+            hint={
+              mode === 'online'
+                ? 'Distance applies to Home Tuition.'
+                : `${radius} km from your saved location`
+            }
+          >
+            <select
+              value={radius}
+              disabled={mode === 'online'}
+              onChange={(event) => {
+                setRadius(Number(event.target.value))
+                setSelection(null)
+              }}
+            >
+              {[1, 3, 5, 10, 15, 25, 50, 100].map((value) => (
+                <option value={value} key={value}>
+                  {value} km
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        {invalid && mode === 'home' && !account.data?.preferences.location && (
+          <Alert kind="error">Save your location to search for home tutors.</Alert>
+        )}
+        {account.isError && <LoadError retry={() => void account.refetch()} />}
+        <Button type="submit" disabled={account.isPending}>
+          <Search size={17} aria-hidden="true" />
+          Search tutors
+        </Button>
+      </form>
+      {selection && (
         <TrialRequest
-          requirement={existingRequest}
-          learner={learners.find((l) => l.id === existingRequest.learnerId)}
+          key={JSON.stringify(selection)}
+          learner={selection.learner}
+          bookingSubjects={selection.subjects}
+          bookingMode={selection.mode}
+          radius={selection.radius}
           selectedTutor={params.get('tutor') ?? ''}
         />
-      </>
-    )
-  return (
-    <>
-      <MatchSteps step={step} />
-      {draft && (
-        <p className="saved-indicator">
-          <CheckCircle2 size={16} />
-          {t('parent.saved')}
-        </p>
       )}
-      <div className="wizard-layout">
-        <form
-          className="panel wizard-panel"
-          onSubmit={(e) => {
-            e.preventDefault()
-            next.mutate()
-          }}
-        >
-          <h2>{t(['parent.who', 'parent.details', 'parent.check'][step - 1])}</h2>
-          {validation && (
-            <div tabIndex={-1} ref={errorRef}>
-              <Alert kind="error">{t(step === 1 ? 'consentHelp' : 'invalidFields')}</Alert>
-            </div>
-          )}
-          {step === 1 ? (
-            <>
-              {!addingLearner && learners.length > 0 && (
-                <Field label={t('existingLearner')}>
-                  <select
-                    value={learnerId}
-                    onChange={(e) => {
-                      setLearnerId(e.target.value)
-                      setConsentId('')
-                      setGuardian(false)
-                      setAccepted(false)
-                    }}
-                  >
-                    {learners.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name} · {t('class')} {l.class}
-                      </option>
-                    ))}
-                    <option value="">{t('newLearner')}</option>
-                  </select>
-                </Field>
-              )}
-              {!learnerId && (
-                <>
-                  <fieldset>
-                    <legend className="fine-print">{t('adultQuestion')}</legend>
-                    <label className="radio-card">
-                      <input
-                        type="radio"
-                        name="kind"
-                        checked={kind === 'minor'}
-                        onChange={() => setKind('minor')}
-                      />
-                      {t('minorOption')}
-                    </label>
-                    <label className="radio-card">
-                      <input
-                        type="radio"
-                        name="kind"
-                        checked={kind === 'adult_self'}
-                        onChange={() => setKind('adult_self')}
-                      />
-                      {t('adultOption')}
-                    </label>
-                  </fieldset>
-                  {kind === 'minor' && (
-                    <>
-                      <Alert>{t('consentHelp')}</Alert>
-                      <label className="check-label">
-                        <input
-                          type="checkbox"
-                          checked={guardian}
-                          onChange={(e) => setGuardian(e.target.checked)}
-                        />
-                        {t('guardian')}
-                      </label>
-                      <label className="check-label">
-                        <input
-                          type="checkbox"
-                          checked={accepted}
-                          onChange={(e) => setAccepted(e.target.checked)}
-                        />
-                        <span>
-                          {t('consent')}{' '}
-                          <a className="text-link" href="/privacy" target="_blank" rel="noreferrer">
-                            {t('privacy')} ↗
-                          </a>
-                        </span>
-                      </label>
-                    </>
-                  )}
-                </>
-              )}
-            </>
-          ) : step === 2 ? (
-            <>
-              {!learnerId ? (
-                <LearnerFields
-                  value={{ name, class: classNumber, board, language }}
-                  onChange={(value) => {
-                    setName(value.name)
-                    setClassNumber(value.class)
-                    setBoard(value.board)
-                    setLanguage(value.language)
-                  }}
-                />
-              ) : (
-                <p className="saved-indicator">
-                  <CheckCircle2 size={17} />
-                  {learner?.name} · {t('class')} {learner?.class}
-                </p>
-              )}
-              {
-                <>
-                  <Field
-                    label={t('goal')}
-                    error={
-                      validation && goal.trim().length < 10 ? t('parent.goalError') : undefined
-                    }
-                  >
-                    <textarea
-                      value={goal}
-                      onChange={(e) => setGoal(e.target.value)}
-                      placeholder={t('parent.goalHint')}
-                      maxLength={1200}
-                      aria-invalid={validation && goal.trim().length < 10}
-                    />
-                  </Field>
-                  <LocationSearchField
-                    label={t('locality')}
-                    value={locality}
-                    onChange={setLocality}
-                    onLocationChange={setLocation}
-                    maxLength={120}
-                    required
-                    hint={t('localityHelp')}
-                    error={
-                      validation && locality.trim().length < 2 ? t('parent.cityError') : undefined
-                    }
-                  />
-                </>
-              }
-            </>
-          ) : (
-            <>
-              <dl className="review-list">
-                <dt>{t('learner')}</dt>
-                <dd>{learner?.name}</dd>
-                <dt>{t('class')}</dt>
-                <dd>
-                  {learner?.class} · {learner?.board}
-                </dd>
-                <dt>{t('subject')}</dt>
-                <dd>
-                  {t('math')} · {t('online')}
-                </dd>
-                <dt>{t('goal')}</dt>
-                <dd>{goal}</dd>
-                <dt>{t('locality')}</dt>
-                <dd>{locality}</dd>
-              </dl>
-            </>
-          )}
-          <MutationError error={next.error ?? previous.error} />
-          <div className="wizard-footer">
-            {step > 1 && (
-              <Button
-                type="button"
-                variant="secondary"
-                busy={previous.isPending}
-                disabled={next.isPending}
-                onClick={() => previous.mutate()}
-              >
-                {t('back')}
-              </Button>
-            )}
-            <Button type="submit" busy={next.isPending} disabled={previous.isPending}>
-              {t(step === 3 ? 'parent.save' : 'next')}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </>
+    </div>
   )
-}
-function MatchSteps({ step }: { step: number }) {
-  const { t } = useTranslation()
-  const steps = ['parent.who', 'parent.details', 'parent.check', 'parent.tutor']
-  return (
-    <ol className="stepper" aria-label={t('parent.start')}>
-      {steps.map((key, index) => (
-        <li
-          key={key}
-          className={step === index + 1 ? 'active' : ''}
-          aria-current={step === index + 1 ? 'step' : undefined}
-        >
-          <span>{index + 1}</span>
-          {t(key)}
-        </li>
-      ))}
-    </ol>
-  )
-}
-
-function hasUsableCoordinates(
-  location: StoredLocation | null | undefined,
-): location is StoredLocation {
-  return (
-    !!location &&
-    Number.isFinite(location.latitude) &&
-    Number.isFinite(location.longitude) &&
-    location.latitude >= -90 &&
-    location.latitude <= 90 &&
-    location.longitude >= -180 &&
-    location.longitude <= 180 &&
-    !(location.latitude === 0 && location.longitude === 0)
-  )
-}
-
-function tutorRequestPath(location: StoredLocation | null | undefined) {
-  if (!hasUsableCoordinates(location)) return '/tutors'
-  const params = new URLSearchParams({
-    latitude: String(location.latitude),
-    longitude: String(location.longitude),
-  })
-  return `/tutors?${params}`
-}
-
-function accountLocationKey(location: StoredLocation | null | undefined) {
-  if (!hasUsableCoordinates(location)) return 'no-location'
-  return `${location.latitude.toFixed(6)},${location.longitude.toFixed(6)}`
 }
 
 function compareTutorDistance(a: Tutor, b: Tutor) {
@@ -502,12 +224,16 @@ function compareTutorDistance(a: Tutor, b: Tutor) {
 }
 
 function TrialRequest({
-  requirement,
   learner,
+  bookingSubjects,
+  bookingMode,
+  radius,
   selectedTutor,
 }: {
-  requirement: Requirement
-  learner?: Learner
+  learner: Learner
+  bookingSubjects: string[]
+  bookingMode: string
+  radius: number
   selectedTutor: string
 }) {
   const { t, i18n } = useTranslation()
@@ -517,8 +243,25 @@ function TrialRequest({
   })
   const parentLocation = account.data?.preferences.location ?? null
   const tutors = useQuery({
-    queryKey: ['tutors', 'request', accountLocationKey(parentLocation)],
-    queryFn: ({ signal }) => allTutors(tutorRequestPath(parentLocation), signal),
+    queryKey: [
+      'tutors',
+      'request',
+      learner.id,
+      bookingSubjects,
+      bookingMode,
+      radius,
+      parentLocation,
+    ],
+    queryFn: ({ signal }) => {
+      const search = new URLSearchParams({ class: String(learner.class), mode: bookingMode })
+      bookingSubjects.forEach((subject) => search.append('subject', subject))
+      if (bookingMode === 'home' && parentLocation) {
+        search.set('latitude', String(parentLocation.latitude))
+        search.set('longitude', String(parentLocation.longitude))
+        search.set('radiusKm', String(radius))
+      }
+      return allTutors(`/tutors?${search}`, signal)
+    },
     enabled: !account.isPending,
   })
   const [tutorId, setTutorId] = useState(selectedTutor)
@@ -526,7 +269,7 @@ function TrialRequest({
   const [terms, setTerms] = useState(false)
   const [search, setSearch] = useState('')
   const [language, setLanguage] = useState('')
-  const [mode, setMode] = useState('')
+  const mode = bookingMode
   const [sort, setSort] = useState('recommended')
   const key = useRef(crypto.randomUUID())
   const request = useMutation({
@@ -534,7 +277,9 @@ function TrialRequest({
       send<Schema['Trial']>(
         '/trials',
         {
-          requirementId: requirement.id,
+          learnerId: learner.id,
+          subjects: bookingSubjects,
+          mode: bookingMode,
           tutorId,
           start: new Date(start).toISOString(),
           termsAccepted: terms,
@@ -555,10 +300,14 @@ function TrialRequest({
     },
   })
   if (account.isPending || tutors.isPending) return <Loading />
+  if (account.isError) return <LoadError retry={() => void account.refetch()} />
   if (tutors.isError) return <LoadError retry={() => void tutors.refetch()} />
-  const learnerLanguage = learner?.language ?? ''
+  const learnerLanguage = learner.language
   const suitable = tutors.data.filter(
-    (v) => !learner || (learner.class >= v.scope.minClass && learner.class <= v.scope.maxClass),
+    (v) =>
+      learner.class >= v.scope.minClass &&
+      learner.class <= v.scope.maxClass &&
+      bookingSubjects.every((subject) => approvedTutorSubjects(v.scope).includes(subject)),
   )
   const visibleTutors = suitable
     .filter((tutor) => {
@@ -605,8 +354,9 @@ function TrialRequest({
       }}
     >
       <h2>{t('requestTrial')}</h2>
-      <p className="fine-print">{requirement.goal}</p>
-      {account.data && <ParentLocationControl account={account.data} />}
+      <p className="fine-print">
+        {learner.name} · {bookingSubjects.join(', ')}
+      </p>
       {suitable.length === 0 ? (
         <Alert>{t('noTutorsBody')}</Alert>
       ) : (
@@ -641,14 +391,6 @@ function TrialRequest({
                 </select>
               </label>
               <label>
-                <span>{t('teacherMode')}</span>
-                <select value={mode} onChange={(event) => setMode(event.target.value)}>
-                  <option value="">{t('parentTutorAllModes')}</option>
-                  <option value="online">{t('online')}</option>
-                  <option value="home">{t('applicationForm.home')}</option>
-                </select>
-              </label>
-              <label>
                 <span>{t('parentTutorSort')}</span>
                 <select value={sort} onChange={(event) => setSort(event.target.value)}>
                   <option value="recommended">{t('parentTutorSortRecommended')}</option>
@@ -663,7 +405,6 @@ function TrialRequest({
                 onClick={() => {
                   setSearch('')
                   setLanguage('')
-                  setMode('')
                   setSort('recommended')
                 }}
               >
@@ -716,10 +457,8 @@ function TrialRequest({
                                 <small>{tutor.sample ? t('sampleProfile') : t('scoped')}</small>
                                 <strong>{tutor.name}</strong>
                                 <em>
-                                  {tutor.scope.subject === 'Mathematics'
-                                    ? t('math')
-                                    : tutor.scope.subject}{' '}
-                                  - {t('classes')} {tutor.scope.minClass}-{tutor.scope.maxClass}
+                                  {approvedTutorSubjects(tutor.scope).join(', ')} - {t('classes')}{' '}
+                                  {tutor.scope.minClass}-{tutor.scope.maxClass}
                                 </em>
                               </span>
                             </span>
@@ -928,7 +667,9 @@ function TutorTrialActions({
                     <button
                       type="button"
                       key={value}
-                      aria-label={new Intl.DateTimeFormat('en-IN', { dateStyle: 'full' }).format(date)}
+                      aria-label={new Intl.DateTimeFormat('en-IN', { dateStyle: 'full' }).format(
+                        date,
+                      )}
                       aria-pressed={selectedDate === value}
                       className={`trial-date ${available ? 'available' : ''} ${
                         unavailable ? 'unavailable' : ''

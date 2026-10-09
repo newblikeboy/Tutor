@@ -1,0 +1,9 @@
+# Parent booking visual evidence - 2026-10-10
+
+`tests/e2e/parent-booking-flow.spec.ts` captures desktop (1440px) and mobile (390px) learner discovery, Class 5 All Subjects, Class 6 multiple subjects, immediate tutor feedback, subject-multiplied pricing and checkout. All eleven captures were individually inspected. Axe, horizontal overflow and page-error checks pass.
+
+The parent checkout now says Complete your booking and shows selected classes, dates and total instead of an Awaiting payment class dashboard. Unpaid selections appear only in a separate resumable checkout section. Browser checks confirm no class tabs/counts before payment, resume/reload persistence and the Choose new dates expiry screen. Expiry advances only the browser clock; no paid state is fabricated. The existing payment-pending screenshot filenames are retained for evidence continuity.
+
+The fixtures are fictional and isolated in a retained local E2E database. A trial is recorded using the explicitly supported development timeline; it does not claim real attendance. Regular booking deliberately uses a later day to preserve that future trial reservation. Checkout shows the existing unconfigured provider gate, without fake success or live charges. Server payment activation, scope/conflict guards, weekly/monthly period bounds and finance/handovers are verified by separate real MongoDB tests with the existing test-only payment gateway.
+
+Learner setup, home context, tutor-submitted feedback and staff fee changes have additional evidence under `../learner-profile/`, `../parent-learning-needs/`, `../english-only/parent-ux/` and `../english-only/product-ux/`. The historical directory name parent-learning-needs is retained for evidence continuity; its current test confirms that no learning-needs interface is offered and old saved requirements remain intact.

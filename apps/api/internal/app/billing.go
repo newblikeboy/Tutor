@@ -242,6 +242,13 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 				}
 			}
 			if usable {
+				subjects := enrollment.Agreement.Subjects
+				if len(subjects) == 0 {
+					subjects = []string{enrollment.Agreement.Subject}
+				}
+				usable = app.Scope.CoversSubjects(subjects)
+			}
+			if usable {
 				classes, er := storage.Many[domain.ClassSession](ctx, a.Store, "classes", bson.M{"enrollmentId": enrollment.ID})
 				if er != nil {
 					return er

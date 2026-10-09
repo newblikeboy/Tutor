@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
 
-test('Home learner context and deletion of unused learning needs persist', async ({ page }) => {
+test('saved learner context leads directly to the finder and retains historical requirements', async ({
+  page,
+}) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   const origin = 'http://127.0.0.1:5174'
@@ -45,28 +47,8 @@ test('Home learner context and deletion of unused learning needs persist', async
     goal: 'Sample need to practise fractions',
     locality: 'Purnea',
   })
-  const booked = await create('/requirements', {
-    learnerId: first.id,
-    goal: 'Sample need with a cancelled trial',
-    locality: 'Purnea',
-  })
-  const otherNeed = await create('/requirements', {
-    learnerId: second.id,
-    goal: 'Sample need to understand algebra',
-    locality: 'Purnea',
-  })
-  const trial = await create('/trials', {
-    requirementId: booked.id,
-    tutorId: 'tutor-meera',
-    start: new Date(Date.now() + 86400000).toISOString(),
-    termsAccepted: true,
-  })
-  const cancel = await page.request.post(`/api/v1/trials/${trial.id}/action`, {
-    headers,
-    data: { action: 'cancel' },
-  })
-  expect(cancel.status()).toBe(200)
   await mkdir('docs/visual-qa/parent-learning-needs', { recursive: true })
+  await mkdir('docs/visual-qa/parent-navigation', { recursive: true })
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.goto(`/workspace?learner=${second.id}`)
@@ -74,13 +56,13 @@ test('Home learner context and deletion of unused learning needs persist', async
     await expect(selector).toHaveValue(second.id)
     await expect(page.locator('.parent-next a')).toHaveAttribute(
       'href',
-      `/match?requirement=${otherNeed.id}`,
+      `/match?learner=${second.id}`,
     )
     await selector.selectOption(first.id)
     await expect(page).toHaveURL(new RegExp(`learner=${first.id}`))
-    await expect(page.locator('.parent-next a')).not.toHaveAttribute(
+    await expect(page.locator('.parent-next a')).toHaveAttribute(
       'href',
-      `/match?requirement=${otherNeed.id}`,
+      `/match?learner=${first.id}`,
     )
     await page.reload()
     await expect(selector).toHaveValue(first.id)
@@ -93,43 +75,31 @@ test('Home learner context and deletion of unused learning needs persist', async
     })
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await page.goto(`/workspace?view=learners&learner=${first.id}`)
-    const unused = page.locator('.parent-request').filter({ hasText: need.goal })
-    const used = page.locator('.parent-request').filter({ hasText: booked.goal })
-    await expect(used.getByRole('button', { name: 'Delete learning need' })).toHaveCount(0)
-    await unused.getByRole('button', { name: 'Delete learning need' }).click()
-    await unused.getByRole('button', { name: 'Cancel', exact: true }).click()
-    await expect(unused.getByRole('button', { name: 'Delete learning need' })).toBeFocused()
-    await unused.getByRole('button', { name: 'Delete learning need' }).click()
+    if (width === 390) await page.getByRole('button', { name: 'Open menu', exact: true }).click()
+    await expect(
+      page.getByRole('navigation', { name: 'Workspace navigation' }).getByRole('link', {
+        name: 'Find a tutor',
+        exact: true,
+      }),
+    ).toHaveCount(0)
     await page.screenshot({
-      path: `docs/visual-qa/parent-learning-needs/delete-${width}.png`,
+      path: `docs/visual-qa/parent-navigation/menu-${width}.png`,
       fullPage: true,
     })
-    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    if (width === 390) await page.keyboard.press('Escape')
+    await page.getByRole('main').getByRole('link', { name: 'Find a tutor', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/match\\?learner=${second.id}`))
+    await expect(page.getByLabel('Learner', { exact: true })).toHaveValue(second.id)
+    await page.goto(`/workspace?view=learners&learner=${first.id}`)
+    await expect(page.getByRole('heading', { name: 'Learning needs', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Add learning needs', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible()
+    await page.getByRole('main').getByRole('link', { name: 'Edit profile', exact: true }).click()
+    await expect(page.getByLabel('First name or nickname')).toHaveValue(first.name)
   }
-  const unused = page.locator('.parent-request').filter({ hasText: need.goal })
-  // A booking in another tab is a visible conflict; do not remove the card on failure.
-  await page.route(`**/requirements/${need.id}`, (route) =>
-    route.fulfill({
-      status: 409,
-      json: { code: 'requirement_in_use', message: 'Trial already booked' },
-    }),
-  )
-  await unused.getByRole('button', { name: 'Delete', exact: true }).click()
-  await expect(unused.getByRole('alert')).toContainText('has a trial booking')
-  await expect(unused).toBeVisible()
-  await page.unroute(`**/requirements/${need.id}`)
-  await unused.getByRole('button', { name: 'Delete', exact: true }).click()
-  await expect(unused).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Learning needs', exact: true })).toBeFocused()
-  await expect(page.getByRole('status').filter({ hasText: 'Learning need deleted.' })).toBeVisible()
-  await page.reload()
-  await expect(page.locator('.parent-request')).toHaveCount(1)
   const dashboard = await (await page.request.get('/api/v1/dashboard')).json()
-  expect(dashboard.requirements.map((item: { id: string }) => item.id)).not.toContain(need.id)
-  expect(dashboard.requirements.map((item: { id: string }) => item.id)).toContain(otherNeed.id)
+  expect(dashboard.requirements.map((item: { id: string }) => item.id)).toContain(need.id)
   expect(dashboard.learners).toHaveLength(2)
-  expect(dashboard.trials).toHaveLength(1)
+  expect(dashboard.trials).toHaveLength(0)
   expect(errors).toEqual([])
 })

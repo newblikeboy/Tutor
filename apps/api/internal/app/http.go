@@ -87,6 +87,9 @@ func (a *App) decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	if strings.HasSuffix(r.URL.Path, "/plans") || r.URL.Path == "/api/v1/application" {
 		limit = 64 * 1024
 	}
+	if strings.HasPrefix(r.URL.Path, "/api/v1/classes/") && strings.HasSuffix(r.URL.Path, "/action") {
+		limit = 64 * 1024
+	}
 	if strings.HasSuffix(r.URL.Path, "/files") {
 		limit = 4*1024*1024 + 2048
 		if strings.HasPrefix(r.URL.Path, "/api/v1/applications/") {
@@ -176,6 +179,7 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/consents", a.consent)
 		r.Post("/api/v1/learners", a.learner)
 		r.Get("/api/v1/learners/{id}", a.getLearner)
+		r.Get("/api/v1/learners/{id}/progress", a.learnerProgress)
 		r.Put("/api/v1/learners/{id}", a.updateLearner)
 		r.Get("/api/v1/learner-draft", a.getLearnerDraft)
 		r.Put("/api/v1/learner-draft", a.saveLearnerDraft)
@@ -266,7 +270,7 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		f["scope.subject"] = bson.M{"$in": subjects}
+		f["$and"] = []bson.M{{"$or": []bson.M{{"scope.subject": bson.M{"$in": subjects}}, {"scope.subjects": bson.M{"$in": subjects}}}}}
 	}
 	if v := r.URL.Query().Get("language"); v != "" {
 		f["language"] = v

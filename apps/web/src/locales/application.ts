@@ -119,6 +119,7 @@ const applicationEN = {
     area: 'Teaching area',
     addArea: 'Add teaching area',
     subject: 'Subject',
+    'All Subjects': 'All Subjects',
     Mathematics: 'Mathematics',
     Science: 'Science',
     'Social Science': 'Social Science',

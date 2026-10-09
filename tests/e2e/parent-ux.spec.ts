@@ -12,7 +12,7 @@ async function prepareTrialTutor() {
   try {
     const login = await tutor.post('/api/v1/auth/login', {
       headers: { Origin: origin },
-      data: { email: 'tutor-arjun@example.test', password },
+      data: { email: 'tutor-meera@example.test', password },
     })
     expect(login.status()).toBe(200)
     const auth = await login.json()
@@ -69,7 +69,7 @@ async function capture(page: Page, name: string) {
   })
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 }
-test('parent sees lesson feedback only after mentor review and can continue to regular classes', async ({
+test('parent sees tutor feedback immediately and can continue to regular classes', async ({
   page,
   browser,
 }) => {
@@ -81,7 +81,7 @@ test('parent sees lesson feedback only after mentor review and can continue to r
       headers: { ...headers, 'Idempotency-Key': crypto.randomUUID() },
       data,
     })
-    expect(response.ok()).toBe(true)
+    expect(response.ok(), await response.text()).toBe(true)
     return response.json()
   }
   const consent = await post('/consents', { relationship: 'parent', accepted: true })
@@ -93,15 +93,12 @@ test('parent sees lesson feedback only after mentor review and can continue to r
     kind: 'minor',
     consentId: consent.id,
   })
-  const requirement = await post('/requirements', {
-    learnerId: learner.id,
-    goal: 'Understand equivalent fractions.',
-    locality: 'Purnea',
-  })
   const trial = await post('/trials', {
-    requirementId: requirement.id,
-    tutorId: 'tutor-arjun',
-    start: new Date(Date.now() + 5 * 86400000).toISOString(),
+    learnerId: learner.id,
+    subjects: ['Mathematics'],
+    mode: 'online',
+    tutorId: 'tutor-meera',
+    start: `${new Date(Date.now() + 5 * 86400000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })}T10:00:00+05:30`,
     termsAccepted: true,
   })
   const context = await browser.newContext({ baseURL: origin })
@@ -111,7 +108,7 @@ test('parent sees lesson feedback only after mentor review and can continue to r
       (
         await teacher.request.post('/api/v1/auth/login', {
           headers: { Origin: origin },
-          data: { email: 'tutor-arjun@example.test', password },
+          data: { email: 'tutor-meera@example.test', password },
         })
       ).ok(),
     ).toBe(true)
@@ -128,34 +125,17 @@ test('parent sees lesson feedback only after mentor review and can continue to r
     await record
       .getByLabel('Practice and next teaching steps')
       .fill('Practise three pairs of equivalent fractions.')
+    await record
+      .getByLabel('Trial feedback')
+      .fill('Tutor feedback: the learner can compare equivalent fractions.')
     await record.getByRole('button', { name: 'Record lesson evidence' }).click()
     await expect
       .poll(async () => (await dashboard(page)).trials.find((item) => item.id === trial.id)?.status)
       .toBe('completed')
     await page.goto(`/workspace?view=sessions&learner=${learner.id}&tab=completed`)
-    await expect(page.getByText('Feedback pending', { exact: true })).toBeVisible()
-    await expect(page.getByText('Compared equivalent fractions with a number line.')).toHaveCount(0)
-    expect(
-      (
-        await teacher.request.post('/api/v1/auth/login', {
-          headers: { Origin: origin },
-          data: { email: 'mentor-a@example.test', password },
-        })
-      ).ok(),
-    ).toBe(true)
-    await teacher.goto('/workspace?view=reviews')
-    const review = teacher.getByRole('article').filter({ hasText: learner.name })
-    await review
-      .getByLabel('Academic review and evidence')
-      .fill('The lesson evidence shows a clear understanding of equivalent fractions.')
-    await review.getByRole('button', { name: 'Share reviewed progress with family' }).click()
-    await expect
-      .poll(async () => (await dashboard(page)).trials.find((item) => item.id === trial.id)?.status)
-      .toBe('reviewed')
-    await page.reload()
     await expect(page.getByText('Feedback ready', { exact: true })).toBeVisible()
     await expect(page.getByText('Compared equivalent fractions with a number line.')).toBeVisible()
-    await capture(page, 'reviewed-feedback-en-desktop')
+    await capture(page, 'tutor-feedback-en-desktop')
     await page.getByRole('main').getByRole('link', { name: 'Book tutor', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Regular classes', exact: true })).toBeVisible()
   } finally {

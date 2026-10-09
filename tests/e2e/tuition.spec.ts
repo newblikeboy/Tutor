@@ -41,25 +41,19 @@ async function inspect(page: Page, name: string) {
     [],
   )
 }
-test('recurring tuition, learning plan and consented handover stay connected across roles', async ({
+test('staff fee changes require renewed consent before payment and tutors only edit availability', async ({
   browser,
 }) => {
-  test.setTimeout(240_000)
+  test.setTimeout(180_000)
   const contexts = await Promise.all(
-    Array.from({ length: 4 }, () =>
-      browser.newContext({
-        baseURL: origin,
-        viewport: { width: 1440, height: 1000 },
-        timezoneId: 'Asia/Kolkata',
-      }),
-    ),
+    Array.from({ length: 3 }, () => browser.newContext({ baseURL: origin })),
   )
-  const [parent, tutor, mentor, replacement] = await Promise.all(contexts.map((c) => c.newPage()))
+  const [parent, tutor, staff] = await Promise.all(contexts.map((context) => context.newPage()))
   try {
     const signup = await parent.request.post('/api/v1/auth/signup', {
       headers: { Origin: origin },
       data: {
-        email: `tuition-family-${Date.now()}@example.test`,
+        email: `tuition-family-${crypto.randomUUID()}@example.test`,
         password: 'E2E-only learning passphrase 426!',
         name: 'Fictional tuition family',
         role: 'parent',
@@ -68,9 +62,19 @@ test('recurring tuition, learning plan and consented handover stay connected acr
     })
     expect(signup.status()).toBe(201)
     await signIn(tutor, 'tutor-meera')
-    await signIn(mentor, 'mentor-a')
-    await signIn(replacement, 'tutor-arjun')
-    // Set up the already-covered trial through actual authenticated Go endpoints.
+    await signIn(staff, 'admin-a')
+    const setPrice = async (amountPaise: number) => {
+      const review = await (
+        await staff.request.get('/api/v1/staff/applications/tutor-meera')
+      ).json()
+      await write(staff, '/applications/tutor-meera/decision', {
+        action: 'fees',
+        version: review.application.version,
+        feePlans: [{ mode: 'online', period: 'hour', amountPaise, classes: 1, minutes: 60 }],
+        reason: 'Explicit staff price for isolated fictional fixture.',
+      })
+    }
+    await setPrice(200000)
     const consent = await write(
       parent,
       '/consents',
@@ -81,32 +85,49 @@ test('recurring tuition, learning plan and consented handover stay connected acr
       parent,
       '/learners',
       {
-        name: 'Naina · fictional learner',
+        name: 'Fictional tuition learner',
         class: 8,
         board: 'CBSE',
-        language: 'Hindi',
+        language: 'English',
         kind: 'minor',
         consentId: consent.id,
       },
       201,
     )
-    const requirement = await write(
-      parent,
-      '/requirements',
-      {
-        learnerId: learner.id,
-        goal: 'Build confidence explaining equivalent fractions.',
-        locality: 'Purnea',
-      },
-      201,
+    await tutor.goto('/availability')
+    await expect(tutor.getByRole('button', { name: 'Save schedule', exact: true })).toBeEnabled()
+    await expect(tutor.getByLabel('Fee per class', { exact: true })).toHaveCount(0)
+    while (await tutor.getByRole('button', { name: /^Remove teaching time / }).count())
+      await tutor
+        .getByRole('button', { name: /^Remove teaching time / })
+        .first()
+        .click()
+    const first = new Date(Date.now() + 7 * 86400000)
+    const day = first.getDay()
+    await tutor.getByRole('button', { name: 'Add teaching time' }).click()
+    await tutor.getByLabel('Day', { exact: true }).selectOption(String(day))
+    await tutor.getByLabel('From', { exact: true }).fill('09:00')
+    await tutor.getByLabel('Until', { exact: true }).fill('18:00')
+    await tutor.getByLabel('Break between classes').fill('15')
+    const saved = tutor.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/v1/availability') && response.request().method() === 'PUT',
     )
+    await tutor.getByRole('button', { name: 'Save schedule' }).click()
+    expect((await saved).status()).toBe(200)
+    await inspect(tutor, 'tuition-availability-en-desktop')
+    await tutor.setViewportSize({ width: 390, height: 844 })
+    await inspect(tutor, 'tuition-availability-en-mobile')
+    const date = first.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
     const trial = await write(
       parent,
       '/trials',
       {
-        requirementId: requirement.id,
+        learnerId: learner.id,
+        subjects: ['Mathematics'],
+        mode: 'online',
         tutorId: 'tutor-meera',
-        start: new Date(Date.now() + 86400000).toISOString(),
+        start: `${date}T09:00:00+05:30`,
         termsAccepted: true,
       },
       201,
@@ -114,193 +135,40 @@ test('recurring tuition, learning plan and consented handover stay connected acr
     await write(tutor, `/trials/${trial.id}/action`, { action: 'accept' })
     await write(tutor, `/trials/${trial.id}/action`, {
       action: 'complete',
-      notes: 'Fictional learner compared equivalent fractions using number lines.',
-      nextSteps: 'Continue with thirds and sixths using worked examples.',
+      notes: 'The learner compared fractions using number lines.',
+      nextSteps: 'Continue practising fractions with worked examples.',
+      review: 'The tutor recommends continuing regular classes.',
     })
-    await write(mentor, `/trials/${trial.id}/action`, {
-      action: 'review',
-      review: 'The observed explanation supports continued practice with equivalent fractions.',
-    })
-    const first = new Date(Date.now() + 3 * 86400000),
-      day = first.getDay(),
-      date = first.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
-    for (const teacher of [tutor, replacement]) {
-      const previous = await (await teacher.request.get('/api/v1/availability')).json()
-      await teacher.goto('/availability')
-      await expect(teacher.getByLabel('Fee per class (₹)', { exact: true })).toHaveCount(0)
-      await expect(teacher.locator('.tutor-fees')).toBeVisible()
-      while (await teacher.getByRole('button', { name: /^Remove teaching time / }).count()) {
-        await teacher
-          .getByRole('button', { name: /^Remove teaching time / })
-          .first()
-          .click()
-      }
-      await teacher.getByRole('button', { name: 'Add teaching time' }).click()
-      await teacher.getByLabel('Day', { exact: true }).selectOption(String(day))
-      await teacher.getByLabel('From', { exact: true }).fill('09:00')
-      await teacher.getByLabel('Until', { exact: true }).fill('18:00')
-      await teacher.getByLabel('Break between classes').fill('15')
-      await teacher.getByRole('button', { name: 'Save schedule' }).click()
-      await expect(teacher.getByRole('button', { name: 'Save schedule' })).toBeEnabled()
-      await expect
-        .poll(
-          async () => (await (await teacher.request.get('/api/v1/availability')).json()).version,
-        )
-        .toBe(previous.version + 1)
-    }
-    await inspect(tutor, 'tuition-availability-en-desktop')
-    await tutor.setViewportSize({ width: 390, height: 844 })
-    await expect(tutor.locator('.language-button')).toHaveCount(0)
-    await inspect(tutor, 'tuition-availability-en-mobile')
-    await expect(tutor.locator('.language-button')).toHaveCount(0)
-    await tutor.setViewportSize({ width: 1440, height: 1000 })
     await parent.goto('/tuition')
-    await parent.getByText('Start regular classes', { exact: true }).click()
-    await parent.getByLabel('Choose a completed trial', { exact: true }).selectOption(trial.id)
-    await parent.getByLabel('Start date').fill(date)
-    await parent.getByLabel('Class time (India)').fill('10:00')
-    await parent
-      .getByLabel(first.toLocaleDateString('en-IN', { weekday: 'long' }), { exact: true })
-      .check()
-    await parent.getByLabel('Number of classes').fill('3')
-    await parent.getByLabel('I have reviewed the schedule').check()
+    const card = parent.locator('.tu-teacher-booking-card').filter({ hasText: 'Meera' })
+    await card.getByRole('button', { name: 'Book Now', exact: true }).click()
+    await card.getByRole('radio').check()
+    await card.locator('.trial-date.available').nth(1).click()
+    await card.locator('.parent-trial-times button:enabled').first().click()
+    const consentBox = card.getByRole('checkbox', { name: 'I have reviewed the schedule' })
+    await consentBox.check()
     await inspect(parent, 'tuition-agreement-en-desktop')
-    const staffContext = await browser.newContext({ baseURL: origin })
-    try {
-      const staff = await staffContext.newPage()
-      await signIn(staff, 'admin-a')
-      const review = await (
-        await staff.request.get('/api/v1/staff/applications/tutor-meera')
-      ).json()
-      await write(staff, '/applications/tutor-meera/decision', {
-        action: 'fees',
-        version: review.application.version,
-        feePlans: [{ mode: 'online', period: 'hour', amountPaise: 0, classes: 1, minutes: 60 }],
-      })
-    } finally {
-      await staffContext.close()
-    }
+    await setPrice(250000)
     const stale = parent.waitForResponse(
-      (r) => r.url().endsWith('/api/v1/enrollments') && r.request().method() === 'POST',
+      (response) =>
+        new URL(response.url()).pathname === '/api/v1/enrollments' &&
+        response.request().method() === 'POST',
     )
-    await parent.getByRole('button', { name: 'Send class request' }).click()
+    await card.getByRole('button', { name: 'Continue to payment', exact: true }).click()
     expect((await stale).status()).toBe(409)
-    await expect(parent.getByLabel('I have reviewed the schedule')).not.toBeChecked()
-    await expect(parent.getByRole('button', { name: 'Send class request' })).toBeEnabled()
-    await parent.getByLabel('I have reviewed the schedule').check()
-    await parent.getByRole('button', { name: 'Send class request' }).click()
-    await expect(parent).toHaveURL(/\/tuition\/.+/)
-    const tuitionURL = new URL(parent.url()).pathname
-    await tutor.goto(tuitionURL)
-    await tutor.getByRole('tab', { name: 'Schedule & fees', exact: true }).click()
-    await tutor.getByRole('button', { name: 'Accept & book classes' }).click()
-    await expect(tutor.getByText('Active tuition', { exact: true })).toBeVisible()
-    await parent.reload()
-    await inspect(parent, 'tuition-calendar-en-desktop')
-    await parent.keyboard.press('Tab')
-    await parent.setViewportSize({ width: 390, height: 844 })
-    await expect(parent.locator('.language-button')).toHaveCount(0)
-    await inspect(parent, 'tuition-calendar-en-mobile')
-    for (const width of [360, 768, 1024]) {
-      await parent.setViewportSize({ width, height: 1000 })
-      await expect(parent.getByRole('tab', { name: 'Classes', exact: true })).toBeVisible()
-      expect(await parent.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-        true,
-      )
-    }
-    await expect(parent.locator('.language-button')).toHaveCount(0)
-    await parent.setViewportSize({ width: 1440, height: 1000 })
-    const firstClass = parent.locator('.tu-session').first()
-    await firstClass.getByRole('button', { name: 'Propose a new time' }).click()
-    await firstClass.getByLabel('Proposed date and time (India)').fill(`${date}T12:00`)
-    await firstClass
-      .getByLabel('Reason', { exact: true })
-      .fill('The family needs a later teaching time.')
-    await firstClass.getByRole('button', { name: 'Confirm', exact: true }).click()
-    await expect(firstClass.getByText('Proposed time:', { exact: false })).toBeVisible()
-    await tutor.reload()
-    await tutor.getByRole('tab', { name: 'Classes', exact: true }).click()
-    await tutor.getByRole('button', { name: 'Accept proposed time' }).click()
-    await expect(tutor.getByRole('button', { name: 'Accept proposed time' })).toHaveCount(0)
-    const lesson = tutor.locator('.tu-session').first()
-    await lesson.getByRole('button', { name: 'Record lesson' }).click()
-    await lesson
-      .getByLabel('Lesson notes', { exact: true })
-      .fill('Naina explained thirds and sixths using three accurate number-line examples.')
-    await lesson
-      .getByLabel('Practice for next time')
-      .fill('Explain sixths independently and write two worked examples.')
-    await lesson.getByLabel('Use the development timeline').check()
-    await lesson.getByRole('button', { name: 'Confirm', exact: true }).click()
-    await expect(lesson.getByText('Awaiting academic review', { exact: true })).toBeVisible()
-    await mentor.goto(tuitionURL)
-    await mentor.getByRole('button', { name: 'Academic review', exact: true }).click()
-    await mentor
-      .getByLabel('Review evidence and next steps')
-      .fill(
-        'Evidence supports independent comparison of thirds and sixths; introduce mixed numbers next.',
-      )
-    await mentor.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await expect(consentBox).not.toBeChecked()
+    await expect(card.locator('.tu-quote')).toContainText('2,500')
+    await consentBox.check()
+    await card.getByRole('button', { name: 'Continue to payment', exact: true }).click()
     await expect(
-      mentor.locator('.tu-session').first().getByText('Reviewed', { exact: true }),
+      parent.getByRole('heading', { name: 'Complete your booking', exact: true }),
     ).toBeVisible()
-    await mentor.getByRole('tab', { name: 'Learning plan', exact: true }).click()
-    await mentor.getByText('Create the next plan version', { exact: true }).click()
-    await mentor
-      .getByLabel('Starting point', { exact: true })
-      .fill('Naina compares halves, thirds and sixths with visual support.')
-    await mentor
-      .getByLabel('Learning goals', { exact: true })
-      .fill('Explain equivalent fractions independently in worked examples.')
-    await mentor.getByLabel('Topic title').fill('Equivalent fractions')
-    await mentor.getByLabel('Learning status').selectOption('practising')
-    await mentor
-      .getByLabel('Evidence', { exact: true })
-      .fill('Three accurate examples on a number line.')
-    await mentor
-      .getByLabel('Suggested practice')
-      .fill('Compare thirds and sixths without a prepared diagram.')
-    await mentor
-      .getByLabel('Next teaching steps', { exact: true })
-      .fill('Move from number lines to symbols with short explanations.')
-    await mentor
-      .getByLabel('Next review date')
-      .fill(new Date(Date.now() + 21 * 86400000).toISOString().slice(0, 10))
-    await inspect(mentor, 'tuition-plan-editor-en-desktop')
-    await mentor.getByRole('button', { name: 'Save academic plan' }).click()
-    await expect(mentor.getByRole('heading', { name: 'Version 1', exact: true })).toBeVisible()
-    await parent.reload()
-    await parent.getByRole('tab', { name: 'Learning plan', exact: true }).click()
-    await expect(parent.getByText('Three accurate examples on a number line.')).toBeVisible()
-    await parent.getByRole('tab', { name: 'Change tutor', exact: true }).click()
-    await parent.getByLabel('Proposed tutor', { exact: true }).selectOption('tutor-arjun')
-    await parent
-      .getByLabel('Reason', { exact: true })
-      .first()
-      .fill('The family requests a supported change of tutor.')
-    await parent.getByLabel('I authorise sharing').check()
-    await parent.getByRole('button', { name: 'Request tutor change' }).click()
-    await expect(parent.getByText('Requested', { exact: true })).toBeVisible()
-    await mentor.goto(`${tuitionURL}?tab=handover`)
-    await mentor
-      .getByLabel('Next teaching steps', { exact: true })
-      .fill('Preserve the fraction plan and begin with independent number-line examples.')
-    await mentor.getByRole('button', { name: 'Prepare handover' }).click()
-    await replacement.goto('/tuition')
-    await expect(replacement.getByRole('button', { name: 'Accept handover' })).toBeVisible()
-    await inspect(replacement, 'tuition-handover-en-desktop')
-    await replacement.getByRole('button', { name: 'Accept handover' }).click()
-    await expect(replacement).toHaveURL(new RegExp(tuitionURL))
-    expect(
-      (await tutor.request.get(`/api/v1/enrollments/${tuitionURL.split('/').pop()}`)).status(),
-    ).toBe(404)
-    await parent.reload()
-    await parent.getByRole('tab', { name: 'Learning plan', exact: true }).click()
+    await expect(parent.getByText('Waiting for tutor', { exact: true })).toHaveCount(0)
+    await inspect(parent, 'tuition-payment-pending-en-desktop')
     await parent.setViewportSize({ width: 390, height: 844 })
-    await expect(parent.locator('.language-button')).toHaveCount(0)
-    await inspect(parent, 'tuition-plan-en-mobile')
+    await inspect(parent, 'tuition-payment-pending-en-mobile')
   } finally {
-    await Promise.all(contexts.map((c) => c.close()))
+    await Promise.all(contexts.map((context) => context.close()))
   }
 })
 

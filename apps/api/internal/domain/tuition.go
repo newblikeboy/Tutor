@@ -22,6 +22,8 @@ type Availability struct {
 	Version       int            `json:"version" bson:"version"`
 }
 type Agreement struct {
+	Subjects           []string    `json:"subjects,omitempty" bson:"subjects,omitempty"`
+	PackageFeePaise    int64       `json:"packageFeePaise,omitempty" bson:"packageFeePaise,omitempty"`
 	ID                 string      `json:"id" bson:"_id"`
 	EnrollmentID       string      `json:"enrollmentId" bson:"enrollmentId"`
 	Version            int         `json:"version" bson:"version"`
@@ -59,6 +61,7 @@ type Enrollment struct {
 	CreatedAt       time.Time  `json:"createdAt" bson:"createdAt"`
 }
 type ClassSession struct {
+	Progress      *ClassProgress    `json:"progress,omitempty" bson:"progress,omitempty"`
 	ID            string            `json:"id" bson:"_id"`
 	EnrollmentID  string            `json:"enrollmentId" bson:"enrollmentId"`
 	TutorID       string            `json:"tutorId" bson:"tutorId"`

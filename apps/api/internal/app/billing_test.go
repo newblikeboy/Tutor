@@ -127,13 +127,15 @@ func TestMongoBillingLifecycle(t *testing.T) {
 	tutor.ok("PUT", "/availability", av, 200)
 	create := func(days int) domain.Enrollment {
 		first := a.Now().In(mustLocation()).AddDate(0, 0, days)
-		status, _, raw := p.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "packageMode": "online", "packagePeriod": "hour", "accepted": true, "offeringVersion": 1, "feeVersion": 2, "schedule": RecurrenceInput{StartDate: first.Format("2006-01-02"), Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{int(first.Weekday())}, Count: 1, Minutes: 60}}, map[string]string{"Idempotency-Key": token()})
+		status, _, raw := p.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "subjects": []string{"Mathematics"}, "packageMode": "online", "packagePeriod": "hour", "accepted": true, "offeringVersion": 1, "feeVersion": 2, "schedule": RecurrenceInput{StartDate: first.Format("2006-01-02"), Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{int(first.Weekday())}, Count: 1, Minutes: 60}}, map[string]string{"Idempotency-Key": token()})
 		if status != 201 {
 			t.Fatalf("proposal %d %s", status, raw)
 		}
 		var v domain.Enrollment
 		json.Unmarshal(raw, &v)
-		tutor.ok("POST", "/enrollments/"+v.ID+"/action", map[string]any{"action": "accept", "version": 1}, 200)
+		if v.Status != "awaiting_payment" || v.HoldUntil == nil {
+			t.Fatal("booking did not hold classes directly for payment")
+		}
 		return v
 	}
 	v := create(3)

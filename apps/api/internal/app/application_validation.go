@@ -139,7 +139,7 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 			errors[prefix+"id"] = "duplicate"
 		}
 		areas[a.ID] = a
-		choice(prefix+"subject", a.Subject, true, "Mathematics", "Science", "English", "Hindi", "Social Science")
+		choice(prefix+"subject", a.Subject, true, "All Subjects", "Mathematics", "Science", "English", "Hindi", "Social Science")
 		number(prefix+"minClass", a.MinClass, 1, 12)
 		number(prefix+"maxClass", a.MaxClass, 1, 12)
 		if a.MinClass > a.MaxClass && a.MaxClass != 0 {

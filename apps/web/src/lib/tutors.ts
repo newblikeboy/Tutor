@@ -16,6 +16,12 @@ export async function allTutors(path: string, signal: AbortSignal): Promise<Tuto
   return result
 }
 
+export function approvedTutorSubjects(
+  scope: Pick<Schema['Scope'], 'subject' | 'subjects'>,
+): string[] {
+  return scope.subjects?.length ? scope.subjects : [scope.subject]
+}
+
 type TutorMode = 'online' | 'home'
 type TutorScope = Pick<Schema['Scope'], 'mode'> & { modes?: string[] }
 

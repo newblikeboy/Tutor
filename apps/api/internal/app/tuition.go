@@ -110,10 +110,10 @@ func (a *App) tuitionDetail(w http.ResponseWriter, r *http.Request) {
 		d.Handovers, e = storage.Many[domain.Handover](r.Context(), a.Store, "handovers", f)
 	}
 	for _, s := range d.Sessions {
-		if s.Status == "reviewed" {
+		if enum(s.Status, "completed", "reviewed") {
 			d.Delivered++
 		}
-		if !enum(s.Status, "reviewed", "missed", "cancelled_consumed", "cancelled") {
+		if !enum(s.Status, "completed", "reviewed", "missed", "cancelled_consumed", "cancelled") {
 			d.Remaining++
 		}
 	}
@@ -168,6 +168,7 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 	}
 	var in struct {
 		TrialID         string          `json:"trialId"`
+		Subjects        []string        `json:"subjects"`
 		Schedule        RecurrenceInput `json:"schedule"`
 		PackageMode     string          `json:"packageMode"`
 		PackagePeriod   string          `json:"packagePeriod"`
@@ -194,17 +195,30 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 			result, er = a.tuitionAccess(ctx, u, prior)
 			return er
 		}
-		starts, er := recurrence(in.Schedule, a.Now())
+		trial, er := storage.One[domain.Trial](ctx, a.Store, "trials", bson.M{"_id": in.TrialID, "ownerId": u.ID, "status": bson.M{"$in": []string{"completed", "reviewed"}}})
 		if er != nil {
 			return er
 		}
-		trial, er := storage.One[domain.Trial](ctx, a.Store, "trials", bson.M{"_id": in.TrialID, "ownerId": u.ID, "status": "reviewed"})
+		learner, er := storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": trial.LearnerID, "ownerId": u.ID})
+		if er != nil {
+			return er
+		}
+		if learner.Class != trial.Class {
+			return domain.Fail(409, "learner_changed", "The learner class changed. Book a trial for the current class.")
+		}
+		if er = a.checkLearnerConsent(ctx, u.ID, LearnerInput{Kind: learner.Kind, ConsentID: learner.ConsentID}); er != nil {
+			return er
+		}
+		subjects, er := domain.BookingSubjects(learner.Class, in.Subjects)
 		if er != nil {
 			return er
 		}
 		app, av, er := a.lockOffering(ctx, trial.TutorID, trial.Class, in.PackageMode)
 		if er != nil {
 			return er
+		}
+		if !app.Scope.CoversSubjects(subjects) {
+			return domain.Fail(409, "scope_unavailable", "The tutor is not approved for all selected subjects.")
 		}
 		if av.Version != in.OfferingVersion {
 			return domain.Fail(409, "stale_version", "The tutor's offering changed. Review the latest fee and availability.")
@@ -219,10 +233,21 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 		if in.Schedule.Count != plan.Classes || in.Schedule.Minutes != plan.Minutes {
 			return domain.Fail(422, "validation", "Use the selected package class count and duration.")
 		}
-		feePerSession := plan.AmountPaise
-		totalPaise := plan.AmountPaise
+		starts, er := recurrence(in.Schedule, a.Now(), av.LeaveDates)
+		if er != nil {
+			return er
+		}
+		loc, _ := time.LoadLocation(in.Schedule.Timezone)
+		if starts[0].In(loc).Format("2006-01-02") != in.Schedule.StartDate {
+			return domain.Fail(422, "validation", "The first class must use the selected starting date.")
+		}
+		totalPaise := plan.AmountPaise * int64(len(subjects))
+		if totalPaise < 100 {
+			return domain.Fail(409, "fees_pending", "Staff must set a payable package fee before booking.")
+		}
+		feePerSession := totalPaise
 		if plan.Classes > 1 {
-			feePerSession = (plan.AmountPaise + int64(plan.Classes/2)) / int64(plan.Classes)
+			feePerSession = (totalPaise + int64(plan.Classes/2)) / int64(plan.Classes)
 		}
 		av.FeePaise = feePerSession
 		for _, start := range starts {
@@ -231,8 +256,10 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 				return domain.Fail(409, "availability", "A requested class falls outside current availability or approval.")
 			}
 		}
-		ag := domain.Agreement{ID: id + ":1", EnrollmentID: id, Version: 1, TutorID: app.ID, Subject: app.Scope.Subject, Mode: plan.Mode, Timezone: in.Schedule.Timezone, SessionCount: len(starts), Minutes: in.Schedule.Minutes, Starts: starts, FeePerSessionPaise: av.FeePaise, TotalPaise: totalPaise, Currency: "INR", CancellationHours: 12, TermsVersion: "development-tuition-v2", Terms: "Development agreement, pending operator/legal review. The staff-confirmed package fee is fixed in this agreement. Academic support included. Family cancellations at least 12 hours before class retain a makeup session; later family cancellations consume it. Tutor cancellations retain a makeup session. Schedule changes require both parties. No automatic renewal, real payment or result guarantee.", CreatedAt: a.Now()}
-		result = domain.Enrollment{ID: id, OwnerID: u.ID, TrialID: trial.ID, LearnerID: trial.LearnerID, LearnerName: trial.LearnerName, Class: trial.Class, TutorID: app.ID, TutorName: app.Name, MentorID: trial.MentorID, Status: "pending_agreement", Agreement: ag, Version: 1, CreatedAt: a.Now()}
+		ag := domain.Agreement{ID: id + ":1", EnrollmentID: id, Version: 1, TutorID: app.ID, Subject: subjects[0], Subjects: subjects, PackageFeePaise: plan.AmountPaise, Mode: plan.Mode, Timezone: in.Schedule.Timezone, SessionCount: len(starts), Minutes: in.Schedule.Minutes, Starts: starts, FeePerSessionPaise: av.FeePaise, TotalPaise: totalPaise, Currency: "INR", CancellationHours: 12, TermsVersion: "development-tuition-v2", Terms: "Development agreement, pending operator/legal review. The staff-confirmed package fee is fixed in this agreement. Academic support included. Family cancellations at least 12 hours before class retain a makeup session; later family cancellations consume it. Tutor cancellations retain a makeup session. Schedule changes require both parties. No automatic renewal, real payment or result guarantee.", CreatedAt: a.Now()}
+		result = domain.Enrollment{ID: id, OwnerID: u.ID, TrialID: trial.ID, LearnerID: trial.LearnerID, LearnerName: trial.LearnerName, Class: trial.Class, TutorID: app.ID, TutorName: app.Name, MentorID: trial.MentorID, Status: "awaiting_payment", Agreement: ag, Version: 1, CreatedAt: a.Now()}
+		until := a.Now().Add(15 * time.Minute)
+		result.HoldUntil = &until
 		if _, er = a.Store.C("enrollments").InsertOne(ctx, result); er != nil {
 			return er
 		}
@@ -240,7 +267,10 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 			return er
 		}
 		for i, start := range starts {
-			s := domain.ClassSession{ID: fmt.Sprintf("%s:%02d", id, i+1), EnrollmentID: id, TutorID: app.ID, Start: start, End: start.Add(time.Duration(in.Schedule.Minutes) * time.Minute), Status: "planned", BufferMinutes: av.BufferMinutes, Timezone: av.Timezone, Version: 1}
+			s := domain.ClassSession{ID: fmt.Sprintf("%s:%02d", id, i+1), EnrollmentID: id, TutorID: app.ID, Start: start, End: start.Add(time.Duration(in.Schedule.Minutes) * time.Minute), Status: "held", BufferMinutes: av.BufferMinutes, Timezone: av.Timezone, Version: 1}
+			if er = a.reserveClass(ctx, result, s, av, result.HoldUntil, false); er != nil {
+				return er
+			}
 			if _, er = a.Store.C("classes").InsertOne(ctx, s); er != nil {
 				return er
 			}
@@ -248,7 +278,7 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 		if er = a.saveReceipt(ctx, u.ID, r.Header.Get("Idempotency-Key"), fp, id); er != nil {
 			return er
 		}
-		return a.audit(ctx, u.ID, "enrollment.proposed", id)
+		return a.audit(ctx, u.ID, "enrollment.booked", id)
 	})
 	if e != nil {
 		a.error(w, r, e)
@@ -394,15 +424,15 @@ func (a *App) enrollmentAction(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Action            string    `json:"action"`
-		Version           int       `json:"version"`
-		Start             time.Time `json:"start"`
-		Reason            string    `json:"reason"`
-		Notes             string    `json:"notes"`
-		Homework          string    `json:"homework"`
-		Review            string    `json:"review"`
-		Attendance        string    `json:"attendance"`
-		DevelopmentRecord bool      `json:"developmentRecord"`
+		Action            string                `json:"action"`
+		Version           int                   `json:"version"`
+		Start             time.Time             `json:"start"`
+		Reason            string                `json:"reason"`
+		Notes             string                `json:"notes"`
+		Homework          string                `json:"homework"`
+		Attendance        string                `json:"attendance"`
+		DevelopmentRecord bool                  `json:"developmentRecord"`
+		Progress          *domain.ClassProgress `json:"progress"`
 	}
 	if !a.decode(w, r, &in) {
 		return
@@ -489,24 +519,31 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 			if er != nil {
 				return er
 			}
-			if !domain.Eligible(app, v.Class, a.Now()) {
+			if !domain.EligibleForMode(app, v.Class, v.Agreement.Mode, a.Now()) {
 				return domain.Fail(403, "scope_unavailable", "Teaching access is paused.")
 			}
 			s.Notes = clean(in.Notes)
 			s.Homework = clean(in.Homework)
 			s.Attendance = in.Attendance
-			s.Status = "awaiting_review"
-		case "review":
-			if u.Role != "mentor" || u.ID != v.MentorID || s.Status != "awaiting_review" || !validText(in.Review, 10, 2000) {
-				return domain.Fail(403, "forbidden", "The assigned mentor must review the recorded evidence.")
+			if in.Progress != nil {
+				if !app.Scope.CoversSubjects(agreementSubjects(v.Agreement)) {
+					return domain.Fail(403, "scope_unavailable", "The current tutor approval must cover the booked subjects.")
+				}
+				if in.Attendance != "present" {
+					return domain.Fail(422, "validation", "Learning progress requires present attendance.")
+				}
+				if er = validateClassProgress(in.Progress, v); er != nil {
+					return er
+				}
+				in.Progress.RecordedAt = a.Now()
+				s.Progress = in.Progress
 			}
-			s.Review = clean(in.Review)
-			s.Status = "reviewed"
+			s.Status = "completed"
 			if s.Attendance == "absent" {
 				s.Status = "missed"
 			}
 			if s.Attendance == "disputed" {
-				return domain.Fail(409, "attendance_dispute", "Resolve the attendance dispute before completing review.")
+				s.Status = "awaiting_review"
 			}
 		case "resolve_attendance":
 			if u.Role != "mentor" || u.ID != v.MentorID || s.Status != "awaiting_review" || !enum(in.Attendance, "present", "absent") || !validText(in.Reason, 10, 1000) {
@@ -514,14 +551,44 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 			}
 			s.Attendance = in.Attendance
 			s.Reason = in.Reason
+			s.Status = "completed"
+			if s.Attendance == "absent" {
+				s.Status = "missed"
+			}
+		case "progress":
+			if u.Role != "tutor" || s.TutorID != u.ID || !enum(s.Status, "completed", "reviewed") {
+				return domain.Fail(403, "forbidden", "Only the assigned tutor can update progress for their completed class.")
+			}
+			var app domain.Application
+			er := a.Store.C("applications").FindOneAndUpdate(ctx, bson.M{"_id": u.ID}, bson.M{"$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&app)
+			if er != nil {
+				return er
+			}
+			if !domain.EligibleForMode(app, v.Class, v.Agreement.Mode, a.Now()) {
+				return domain.Fail(403, "scope_unavailable", "Teaching access is paused.")
+			}
+			if !app.Scope.CoversSubjects(agreementSubjects(v.Agreement)) {
+				return domain.Fail(403, "scope_unavailable", "The current tutor approval must cover the booked subjects.")
+			}
+			if er = validateClassProgress(in.Progress, v); er != nil {
+				return er
+			}
+			in.Progress.RecordedAt = a.Now()
+			s.Progress = in.Progress
 		default:
 			return domain.Fail(422, "validation", "Unknown class action.")
 		}
 		s.Version++
+		if in.Action == "progress" {
+			if _, er = a.Store.C("classes").ReplaceOne(ctx, bson.M{"_id": s.ID}, s); er != nil {
+				return er
+			}
+			return a.audit(ctx, u.ID, "class.progress", s.ID)
+		}
 		if er = a.recognizeEarning(ctx, s); er != nil {
 			return er
 		}
-		if s.Status == "reviewed" && v.PaymentIntentID != "" {
+		if enum(s.Status, "completed", "reviewed") && v.PaymentIntentID != "" {
 			jobID := "earning:" + s.ID
 			if er = a.enqueue(ctx, jobID, "finance_earning", bson.M{"classId": s.ID}, "pending"); er != nil {
 				return er
@@ -535,8 +602,8 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 		if _, er = a.Store.C("classes").ReplaceOne(ctx, bson.M{"_id": s.ID}, s); er != nil {
 			return er
 		}
-		if enum(s.Status, "reviewed", "missed", "cancelled_consumed") {
-			remaining, er := a.Store.C("classes").CountDocuments(ctx, bson.M{"enrollmentId": v.ID, "status": bson.M{"$nin": []string{"reviewed", "missed", "cancelled_consumed", "cancelled"}}})
+		if enum(s.Status, "completed", "reviewed", "missed", "cancelled_consumed") {
+			remaining, er := a.Store.C("classes").CountDocuments(ctx, bson.M{"enrollmentId": v.ID, "status": bson.M{"$nin": []string{"completed", "reviewed", "missed", "cancelled_consumed", "cancelled"}}})
 			if er != nil {
 				return er
 			}

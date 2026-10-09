@@ -1,6 +1,6 @@
 // Test tooling only. All application endpoints are served by the compiled Go API.
 import { spawn } from 'node:child_process'
-import { readFile, mkdir } from 'node:fs/promises'
+import { readFile, mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 const env = { ...process.env }
 try {
@@ -59,6 +59,11 @@ const run = (command, args, cwd) =>
     )
   })
 await mkdir('.local', { recursive: true })
+// Test fixtures use this exact isolated database, never a guessed or production name.
+await writeFile(
+  resolve('.local/e2e-runtime.json'),
+  JSON.stringify({ databaseName: env.MONGODB_DATABASE, webOrigin: env.WEB_ORIGIN }),
+)
 start(process.execPath, [resolve('scripts/zoom-test-server.mjs')], resolve('.'))
 if (process.env.E2E_CLOUDINARY === '1')
   start(process.execPath, [resolve('scripts/cloudinary-test-server.mjs')], resolve('.'))

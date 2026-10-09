@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -12,17 +13,18 @@ import (
 	"time"
 	"tutorplatform/internal/config"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/payments"
 	"tutorplatform/internal/storage"
 )
 
 func TestRecurrenceAndAvailability(t *testing.T) {
 	now := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
-	v, e := recurrence(RecurrenceInput{StartDate: "2030-01-02", Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{3, 5}, Count: 4, Minutes: 60}, now)
+	v, e := recurrence(RecurrenceInput{StartDate: "2030-01-02", Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{3, 5}, Count: 4, Minutes: 60}, now, nil)
 	if e != nil || len(v) != 4 || v[0].Format(time.RFC3339) != "2030-01-02T04:30:00Z" || v[3].In(mustLocation()).Weekday() != time.Friday {
 		t.Fatalf("bad recurring schedule: %v %v", v, e)
 	}
 	for _, in := range []RecurrenceInput{{StartDate: "2030-01-02", Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{3, 3}, Count: 4, Minutes: 60}, {StartDate: "2030-01-02", Time: "10:00", Timezone: "Bad/Zone", Weekdays: []int{3}, Count: 4, Minutes: 60}, {StartDate: "2030-03-10", Time: "02:30", Timezone: "America/New_York", Weekdays: []int{0}, Count: 1, Minutes: 60}} {
-		if _, e := recurrence(in, now); e == nil {
+		if _, e := recurrence(in, now, nil); e == nil {
 			t.Fatal("invalid recurrence accepted")
 		}
 	}
@@ -37,6 +39,20 @@ func TestRecurrenceAndAvailability(t *testing.T) {
 	}
 }
 func mustLocation() *time.Location { v, _ := time.LoadLocation("Asia/Kolkata"); return v }
+
+func TestPackageRecurrenceSkipsLeaveAndCrossesCalendarPeriods(t *testing.T) {
+	now := time.Date(2030, 1, 1, 0, 0, 0, 0, mustLocation())
+	in := RecurrenceInput{StartDate: "2030-01-07", Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{1}, Count: 6, Minutes: 60}
+	starts, err := recurrence(in, now, []string{"2030-01-14"})
+	if err != nil || len(starts) != 6 || starts[1].In(mustLocation()).Format("2006-01-02") != "2030-01-21" || starts[5].In(mustLocation()).Format("2006-01-02") != "2030-02-18" {
+		t.Fatal("weekly class count or leave handling", starts, err)
+	}
+	in.Count = 24
+	starts, err = recurrence(in, now, nil)
+	if err != nil || len(starts) != 24 || starts[23].In(mustLocation()).Format("2006-01-02") != "2030-06-17" {
+		t.Fatal("monthly calendar deadline retained", starts, err)
+	}
+}
 
 func TestAvailabilityUsesWallClockOnClockChangeDays(t *testing.T) {
 	for _, date := range []string{"2030-03-10", "2030-11-03"} {
@@ -71,7 +87,7 @@ func TestAvailabilityUsesWallClockOnClockChangeDays(t *testing.T) {
 	if !ok || end.Format("2006-01-02 15:04") != "2030-11-04 00:00" {
 		t.Fatal("end-of-day boundary must remain local midnight")
 	}
-	_, err := recurrence(RecurrenceInput{StartDate: "2030-04-07", Time: "01:45", Timezone: "Australia/Lord_Howe", Weekdays: []int{0}, Count: 1, Minutes: 60}, time.Date(2030, 2, 1, 0, 0, 0, 0, time.UTC))
+	_, err := recurrence(RecurrenceInput{StartDate: "2030-04-07", Time: "01:45", Timezone: "Australia/Lord_Howe", Weekdays: []int{0}, Count: 1, Minutes: 60}, time.Date(2030, 2, 1, 0, 0, 0, 0, time.UTC), nil)
 	if err == nil {
 		t.Fatal("half-hour clock fold accepted as a unique recurring time")
 	}
@@ -98,6 +114,10 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 	}
 	cfg := config.Config{Env: "test", AuthProvider: "password", Origin: "http://test.local"}
 	a := New(s, cfg)
+	cfg.RazorpaySecret = "tuition-test-capture"
+	a.Config.RazorpaySecret = cfg.RazorpaySecret
+	gateway := &paymentTestGateway{orders: map[string]payments.Order{}, payments: map[string]payments.Payment{}, refunds: map[string]payments.Refund{}}
+	a.Payments = gateway
 	srv := httptest.NewServer(a.Routes())
 	defer srv.Close()
 	s2, e := storage.Connect(ctx, uri, name)
@@ -132,11 +152,17 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 	av := domain.Availability{Timezone: "Asia/Kolkata", Windows: windows, LeaveDates: []string{}, DailyCapacity: 4, BufferMinutes: 15, FeePaise: 0}
 	tutor.ok("PUT", "/availability", av, 200)
 	replacement.ok("PUT", "/availability", av, 200)
+	for _, id := range []string{"tutor-meera", "tutor-arjun"} {
+		_, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"scope.subjects": []string{"Mathematics", "Science"}, "scope.modes": []string{"online", "home"}, "scope.expiresAt": a.Now().AddDate(0, 6, 0), "fees": domain.TutorFees{Version: 1, Plans: []domain.FeePlan{{Mode: "online", Period: "hour", Classes: 1, Minutes: 60, AmountPaise: 20000}, {Mode: "home", Period: "week", Classes: 3, Minutes: 60, AmountPaise: 60000}, {Mode: "home", Period: "month", Classes: 8, Minutes: 60, AmountPaise: 160000}}}}})
+		if e != nil {
+			t.Fatal(e)
+		}
+	}
 	first := time.Now().In(mustLocation()).AddDate(0, 0, 3)
-	schedule := RecurrenceInput{StartDate: first.Format("2006-01-02"), Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{int(first.Weekday())}, Count: 3, Minutes: 60}
+	schedule := RecurrenceInput{StartDate: first.Format("2006-01-02"), Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{0, 1, 2, 3, 4, 5, 6}, Count: 6, Minutes: 60}
 	create := func(tc *testClient, sch RecurrenceInput, key string) domain.Enrollment {
 		t.Helper()
-		status, _, raw := tc.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "schedule": sch, "offeringVersion": 1, "feeVersion": 1, "accepted": true}, map[string]string{"Idempotency-Key": key})
+		status, _, raw := tc.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "subjects": []string{"Mathematics"}, "packageMode": "home", "packagePeriod": "week", "schedule": sch, "offeringVersion": 1, "feeVersion": 1, "accepted": true}, map[string]string{"Idempotency-Key": key})
 		if status != 201 {
 			t.Fatalf("create tuition %d %s", status, raw)
 		}
@@ -146,7 +172,46 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 		}
 		return v
 	}
+	activate := func(v domain.Enrollment) {
+		status, response, raw := p.call("POST", "/enrollments/"+v.ID+"/payment", map[string]any{"retry": false}, map[string]string{"Idempotency-Key": token()})
+		if status != 200 {
+			t.Fatalf("payment %d %s", status, raw)
+		}
+		intent := response["intent"].(map[string]any)
+		order := intent["orderId"].(string)
+		paymentID := "pay_" + token()[:20]
+		gateway.payments[paymentID] = payments.Payment{ID: paymentID, OrderID: order, Amount: v.Agreement.TotalPaise, Currency: "INR", Status: "captured", Captured: true}
+		p.ok("POST", "/billing/"+intent["id"].(string)+"/verify", map[string]any{"paymentId": paymentID, "signature": signed(cfg.RazorpaySecret, []byte(order+"|"+paymentID))}, 200)
+	}
 	v := create(p, schedule, "tuition-first-request")
+	t.Run("six and twenty-four class packages multiply subjects and can span calendar periods", func(t *testing.T) {
+		for i, period := range []string{"week", "month"} {
+			sch := schedule
+			sch.StartDate = first.AddDate(0, 0, 60+i*20).Format("2006-01-02")
+			sch.Time = "15:00"
+			want := float64(120000)
+			if period == "month" {
+				sch.Count = 24
+				want = 320000
+			}
+			body := map[string]any{"trialId": trial.ID, "subjects": []string{"Mathematics", "Science"}, "packageMode": "home", "packagePeriod": period, "schedule": sch, "offeringVersion": 1, "feeVersion": 1, "accepted": true}
+			status, result, raw := p.call("POST", "/enrollments", body, map[string]string{"Idempotency-Key": token()})
+			if status != 201 {
+				t.Fatalf("package %s: %d %s", period, status, raw)
+			}
+			if result["status"] != "awaiting_payment" || result["agreement"].(map[string]any)["totalPaise"] != want {
+				t.Fatal("incorrect package quote", period)
+			}
+			start, _ := time.Parse("2006-01-02", sch.StartDate)
+			sch.Weekdays = []int{int(start.Weekday()), (int(start.Weekday()) + 3) % 7}
+			sch.Time = "17:00"
+			body["schedule"] = sch
+			status, _, raw = p.call("POST", "/enrollments", body, map[string]string{"Idempotency-Key": token()})
+			if status != 201 {
+				t.Fatalf("extended package %s: %d %s", period, status, raw)
+			}
+		}
+	})
 	detail := func(tc *testClient, id string) domain.TuitionDetail {
 		t.Helper()
 		status, _, raw := tc.call("GET", "/enrollments/"+id, nil, nil)
@@ -161,25 +226,24 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 	}
 	t.Run("immutable quote idempotency and permission boundaries", func(t *testing.T) {
 		again := create(p, schedule, "tuition-first-request")
-		if again.ID != v.ID || again.Agreement.TotalPaise != 0 || again.Status != "pending_agreement" {
+		if again.ID != v.ID || again.Agreement.TotalPaise != 60000 || again.Status != "awaiting_payment" {
 			t.Fatal("bad quote or retry")
 		}
 		other.ok("GET", "/enrollments/"+v.ID, nil, 404)
 		replacement.ok("GET", "/enrollments/"+v.ID, nil, 404)
 		finance.ok("GET", "/enrollments/"+v.ID, nil, 403)
 		p.ok("POST", "/enrollments/"+v.ID+"/action", map[string]any{"action": "accept", "version": 1}, 403)
-		tutor.ok("POST", "/enrollments/"+v.ID+"/action", map[string]any{"action": "accept", "version": 1}, 200)
+		tutor.ok("POST", "/enrollments/"+v.ID+"/action", map[string]any{"action": "accept", "version": 1}, 403)
+		activate(v)
 		d := detail(p, v.ID)
-		if d.Enrollment.Status != "active" || len(d.Sessions) != 3 || d.Remaining != 3 {
+		if d.Enrollment.Status != "active" || len(d.Sessions) != 6 || d.Remaining != 6 {
 			t.Fatal("agreement acceptance did not reserve package")
 		}
 	})
-	t.Run("recurring conflict rolls back every reservation", func(t *testing.T) {
-		conflict := create(p, schedule, "tuition-conflict-request")
-		tutor.ok("POST", "/enrollments/"+conflict.ID+"/action", map[string]any{"action": "accept", "version": 1}, 409)
-		d := detail(p, conflict.ID)
-		if d.Enrollment.Status != "pending_agreement" || d.Sessions[0].Status != "planned" {
-			t.Fatal("partial recurring commit")
+	t.Run("recurring conflict rejects checkout without partial reservations", func(t *testing.T) {
+		status, _, _ := p.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "subjects": []string{"Mathematics"}, "packageMode": "home", "packagePeriod": "week", "schedule": schedule, "offeringVersion": 1, "feeVersion": 1, "accepted": true}, map[string]string{"Idempotency-Key": token()})
+		if status != 409 {
+			t.Fatal("overlapping package accepted", status)
 		}
 	})
 	t.Run("family-visible conversation is idempotent and assignment-scoped", func(t *testing.T) {
@@ -231,7 +295,7 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 		tutor.ok("POST", "/classes/"+s.ID+"/action", map[string]any{"action": "cancel", "version": s.Version, "reason": "Tutor requested personal leave"}, 200)
 		d = detail(p, v.ID)
 		s = d.Sessions[1]
-		if s.Status != "makeup_due" || d.Remaining != 3 {
+		if s.Status != "makeup_due" || d.Remaining != 6 {
 			t.Fatal("makeup balance lost")
 		}
 		tutor.ok("POST", "/classes/"+s.ID+"/action", map[string]any{"action": "propose", "version": s.Version, "start": s.Start.Add(2 * time.Hour), "reason": "Proposed makeup after the leave"}, 200)
@@ -263,85 +327,67 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 			t.Fatal("handover lost family continuity")
 		}
 	})
-	t.Run("lesson evidence requires explicit development timing and academic review", func(t *testing.T) {
+	t.Run("lesson evidence requires explicit development timing without mentor review", func(t *testing.T) {
 		d := detail(p, v.ID)
 		s := d.Sessions[0]
 		body := map[string]any{"action": "record", "version": s.Version, "attendance": "present", "notes": "Explained equivalent fractions with two worked number lines.", "homework": "Compare thirds and sixths with a number line."}
 		replacement.ok("POST", "/classes/"+s.ID+"/action", body, 409)
 		body["developmentRecord"] = true
 		replacement.ok("POST", "/classes/"+s.ID+"/action", body, 200)
-		mentor.ok("POST", "/classes/"+s.ID+"/action", map[string]any{"action": "review", "version": s.Version + 1, "review": "Evidence supports continued practice; revisit the denominator misconception."}, 200)
 		d = detail(p, v.ID)
-		if d.Delivered != 1 || d.Remaining != 2 {
+		if d.Delivered != 1 || d.Remaining != 5 {
 			t.Fatal("incorrect package balance")
 		}
 	})
-	t.Run("overlap across two API instances permits one complete package", func(t *testing.T) {
-		// A different future time, using the original approved tutor after handover.
+	t.Run("overlap across two API instances permits one complete checkout hold", func(t *testing.T) {
 		sch := schedule
 		sch.Time = "16:00"
-		sch.Count = 2
-		one := create(p, sch, "parallel-tuition-one")
-		two := create(p, sch, "parallel-tuition-two")
-		second := client("tutor-meera", srv2.URL)
+		second := client("parent-a", srv2.URL)
 		var wg sync.WaitGroup
 		codes := make(chan int, 2)
-		for i, tc := range []*testClient{tutor, second} {
-			id := []string{one.ID, two.ID}[i]
+		for _, tc := range []*testClient{p, second} {
 			wg.Add(1)
-			go func(tc *testClient, id string) {
+			go func(tc *testClient) {
 				defer wg.Done()
-				status, _, _ := tc.call("POST", "/enrollments/"+id+"/action", map[string]any{"action": "accept", "version": 1}, nil)
+				status, _, _ := tc.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "subjects": []string{"Mathematics"}, "packageMode": "home", "packagePeriod": "week", "schedule": sch, "offeringVersion": 1, "feeVersion": 1, "accepted": true}, map[string]string{"Idempotency-Key": token()})
 				codes <- status
-			}(tc, id)
+			}(tc)
 		}
 		wg.Wait()
 		close(codes)
 		ok, conflict := 0, 0
 		for code := range codes {
-			if code == 200 {
+			if code == 201 {
 				ok++
 			} else if code == 409 {
 				conflict++
 			} else {
-				t.Fatalf("unexpected concurrent response %d", code)
+				t.Fatal(code)
 			}
 		}
 		if ok != 1 || conflict != 1 {
-			t.Fatal("overlapping packages both committed")
+			t.Fatal("overlap accepted", ok, conflict)
 		}
 	})
-	t.Run("staff fee revisions reject stale quotes and preserve old agreements", func(t *testing.T) {
-		admin := client("admin-a", srv.URL)
-		admin.setTestFees("tutor-meera", 50000)
-		quote := p.ok("GET", "/tutors/tutor-meera/availability", nil, 200)
-		if quote["feePaise"] != float64(50000) || quote["feeVersion"].(float64) <= 1 {
-			t.Fatal("parent did not receive the staff hourly fee")
+	t.Run("staff fee revisions reject stale quotes and preserve paid agreements", func(t *testing.T) {
+		application, err := storage.One[domain.Application](ctx, s, "applications", bson.M{"_id": "tutor-meera"})
+		if err != nil {
+			t.Fatal(err)
 		}
-		body := map[string]any{"trialId": trial.ID, "schedule": schedule, "offeringVersion": quote["version"], "feeVersion": 1, "accepted": true}
-		status, stale, raw := p.call("POST", "/enrollments", body, map[string]string{"Idempotency-Key": token()})
+		application.Fees.Version++
+		application.Fees.Plans[1].AmountPaise = 90000
+		if _, err = s.C("applications").ReplaceOne(ctx, bson.M{"_id": application.ID}, application); err != nil {
+			t.Fatal(err)
+		}
+		sch := schedule
+		sch.Time = "18:00"
+		body := map[string]any{"trialId": trial.ID, "subjects": []string{"Mathematics"}, "packageMode": "home", "packagePeriod": "week", "schedule": sch, "offeringVersion": 1, "feeVersion": 1, "accepted": true}
+		status, stale, _ := p.call("POST", "/enrollments", body, map[string]string{"Idempotency-Key": token()})
 		if status != 409 || stale["code"] != "stale_version" {
-			t.Fatalf("stale price accepted: %d %s", status, raw)
+			t.Fatal("stale price accepted", status)
 		}
-		for _, minutes := range []int{30, 90} {
-			sch := schedule
-			sch.Minutes = minutes
-			body["schedule"] = sch
-			body["feeVersion"] = quote["feeVersion"]
-			status, _, raw = p.call("POST", "/enrollments", body, map[string]string{"Idempotency-Key": token()})
-			if status != 201 {
-				t.Fatalf("new price quote %d %s", status, raw)
-			}
-			var saved domain.Enrollment
-			if err := json.Unmarshal(raw, &saved); err != nil {
-				t.Fatal(err)
-			}
-			if saved.Agreement.FeePerSessionPaise != 50000*int64(minutes)/60 || saved.Agreement.TotalPaise != int64(schedule.Count)*saved.Agreement.FeePerSessionPaise {
-				t.Fatal("hourly price not prorated in agreement")
-			}
-		}
-		if detail(p, v.ID).Enrollment.Agreement.TotalPaise != 0 {
-			t.Fatal("staff price change rewrote an existing agreement")
+		if detail(p, v.ID).Enrollment.Agreement.TotalPaise != 60000 {
+			t.Fatal("paid agreement rewritten")
 		}
 	})
 	t.Log("Isolated tuition database retained for review:", name)

@@ -688,7 +688,7 @@ function StepFields({
               {c('area')} {i + 1}
             </legend>
             <div className="form-grid">
-              <Select name={`teachingAreas.${i}.subject`} options={teachingSubjects} />
+              <Select name={`teachingAreas.${i}.subject`} options={["All Subjects", ...teachingSubjects]} />
               <div className="form-grid">
                 <Input name={`teachingAreas.${i}.minClass`} type="number" min={1} max={12} />
                 <Input name={`teachingAreas.${i}.maxClass`} type="number" min={1} max={12} />

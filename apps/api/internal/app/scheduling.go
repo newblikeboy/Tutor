@@ -67,6 +67,9 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 	}
 	var in struct {
 		RequirementID string    `json:"requirementId"`
+		LearnerID     string    `json:"learnerId"`
+		Subjects      []string  `json:"subjects"`
+		Mode          string    `json:"mode"`
 		TutorID       string    `json:"tutorId"`
 		Start         time.Time `json:"start"`
 		TermsAccepted bool      `json:"termsAccepted"`
@@ -103,13 +106,39 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 		if in.Start.Before(a.Now().Add(5*time.Minute)) || in.Start.After(a.Now().AddDate(0, 1, 0)) {
 			return domain.Fail(422, "validation", "Select a trial time between five minutes and one month from now.")
 		}
-		// Serialize booking with deletion of an unused learning need.
-		var req domain.Requirement
-		er = a.Store.C("requirements").FindOneAndUpdate(ctx, bson.M{"_id": in.RequirementID, "ownerId": u.ID}, bson.M{"$inc": bson.M{"bookingRevision": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&req)
+		learnerID := in.LearnerID
+		requirementID := ""
+		selected := in.Subjects
+		mode := in.Mode
+		if in.RequirementID != "" {
+			if learnerID != "" {
+				return domain.Fail(422, "validation", "Use a learner or an existing requirement, not both.")
+			}
+			// Retained requirement links remain usable for historical requests.
+			var req domain.Requirement
+			er = a.Store.C("requirements").FindOneAndUpdate(ctx, bson.M{"_id": in.RequirementID, "ownerId": u.ID}, bson.M{"$inc": bson.M{"bookingRevision": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&req)
+			if er != nil {
+				return er
+			}
+			learnerID, requirementID = req.LearnerID, req.ID
+			if len(selected) == 0 {
+				selected = []string{req.Subject}
+			}
+			if mode == "" {
+				mode = "online"
+			}
+		}
+		if !enum(mode, "online", "home") {
+			return domain.Fail(422, "validation", "Select a teaching mode.")
+		}
+		l, er := storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": learnerID, "ownerId": u.ID})
 		if er != nil {
 			return er
 		}
-		l, er := storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": req.LearnerID, "ownerId": u.ID})
+		if er = a.checkLearnerConsent(ctx, u.ID, LearnerInput{Kind: l.Kind, ConsentID: l.ConsentID}); er != nil {
+			return er
+		}
+		subjects, er := domain.BookingSubjects(l.Class, selected)
 		if er != nil {
 			return er
 		}
@@ -118,10 +147,10 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 		if er != nil {
 			return er
 		}
-		if !domain.Eligible(t, l.Class, a.Now()) {
+		if !domain.EligibleForMode(t, l.Class, mode, a.Now()) || !t.Scope.CoversSubjects(subjects) {
 			return domain.Fail(409, "scope_unavailable", "This tutor is not currently approved for this learning scope.")
 		}
-		v = domain.Trial{ID: id, OwnerID: u.ID, LearnerID: l.ID, RequirementID: req.ID, TutorID: t.ID, MentorID: t.AcademicMentor(), LearnerName: l.Name, Subject: req.Subject, Class: l.Class, Start: in.Start.UTC(), End: in.Start.UTC().Add(time.Hour), Status: "requested", FeePaise: 0, TermsVersion: "development-trial-v1", Terms: "Development only. One online Mathematics trial, 60 minutes, INR 0. No payment or tuition enrollment. Either party can cancel before completion. Mentor review included. No service availability guarantee.", CreatedAt: a.Now()}
+		v = domain.Trial{ID: id, OwnerID: u.ID, LearnerID: l.ID, RequirementID: requirementID, TutorID: t.ID, MentorID: t.AcademicMentor(), LearnerName: l.Name, Subject: subjects[0], Subjects: subjects, Mode: mode, Class: l.Class, Start: in.Start.UTC(), End: in.Start.UTC().Add(time.Hour), Status: "requested", FeePaise: 0, TermsVersion: "development-trial-v1", Terms: "Development only. One selected-scope trial, 60 minutes, INR 0. No payment or tuition enrollment. Either party can cancel before completion. No service availability guarantee.", CreatedAt: a.Now()}
 		var av domain.Availability
 		er = a.Store.C("availability").FindOneAndUpdate(ctx, bson.M{"_id": t.ID}, bson.M{"$inc": bson.M{"bookingRevision": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&av)
 		if er != nil && er != mongo.ErrNoDocuments {
@@ -190,7 +219,15 @@ func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 			if e != nil {
 				return e
 			}
-			if !domain.Eligible(t, v.Class, a.Now()) {
+			mode := v.Mode
+			if mode == "" {
+				mode = "online"
+			}
+			subjects := v.Subjects
+			if len(subjects) == 0 {
+				subjects = []string{v.Subject}
+			}
+			if !domain.EligibleForMode(t, v.Class, mode, a.Now()) || !t.Scope.CoversSubjects(subjects) {
 				return domain.Fail(409, "scope_unavailable", "Your approval does not cover this trial.")
 			}
 			av, availabilityErr := storage.One[domain.Availability](ctx, a.Store, "availability", bson.M{"_id": v.TutorID})
@@ -241,7 +278,7 @@ func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 			if a.Config.Env == "production" && a.Now().Before(v.End) {
 				return domain.Fail(409, "not_finished", "The class has not ended yet.")
 			}
-			if !validText(in.Notes, 10, 2000) || !validText(in.NextSteps, 10, 1200) {
+			if !validText(in.Notes, 10, 2000) || !validText(in.NextSteps, 10, 1200) || !validText(in.Review, 10, 2000) {
 				return domain.Fail(422, "validation", "Add lesson evidence and concrete next steps.")
 			}
 			t, er := storage.One[domain.Application](ctx, a.Store, "applications", bson.M{"_id": u.ID})
@@ -252,22 +289,9 @@ func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 				return domain.Fail(403, "scope_unavailable", "Teaching access is paused pending academic review.")
 			}
 			v.Notes = in.Notes
-			v.NextSteps = in.NextSteps
+			v.NextSteps = clean(in.NextSteps)
+			v.Review = clean(in.Review)
 			v.Status = "completed"
-		case "review":
-			if u.Role != "mentor" || v.MentorID != u.ID {
-				return domain.Fail(403, "forbidden", "Only the assigned mentor can review this lesson.")
-			}
-			if v.Status != "completed" {
-				return domain.Fail(409, "invalid_transition", "The tutor must submit lesson evidence first.")
-			}
-			if !validText(in.Review, 10, 2000) {
-				return domain.Fail(422, "validation", "Explain the learning evidence and review outcome.")
-			}
-			v.Review = in.Review
-			now := a.Now()
-			v.ReviewAt = &now
-			v.Status = "reviewed"
 		default:
 			return domain.Fail(422, "validation", fmt.Sprintf("Unsupported trial action."))
 		}

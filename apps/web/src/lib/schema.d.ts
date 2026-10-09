@@ -1412,6 +1412,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learners/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /learners/{id}/progress */
+        get: operations["get__learners__id__progress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/inbox/status": {
         parameters: {
             query?: never;
@@ -1614,6 +1631,7 @@ export interface components {
         };
         Scope: {
             subject: string;
+            subjects?: ("All Subjects" | "Mathematics" | "Science" | "English" | "Hindi" | "Social Science")[];
             minClass: number;
             maxClass: number;
             mode: string;
@@ -1740,6 +1758,9 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             reviewAt?: string;
+            subjects?: ("All Subjects" | "Mathematics" | "Science" | "English" | "Hindi" | "Social Science")[];
+            /** @enum {string} */
+            mode?: "online" | "home";
         };
         Draft: {
             step: number;
@@ -1835,6 +1856,7 @@ export interface components {
             reason?: string;
             evidence?: string;
             scores?: number[];
+            subjects?: ("All Subjects" | "Mathematics" | "Science" | "English" | "Hindi" | "Social Science")[];
             minClass?: number;
             maxClass?: number;
             mode?: string;
@@ -1898,15 +1920,19 @@ export interface components {
             location: components["schemas"]["LocationPoint"] | null;
         };
         TrialInput: {
-            requirementId: string;
+            requirementId?: string;
+            learnerId?: string;
+            subjects?: ("All Subjects" | "Mathematics" | "Science" | "English" | "Hindi" | "Social Science")[];
+            /** @enum {string} */
+            mode?: "online" | "home";
             tutorId: string;
             /** Format: date-time */
             start: string;
             termsAccepted: boolean;
-        };
+        } & (unknown | unknown);
         ActionInput: {
             /** @enum {string} */
-            action: "accept" | "decline" | "cancel" | "complete" | "review";
+            action: "accept" | "decline" | "cancel" | "complete";
             notes: string;
             nextSteps: string;
             review: string;
@@ -1958,6 +1984,7 @@ export interface components {
             feePlan: components["schemas"]["FeePlan"] | null;
             feeVersion: number;
         };
+        /** @description Class-count recurrence on available teaching weekdays at the selected time, skipping planned leave. All classes must be within the six-month scheduling horizon and current tutor approval. Weekly and monthly packages have no calendar-period deadline. */
         RecurrenceInput: {
             startDate: string;
             time: string;
@@ -1985,6 +2012,8 @@ export interface components {
             termsVersion: string;
             /** Format: date-time */
             createdAt: string;
+            subjects?: ("All Subjects" | "Mathematics" | "Science" | "English" | "Hindi" | "Social Science")[];
+            packageFeePaise?: number;
         };
         Enrollment: {
             paymentIntentId: string;
@@ -2010,6 +2039,7 @@ export interface components {
         };
         EnrollmentInput: {
             trialId: string;
+            subjects: ("All Subjects" | "Mathematics" | "Science" | "English" | "Hindi" | "Social Science")[];
             schedule: components["schemas"]["RecurrenceInput"];
             packageMode: string;
             packagePeriod: string;
@@ -2048,19 +2078,20 @@ export interface components {
             reason: string;
             version: number;
             proposal: components["schemas"]["ScheduleProposal"] | null;
+            progress?: components["schemas"]["ClassProgress"];
         };
         ClassAction: {
             /** @enum {string} */
-            action: "propose" | "accept_change" | "cancel" | "record" | "review" | "resolve_attendance";
+            action: "propose" | "accept_change" | "cancel" | "record" | "resolve_attendance" | "progress";
             version: number;
             /** Format: date-time */
             start?: string;
             reason?: string;
             notes?: string;
             homework?: string;
-            review?: string;
             attendance?: string;
             developmentRecord?: boolean;
+            progress?: components["schemas"]["ClassProgressInput"];
         };
         LearningTopic: {
             title: string;
@@ -2806,6 +2837,7 @@ export interface components {
             application: components["schemas"]["Application"] | null;
             noticeVersion: string;
         };
+        /** @description Staff-priced offering. New Home weekly packages include 6 classes and monthly packages include 24 classes, without a calendar-period deadline. Online remains hourly. Historical stored plans and agreements retain their saved terms. */
         FeePlan: {
             /** @enum {unknown} */
             mode: "online" | "home";
@@ -2830,6 +2862,105 @@ export interface components {
             dailyCapacity: number;
             paused: boolean;
             version: number;
+        };
+        TestResult: {
+            title: string;
+            score: number;
+            maximum: number;
+        };
+        ClassProgressInput: {
+            subject: string;
+            topics: components["schemas"]["LearningTopic"][];
+            /** @enum {string} */
+            homeworkStatus: "not_checked" | "assigned" | "completed" | "needs_help";
+            test?: components["schemas"]["TestResult"];
+            feedback: string;
+            nextSteps: string;
+        };
+        ClassProgress: {
+            subject: string;
+            topics: components["schemas"]["LearningTopic"][];
+            /** @enum {string} */
+            homeworkStatus: "not_checked" | "assigned" | "completed" | "needs_help";
+            test?: components["schemas"]["TestResult"];
+            feedback: string;
+            nextSteps: string;
+            /** Format: date-time */
+            recordedAt: string;
+        };
+        ProgressSession: {
+            id: string;
+            enrollmentId: string;
+            tutorId: string;
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            bufferMinutes: number;
+            status: string;
+            timezone: string;
+            notes: string;
+            homework: string;
+            review: string;
+            attendance: string;
+            reason: string;
+            version: number;
+            proposal: components["schemas"]["ScheduleProposal"] | null;
+            progress?: components["schemas"]["ClassProgress"];
+            tutorName: string;
+            subjects: string[];
+        };
+        ProgressTrial: {
+            id: string;
+            learnerId: string;
+            requirementId: string;
+            tutorId: string;
+            mentorId: string;
+            learnerName: string;
+            subject: string;
+            class: number;
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            status: string;
+            feePaise: number;
+            termsVersion: string;
+            terms: string;
+            notes: string;
+            nextSteps: string;
+            review: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            reviewAt?: string;
+            subjects?: ("All Subjects" | "Mathematics" | "Science" | "English" | "Hindi" | "Social Science")[];
+            /** @enum {string} */
+            mode?: "online" | "home";
+            tutorName: string;
+        };
+        ProgressPlan: {
+            id: string;
+            enrollmentId: string;
+            version: number;
+            startingPoint: string;
+            goals: string;
+            topics: components["schemas"]["LearningTopic"][];
+            nextSteps: string;
+            /** Format: date-time */
+            reviewDate: string;
+            authorId: string;
+            /** Format: date-time */
+            createdAt: string;
+            authorName: string;
+            subjects: string[];
+        };
+        LearnerProgress: {
+            enrollments: components["schemas"]["Enrollment"][];
+            sessions: components["schemas"]["ProgressSession"][];
+            trials: components["schemas"]["ProgressTrial"][];
+            plans: components["schemas"]["ProgressPlan"][];
+            handovers: components["schemas"]["Handover"][];
         };
         InboxPerson: {
             id: string;
@@ -2987,8 +3118,6 @@ export interface operations {
                 latitude?: string;
                 longitude?: string;
                 radiusKm?: string;
-                /** @description Opaque cursor from the preceding X-Next-Cursor header. Omit for the first page; retain the same search filters. */
-                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -2999,8 +3128,6 @@ export interface operations {
             /** @description Success */
             200: {
                 headers: {
-                    /** @description Cursor for the next page of up to 100 eligible tutors; empty when complete. */
-                    "X-Next-Cursor"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6178,6 +6305,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminFamilies"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__learners__id__progress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerProgress"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */

@@ -9,13 +9,14 @@ export async function fillStaffFees(page: Page) {
     .getByLabel('Fee (₹)')
     .fill('400')
   for (const [period, amount, classes] of [
-    ['weekly', '1500', '3'],
-    ['monthly', '5000', '12'],
+    ['weekly', '1500', '6'],
+    ['monthly', '5000', '24'],
   ]) {
     const group = form.getByRole('group', { name: `Home Tuition · ${period}`, exact: true })
     if (await group.count()) {
       await group.getByLabel('Fee (₹)').fill(amount)
-      await group.getByLabel('Classes included').fill(classes)
+      await expect(group.getByLabel('Classes included')).toHaveValue(classes)
+      await expect(group.getByLabel('Classes included')).toHaveAttribute('readonly', '')
       await group.getByLabel('Minutes per class').fill('60')
     }
   }

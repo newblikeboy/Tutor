@@ -23,6 +23,12 @@ func (a Application) FeePlans() []FeePlan {
 	if a.Fees != nil {
 		for _, plan := range a.Fees.Plans {
 			if a.Scope.HasMode(plan.Mode) {
+				// Normalize copies for new packages; preserve stored prices and historical agreements.
+				if plan.Mode == "home" && plan.Period == "week" {
+					plan.Classes = 6
+				} else if plan.Mode == "home" && plan.Period == "month" {
+					plan.Classes = 24
+				}
 				plans = append(plans, plan)
 			}
 		}

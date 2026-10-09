@@ -5,14 +5,14 @@ import { useTranslation } from 'react-i18next'
 import { GraduationCap, House, MapPin, Monitor, Sparkles, ShieldCheck } from 'lucide-react'
 
 import type { Tutor } from '../lib/api'
-import { tutorHasMode, tutorModeLabel } from '../lib/tutors'
+import { approvedTutorSubjects, tutorHasMode, tutorModeLabel } from '../lib/tutors'
 
 import { TutorFees } from '../components/tutor-fees'
 
 import { Badge, LinkButton } from '../components/ui'
 export function TutorCard({ tutor }: { tutor: Tutor }) {
   const { t } = useTranslation()
-  const subject = tutor.scope.subject === 'Mathematics' ? t('math') : tutor.scope.subject
+  const subject = approvedTutorSubjects(tutor.scope).join(', ')
   const classRange = `${tutor.scope.minClass}-${tutor.scope.maxClass}`
   const language = t(tutor.language === 'Hindi' ? 'hindi' : 'english')
   const mode = tutorModeLabel(tutor.scope, t)

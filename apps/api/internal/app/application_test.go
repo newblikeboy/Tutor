@@ -348,7 +348,7 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	mentor.decide("tutor-a", map[string]any{"action": "approve", "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 409)
+	mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 409)
 	mentor.decide("tutor-a", map[string]any{"action": "eligibility", "eligibility": "cleared", "reason": "Fictional employment permission evidence reviewed."}, 403)
 	admin.decide("tutor-a", map[string]any{"action": "eligibility", "eligibility": "cleared", "reason": "Fictional employer permission evidence reviewed."}, 200)
 	// A home-only request must never become an online permission.
@@ -356,7 +356,7 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	mentor.decide("tutor-a", map[string]any{"action": "approve", "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 409)
+	mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 409)
 	// An old priority pointing at a different subject must not block a requested Mathematics scope.
 	mathArea := p.TeachingAreas[0]
 	mathArea.Modes = []string{"online", "home"}
@@ -370,5 +370,5 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 		t.Fatal(e)
 	}
 	mentor.setTestFees("tutor-a", 0)
-	mentor.decide("tutor-a", map[string]any{"action": "approve", "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 200)
+	mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 200)
 }

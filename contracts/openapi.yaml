@@ -118,14 +118,6 @@
                   }
                 }
               }
-            },
-            "headers": {
-              "X-Next-Cursor": {
-                "description": "Cursor for the next page of up to 100 eligible tutors; empty when complete.",
-                "schema": {
-                  "type": "string"
-                }
-              }
             }
           },
           "default": {
@@ -196,15 +188,6 @@
             "in": "query",
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor from the preceding X-Next-Cursor header. Omit for the first page; retain the same search filters.",
-            "schema": {
-              "type": "string",
-              "maxLength": 2048
             }
           }
         ]
@@ -5366,6 +5349,49 @@
         ]
       }
     },
+    "/learners/{id}/progress": {
+      "get": {
+        "operationId": "get__learners__id__progress",
+        "summary": "GET /learners/{id}/progress",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerProgress"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/inbox/status": {
       "get": {
         "operationId": "get__inbox_status",
@@ -5959,6 +5985,23 @@
           "subject": {
             "type": "string"
           },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "All Subjects",
+                "Mathematics",
+                "Science",
+                "English",
+                "Hindi",
+                "Social Science"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true
+          },
           "minClass": {
             "type": "integer"
           },
@@ -6492,6 +6535,30 @@
           "reviewAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "All Subjects",
+                "Mathematics",
+                "Science",
+                "English",
+                "Hindi",
+                "Social Science"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "online",
+              "home"
+            ]
           }
         }
       },
@@ -6913,11 +6980,32 @@
               "type": "integer"
             }
           },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "All Subjects",
+                "Mathematics",
+                "Science",
+                "English",
+                "Hindi",
+                "Social Science"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true
+          },
           "minClass": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
           },
           "maxClass": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
           },
           "mode": {
             "type": "string"
@@ -7198,7 +7286,6 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "requirementId",
           "tutorId",
           "start",
           "termsAccepted"
@@ -7206,6 +7293,33 @@
         "properties": {
           "requirementId": {
             "type": "string"
+          },
+          "learnerId": {
+            "type": "string"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "All Subjects",
+                "Mathematics",
+                "Science",
+                "English",
+                "Hindi",
+                "Social Science"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "online",
+              "home"
+            ]
           },
           "tutorId": {
             "type": "string"
@@ -7217,7 +7331,21 @@
           "termsAccepted": {
             "type": "boolean"
           }
-        }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "learnerId",
+              "subjects",
+              "mode"
+            ]
+          },
+          {
+            "required": [
+              "requirementId"
+            ]
+          }
+        ]
       },
       "ActionInput": {
         "type": "object",
@@ -7235,8 +7363,7 @@
               "accept",
               "decline",
               "cancel",
-              "complete",
-              "review"
+              "complete"
             ]
           },
           "notes": {
@@ -7489,7 +7616,8 @@
           "minutes": {
             "type": "integer"
           }
-        }
+        },
+        "description": "Class-count recurrence on available teaching weekdays at the selected time, skipping planned leave. All classes must be within the six-month scheduling horizon and current tutor approval. Weekly and monthly packages have no calendar-period deadline."
       },
       "Agreement": {
         "type": "object",
@@ -7569,6 +7697,27 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "All Subjects",
+                "Mathematics",
+                "Science",
+                "English",
+                "Hindi",
+                "Social Science"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "packageFeePaise": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       },
@@ -7673,6 +7822,7 @@
         "additionalProperties": false,
         "required": [
           "trialId",
+          "subjects",
           "schedule",
           "packageMode",
           "packagePeriod",
@@ -7684,6 +7834,23 @@
         "properties": {
           "trialId": {
             "type": "string"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "All Subjects",
+                "Mathematics",
+                "Science",
+                "English",
+                "Hindi",
+                "Social Science"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true
           },
           "schedule": {
             "$ref": "#/components/schemas/RecurrenceInput"
@@ -7825,6 +7992,9 @@
                 "type": "null"
               }
             ]
+          },
+          "progress": {
+            "$ref": "#/components/schemas/ClassProgress"
           }
         }
       },
@@ -7843,8 +8013,8 @@
               "accept_change",
               "cancel",
               "record",
-              "review",
-              "resolve_attendance"
+              "resolve_attendance",
+              "progress"
             ]
           },
           "version": {
@@ -7863,14 +8033,14 @@
           "homework": {
             "type": "string"
           },
-          "review": {
-            "type": "string"
-          },
           "attendance": {
             "type": "string"
           },
           "developmentRecord": {
             "type": "boolean"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/ClassProgressInput"
           }
         }
       },
@@ -10961,7 +11131,8 @@
           "amountPaise",
           "classes",
           "minutes"
-        ]
+        ],
+        "description": "Staff-priced offering. New Home weekly packages include 6 classes and monthly packages include 24 classes, without a calendar-period deadline. Online remains hourly. Historical stored plans and agreements retain their saved terms."
       },
       "TutorFees": {
         "type": "object",
@@ -11033,6 +11204,442 @@
           "paused",
           "version"
         ]
+      },
+      "TestResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "score",
+          "maximum"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "maximum": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        }
+      },
+      "ClassProgressInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subject",
+          "topics",
+          "homeworkStatus",
+          "feedback",
+          "nextSteps"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LearningTopic"
+            },
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "homeworkStatus": {
+            "type": "string",
+            "enum": [
+              "not_checked",
+              "assigned",
+              "completed",
+              "needs_help"
+            ]
+          },
+          "test": {
+            "$ref": "#/components/schemas/TestResult"
+          },
+          "feedback": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 2000
+          },
+          "nextSteps": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1200
+          }
+        }
+      },
+      "ClassProgress": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subject",
+          "topics",
+          "homeworkStatus",
+          "feedback",
+          "nextSteps",
+          "recordedAt"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LearningTopic"
+            },
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "homeworkStatus": {
+            "type": "string",
+            "enum": [
+              "not_checked",
+              "assigned",
+              "completed",
+              "needs_help"
+            ]
+          },
+          "test": {
+            "$ref": "#/components/schemas/TestResult"
+          },
+          "feedback": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 2000
+          },
+          "nextSteps": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1200
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProgressSession": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "enrollmentId",
+          "tutorId",
+          "start",
+          "end",
+          "bufferMinutes",
+          "status",
+          "timezone",
+          "notes",
+          "homework",
+          "review",
+          "attendance",
+          "reason",
+          "version",
+          "proposal",
+          "tutorName",
+          "subjects"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "enrollmentId": {
+            "type": "string"
+          },
+          "tutorId": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bufferMinutes": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "homework": {
+            "type": "string"
+          },
+          "review": {
+            "type": "string"
+          },
+          "attendance": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleProposal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "progress": {
+            "$ref": "#/components/schemas/ClassProgress"
+          },
+          "tutorName": {
+            "type": "string"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ProgressTrial": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "learnerId",
+          "requirementId",
+          "tutorId",
+          "mentorId",
+          "learnerName",
+          "subject",
+          "class",
+          "start",
+          "end",
+          "status",
+          "feePaise",
+          "termsVersion",
+          "terms",
+          "notes",
+          "nextSteps",
+          "review",
+          "createdAt",
+          "tutorName"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "learnerId": {
+            "type": "string"
+          },
+          "requirementId": {
+            "type": "string"
+          },
+          "tutorId": {
+            "type": "string"
+          },
+          "mentorId": {
+            "type": "string"
+          },
+          "learnerName": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "class": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "feePaise": {
+            "type": "integer"
+          },
+          "termsVersion": {
+            "type": "string"
+          },
+          "terms": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "nextSteps": {
+            "type": "string"
+          },
+          "review": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "All Subjects",
+                "Mathematics",
+                "Science",
+                "English",
+                "Hindi",
+                "Social Science"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "online",
+              "home"
+            ]
+          },
+          "tutorName": {
+            "type": "string"
+          }
+        }
+      },
+      "ProgressPlan": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "enrollmentId",
+          "version",
+          "startingPoint",
+          "goals",
+          "topics",
+          "nextSteps",
+          "reviewDate",
+          "authorId",
+          "createdAt",
+          "authorName",
+          "subjects"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "enrollmentId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "startingPoint": {
+            "type": "string"
+          },
+          "goals": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LearningTopic"
+            }
+          },
+          "nextSteps": {
+            "type": "string"
+          },
+          "reviewDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LearnerProgress": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enrollments",
+          "sessions",
+          "trials",
+          "plans",
+          "handovers"
+        ],
+        "properties": {
+          "enrollments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Enrollment"
+            }
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProgressSession"
+            }
+          },
+          "trials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProgressTrial"
+            }
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProgressPlan"
+            }
+          },
+          "handovers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Handover"
+            }
+          }
+        }
       },
       "InboxPerson": {
         "type": "object",

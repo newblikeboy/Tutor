@@ -223,14 +223,15 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 			t.Fatal("unapproved tutor published")
 		}
 		tutor.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "approve"}, 403)
-		mentor.decide("tutor-a", map[string]any{"action": "approve", "reason": "Not assessed yet"}, 403)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "reason": "Not assessed yet"}, 409)
+		parent.ok("GET", "/tutors/tutor-a", nil, 404)
 	})
 	t.Run("assigned evidence based approval", func(t *testing.T) {
 		mentor.decide("tutor-a", map[string]any{"action": "review", "conflictClear": true}, 200)
 		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": domain.Interview{Start: a.Now().Add(-time.Minute), End: a.Now().Add(29 * time.Minute), Timezone: "Asia/Kolkata", JoinURL: "https://zoom.us/j/12345678901"}}, 200)
 		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Explained equivalent fractions and identified denominator misconception."}, 200)
 		mentor.setTestFees("tutor-a", 0)
-		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "reason": "Observed subject explanation supports class eight online Mathematics."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "minClass": 8, "maxClass": 8, "reason": "Observed subject explanation supports class eight online Mathematics."}, 200)
 		v := parent.ok("GET", "/tutors/tutor-a", nil, 200)
 		if v["scope"].(map[string]any)["minClass"] != float64(8) {
 			t.Fatal("scope not persisted")
@@ -329,32 +330,24 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		}
 		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "accept"}, 200)
 	})
-	t.Run("lesson evidence reviewed before family visibility", func(t *testing.T) {
+	t.Run("tutor feedback is visible immediately without mentor approval", func(t *testing.T) {
 		if winner == "" {
 			t.Fatal("no valid trial")
 		}
-		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "complete", "notes": "Learner used equivalent fractions in three worked examples.", "nextSteps": "Practise comparing denominators with a number line."}, 200)
-		before := winnerParent.ok("GET", "/dashboard", nil, 200)
-		for _, raw := range before["trials"].([]any) {
-			v := raw.(map[string]any)
-			if v["id"] == winner && v["notes"] != "" {
-				t.Fatal("unreviewed evidence exposed")
-			}
-		}
-		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "review", "review": "Self review should be prohibited"}, 403)
-		mentor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "review", "review": "Evidence supports practising equivalent fractions; use a number line next."}, 200)
+		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "complete", "notes": "Learner used equivalent fractions in three worked examples.", "nextSteps": "Practise comparing denominators with a number line.", "review": "Tutor feedback: continue with fraction comparison practice."}, 200)
 		after := winnerParent.ok("GET", "/dashboard", nil, 200)
 		found := false
 		for _, raw := range after["trials"].([]any) {
 			v := raw.(map[string]any)
-			if v["id"] == winner && v["status"] == "reviewed" && v["notes"] != "" {
+			if v["id"] == winner && v["status"] == "completed" && v["notes"] != "" && v["review"] != "" {
 				found = true
 			}
 		}
 		if !found {
-			t.Fatal("reviewed progress missing")
+			t.Fatal("tutor feedback was hidden")
 		}
-		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "complete", "notes": "Try changing an ended assignment", "nextSteps": "Should never be permitted"}, 409)
+		mentor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "review", "review": "A mentor cannot replace tutor feedback."}, 422)
+		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "complete", "notes": "Try changing an ended assignment", "nextSteps": "Should never be permitted", "review": "Feedback cannot be overwritten."}, 409)
 	})
 	t.Run("cancellation releases resource guards and retry does not double release", func(t *testing.T) {
 		body := map[string]any{"requirementId": reqID, "tutorId": "tutor-a", "start": start.Add(6 * time.Hour), "termsAccepted": true}
@@ -462,7 +455,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 			t.Fatal(fmt.Sprint(keys))
 		}
 	})
-	t.Run("reviewed progress survives stopped API and reopened database client", func(t *testing.T) {
+	t.Run("tutor feedback survives stopped API and reopened database client", func(t *testing.T) {
 		server.Close()
 		if e := s.Client.Disconnect(ctx); e != nil {
 			t.Fatal(e)
@@ -479,7 +472,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		found := false
 		for _, raw := range d["trials"].([]any) {
 			v := raw.(map[string]any)
-			if v["id"] == winner && v["status"] == "reviewed" && v["review"] != "" {
+			if v["id"] == winner && v["status"] == "completed" && v["review"] != "" {
 				found = true
 			}
 		}

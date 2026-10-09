@@ -197,7 +197,7 @@ func TestMongoStaffOperations(t *testing.T) {
 	})
 	t.Run("administrator review requires conflict declaration and a genuine scheduled interview", func(t *testing.T) {
 		admin.decide("tutor-a", map[string]any{"action": "review", "conflictClear": true}, 200)
-		admin.decide("tutor-a", map[string]any{"action": "approve", "reason": "This is not yet assessed.", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a"}, 409)
+		admin.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "reason": "This is not yet assessed.", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a"}, 409)
 		admin.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "note", "reason": "A stale action must not overwrite review.", "version": 0}, 409)
 		for _, link := range []string{"https://zoom.us.evil.test/j/12345678901", "http://zoom.us/j/12345678901", "https://user:secret@zoom.us/j/12345678901", "javascript:alert(1)"} {
 			m := interview(now.Add(time.Hour))
@@ -229,7 +229,7 @@ func TestMongoStaffOperations(t *testing.T) {
 		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": interview(now.Add(-time.Minute))}, 200)
 		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4}, "evidence": "Two scores are insufficient for approval."}, 422)
 		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Observed explanation and misconception checks using a number line."}, 200)
-		pending := mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "mode": "online", "reason": "Cannot publish a tutor before staff confirms fees."}, 409)
+		pending := mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "minClass": 8, "maxClass": 8, "mode": "online", "reason": "Cannot publish a tutor before staff confirms fees."}, 409)
 		if pending["code"] != "fees_pending" {
 			t.Fatalf("wrong fee gate: %v", pending)
 		}
@@ -239,14 +239,14 @@ func TestMongoStaffOperations(t *testing.T) {
 		if len(persistedFees["plans"].([]any)) != 3 || persistedFees["setBy"] != "mentor-a" {
 			t.Fatal("staff fees did not persist across API instances")
 		}
-		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "mode": "online", "reason": "Observed teaching supports class eight online Mathematics."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "minClass": 8, "maxClass": 8, "mode": "online", "reason": "Observed teaching supports class eight online Mathematics."}, 200)
 		pub := parent.ok("GET", "/tutors/tutor-a", nil, 200)
 		published := pub["feePlans"].([]any)
 		if len(published) != 1 || published[0].(map[string]any)["amountPaise"] != float64(40000) || pub["fees"] != nil {
 			t.Fatal("wrong public prices or private fee metadata leaked")
 		}
 		mentor.decide("tutor-a", map[string]any{"action": "reopen", "reason": "Review Home Tuition approval after the initial online approval."}, 403)
-		mentor.decide("tutor-a", map[string]any{"action": "approve", "minClass": 8, "maxClass": 8, "modes": []string{"online", "home"}, "reason": "Observed teaching supports class eight Online and Home Tuition Mathematics."}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "minClass": 8, "maxClass": 8, "modes": []string{"online", "home"}, "reason": "Observed teaching supports class eight Online and Home Tuition Mathematics."}, 200)
 		homePub := parent.ok("GET", "/tutors/tutor-a", nil, 200)
 		homePublished := homePub["feePlans"].([]any)
 		scope := homePub["scope"].(map[string]any)
@@ -330,8 +330,8 @@ func TestMongoStaffOperations(t *testing.T) {
 		admin.decide("admin-reviewed", map[string]any{"action": "schedule", "interview": interview(now.Add(-time.Minute))}, 200)
 		admin.decide("admin-reviewed", map[string]any{"action": "assess", "scores": []int{4, 5, 4, 5, 4, 5}, "evidence": "Administrator observed a complete explanation and learner checks."}, 200)
 		admin.setTestFees("admin-reviewed", 0)
-		admin.decide("admin-reviewed", map[string]any{"action": "approve", "minClass": 6, "maxClass": 10, "reason": "Approval must retain ongoing academic oversight."}, 422)
-		admin.decide("admin-reviewed", map[string]any{"action": "approve", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a", "reason": "Academic evidence supports this scope and mentor assignment."}, 200)
+		admin.decide("admin-reviewed", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "minClass": 6, "maxClass": 10, "reason": "Approval must retain ongoing academic oversight."}, 422)
+		admin.decide("admin-reviewed", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "minClass": 6, "maxClass": 10, "mentorId": "mentor-a", "reason": "Academic evidence supports this scope and mentor assignment."}, 200)
 		v := admin.ok("GET", "/staff/applications/admin-reviewed", nil, 200)["application"].(map[string]any)
 		if v["mentorId"] != "mentor-a" {
 			t.Fatal("ongoing mentor was not saved")

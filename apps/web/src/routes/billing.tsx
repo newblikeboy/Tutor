@@ -141,7 +141,7 @@ export function Checkout({ enrollment }: { enrollment: Schema['Enrollment'] }) {
         },
       })
       widget.on('payment.failed', () => {
-        setMessage('billing.pending')
+        setMessage('billing.failedPayment')
         setKey(crypto.randomUUID())
       })
       widget.open()

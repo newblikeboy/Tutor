@@ -23,7 +23,7 @@ import {
   Video,
 } from 'lucide-react'
 import { api, indiaDate, queryClient, send, type Application, type Schema } from '../lib/api'
-import { approvedTutorModes, tutorModeLabel } from '../lib/tutors'
+import { approvedTutorSubjects, approvedTutorModes, tutorModeLabel } from '../lib/tutors'
 import { initials, workspaceLink, workspaceView } from '../lib/workspace'
 import { useAuth, useConfig } from '../lib/session'
 import {
@@ -799,8 +799,8 @@ function ApplicationRows({ applications, view }: { applications: Application[]; 
                     .join('; ')
                 ) : (
                   <>
-                    {t('math')} · {t('classes')} {application.scope.minClass}–
-                    {application.scope.maxClass}
+                    {approvedTutorSubjects(application.scope).join(', ')} · {t('classes')}{' '}
+                    {application.scope.minClass}–{application.scope.maxClass}
                   </>
                 )}
               </p>
@@ -1026,8 +1026,8 @@ function ApplicationDetail({ id }: { id: string }) {
                   <div>
                     <dt>{t('staffOps.scope')}</dt>
                     <dd>
-                      {t('math')} · {t('classes')} {a.scope.minClass}–{a.scope.maxClass} ·{' '}
-                      {tutorModeLabel(a.scope, t)}
+                      {approvedTutorSubjects(a.scope).join(', ')} · {t('classes')}{' '}
+                      {a.scope.minClass}–{a.scope.maxClass} · {tutorModeLabel(a.scope, t)}
                     </dd>
                   </div>
                   <div>
@@ -1493,12 +1493,12 @@ function FeeForm({ application }: { application: Application }) {
         return {
           ...plan,
           amount: saved ? String(saved.amountPaise / 100) : '',
-          classes: saved ? String(saved.classes) : plan.mode === 'online' ? '1' : '',
+          classes: plan.mode === 'online' ? '1' : plan.period === 'week' ? '6' : '24',
           minutes: String(saved?.minutes ?? 60),
         }
       })
   })
-  const edit = (index: number, field: 'amount' | 'classes' | 'minutes', value: string) =>
+  const edit = (index: number, field: 'amount' | 'minutes', value: string) =>
     setPlans((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
   const waiting =
     application.status === 'assessment_scheduled' &&
@@ -1540,14 +1540,7 @@ function FeeForm({ application }: { application: Application }) {
           {plan.mode === 'home' && (
             <div className="staff-score-inputs">
               <Field label={t('tutorFees.classes')}>
-                <input
-                  type="number"
-                  min="1"
-                  max={plan.period === 'week' ? 7 : 24}
-                  required
-                  value={plan.classes}
-                  onChange={(event) => edit(index, 'classes', event.target.value)}
-                />
+                <input type="number" readOnly value={plan.classes} />
               </Field>
               <Field label={t('tutorFees.minutes')}>
                 <input
@@ -1576,17 +1569,16 @@ function ApprovalForm({ application }: { application: Application }) {
   const mutation = useDecision(application)
   const requestedAreas = application.profile?.teachingAreas.filter(
     (area) =>
-      area.subject === 'Mathematics' &&
-      area.minClass <= 10 &&
-      area.maxClass >= 6 &&
+      area.minClass <= 12 &&
+      area.maxClass >= 1 &&
       area.modes.some((mode) => mode === 'home' || mode === 'online'),
   )
   const requestedArea = requestedAreas?.[0]
   const [minClass, setMinClass] = useState(
-    requestedArea ? Math.max(6, requestedArea.minClass) : application.scope.minClass,
+    requestedArea ? requestedArea.minClass : application.scope.minClass,
   )
   const [maxClass, setMaxClass] = useState(
-    requestedArea ? Math.min(10, requestedArea.maxClass) : application.scope.maxClass,
+    requestedArea ? requestedArea.maxClass : application.scope.maxClass,
   )
   const approvalModes = [
     ...new Set(requestedAreas?.flatMap((area) => area.modes) ?? [application.scope.mode]),
@@ -1599,6 +1591,15 @@ function ApprovalForm({ application }: { application: Application }) {
     if (saved.length) return saved
     return approvalModes.includes('online') ? ['online'] : approvalModes.slice(0, 1)
   })
+  const approvedSubjects = application.scope.subjects?.length
+    ? application.scope.subjects
+    : [application.scope.subject]
+  const subjectOptions = [
+    ...new Set(requestedAreas?.map((area) => area.subject) ?? approvedSubjects),
+  ]
+  const [subjects, setSubjects] = useState<string[]>(
+    requestedArea ? [requestedArea.subject] : approvedSubjects,
+  )
   const [reason, setReason] = useState('')
   const auth = useAuth()
   const [mentorId, setMentorId] = useState(
@@ -1618,6 +1619,7 @@ function ApprovalForm({ application }: { application: Application }) {
         event.preventDefault()
         mutation.mutate({
           action: 'approve',
+          subjects: subjects as NonNullable<Decision['subjects']>,
           minClass,
           maxClass,
           mode: modes[0],
@@ -1649,6 +1651,25 @@ function ApprovalForm({ application }: { application: Application }) {
           {t('staffOps.more')}
         </Button>
       )}
+      <fieldset>
+        <legend>Approved subjects</legend>
+        {subjectOptions.map((subject) => (
+          <label className="check-label" key={subject}>
+            <input
+              type="checkbox"
+              checked={subjects.includes(subject)}
+              onChange={(event) =>
+                setSubjects(
+                  event.target.checked
+                    ? [...subjects, subject]
+                    : subjects.filter((item) => item !== subject),
+                )
+              }
+            />
+            {subject}
+          </label>
+        ))}
+      </fieldset>
       <fieldset className="staff-mode-checks">
         <legend>{t('staffOps.approvedMode')}</legend>
         <p>{t('staffOps.approvedModeHint')}</p>
@@ -1673,8 +1694,8 @@ function ApprovalForm({ application }: { application: Application }) {
         <Field label={t('minClass')}>
           <input
             type="number"
-            min={6}
-            max={10}
+            min={1}
+            max={12}
             value={minClass}
             onChange={(event) => setMinClass(Number(event.target.value))}
             required
@@ -1684,7 +1705,7 @@ function ApprovalForm({ application }: { application: Application }) {
           <input
             type="number"
             min={minClass}
-            max={10}
+            max={12}
             value={maxClass}
             onChange={(event) => setMaxClass(Number(event.target.value))}
             required
@@ -1701,7 +1722,7 @@ function ApprovalForm({ application }: { application: Application }) {
         />
       </Field>
       <MutationError error={mutation.error} />
-      <Button type="submit" busy={mutation.isPending} disabled={!modes.length}>
+      <Button type="submit" busy={mutation.isPending} disabled={!modes.length || !subjects.length}>
         <Check size={17} aria-hidden="true" />
         {t(application.status === 'approved' ? 'staffOps.updateApprovedScope' : 'staffOps.approve')}
       </Button>

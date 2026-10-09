@@ -10,6 +10,7 @@ import { mediaContract } from './media-contract.mjs'
 import { staffContract } from './staff-contract.mjs'
 import { applicationContract } from './application-contract.mjs'
 import { feesContract } from './fees-contract.mjs'
+import { progressContract } from './progress-contract.mjs'
 const str = { type: 'string' },
   num = { type: 'integer' },
   real = { type: 'number' },
@@ -36,6 +37,16 @@ const schemas = {
     required: ['subject', 'minClass', 'maxClass', 'mode', 'expiresAt'],
     properties: {
       subject: str,
+      subjects: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+        },
+        minItems: 1,
+        maxItems: 6,
+        uniqueItems: true,
+      },
       minClass: num,
       maxClass: num,
       mode: str,
@@ -276,15 +287,49 @@ const schemas = {
     locality: str,
     location: { anyOf: [ref('LocationPoint'), { type: 'null' }] },
   }),
-  TrialInput: obj({ requirementId: str, tutorId: str, start: date, termsAccepted: bool }),
+  TrialInput: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['tutorId', 'start', 'termsAccepted'],
+    properties: {
+      requirementId: str,
+      learnerId: str,
+      subjects: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+        },
+        minItems: 1,
+        maxItems: 6,
+        uniqueItems: true,
+      },
+      mode: { type: 'string', enum: ['online', 'home'] },
+      tutorId: str,
+      start: date,
+      termsAccepted: bool,
+    },
+    oneOf: [{ required: ['learnerId', 'subjects', 'mode'] }, { required: ['requirementId'] }],
+  },
   ActionInput: obj({
-    action: { type: 'string', enum: ['accept', 'decline', 'cancel', 'complete', 'review'] },
+    action: { type: 'string', enum: ['accept', 'decline', 'cancel', 'complete'] },
     notes: str,
     nextSteps: str,
     review: str,
   }),
 }
 schemas.Trial.properties.reviewAt = date
+schemas.Trial.properties.subjects = {
+  type: 'array',
+  items: {
+    type: 'string',
+    enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+  },
+  minItems: 1,
+  maxItems: 6,
+  uniqueItems: true,
+}
+schemas.Trial.properties.mode = { type: 'string', enum: ['online', 'home'] }
 schemas.User.properties.email = { ...str, format: 'email' }
 const paths = {}
 function route(path, method, response, request, publicRoute = false, isArray = false) {
@@ -437,6 +482,7 @@ mediaContract(schemas, route, paths)
 staffContract(schemas, route, paths)
 applicationContract(schemas, route)
 feesContract(schemas, route)
+progressContract(schemas, route)
 inboxContract(schemas, route, paths)
 paths['/webhooks/razorpay'] = {
   post: {

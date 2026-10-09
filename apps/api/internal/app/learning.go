@@ -94,7 +94,11 @@ func (a *App) requestHandover(w http.ResponseWriter, r *http.Request) {
 		if er != nil {
 			return er
 		}
-		if app.Scope.Subject != v.Agreement.Subject || app.Scope.Mode != v.Agreement.Mode {
+		subjects := v.Agreement.Subjects
+		if len(subjects) == 0 {
+			subjects = []string{v.Agreement.Subject}
+		}
+		if !app.Scope.CoversSubjects(subjects) || !app.Scope.HasMode(v.Agreement.Mode) {
 			return domain.Fail(409, "scope_unavailable", "The new tutor must cover the existing agreement scope.")
 		}
 		count, er := a.Store.C("handovers").CountDocuments(ctx, bson.M{"enrollmentId": v.ID, "status": bson.M{"$in": []string{"requested", "awaiting_tutor"}}})
@@ -194,7 +198,11 @@ func (a *App) handoverAction(w http.ResponseWriter, r *http.Request) {
 			if er != nil {
 				return er
 			}
-			if app.Scope.Subject != v.Agreement.Subject || app.Scope.Mode != v.Agreement.Mode {
+			subjects := v.Agreement.Subjects
+			if len(subjects) == 0 {
+				subjects = []string{v.Agreement.Subject}
+			}
+			if !app.Scope.CoversSubjects(subjects) || !app.Scope.HasMode(v.Agreement.Mode) {
 				return domain.Fail(409, "scope_unavailable", "The new approval must cover the existing agreement.")
 			}
 			old, er := storage.One[domain.Availability](ctx, a.Store, "availability", bson.M{"_id": h.OldTutorID})

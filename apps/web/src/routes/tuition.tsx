@@ -1,7 +1,8 @@
 import '../locales/tuition'
 import '../locales/experience'
 import '../locales/files'
-import { allTutors } from '../lib/tutors'
+import { allTutors, approvedTutorSubjects } from '../lib/tutors'
+import { SubjectSelect } from '../components/subject-select'
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -20,6 +21,8 @@ import {
 } from 'lucide-react'
 import { api, APIError, indiaDate, queryClient, send, type Schema, type Tutor } from '../lib/api'
 import { useAuth, useConfig, useDashboard } from '../lib/session'
+import { useClock } from '../lib/clock'
+import { regularPackageSchedule, regularWeekdays } from '../lib/regular-schedule'
 import {
   Alert,
   Badge,
@@ -37,6 +40,7 @@ import { Conversation } from './conversations'
 import { PrivateFiles } from './files'
 import { feeLabel, TutorFees } from '../components/tutor-fees'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
+import { ClassProgressFields, classProgressFromForm } from '../components/class-progress-fields'
 
 type Agreement = Schema['Agreement']
 type Detail = Schema['TuitionDetail']
@@ -66,6 +70,7 @@ function useAction(path: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['tuition'] }),
         queryClient.invalidateQueries({ queryKey: ['handover-invitations'] }),
+        queryClient.invalidateQueries({ queryKey: ['learner-progress'] }),
       ])
     },
   })
@@ -325,6 +330,7 @@ function TuitionList() {
   const auth = useAuth()
   const [params, setParams] = useSearchParams()
   const cursor = params.get('cursor') ?? ''
+  const now = useClock()
   const q = useQuery({
     queryKey: ['tuition', 'list', cursor],
     queryFn: ({ signal }) =>
@@ -332,6 +338,15 @@ function TuitionList() {
         signal,
       }),
   })
+  const bookings =
+    q.data?.items.filter((item) => !['awaiting_payment', 'expired'].includes(item.status)) ?? []
+  const checkouts =
+    q.data?.items.filter(
+      (item) =>
+        item.status === 'awaiting_payment' &&
+        item.holdUntil &&
+        new Date(item.holdUntil).getTime() > now,
+    ) ?? []
   return (
     <div className="tu-page">
       <Heading
@@ -352,7 +367,24 @@ function TuitionList() {
         <LoadError retry={() => void q.refetch()} />
       ) : (
         <>
-          {q.data.items.length === 0 ? (
+          {auth.data?.user.role === 'parent' && checkouts.length > 0 && (
+            <section className="tu-panel tu-stack" aria-label={t('tuition.finishBooking')}>
+              <h2>{t('tuition.finishBooking')}</h2>
+              <p>{t('tuition.checkoutBody')}</p>
+              {checkouts.map((item) => (
+                <div key={item.id}>
+                  <p>
+                    {item.learnerName} · {item.tutorName} ·{' '}
+                    {money(item.agreement.totalPaise, i18n.language)}
+                  </p>
+                  <LinkButton to={`/tuition/${item.id}`} secondary>
+                    {t('tuition.resumeCheckout')}
+                  </LinkButton>
+                </div>
+              ))}
+            </section>
+          )}
+          {bookings.length === 0 ? (
             <Empty
               headingLevel={2}
               title={t(auth.data?.user.role === 'parent' ? 'tuition.none' : 'tuition.noAssigned')}
@@ -362,7 +394,7 @@ function TuitionList() {
             />
           ) : (
             <div className="tu-card-grid">
-              {q.data.items.map((enrollment) => (
+              {bookings.map((enrollment) => (
                 <article className="tu-enrollment" key={enrollment.id}>
                   <div className="tu-card-top">
                     <span className="tu-book">
@@ -413,11 +445,13 @@ function NewAgreement() {
   const dashboard = useDashboard()
   const tutors = useQuery({
     queryKey: ['tutors', 'regular-classes'],
-    queryFn: ({ signal }) => allTutors('/tutors?subject=Mathematics', signal),
+    queryFn: ({ signal }) => allTutors('/tutors', signal),
   })
   const [openKey, setOpenKey] = useState('')
-  const reviewedTrials = useMemo(() => {
-    const trials = dashboard.data?.trials.filter((trial) => trial.status === 'reviewed') ?? []
+  const completedTrials = useMemo(() => {
+    const trials =
+      dashboard.data?.trials.filter((trial) => ['completed', 'reviewed'].includes(trial.status)) ??
+      []
     const latest = new Map<string, Schema['Trial']>()
     for (const trial of [...trials].sort((a, b) => b.start.localeCompare(a.start))) {
       const key = `${trial.learnerId}:${trial.tutorId}`
@@ -425,8 +459,11 @@ function NewAgreement() {
     }
     return Array.from(latest.values())
   }, [dashboard.data?.trials])
-  const tutorById = useMemo(() => new Map((tutors.data ?? []).map((tutor) => [tutor.id, tutor])), [tutors.data])
-  const options = reviewedTrials
+  const tutorById = useMemo(
+    () => new Map((tutors.data ?? []).map((tutor) => [tutor.id, tutor])),
+    [tutors.data],
+  )
+  const options = completedTrials
     .map((trial) => ({ trial, tutor: tutorById.get(trial.tutorId) }))
     .filter((item): item is { trial: Schema['Trial']; tutor: Tutor } => !!item.tutor)
 
@@ -479,6 +516,14 @@ function RegularTeacherCard({
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const [requestKey, setRequestKey] = useState(() => crypto.randomUUID())
+  const subjectOptions = approvedTutorSubjects(tutor.scope).filter((subject) =>
+    trial.class <= 5 ? subject === 'All Subjects' : subject !== 'All Subjects',
+  )
+  const [subjects, setSubjects] = useState<string[]>(() =>
+    trial.class <= 5
+      ? ['All Subjects']
+      : (trial.subjects ?? [trial.subject]).filter((subject) => subjectOptions.includes(subject)),
+  )
   const [packageKey, setPackageKey] = useState('')
   const [pickedDate, setPickedDate] = useState('')
   const [start, setStart] = useState('')
@@ -507,18 +552,38 @@ function RegularTeacherCard({
   const plans = availability.data?.feePlans ?? []
   const selectedPlan = plans.find((plan) => planKey(plan) === packageKey)
   const selectedDate = pickedDate || start.slice(0, 10)
-  const selectedMinute = selectedDate && start.startsWith(`${selectedDate}T`) ? timeToMinute(start.slice(11, 16)) : -1
-  const slots = selectedDate && selectedPlan ? classSlotsForDate(availability.data, selectedDate, selectedPlan.minutes) : []
+  const selectedMinute =
+    selectedDate && start.startsWith(`${selectedDate}T`) ? timeToMinute(start.slice(11, 16)) : -1
+  const slots =
+    selectedDate && selectedPlan
+      ? classSlotsForDate(availability.data, selectedDate, selectedPlan.minutes)
+      : []
   const selectedStillAvailable =
     !!availability.data &&
     !!selectedPlan &&
     !!selectedDate &&
     selectedMinute >= 0 &&
     classSlotAvailable(availability.data, selectedDate, selectedMinute, selectedPlan.minutes)
+  const packageSchedule =
+    selectedStillAvailable && selectedPlan && availability.data
+      ? regularPackageSchedule(
+          availability.data,
+          selectedPlan,
+          selectedDate,
+          selectedMinute,
+          new Date(),
+        )
+      : []
   const quoteKey = selectedPlan
-    ? `${availability.data?.feeVersion}:${availability.data?.version}:${packageKey}:${start}`
+    ? `${availability.data?.feeVersion}:${availability.data?.version}:${packageKey}:${start}:${subjects.join(',')}`
     : ''
-  const canSubmit = !!selectedPlan && selectedStillAvailable && acceptedQuote === quoteKey
+  const canSubmit =
+    !!selectedPlan &&
+    subjects.length > 0 &&
+    subjects.every((subject) => subjectOptions.includes(subject)) &&
+    selectedStillAvailable &&
+    packageSchedule.length > 0 &&
+    acceptedQuote === quoteKey
 
   return (
     <article className={`tu-teacher-booking-card ${open ? 'selected' : ''}`}>
@@ -532,9 +597,11 @@ function RegularTeacherCard({
         </div>
         <div className="tu-teacher-booking-meta">
           <span>
-            {t('math')} · {t('class')} {trial.class}
+            {(trial.subjects ?? [trial.subject]).join(', ')} · {t('class')} {trial.class}
           </span>
-          <span>{tutor.scope.minClass}-{tutor.scope.maxClass}</span>
+          <span>
+            {tutor.scope.minClass}-{tutor.scope.maxClass}
+          </span>
           <span>{tutor.language === 'Hindi' ? t('hindi') : t('english')}</span>
         </div>
         <TutorFees plans={tutor.feePlans} />
@@ -557,9 +624,10 @@ function RegularTeacherCard({
               className="tu-regular-booking-form"
               onSubmit={(event) => {
                 event.preventDefault()
-                if (!selectedPlan || !selectedDate || selectedMinute < 0) return
+                if (!canSubmit || !selectedPlan || !selectedDate || selectedMinute < 0) return
                 mutation.mutate({
                   trialId: trial.id,
+                  subjects: subjects as Schema['EnrollmentInput']['subjects'],
                   packageMode: selectedPlan.mode,
                   packagePeriod: selectedPlan.period,
                   offeringVersion: availability.data.version,
@@ -569,13 +637,37 @@ function RegularTeacherCard({
                     startDate: selectedDate,
                     time: minuteLabel(selectedMinute),
                     timezone: 'Asia/Kolkata',
-                    weekdays: [weekdayForDate(selectedDate)],
+                    weekdays: regularWeekdays(
+                      availability.data,
+                      selectedMinute,
+                      selectedPlan.minutes,
+                    ),
                     count: selectedPlan.classes,
                     minutes: selectedPlan.minutes,
                   },
                 })
               }}
             >
+              {trial.class <= 5 ? (
+                <Field label="Subject">
+                  <select defaultValue="All Subjects">
+                    <option>All Subjects</option>
+                  </select>
+                </Field>
+              ) : (
+                <SubjectSelect
+                  label="Subjects"
+                  placeholder="Select subjects"
+                  options={subjectOptions}
+                  value={subjects}
+                  onChange={(value) => {
+                    setSubjects(value)
+                    setAcceptedQuote('')
+                    setRequestKey(crypto.randomUUID())
+                  }}
+                  hint="The package fee applies to each selected subject."
+                />
+              )}
               <fieldset className="tu-package-options">
                 <legend>{t('tuition.choosePackage')}</legend>
                 {plans.map((plan) => {
@@ -628,30 +720,68 @@ function RegularTeacherCard({
                 />
               )}
               <div className="tu-regular-booking-summary">
+                {selectedStillAvailable && selectedPlan && packageSchedule.length === 0 && (
+                  <Alert kind="error">
+                    {t('tuition.packageScheduleUnavailable', {
+                      count: selectedPlan.classes,
+                    })}
+                  </Alert>
+                )}
                 {selectedPlan && (
                   <div className="tu-quote">
                     <div>
                       <span>{t('tuition.perSession')}</span>
-                      <strong>{money(perClassPaise(selectedPlan), i18n.language)}</strong>
+                      <strong>
+                        {money(
+                          Math.round(
+                            (selectedPlan.amountPaise * subjects.length) / selectedPlan.classes,
+                          ),
+                          i18n.language,
+                        )}
+                      </strong>
                     </div>
                     <div>
                       <span>{t('tuition.total')}</span>
-                      <strong>{money(selectedPlan.amountPaise, i18n.language)}</strong>
+                      <strong>
+                        {money(selectedPlan.amountPaise * subjects.length, i18n.language)}
+                      </strong>
                     </div>
                   </div>
+                )}
+                {selectedPlan && (
+                  <p>
+                    {subjects.join(', ')} · {money(selectedPlan.amountPaise, i18n.language)} ×{' '}
+                    {subjects.length}
+                  </p>
+                )}
+                {packageSchedule.length > 0 && (
+                  <details className="tu-disclosure">
+                    <summary>{t('tuition.selectedSchedule')}</summary>
+                    <ul className="tu-dates">
+                      {packageSchedule.map((date) => (
+                        <li key={date}>{indiaDate(date, i18n.language)}</li>
+                      ))}
+                    </ul>
+                  </details>
                 )}
                 <Policy />
                 <label className="tu-check">
                   <input
                     type="checkbox"
                     required
-                    disabled={!selectedPlan || !selectedStillAvailable}
+                    disabled={
+                      !selectedPlan || !selectedStillAvailable || packageSchedule.length === 0
+                    }
                     checked={acceptedQuote === quoteKey}
                     onChange={(event) => setAcceptedQuote(event.target.checked ? quoteKey : '')}
                   />
                   {t('tuition.acceptTerms')}
                 </label>
-                <MutationError error={mutation.error} />
+                {mutation.error instanceof APIError && mutation.error.code === 'validation' ? (
+                  <Alert kind="error">{mutation.error.message}</Alert>
+                ) : (
+                  <MutationError error={mutation.error} />
+                )}
                 <Button busy={mutation.isPending} disabled={!canSubmit}>
                   {t('tuition.proposeAgreement')}
                 </Button>
@@ -795,10 +925,6 @@ function packageDetail(
     : t('tutorFees.includes', { count: plan.classes, minutes: plan.minutes })
 }
 
-function perClassPaise(plan: Schema['FeePlan']) {
-  return plan.classes > 1 ? Math.round(plan.amountPaise / plan.classes) : plan.amountPaise
-}
-
 function classSlotsForDate(
   availability: Schema['Availability'] | undefined,
   date: string,
@@ -833,7 +959,13 @@ function classSlotAvailable(
   const now = new Date()
   const latest = new Date(now)
   latest.setMonth(latest.getMonth() + 1)
-  if (!start || !end || start <= new Date(now.getTime() + 5 * 60 * 1000) || start > latest) {
+  if (
+    !start ||
+    !end ||
+    date <= dateInputValue(now) ||
+    start <= new Date(now.getTime() + 5 * 60 * 1000) ||
+    start > latest
+  ) {
     return false
   }
   return availability.windows.some(
@@ -876,7 +1008,7 @@ function bookingDateInRange(value: string) {
   today.setHours(0, 0, 0, 0)
   const latest = new Date(today)
   latest.setMonth(latest.getMonth() + 1)
-  return date >= today && date <= latest
+  return value > dateInputValue(today) && date <= latest
 }
 
 function dateInputValue(value: Date) {
@@ -955,21 +1087,76 @@ function AgreementCard({ agreement }: { agreement: Agreement }) {
     </article>
   )
 }
+function CheckoutSelection({ enrollment: e }: { enrollment: Schema['Enrollment'] }) {
+  const { t, i18n } = useTranslation()
+  return (
+    <section className="tu-panel">
+      <h2>{e.learnerName}</h2>
+      <p>{t('tuition.withTutor', { name: e.tutorName })}</p>
+      <p>{(e.agreement.subjects ?? [e.agreement.subject]).join(', ')}</p>
+      <div className="tu-quote">
+        <div>
+          <span>{t('tuition.selectedClasses')}</span>
+          <strong>{e.agreement.sessionCount}</strong>
+        </div>
+        <div>
+          <span>{t('tuition.total')}</span>
+          <strong>{money(e.agreement.totalPaise, i18n.language)}</strong>
+        </div>
+      </div>
+      <details className="tu-disclosure">
+        <summary>{t('tuition.selectedSchedule')}</summary>
+        <ul className="tu-dates">
+          {e.agreement.starts.map((start) => (
+            <li key={start}>{indiaDate(start, i18n.language)}</li>
+          ))}
+        </ul>
+      </details>
+    </section>
+  )
+}
 function TuitionDetail({ id }: { id: string }) {
   const { t } = useTranslation()
   const auth = useAuth()
+  const now = useClock()
   const [params, setParams] = useSearchParams()
   const tabs = ['classes', 'plan', 'messages', 'files', 'agreement', 'handover']
   const tab = tabs.includes(params.get('tab') ?? '') ? params.get('tab')! : 'classes'
   const q = useQuery({
     queryKey: ['tuition', id],
     queryFn: ({ signal }) => api<Detail>(`/enrollments/${id}`, { signal }),
+    refetchInterval: (query) =>
+      query.state.data?.enrollment.status === 'awaiting_payment' ? 3000 : false,
   })
   if (q.isPending) return <Loading />
   if (q.isError) return <LoadError retry={() => void q.refetch()} />
   const d = q.data,
     e = d.enrollment,
     role = auth.data!.user.role
+  if (role === 'parent' && ['awaiting_payment', 'expired'].includes(e.status)) {
+    const expired = e.status === 'expired' || !e.holdUntil || new Date(e.holdUntil).getTime() <= now
+    return (
+      <div className="tu-page">
+        <Link to="/tuition" className="tu-back">
+          <ArrowLeft size={16} />
+          {t('tuition.back')}
+        </Link>
+        <Heading
+          title={t(expired ? 'tuition.checkoutExpired' : 'tuition.finishBooking')}
+          body={t(expired ? 'tuition.checkoutExpiredBody' : 'tuition.checkoutBody')}
+        />
+        {expired ? (
+          <LinkButton to="/tuition">{t('tuition.chooseNewDates')}</LinkButton>
+        ) : (
+          <>
+            <CheckoutSelection enrollment={e} />
+            <p>{t('tuition.payBy', { time: indiaDate(e.holdUntil!, 'en') })}</p>
+            <Checkout enrollment={e} />
+          </>
+        )}
+      </div>
+    )
+  }
   return (
     <div className="tu-page">
       <Link to="/tuition" className="tu-back">
@@ -1004,13 +1191,9 @@ function TuitionDetail({ id }: { id: string }) {
           )}
         </section>
       )}
-      {e.status === 'awaiting_payment' && (
-        <Alert>
-          <strong>{t('tuition.pricePending')}</strong>
-          <p>{t('tuition.pricePendingBody')}</p>
-        </Alert>
+      {role === 'parent' && e.status === 'active' && e.paymentIntentId && (
+        <Alert kind="success">{t('tuition.bookingConfirmed')}</Alert>
       )}
-      {e.status === 'awaiting_payment' && role === 'parent' && <Checkout enrollment={e} />}
       <TabBar
         id="tuition"
         label={t('tuition.title')}
@@ -1198,6 +1381,17 @@ function ClassCard({
           </div>
         )}
         <div className="tu-actions">
+          {role === 'tutor' &&
+            active &&
+            s.tutorId === auth.data!.user.id &&
+            ['completed', 'reviewed'].includes(s.status) && (
+              <Button
+                variant="secondary"
+                onClick={() => setAction(action === 'progress' ? '' : 'progress')}
+              >
+                {t(s.progress ? 'childProgress.editProgress' : 'childProgress.recordProgress')}
+              </Button>
+            )}
           {editable && ['scheduled', 'makeup_due'].includes(s.status) && (
             <Button variant="text" onClick={() => setAction(action === 'propose' ? '' : 'propose')}>
               {t('tuition.scheduleChange')}
@@ -1216,16 +1410,14 @@ function ClassCard({
               {t('tuition.record')}
             </Button>
           )}
-          {role === 'mentor' && active && s.status === 'awaiting_review' && (
-            <Button
-              variant="secondary"
-              onClick={() =>
-                setAction(s.attendance === 'disputed' ? 'resolve_attendance' : 'review')
-              }
-            >
-              {t(s.attendance === 'disputed' ? 'tuition.resolveAttendance' : 'tuition.review')}
-            </Button>
-          )}
+          {role === 'mentor' &&
+            active &&
+            s.status === 'awaiting_review' &&
+            s.attendance === 'disputed' && (
+              <Button variant="secondary" onClick={() => setAction('resolve_attendance')}>
+                {t('tuition.resolveAttendance')}
+              </Button>
+            )}
         </div>
         {action && (
           <form
@@ -1238,9 +1430,11 @@ function ClassCard({
                 reason: value(d, 'reason'),
                 notes: value(d, 'notes'),
                 homework: value(d, 'homework'),
-                review: value(d, 'review'),
                 attendance: value(d, 'attendance'),
                 developmentRecord: d.has('developmentRecord'),
+                ...(['record', 'progress'].includes(action)
+                  ? { progress: classProgressFromForm(d) }
+                  : {}),
               })
             }}
           >
@@ -1281,15 +1475,24 @@ function ClassCard({
                 </select>
               </Field>
             )}
-            {action === 'review' && (
-              <Field label={t('tuition.reviewEvidence')}>
-                <textarea name="review" minLength={10} maxLength={2000} required />
-              </Field>
+            {['record', 'progress'].includes(action) && (
+              <ClassProgressFields
+                enrollment={enrollment}
+                previous={s.progress}
+                required={action === 'progress'}
+              />
             )}
-            <Button busy={mutation.isPending}>{t('tuition.confirm')}</Button>
+
+            <Button busy={mutation.isPending}>
+              {t(action === 'progress' ? 'childProgress.save' : 'tuition.confirm')}
+            </Button>
           </form>
         )}
-        <MutationError error={mutation.error} />
+        {mutation.error instanceof APIError ? (
+          <Alert kind="error">{mutation.error.message}</Alert>
+        ) : (
+          <MutationError error={mutation.error} />
+        )}
       </div>
     </article>
   )

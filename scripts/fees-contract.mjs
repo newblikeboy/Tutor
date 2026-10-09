@@ -17,6 +17,8 @@ export function feesContract(schemas, route) {
     classes: { ...integer, minimum: 1, maximum: 24 },
     minutes: { ...integer, minimum: 30, maximum: 120 },
   })
+  schemas.FeePlan.description =
+    'Staff-priced offering. New Home weekly packages include 6 classes and monthly packages include 24 classes, without a calendar-period deadline. Online remains hourly. Historical stored plans and agreements retain their saved terms.'
   schemas.TutorFees = obj({
     plans,
     version: integer,

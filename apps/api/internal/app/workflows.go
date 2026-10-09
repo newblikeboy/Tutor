@@ -226,7 +226,7 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 			e = er
 		}
 		for i := range d.Trials {
-			if d.Trials[i].Status != "reviewed" {
+			if !enum(d.Trials[i].Status, "completed", "reviewed") {
 				d.Trials[i].Notes = ""
 				d.Trials[i].NextSteps = ""
 			}

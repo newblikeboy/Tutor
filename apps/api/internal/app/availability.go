@@ -59,10 +59,12 @@ func (a *App) availability(w http.ResponseWriter, r *http.Request) {
 	// Never expose the former tutor-authored availability price as an agreed fee.
 	v.FeePaise = 0
 	v.FeePlans = application.FeePlans()
+	if len(v.FeePlans) > 0 {
+		v.FeeVersion = application.Fees.Version
+	}
 	if plan, ok := application.HourlyFee(); ok {
 		v.FeePlan = &plan
 		v.FeePaise = plan.AmountPaise
-		v.FeeVersion = application.Fees.Version
 	}
 	a.json(w, 200, v)
 }
@@ -238,7 +240,7 @@ type RecurrenceInput struct {
 	Minutes   int    `json:"minutes"`
 }
 
-func recurrence(in RecurrenceInput, now time.Time) ([]time.Time, error) {
+func recurrence(in RecurrenceInput, now time.Time, leaveDates []string) ([]time.Time, error) {
 	bad := domain.Fail(422, "validation", "Choose a valid future recurring schedule, 1–24 sessions of 30–120 minutes.")
 	if in.Count < 1 || in.Count > 24 || in.Minutes < 30 || in.Minutes > 120 || len(in.Weekdays) < 1 || len(in.Weekdays) > 7 {
 		return nil, bad
@@ -251,6 +253,10 @@ func recurrence(in RecurrenceInput, now time.Time) ([]time.Time, error) {
 	if e != nil || first.Format("2006-01-02 15:04") != in.StartDate+" "+in.Time {
 		return nil, bad
 	}
+	// A regular booking must start tomorrow or later in its teaching timezone.
+	if in.StartDate <= now.In(loc).Format("2006-01-02") {
+		return nil, bad
+	}
 	days := map[int]bool{}
 	for _, d := range in.Weekdays {
 		if d < 0 || d > 6 || days[d] {
@@ -259,9 +265,13 @@ func recurrence(in RecurrenceInput, now time.Time) ([]time.Time, error) {
 		days[d] = true
 	}
 	starts := []time.Time{}
+	leave := map[string]bool{}
+	for _, date := range leaveDates {
+		leave[date] = true
+	}
 	for i := 0; i < 180 && len(starts) < in.Count; i++ {
 		v := first.AddDate(0, 0, i)
-		if days[int(v.Weekday())] {
+		if days[int(v.Weekday())] && !leave[v.Format("2006-01-02")] {
 			if !v.After(now.Add(5*time.Minute)) || v.After(now.AddDate(0, 6, 0)) || v.Format("15:04") != in.Time {
 				return nil, bad
 			}

@@ -162,14 +162,9 @@ test('adult profile keeps matching draft separate and recovers a lost draft resp
   expect(data.draft?.goal).toBe('Retained matching draft')
   expect(data.learners.every((item) => item.kind === 'adult_self')).toBe(true)
   await page.goto(`/workspace?view=learners&learner=${learner.id}`)
-  await page.getByRole('link', { name: 'Add learning needs', exact: true }).click()
-  await expect(page.getByLabel('What would you like help with?')).toHaveValue(
-    'Retained matching draft',
-  )
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
-  await page.getByRole('button', { name: 'Choose a tutor', exact: true }).click()
-  await expect(page.locator('.parent-tutor-grid')).toBeVisible()
-  expect((await dashboard(page)).requirements[0].learnerId).toBe(learner.id)
+  await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible()
+  await page.getByRole('main').getByRole('link', { name: 'Edit profile', exact: true }).click()
+  await expect(page.getByLabel('First name or nickname')).toHaveValue(learner.name)
 })
 
 test('guardian setup failure explains the gate before collecting learner details', async ({

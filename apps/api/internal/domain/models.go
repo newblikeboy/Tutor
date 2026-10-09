@@ -13,6 +13,7 @@ type User struct {
 }
 type Scope struct {
 	Subject   string    `json:"subject" bson:"subject"`
+	Subjects  []string  `json:"subjects,omitempty" bson:"subjects,omitempty"`
 	MinClass  int       `json:"minClass" bson:"minClass"`
 	MaxClass  int       `json:"maxClass" bson:"maxClass"`
 	Mode      string    `json:"mode" bson:"mode"`
@@ -149,6 +150,8 @@ type Requirement struct {
 	CreatedAt time.Time      `json:"createdAt" bson:"createdAt"`
 }
 type Trial struct {
+	Subjects         []string   `json:"subjects,omitempty" bson:"subjects,omitempty"`
+	Mode             string     `json:"mode,omitempty" bson:"mode,omitempty"`
 	ScheduleTimezone string     `json:"-" bson:"scheduleTimezone,omitempty"`
 	BufferMinutes    int        `json:"-" bson:"bufferMinutes,omitempty"`
 	ID               string     `json:"id" bson:"_id"`
@@ -205,9 +208,9 @@ type Fault struct {
 func (f *Fault) Error() string                    { return f.Message }
 func Fail(status int, code, message string) error { return &Fault{status, code, message} }
 func Eligible(a Application, class int, now time.Time) bool {
-	return a.Status == "approved" && a.Scope.Subject == "Mathematics" && a.Scope.HasMode("online") && class >= a.Scope.MinClass && class <= a.Scope.MaxClass && a.Scope.ExpiresAt.After(now)
+	return EligibleForMode(a, class, "online", now)
 }
 func EligibleForMode(a Application, class int, mode string, now time.Time) bool {
-	return a.Status == "approved" && a.Scope.Subject == "Mathematics" && a.Scope.HasMode(mode) && class >= a.Scope.MinClass && class <= a.Scope.MaxClass && a.Scope.ExpiresAt.After(now)
+	return a.Status == "approved" && a.Scope.HasMode(mode) && class >= a.Scope.MinClass && class <= a.Scope.MaxClass && a.Scope.ExpiresAt.After(now)
 }
 func Overlap(a, b, c, d time.Time) bool { return a.Before(d) && c.Before(b) }

@@ -45,7 +45,7 @@ func (a *App) reviewReplacementTax(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := a.Store.Tx(r.Context(), func(ctx context.Context) error {
-		s, e := storage.One[domain.ClassSession](ctx, a.Store, "classes", bson.M{"_id": chi.URLParam(r, "id"), "status": "reviewed", "attendance": "present"})
+		s, e := storage.One[domain.ClassSession](ctx, a.Store, "classes", bson.M{"_id": chi.URLParam(r, "id"), "status": bson.M{"$in": []string{"completed", "reviewed"}}, "attendance": "present"})
 		if e != nil {
 			return e
 		}
@@ -113,7 +113,7 @@ func (a *App) reconcileBookingEarnings(ctx context.Context, intentID string) err
 	if e != nil {
 		return e
 	}
-	classes, e := storage.Many[domain.ClassSession](ctx, a.Store, "classes", bson.M{"enrollmentId": p.EnrollmentID, "status": "reviewed"})
+	classes, e := storage.Many[domain.ClassSession](ctx, a.Store, "classes", bson.M{"enrollmentId": p.EnrollmentID, "status": bson.M{"$in": []string{"completed", "reviewed"}}})
 	if e != nil {
 		return e
 	}

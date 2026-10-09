@@ -93,6 +93,16 @@ export function tuitionContract(schemas, route) {
     EnrollmentPage: obj({ items: array('Enrollment'), nextCursor: str }),
     EnrollmentInput: obj({
       trialId: str,
+      subjects: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+        },
+        minItems: 1,
+        maxItems: 6,
+        uniqueItems: true,
+      },
       schedule: ref('RecurrenceInput'),
       packageMode: str,
       packagePeriod: str,
@@ -130,14 +140,13 @@ export function tuitionContract(schemas, route) {
       {
         action: {
           type: 'string',
-          enum: ['propose', 'accept_change', 'cancel', 'record', 'review', 'resolve_attendance'],
+          enum: ['propose', 'accept_change', 'cancel', 'record', 'resolve_attendance'],
         },
         version: integer,
         start: date,
         reason: str,
         notes: str,
         homework: str,
-        review: str,
         attendance: str,
         developmentRecord: bool,
       },
@@ -203,6 +212,19 @@ export function tuitionContract(schemas, route) {
       delivered: integer,
     }),
   })
+  schemas.Agreement.properties.subjects = {
+    type: 'array',
+    items: {
+      type: 'string',
+      enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+    },
+    minItems: 1,
+    maxItems: 6,
+    uniqueItems: true,
+  }
+  schemas.Agreement.properties.packageFeePaise = { type: 'integer', minimum: 0 }
+  schemas.RecurrenceInput.description =
+    'Class-count recurrence on available teaching weekdays at the selected time, skipping planned leave. All classes must be within the six-month scheduling horizon and current tutor approval. Weekly and monthly packages have no calendar-period deadline.'
   route('/availability', 'get', 'Availability')
   route('/enrollments/{id}/messages', 'get', 'MessagePage')
   route('/enrollments/{id}/messages', 'post', 'Message', 'MessageInput')

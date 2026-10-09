@@ -28,7 +28,7 @@ func (tc *testClient) setTestFees(id string, amount int64) {
 		plans = append(plans, domain.FeePlan{Mode: "online", Period: "hour", AmountPaise: amount, Classes: 1, Minutes: 60})
 	}
 	if modes["home"] {
-		plans = append(plans, domain.FeePlan{Mode: "home", Period: "week", AmountPaise: amount * 3, Classes: 3, Minutes: 60}, domain.FeePlan{Mode: "home", Period: "month", AmountPaise: amount * 12, Classes: 12, Minutes: 60})
+		plans = append(plans, domain.FeePlan{Mode: "home", Period: "week", AmountPaise: amount * 3, Classes: 6, Minutes: 60}, domain.FeePlan{Mode: "home", Period: "month", AmountPaise: amount * 12, Classes: 24, Minutes: 60})
 	}
 	tc.decide(id, map[string]any{"action": "fees", "feePlans": plans}, 200)
 }
@@ -36,7 +36,7 @@ func (tc *testClient) setTestFees(id string, amount int64) {
 func TestFeePlanValidationAndPublicScope(t *testing.T) {
 	p := completeApplication("Fee fixture", time.Now())
 	a := domain.Application{Profile: &p, Scope: domain.Scope{Mode: "online"}}
-	plans := []domain.FeePlan{{Mode: "online", Period: "hour", AmountPaise: 50101, Classes: 1, Minutes: 60}, {Mode: "home", Period: "week", AmountPaise: 150000, Classes: 3, Minutes: 60}, {Mode: "home", Period: "month", AmountPaise: 500000, Classes: 12, Minutes: 60}}
+	plans := []domain.FeePlan{{Mode: "online", Period: "hour", AmountPaise: 50101, Classes: 1, Minutes: 60}, {Mode: "home", Period: "week", AmountPaise: 150000, Classes: 6, Minutes: 60}, {Mode: "home", Period: "month", AmountPaise: 500000, Classes: 24, Minutes: 60}}
 	if err := validateFeePlans(a, plans); err != nil {
 		t.Fatal(err)
 	}
@@ -74,5 +74,12 @@ func TestFeePlanValidationAndPublicScope(t *testing.T) {
 	}
 	if _, ok := a.HourlyFee(); ok {
 		t.Fatal("home fees treated as online billing")
+	}
+	// New package counts must not rewrite stored legacy fees or agreement prices.
+	a.Fees.Plans[1].Classes = 3
+	a.Fees.Plans[2].Classes = 12
+	current := a.FeePlans()
+	if current[0].Classes != 6 || current[1].Classes != 24 || a.Fees.Plans[1].Classes != 3 || a.Fees.Plans[2].Classes != 12 || current[0].AmountPaise != a.Fees.Plans[1].AmountPaise {
+		t.Fatal("class-count policy rewrote legacy fees", current)
 	}
 }

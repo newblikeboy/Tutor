@@ -144,7 +144,7 @@ func (a *App) reviewBookingTax(w http.ResponseWriter, r *http.Request) {
 		if _, e = a.Store.C("finance_bookings").ReplaceOne(ctx, bson.M{"_id": b.ID}, b); e != nil {
 			return e
 		}
-		classes, e := storage.Many[domain.ClassSession](ctx, a.Store, "classes", bson.M{"enrollmentId": b.EnrollmentID, "status": "reviewed"})
+		classes, e := storage.Many[domain.ClassSession](ctx, a.Store, "classes", bson.M{"enrollmentId": b.EnrollmentID, "status": bson.M{"$in": []string{"completed", "reviewed"}}})
 		if e != nil {
 			return e
 		}
@@ -163,7 +163,7 @@ func (a *App) reviewBookingTax(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) recognizeEarning(ctx context.Context, s domain.ClassSession) error {
-	if s.Status != "reviewed" || s.Attendance != "present" || s.End.After(a.Now()) {
+	if !enum(s.Status, "completed", "reviewed") || s.Attendance != "present" || s.End.After(a.Now()) {
 		return nil
 	}
 	e, e2 := storage.One[domain.Enrollment](ctx, a.Store, "enrollments", bson.M{"_id": s.EnrollmentID})

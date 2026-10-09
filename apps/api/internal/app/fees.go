@@ -3,7 +3,7 @@ package app
 import "tutorplatform/internal/domain"
 
 func validateFeePlans(a domain.Application, plans []domain.FeePlan) error {
-	bad := domain.Fail(422, "fee_plans", "Set an online hourly fee or home weekly and monthly plans, including classes and duration.")
+	bad := domain.Fail(422, "fee_plans", "Set an online hourly fee or home packages with 6 weekly classes and 24 monthly classes, including duration.")
 	modes := map[string]bool{a.Scope.Mode: a.Scope.Mode != ""}
 	if a.Profile != nil {
 		for _, area := range a.Profile.TeachingAreas {
@@ -26,7 +26,7 @@ func validateFeePlans(a domain.Application, plans []domain.FeePlan) error {
 				return bad
 			}
 		} else if p.Mode == "home" {
-			if !enum(p.Period, "week", "month") || p.Classes < 1 || p.Classes > 24 || p.Period == "week" && p.Classes > 7 || p.Minutes < 30 || p.Minutes > 120 {
+			if !enum(p.Period, "week", "month") || p.Period == "week" && p.Classes != 6 || p.Period == "month" && p.Classes != 24 || p.Minutes < 30 || p.Minutes > 120 {
 				return bad
 			}
 		} else {

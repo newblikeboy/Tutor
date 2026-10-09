@@ -14,7 +14,7 @@ import {
   Plus,
   ShieldCheck,
 } from 'lucide-react'
-import { APIError, indiaDate } from '../lib/api'
+import { APIError, indiaDate, queryClient } from '../lib/api'
 const Parent = lazy(() => import('./parent'))
 import { TrialCard } from '../components/trial-card'
 const StaffWorkspace = lazy(() => import('./staff'))
@@ -77,7 +77,11 @@ function WorkspaceData() {
             variant="secondary"
             aria-label={t('desk.refresh')}
             busy={q.isFetching}
-            onClick={() => void q.refetch()}
+            onClick={() => {
+              void q.refetch()
+              if (view === 'learners')
+                void queryClient.invalidateQueries({ queryKey: ['learner-progress'] })
+            }}
           >
             <RefreshCw size={17} aria-hidden="true" />
           </Button>

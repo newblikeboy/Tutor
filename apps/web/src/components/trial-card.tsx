@@ -30,7 +30,7 @@ export function TrialCard({
       <div className="record-header">
         <div>
           <h3>
-            {v.learnerName || t('learner')} · {t('math')}
+            {v.learnerName || t('learner')} · {(v.subjects ?? [v.subject]).join(', ')}
           </h3>
           <p>{indiaDate(v.start, i18n.language)}</p>
         </div>
@@ -87,13 +87,22 @@ export function TrialCard({
                 maxLength={1200}
               />
             </Field>
+            <Field label="Trial feedback">
+              <textarea
+                value={review}
+                onChange={(event) => setReview(event.target.value)}
+                required
+                minLength={10}
+                maxLength={2000}
+              />
+            </Field>
             <Button type="submit" busy={mutation.isPending}>
               {t('completeLesson')}
             </Button>
           </form>
         )}
         {((role === 'mentor' && ['completed', 'reviewed'].includes(v.status)) ||
-          (role === 'parent' && v.status === 'reviewed')) && (
+          (role === 'parent' && ['completed', 'reviewed'].includes(v.status))) && (
           <>
             <div>
               <h4>{t(role === 'parent' ? 'experience.lesson' : 'lesson')}</h4>
@@ -105,35 +114,13 @@ export function TrialCard({
             </div>
           </>
         )}
-        {role === 'mentor' && v.status === 'completed' && (
-          <form
-            className="record-form"
-            onSubmit={(e) => {
-              e.preventDefault()
-              mutation.mutate('review')
-            }}
-          >
-            <Field label={t('reviewNotes')}>
-              <textarea
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-                required
-                minLength={10}
-                maxLength={2000}
-              />
-            </Field>
-            <Button type="submit" busy={mutation.isPending}>
-              {t('publishReview')}
-            </Button>
-          </form>
-        )}
-        {v.status === 'reviewed' && role !== 'tutor' && (
+        {['completed', 'reviewed'].includes(v.status) && role !== 'tutor' && (
           <div>
             <h4>{t(role === 'parent' ? 'parent.completed' : 'reviewNotes')}</h4>
             <p>{v.review}</p>
           </div>
         )}
-        {role === 'parent' && v.status === 'reviewed' && (
+        {role === 'parent' && ['completed', 'reviewed'].includes(v.status) && (
           <LinkButton to="/tuition" secondary>
             {t('bookTutor')}
           </LinkButton>
