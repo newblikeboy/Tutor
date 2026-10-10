@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { fillApplication, fillStaffFees } from './helpers/application'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -46,7 +47,7 @@ test('staff reviews a real application, schedules Zoom, approves and manages the
   try {
     const tutor = await tutorContext.newPage()
     const email = `staff-applicant-${Date.now()}@example.test`
-    const signup = await tutor.request.post('/api/v1/auth/signup', {
+    const signup = await verifiedSignup(tutor.request, {
       headers: { Origin: origin },
       data: { email, password, role: 'tutor', name: 'Fictional staff-flow applicant', adult: true },
     })

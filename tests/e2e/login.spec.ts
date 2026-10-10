@@ -28,7 +28,7 @@ test('matching opens sign-in directly and preserves the destination through acco
   await page.getByLabel('Password', { exact: true }).fill('E2E-only learning passphrase 426!')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(destination)
-  await expect(page.getByRole('heading', { name: 'Who is learning?', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Find a tutor', exact: true })).toBeVisible()
 })
 
 for (const scenario of [

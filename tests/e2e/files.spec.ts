@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { applicationProfile } from './helpers/application'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -8,7 +9,7 @@ test('private application evidence persists in quarantine and never grants appro
   test.setTimeout(120000)
   const origin = 'http://127.0.0.1:5174',
     email = `files-${Date.now()}@example.test`
-  const signup = await page.request.post('/api/v1/auth/signup', {
+  const signup = await verifiedSignup(page.request, {
     headers: { Origin: origin },
     data: {
       email,

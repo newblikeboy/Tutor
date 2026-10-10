@@ -1,3 +1,4 @@
+import { pendingEmailCode } from './signup-fixture'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -16,7 +17,7 @@ for (const language of ['en', 'hi']) {
     await page.evaluate(() => document.fonts.ready)
     await mkdir('docs/visual-qa', { recursive: true })
     await page.screenshot({
-      path: `docs/visual-qa/english-only/signup-en-${hi ? 'mobile' : 'desktop'}.png`,
+      path: `docs/visual-qa/signup-verification/details-${hi ? '390' : '1440'}.png`,
       fullPage: true,
     })
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
@@ -32,7 +33,7 @@ for (const language of ['en', 'hi']) {
     await expect(secret).toBeFocused()
     await secret.fill('short')
     await page.getByRole('checkbox').check()
-    await page.getByRole('button', { name: 'Create account', exact: true }).click()
+    await page.getByRole('button', { name: 'Send email code', exact: true }).click()
     await expect(secret).toHaveAttribute('aria-invalid', 'true')
     await expect(page).toHaveURL(/signup/)
     await secret.fill(password)
@@ -40,11 +41,24 @@ for (const language of ['en', 'hi']) {
     await expect(secret).toHaveAttribute('type', 'text')
     await page.getByRole('button', { name: 'Hide password' }).click()
     await expect(secret).toHaveAttribute('type', 'password')
-    await page.getByRole('button', { name: 'Create account', exact: true }).click()
+    await page.getByRole('button', { name: 'Send email code', exact: true }).click()
+    await expect(page.getByLabel('Email code', { exact: true })).toBeVisible()
+    expect(await (await page.request.get('/api/v1/auth/session')).json()).toBeNull()
+    expect((await page.request.get('/api/v1/account')).status()).toBe(401)
+    await page.screenshot({
+      path: `docs/visual-qa/signup-verification/code-${hi ? '390' : '1440'}.png`,
+      fullPage: true,
+    })
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+    await page
+      .getByLabel('Email code', { exact: true })
+      .fill(await pendingEmailCode(address, 'signup'))
+    await page.getByRole('button', { name: 'Verify email and create account', exact: true }).click()
     await expect(page).toHaveURL(/workspace/)
     const account = await (await page.request.get('/api/v1/auth/session')).json()
     expect(account.user.email).toBe(address)
     expect(account.user.role).toBe('parent')
+    expect(account.user.emailVerifiedAt).toBeTruthy()
     await page.getByRole('button', { name: 'Sign out', exact: true }).click()
     await expect(page).toHaveURL('/')
     await page.goto('/login')
@@ -72,7 +86,12 @@ test('tutor signup starts a private application and never grants approval', asyn
   await page.getByLabel('Email address', { exact: true }).fill('new-tutor@example.test')
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('checkbox').check()
-  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await page.getByRole('button', { name: 'Send email code', exact: true }).click()
+  await expect(page.getByLabel('Email code', { exact: true })).toBeVisible()
+  await page
+    .getByLabel('Email code', { exact: true })
+    .fill(await pendingEmailCode('new-tutor@example.test', 'signup'))
+  await page.getByRole('button', { name: 'Verify email and create account', exact: true }).click()
   await expect(page).toHaveURL('/apply')
   const user = (await (await page.request.get('/api/v1/auth/session')).json()).user
   expect(user.role).toBe('tutor')
@@ -80,7 +99,7 @@ test('tutor signup starts a private application and never grants approval', asyn
   expect((await (await page.request.get('/api/v1/dashboard')).json()).applications).toEqual([])
 })
 
-test('login errors preserve inputs, network retry works, and recovery help is honest', async ({
+test('login errors preserve inputs, network retry works, and recovery opens email codes', async ({
   page,
 }) => {
   await page.goto('/login')
@@ -96,10 +115,11 @@ test('login errors preserve inputs, network retry works, and recovery help is ho
     path: 'docs/visual-qa/english-only/login-error-desktop.png',
     fullPage: true,
   })
-  await page.getByRole('button', { name: 'Trouble signing in?' }).click()
-  await expect(page.getByRole('dialog')).toContainText('Password recovery is not available')
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('button', { name: 'Trouble signing in?' })).toBeFocused()
+  await page.getByRole('link', { name: 'Forgot password?', exact: true }).click()
+  await expect(page).toHaveURL(/method=recover/)
+  await expect(page.getByRole('button', { name: 'Send email code', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Sign in with password', exact: true }).click()
+  await email.fill('parent-a@example.test')
   await page.route('**/api/v1/auth/login', (route) => route.abort('failed'))
   await secret.fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()

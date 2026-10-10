@@ -24,6 +24,7 @@ import (
 
 type emailChallenge struct {
 	ID             string    `bson:"_id"`
+	Email          string    `bson:"email,omitempty"`
 	UserID         string    `bson:"userId"`
 	Purpose        string    `bson:"purpose"`
 	CodeHash       string    `bson:"codeHash"`
@@ -111,8 +112,8 @@ func (a *App) requestEmailCode(w http.ResponseWriter, r *http.Request) {
 	if !a.decode(w, r, &in) {
 		return
 	}
-	if !enum(in.Purpose, "login", "reset") {
-		a.error(w, r, domain.Fail(422, "validation", "Choose sign-in or password recovery."))
+	if !enum(in.Purpose, "login", "reset", "signup") {
+		a.error(w, r, domain.Fail(422, "validation", "Choose signup, sign-in or password recovery."))
 		return
 	}
 	a.issueEmailCode(w, r, in.Email, in.Purpose, "")
@@ -164,6 +165,19 @@ func (a *App) issueEmailCode(w http.ResponseWriter, r *http.Request, value, purp
 			return err
 		}
 		c, err := storage.One[credential](ctx, a.Store, "credentials", bson.M{"_id": email})
+		if purpose == "signup" {
+			if err == nil {
+				return nil // Same response for existing and new addresses; no account is created here.
+			}
+			if err != mongo.ErrNoDocuments {
+				return err
+			}
+			challenge := emailChallenge{ID: id, Email: email, Purpose: purpose, CodeHash: a.emailCodeHash(id, purpose, code), ExpiresAt: expires, GuardID: guardID}
+			if _, err = a.Store.C("email_challenges").InsertOne(ctx, challenge); err != nil {
+				return err
+			}
+			return a.enqueue(ctx, "email-code:"+id, "email", bson.M{"event": "auth_code", "challengeId": id, "encryptedCode": encrypted}, "pending")
+		}
 		if err == mongo.ErrNoDocuments {
 			return nil
 		}
@@ -189,7 +203,11 @@ func (a *App) issueEmailCode(w http.ResponseWriter, r *http.Request, value, purp
 	}
 	// Wake only after the transaction commits; never submit mail inside a retryable transaction.
 	a.wakeEmailCodes()
-	a.json(w, 202, map[string]any{"challengeId": id, "expiresAt": expires, "resendAfterSeconds": 60, "message": "If this account is eligible, a code will be emailed. It expires in 10 minutes."})
+	message := "If this account is eligible, a code will be emailed. It expires in 10 minutes."
+	if purpose == "signup" {
+		message = "If this email is available for signup, a code will be emailed. It expires in 10 minutes. Already have an account? Sign in instead."
+	}
+	a.json(w, 202, map[string]any{"challengeId": id, "expiresAt": expires, "resendAfterSeconds": 60, "message": message})
 }
 func (a *App) confirmEmailCode(w http.ResponseWriter, r *http.Request)    { a.confirmEmail(w, r, false) }
 func (a *App) confirmVerification(w http.ResponseWriter, r *http.Request) { a.confirmEmail(w, r, true) }

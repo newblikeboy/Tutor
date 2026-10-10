@@ -17,7 +17,7 @@ export function emailContract(schemas, route, paths) {
   Object.assign(schemas, {
     EmailCodeRequest: obj({
       email: { ...string, format: 'email' },
-      purpose: { ...string, enum: ['login', 'reset'] },
+      purpose: { ...string, enum: ['login', 'reset', 'signup'] },
     }),
     EmailChallenge: obj({
       challengeId: { ...string, pattern: '^[a-f0-9]{64}$' },

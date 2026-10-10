@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -8,7 +9,7 @@ test('new tutor sees application stages first and teaching routes stay locked un
   browser,
 }) => {
   const origin = 'http://127.0.0.1:5174'
-  const response = await page.request.post('/api/v1/auth/signup', {
+  const response = await verifiedSignup(page.request, {
     headers: { Origin: origin },
     data: {
       email: `onboarding-${Date.now()}@example.test`,

@@ -1,3 +1,4 @@
+import { pendingEmailCode } from './signup-fixture'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -30,7 +31,7 @@ test('eight-character signup and password change persist; seven characters are r
   await page.getByLabel('Email address', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill('Abcd!42')
   await page.getByRole('checkbox').check()
-  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await page.getByRole('button', { name: 'Send email code', exact: true }).click()
   await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('aria-invalid', 'true')
   await expect(page).toHaveURL('/signup')
   const rejected = await page.request.post('/api/v1/auth/signup', {
@@ -45,7 +46,10 @@ test('eight-character signup and password change persist; seven characters are r
   })
   expect(rejected.status()).toBe(422)
   await page.getByLabel('Password', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await page.getByRole('button', { name: 'Send email code', exact: true }).click()
+  await expect(page.getByLabel('Email code', { exact: true })).toBeVisible()
+  await page.getByLabel('Email code', { exact: true }).fill(await pendingEmailCode(email, 'signup'))
+  await page.getByRole('button', { name: 'Verify email and create account', exact: true }).click()
   await expect(page).toHaveURL('/workspace')
   await page.goto('/account?tab=password')
   for (const width of [1440, 390]) {

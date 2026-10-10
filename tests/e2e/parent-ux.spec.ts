@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect, request, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -37,7 +38,7 @@ async function prepareTrialTutor() {
   }
 }
 async function family(page: Page) {
-  const response = await page.request.post('/api/v1/auth/signup', {
+  const response = await verifiedSignup(page.request, {
     headers: { Origin: origin },
     data: {
       email: `parent-ux-${crypto.randomUUID()}@example.test`,

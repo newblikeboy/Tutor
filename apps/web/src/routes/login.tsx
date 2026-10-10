@@ -70,6 +70,10 @@ export default function Login() {
   const loginIdentity = loginRoles.find((item) => item.value === loginRole)!
   const LoginIcon = loginIdentity.icon
   const [visible, setVisible] = useState(false)
+  const [pendingSignup, setPendingSignup] = useState<{
+    values: Omit<Schema['SignupInput'], 'challengeId' | 'code'>
+    challenge: Schema['EmailChallenge']
+  }>()
   const navigate = useNavigate()
   const form = useForm<AccountValues>({
     resolver: zodResolver(accountSchema),
@@ -99,29 +103,31 @@ export default function Login() {
   }
   const switchPath = accountPath(role, !signup)
   const emailPath = (method: 'otp' | 'recover') => `${accountPath(loginRole)}&method=${method}`
-  const signedIn = async (data: Schema['Auth']) => {
+  const signedIn = async (data: Schema['Auth'], created = false) => {
     await queryClient.cancelQueries()
     queryClient.clear()
     setCSRF(data.csrf)
     queryClient.setQueryData(['me'], data)
-    navigate(returnPath ?? '/workspace', { replace: true })
+    form.reset()
+    setPendingSignup(undefined)
+    navigate(returnPath ?? (created && data.user.role === 'tutor' ? '/apply' : '/workspace'), {
+      replace: true,
+    })
   }
+  const signupRequest = useMutation({
+    mutationFn: async (values: AccountValues) => ({
+      values: { ...values, adult: true as const },
+      challenge: await send<Schema['EmailChallenge']>('/auth/email/request', {
+        email: values.email,
+        purpose: 'signup',
+      }),
+    }),
+    onSuccess: setPendingSignup,
+  })
   const mutation = useMutation({
     mutationFn: (values: AccountValues) =>
-      send<Schema['Auth']>(
-        signup ? '/auth/signup' : '/auth/login',
-        signup ? values : { email: values.email, password: values.password },
-      ),
-    onSuccess: async (data) => {
-      await queryClient.cancelQueries()
-      queryClient.clear()
-      setCSRF(data.csrf)
-      queryClient.setQueryData(['me'], data)
-      form.reset()
-      navigate(returnPath ?? (signup && data.user.role === 'tutor' ? '/apply' : '/workspace'), {
-        replace: true,
-      })
-    },
+      send<Schema['Auth']>('/auth/login', { email: values.email, password: values.password }),
+    onSuccess: (data) => signedIn(data),
   })
   const submit = form.handleSubmit((values) => {
     if (signup) {
@@ -140,7 +146,8 @@ export default function Login() {
       }
       if (invalid) return
     }
-    mutation.mutate(values)
+    if (signup) signupRequest.mutate(values)
+    else mutation.mutate(values)
   })
   return (
     <div className="auth-experience">
@@ -250,7 +257,9 @@ export default function Login() {
                 </div>
                 <p className="auth-kicker">{t('authSignupKicker')}</p>
                 <h1 id="auth-title">{t('authSignupTitle')}</h1>
-                <p className="auth-subtitle">{t('authSignupBody')}</p>
+                <p className="auth-subtitle">
+                  {t(pendingSignup ? 'authSignupVerifyBody' : 'authSignupBody')}
+                </p>
               </>
             ) : (
               <div className="auth-login-heading">
@@ -285,6 +294,25 @@ export default function Login() {
               </div>
             ) : !config.data?.authEnabled ? (
               <Alert>{t('authUnavailable')}</Alert>
+            ) : signup && !config.data.emailEnabled ? (
+              <Alert>
+                Email delivery is not configured. Signup requires email verification. Contact
+                support@gocoaching.in.
+              </Alert>
+            ) : signup && pendingSignup ? (
+              <EmailCodeForm
+                purpose="signup"
+                email={pendingSignup.values.email}
+                signupInput={pendingSignup.values}
+                initialChallenge={pendingSignup.challenge}
+                onBack={() => {
+                  setPendingSignup(undefined)
+                  signupRequest.reset()
+                }}
+                onSuccess={async (data) => {
+                  if ('csrf' in data) await signedIn(data, true)
+                }}
+              />
             ) : emailMethod ? (
               <div>
                 {recovered && emailMethod === 'reset' ? (
@@ -427,9 +455,17 @@ export default function Login() {
                     )}
                   </div>
                 )}
-                <MutationError error={mutation.error} />
-                <Button type="submit" busy={mutation.isPending} className="auth-submit">
-                  {t(mutation.isPending ? 'authWorking' : signup ? 'authCreate' : 'authSignIn')}
+                <MutationError error={signup ? signupRequest.error : mutation.error} />
+                <Button
+                  type="submit"
+                  busy={signup ? signupRequest.isPending : mutation.isPending}
+                  className="auth-submit"
+                >
+                  {signup
+                    ? signupRequest.isPending
+                      ? t('authWorking')
+                      : 'Send email code'
+                    : t(mutation.isPending ? 'authWorking' : 'authSignIn')}
                   <ArrowRight size={18} />
                 </Button>
                 {signup && (

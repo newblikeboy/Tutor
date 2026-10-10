@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -55,8 +56,9 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 	if err = s.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	cfg := config.Config{Env: "production", AuthProvider: "password", Origin: "https://test.local"}
+	cfg := config.Config{Env: "production", AuthProvider: "password", Origin: "https://test.local", MailTokenKey: base64.StdEncoding.EncodeToString(make([]byte, 32))}
 	a := New(s, cfg)
+	a.Mail = &testEmailSender{}
 	server := httptest.NewTLSServer(a.Routes())
 	defer server.Close()
 	newClient := func(server *httptest.Server) *testClient {
@@ -83,7 +85,9 @@ func TestMongoProductionPasswordAccounts(t *testing.T) {
 	}
 	for i, c := range []*testClient{parent, tutor} {
 		role := []string{"parent", "tutor"}[i]
-		v := call(c, "POST", "/auth/signup", map[string]any{"name": "Production test adult", "email": role + "@example.test", "password": accountPassword, "role": role, "adult": true}, 201)
+		input := map[string]any{"name": "Production test adult", "email": role + "@example.test", "password": accountPassword, "role": role, "adult": true}
+		signupCode(t, a, role+"@example.test", input)
+		v := call(c, "POST", "/auth/signup", input, 201)
 		c.csrf = v["csrf"].(string)
 		if v["user"].(map[string]any)["sample"] != false {
 			t.Fatal("signup created sample account")

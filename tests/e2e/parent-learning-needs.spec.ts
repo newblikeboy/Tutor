@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -8,7 +9,7 @@ test('saved learner context leads directly to the finder and retains historical 
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   const origin = 'http://127.0.0.1:5174'
-  const signup = await page.request.post('/api/v1/auth/signup', {
+  const signup = await verifiedSignup(page.request, {
     headers: { Origin: origin },
     data: {
       email: `needs-${crypto.randomUUID()}@example.test`,

@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -97,8 +98,9 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		t.Fatal(e)
 	}
 	t.Log("Created isolated database", name, "(retained for review; no existing database modified)")
-	c := config.Config{Env: "test", Name: "GoCoaching", Origin: "http://test.local", AuthProvider: "password"}
+	c := config.Config{Env: "test", Name: "GoCoaching", Origin: "http://test.local", AuthProvider: "password", MailTokenKey: base64.StdEncoding.EncodeToString(make([]byte, 32))}
 	a := New(s, c)
+	a.Mail = &testEmailSender{}
 	server := httptest.NewServer(a.Routes())
 	defer server.Close()
 	s2, e := storage.Connect(ctx, uri, name)
@@ -106,7 +108,9 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer s2.Client.Disconnect(ctx)
-	server2 := httptest.NewServer(New(s2, c).Routes())
+	a2 := New(s2, c)
+	a2.Mail = &testEmailSender{}
+	server2 := httptest.NewServer(a2.Routes())
 	defer server2.Close()
 	client := func(base string) *testClient {
 		jar, _ := cookiejar.New(nil)
@@ -127,6 +131,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 	t.Run("real email signup normalized unique credentials and tutor approval boundary", func(t *testing.T) {
 		tc := client(server.URL)
 		body := map[string]any{"name": "New tutor", "email": "  NEW.TUTOR@Example.Test  ", "password": testPassword, "role": "tutor", "adult": true}
+		signupCode(t, a, "new.tutor@example.test", body)
 		v := tc.ok("POST", "/auth/signup", body, 201)
 		tc.csrf = v["csrf"].(string)
 		u := v["user"].(map[string]any)
@@ -150,7 +155,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		tc.base = server2.URL
 		tc.ok("GET", "/dashboard", nil, 200)
 		body["email"] = "new.tutor@example.test"
-		tc.ok("POST", "/auth/signup", body, 409)
+		tc.ok("POST", "/auth/signup", body, 401)
 	})
 	t.Run("signup validates adults passwords email and rejects staff privilege injection", func(t *testing.T) {
 		tc := client(server.URL)
@@ -171,6 +176,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 	})
 	t.Run("concurrent signup on two API instances creates exactly one account", func(t *testing.T) {
 		body := map[string]any{"name": "Concurrent parent", "email": "concurrent@example.test", "password": testPassword, "role": "parent", "adult": true}
+		signupCode(t, a, "concurrent@example.test", body)
 		statuses := make([]int, 2)
 		var wg sync.WaitGroup
 		for i, base := range []string{server.URL, server2.URL} {
@@ -181,7 +187,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 			}(i, base)
 		}
 		wg.Wait()
-		if !((statuses[0] == 201 && statuses[1] == 409) || (statuses[0] == 409 && statuses[1] == 201)) {
+		if !((statuses[0] == 201 && statuses[1] == 401) || (statuses[0] == 401 && statuses[1] == 201)) {
 			t.Fatal("duplicate signup", statuses)
 		}
 		if n, e := s.C("users").CountDocuments(ctx, bson.M{"email": "concurrent@example.test"}); e != nil || n != 1 {

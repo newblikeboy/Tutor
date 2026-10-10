@@ -91,25 +91,35 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 		if err != nil {
 			return d, err
 		}
-		if c.UserID != u.ID || c.Consumed || c.Attempts >= 5 || !c.ExpiresAt.After(a.Now()) || guard.CurrentID != c.ID {
+		if c.UserID != u.ID || c.Consumed || c.Attempts >= 5 || !c.ExpiresAt.After(a.Now()) || guard.CurrentID != c.ID || (c.Purpose == "signup" && c.Email != u.Email) {
 			return d, emailSkip("expired")
 		}
-		cred, err := storage.One[credential](ctx, a.Store, "credentials", bson.M{"userId": u.ID})
-		if err != nil {
-			return d, err
-		}
-		if digest(cred.Hash) != c.CredentialHash {
-			return d, emailSkip("account_changed")
+		if c.Purpose == "signup" {
+			_, err = storage.One[credential](ctx, a.Store, "credentials", bson.M{"_id": c.Email})
+			if err == nil {
+				return d, emailSkip("account_changed")
+			}
+			if err != mongo.ErrNoDocuments {
+				return d, err
+			}
+		} else {
+			cred, err := storage.One[credential](ctx, a.Store, "credentials", bson.M{"userId": u.ID})
+			if err != nil {
+				return d, err
+			}
+			if digest(cred.Hash) != c.CredentialHash {
+				return d, emailSkip("account_changed")
+			}
 		}
 		d.Code, err = a.protectCode(c.ID, p["encryptedCode"], false)
 		if err != nil {
 			return d, err
 		}
-		d.Title = map[string]string{"verify": "Verify your email address", "login": "Your sign-in code", "reset": "Reset your password"}[c.Purpose]
+		d.Title = map[string]string{"signup": "Verify your email to create your account", "verify": "Verify your email address", "login": "Your sign-in code", "reset": "Reset your password"}[c.Purpose]
 		if d.Title == "" {
 			return d, emailSkip("invalid_purpose")
 		}
-		d.Intro = map[string]string{"verify": "Use this code to confirm this email address belongs to you.", "login": "Use this code to sign in to your GoCoaching account.", "reset": "Use this code on the password recovery page to choose a new password."}[c.Purpose]
+		d.Intro = map[string]string{"signup": "Enter this code on the GoCoaching signup page. Your account will be created only after your email is verified. This code expires in 10 minutes.", "verify": "Use this code to confirm this email address belongs to you.", "login": "Use this code to sign in to your GoCoaching account.", "reset": "Use this code on the password recovery page to choose a new password."}[c.Purpose]
 		d.Notice = "If you did not request this code, ignore this email. GoCoaching support will never ask you to share a code or password."
 		return d, nil
 	case "password_changed":
@@ -357,11 +367,11 @@ func (a *App) processEmail(ctx context.Context, j job) error {
 	if j.SMTPSubmissionStarted {
 		return &mailer.Error{Ambiguous: true}
 	}
-	u, err := storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": j.Payload["recipientId"]})
+	u, err := a.emailRecipient(ctx, j)
 	if err != nil {
 		return err
 	}
-	if a.accountAccessError(u) != nil {
+	if u.ID != "" && a.accountAccessError(u) != nil {
 		return emailSkip("account")
 	}
 	if a.Config.Env != "test" && (u.Sample || strings.HasSuffix(strings.ToLower(u.Email), ".test") || strings.HasSuffix(strings.ToLower(u.Email), ".invalid")) {
@@ -400,6 +410,21 @@ func (a *App) processEmail(ctx context.Context, j job) error {
 	}
 	_, err = a.Store.C("outbox").UpdateOne(ctx, bson.M{"_id": j.ID, "leaseOwner": j.LeaseOwner}, bson.M{"$set": bson.M{"smtpAcceptedAt": a.Now()}, "$unset": bson.M{"payload.encryptedCode": ""}})
 	return err
+}
+
+// Signup codes have a pending recipient, never a partially registered user.
+func (a *App) emailRecipient(ctx context.Context, j job) (domain.User, error) {
+	if j.Payload["event"] == "auth_code" && j.Payload["recipientId"] == "" {
+		c, err := storage.One[emailChallenge](ctx, a.Store, "email_challenges", bson.M{"_id": j.Payload["challengeId"], "purpose": "signup"})
+		if err == mongo.ErrNoDocuments {
+			return domain.User{}, emailSkip("expired")
+		}
+		if err != nil {
+			return domain.User{}, err
+		}
+		return domain.User{Email: c.Email}, nil
+	}
+	return storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": j.Payload["recipientId"]})
 }
 
 func (a *App) emailPreferences(w http.ResponseWriter, r *http.Request) {

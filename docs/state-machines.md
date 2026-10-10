@@ -2,6 +2,7 @@
 
 | Domain | From → to | Actor and prerequisites | Atomic effects |
 |---|---|---|---|
+| Public signup | missing account → pending email challenge → verified account | Adult parent/tutor; configured SMTP; same normalized email and valid current signup code; password and rate/attempt checks | Request creates only challenge + encrypted outbox job; confirmation consumes code + creates user/credential/session + audit in one transaction |
 | Application | missing/draft/improvement_required → draft/submitted | Owning tutor, valid bounded application fields | Save application + audit; never approval |
 | Assessment | submitted → under_review | Provisioned mentor/admin; cannot assess self; reviewer confirms no conflict | Assign assessor + audit; admin reassignment resets conflict declaration and cancels any prior interview |
 | Interview | under_review → assessment_scheduled | Assigned reviewer; conflict declaration; valid 15–120 minute Zoom interview | Reserve applicant/reviewer day guards + persist UTC instants, timezone and private join URL + audit |

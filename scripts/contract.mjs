@@ -229,6 +229,8 @@ const schemas = {
     password: { ...str, minLength: 8, maxLength: 128 },
     role: { type: 'string', enum: ['parent', 'tutor'] },
     adult: { const: true },
+    challengeId: { ...str, pattern: '^[a-f0-9]{64}$' },
+    code: { ...str, pattern: '^[0-9]{6}$', writeOnly: true },
   }),
   ApplicationInput: obj({
     name: str,

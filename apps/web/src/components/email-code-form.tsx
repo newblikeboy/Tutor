@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { APIError, send, type Schema } from '../lib/api'
 import { Alert, Button, Field } from './ui'
@@ -6,20 +6,30 @@ import { Alert, Button, Field } from './ui'
 export function EmailCodeForm({
   purpose,
   email: initialEmail = '',
+  initialChallenge,
+  signupInput,
+  onBack,
   onSuccess,
 }: {
-  purpose: 'login' | 'reset' | 'verify'
+  purpose: 'login' | 'reset' | 'verify' | 'signup'
   email?: string
+  initialChallenge?: Schema['EmailChallenge']
+  signupInput?: Omit<Schema['SignupInput'], 'challengeId' | 'code'>
+  onBack?: () => void
   onSuccess: (result: Schema['EmailCodeResult']) => void | Promise<void>
 }) {
   const [email, setEmail] = useState(initialEmail)
-  const [challenge, setChallenge] = useState<Schema['EmailChallenge']>()
+  const [challenge, setChallenge] = useState<Schema['EmailChallenge'] | undefined>(initialChallenge)
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
   const [validation, setValidation] = useState('')
   const [now, setNow] = useState(() => Date.now())
-  const [sentAt, setSentAt] = useState(0)
+  const [sentAt, setSentAt] = useState(() => (initialChallenge ? Date.now() : 0))
+  const codeInput = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (challenge) codeInput.current?.focus()
+  }, [challenge])
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(timer)
@@ -44,8 +54,13 @@ export function EmailCodeForm({
   const confirm = useMutation({
     mutationFn: () =>
       send<Schema['EmailCodeResult']>(
-        purpose === 'verify' ? '/account/email/confirm' : '/auth/email/confirm',
+        purpose === 'signup'
+          ? '/auth/signup'
+          : purpose === 'verify'
+            ? '/account/email/confirm'
+            : '/auth/email/confirm',
         {
+          ...(purpose === 'signup' ? signupInput : {}),
           challengeId: challenge!.challengeId,
           code,
           ...(purpose === 'reset' ? { newPassword: password } : {}),
@@ -86,11 +101,13 @@ export function EmailCodeForm({
       }}
     >
       <p>
-        {purpose === 'verify'
-          ? 'Verify your email address to receive account and class updates.'
-          : purpose === 'reset'
-            ? 'Use an email code to choose a new password.'
-            : 'We will email a code to your registered address.'}
+        {purpose === 'signup'
+          ? 'Verify your email to finish creating your account.'
+          : purpose === 'verify'
+            ? 'Verify your email address to receive account and class updates.'
+            : purpose === 'reset'
+              ? 'Use an email code to choose a new password.'
+              : 'We will email a code to your registered address.'}
       </p>
       <Field label="Email address">
         <input
@@ -100,7 +117,7 @@ export function EmailCodeForm({
           required
           maxLength={254}
           autoComplete="email"
-          readOnly={purpose === 'verify' || !!challenge}
+          readOnly={purpose === 'verify' || purpose === 'signup' || !!challenge}
         />
       </Field>
       {challenge && (
@@ -108,6 +125,7 @@ export function EmailCodeForm({
           <Alert>{challenge.message} Check your spam folder too.</Alert>
           <Field label="Email code" hint="Six digits. Each code can be used once.">
             <input
+              ref={codeInput}
               value={code}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
               inputMode="numeric"
@@ -157,9 +175,11 @@ export function EmailCodeForm({
           ? 'Send email code'
           : purpose === 'reset'
             ? 'Reset password'
-            : purpose === 'verify'
-              ? 'Verify email'
-              : 'Sign in'}
+            : purpose === 'signup'
+              ? 'Verify email and create account'
+              : purpose === 'verify'
+                ? 'Verify email'
+                : 'Sign in'}
       </Button>
       {challenge && (
         <div className="auth-help-row">
@@ -176,14 +196,19 @@ export function EmailCodeForm({
             <Button
               variant="secondary"
               type="button"
+              disabled={request.isPending || confirm.isPending}
               onClick={() => {
+                if (onBack) {
+                  onBack()
+                  return
+                }
                 setChallenge(undefined)
                 setCode('')
                 confirm.reset()
                 request.reset()
               }}
             >
-              Change email
+              {purpose === 'signup' ? 'Edit signup details' : 'Change email'}
             </Button>
           )}
         </div>

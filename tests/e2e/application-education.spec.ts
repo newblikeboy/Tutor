@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -7,7 +8,7 @@ test('education documents preview, upload and persist JPG and PDF originals', as
   test.skip(process.env.E2E_CLOUDINARY !== '1', 'Requires local Cloudinary protocol fixture')
   test.setTimeout(120_000)
   page.setDefaultTimeout(15_000)
-  const signup = await page.request.post('/api/v1/auth/signup', {
+  const signup = await verifiedSignup(page.request, {
     headers: { Origin: 'http://127.0.0.1:5174' },
     data: {
       email: `education-${crypto.randomUUID()}@example.test`,

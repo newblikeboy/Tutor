@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -9,7 +10,7 @@ test('Time & location only requests online setup for selected Online teaching ar
   test.setTimeout(120_000)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  const signup = await page.request.post('/api/v1/auth/signup', {
+  const signup = await verifiedSignup(page.request, {
     headers: { Origin: 'http://127.0.0.1:5174' },
     data: {
       email: `availability-${crypto.randomUUID()}@example.test`,

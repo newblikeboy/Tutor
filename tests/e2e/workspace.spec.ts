@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 ﻿import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -211,7 +212,7 @@ test('family learner selection uses real owned records and persists across views
   page,
   baseURL,
 }) => {
-  const response = await page.request.post('/api/v1/auth/signup', {
+  const response = await verifiedSignup(page.request, {
     headers: { Origin: new URL(baseURL!).origin },
     data: {
       name: 'Fictional workspace parent',

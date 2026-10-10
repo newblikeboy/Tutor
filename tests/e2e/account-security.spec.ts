@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 test.use({ actionTimeout: 12000 })
@@ -14,7 +15,7 @@ test('account preferences, password rotation and cross-browser revocation persis
     const email = `security-${Date.now()}@example.test`
     expect(
       (
-        await first.request.post('/api/v1/auth/signup', {
+        await verifiedSignup(first.request, {
           headers: { Origin: baseURL },
           data: { email, password, name: 'Security test family', role: 'parent', adult: true },
         })

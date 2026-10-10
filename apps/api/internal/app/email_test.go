@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
 	"net/http/cookiejar"
@@ -24,6 +25,30 @@ type testEmailSender struct {
 	mu       sync.Mutex
 	messages []mailer.Message
 	err      error
+}
+
+func signupCode(t *testing.T, a *App, email string, input map[string]any) {
+	t.Helper()
+	w := httptest.NewRecorder()
+	a.issueEmailCode(w, httptest.NewRequest("POST", "/api/v1/auth/email/request", nil), email, "signup", "")
+	if w.Code != 202 {
+		t.Fatalf("signup code request: %d %s", w.Code, w.Body.String())
+	}
+	var response struct {
+		ChallengeID string `json:"challengeId"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	j, err := storage.One[job](context.Background(), a.Store, "outbox", bson.M{"_id": "email-code:" + response.ChallengeID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, err := a.protectCode(response.ChallengeID, j.Payload["encryptedCode"], false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input["challengeId"], input["code"] = response.ChallengeID, code
 }
 
 func (s *testEmailSender) Send(_ context.Context, message mailer.Message) error {
@@ -352,7 +377,9 @@ func TestMongoEmailAuthenticationAndDelivery(t *testing.T) {
 			}
 			return value
 		}
-		call("/auth/signup", map[string]any{"name": "Fictional production adult", "email": "fictional-otp@example.com", "password": testPassword, "role": "parent", "adult": true}, 201)
+		input := map[string]any{"name": "Fictional production adult", "email": "fictional-otp@example.com", "password": testPassword, "role": "parent", "adult": true}
+		signupCode(t, production, "fictional-otp@example.com", input)
+		call("/auth/signup", input, 201)
 		sample := call("/auth/email/request", map[string]any{"email": "parent-a@example.test", "purpose": "login"}, 202)
 		count, e := store.C("outbox").CountDocuments(ctx, bson.M{"_id": "email-code:" + sample["challengeId"].(string)})
 		if e != nil || count != 0 {

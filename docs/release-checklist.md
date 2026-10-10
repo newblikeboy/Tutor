@@ -3,6 +3,7 @@
 ## Implemented development capabilities
 
 - [x] Email/password accounts, Argon2id protection, opaque sessions, Origin/CSRF, ownership and scoped academic approval.
+- [x] Mandatory public signup email OTP before user/credential/session creation, using the durable priority code outbox. Configured SMTP is required; actual Google acceptance/inbox delivery still needs an authorised recipient check. See `email.md` and latest progress for local test evidence.
 - [x] Availability, recurring agreements/classes, authoritative tutor/learner scheduling, holds/expiry, rescheduling/makeup and reviewed lesson evidence.
 - [x] Versioned plans and consented handover with old-tutor access revocation.
 - [x] Family-visible conversation, in-app updates and assigned support/privacy/restricted safeguarding cases.

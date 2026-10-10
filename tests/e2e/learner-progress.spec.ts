@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir, readFile } from 'node:fs/promises'
@@ -27,7 +28,7 @@ test('child progress spans tutors and packages, filters by learner and records t
   test.setTimeout(360_000)
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
-  const signup = await page.request.post('/api/v1/auth/signup', {
+  const signup = await verifiedSignup(page.request, {
     headers: { Origin: origin },
     data: {
       email: `progress-${crypto.randomUUID()}@example.test`,

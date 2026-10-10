@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -52,7 +53,7 @@ test('unconfigured payments stay blocked while family conversation and owned upd
   )
   const [parent, tutor, finance, admin] = await Promise.all(contexts.map((c) => c.newPage()))
   try {
-    const signup = await parent.request.post('/api/v1/auth/signup', {
+    const signup = await verifiedSignup(parent.request, {
       headers: { Origin: origin },
       data: {
         email: `billing-family-${Date.now()}@example.test`,

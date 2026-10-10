@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir, readFile } from 'node:fs/promises'
@@ -34,13 +35,17 @@ test('email login, recovery, verification and reminder settings on desktop and m
     decrypt.setAuthTag(encrypted.subarray(-16))
     return Buffer.concat([decrypt.update(encrypted.subarray(12, -16)), decrypt.final()]).toString()
   }
-  const created = await page.request.post('/api/v1/auth/signup', {
+  const created = await verifiedSignup(page.request, {
     headers: { Origin: origin },
     data: { name: 'Fictional email family', email, password, role: 'parent', adult: true },
   })
   expect(created.status()).toBe(201)
   const auth = await created.json()
   const userId = auth.user.id
+  // Existing accounts created before mandatory signup verification can still verify.
+  await database
+    .collection('users')
+    .updateOne({ _id: userId as never }, { $unset: { emailVerifiedAt: '' } })
   const logout = async (csrf: string) => {
     expect(
       (
@@ -70,7 +75,9 @@ test('email login, recovery, verification and reminder settings on desktop and m
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
     await logout(auth.csrf)
     await page.goto('http://localhost:5174/login?role=parent&method=otp&return=%2Faccount')
-    await expect(page).toHaveURL('http://127.0.0.1:5174/login?role=parent&method=otp&return=%2Faccount')
+    await expect(page).toHaveURL(
+      'http://127.0.0.1:5174/login?role=parent&method=otp&return=%2Faccount',
+    )
     await page.getByLabel('Email address', { exact: true }).fill(email)
     await page.getByRole('button', { name: 'Send email code', exact: true }).click()
     await expect(page.getByLabel('Email code', { exact: true })).toBeVisible()
@@ -125,18 +132,16 @@ test('email login, recovery, verification and reminder settings on desktop and m
       data: { email: 'admin-a@example.test', password },
     })
     expect(admin.ok()).toBe(true)
-    await database
-      .collection('outbox')
-      .insertOne({
-        _id: 'email:fictional-uncertain-review' as never,
-        kind: 'email',
-        status: 'uncertain',
-        payload: { event: 'password_changed', recipientId: userId },
-        attempts: 1,
-        availableAt: new Date(),
-        lastError: 'smtp_acceptance_uncertain',
-        smtpSubmissionStarted: true,
-      })
+    await database.collection('outbox').insertOne({
+      _id: 'email:fictional-uncertain-review' as never,
+      kind: 'email',
+      status: 'uncertain',
+      payload: { event: 'password_changed', recipientId: userId },
+      attempts: 1,
+      availableAt: new Date(),
+      lastError: 'smtp_acceptance_uncertain',
+      smtpSubmissionStarted: true,
+    })
     await page.goto('/account?tab=mail')
     await expect(
       page.getByRole('heading', { name: 'Email delivery log', exact: true }),

@@ -2088,6 +2088,8 @@ export interface components {
             role: "parent" | "tutor";
             /** @constant */
             adult: true;
+            challengeId: string;
+            code: string;
         };
         ApplicationInput: {
             version: number;
@@ -2744,7 +2746,7 @@ export interface components {
             /** Format: email */
             email: string;
             /** @enum {string} */
-            purpose: "login" | "reset";
+            purpose: "login" | "reset" | "signup";
         };
         EmailChallenge: {
             challengeId: string;

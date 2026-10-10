@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -50,7 +51,7 @@ test('staff fee changes require renewed consent before payment and tutors only e
   )
   const [parent, tutor, staff] = await Promise.all(contexts.map((context) => context.newPage()))
   try {
-    const signup = await parent.request.post('/api/v1/auth/signup', {
+    const signup = await verifiedSignup(parent.request, {
       headers: { Origin: origin },
       data: {
         email: `tuition-family-${crypto.randomUUID()}@example.test`,

@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir, readFile } from 'node:fs/promises'
@@ -113,7 +114,7 @@ test('weekly books six classes and monthly books twenty-four across calendar per
       },
       'PUT',
     )
-    const signup = await page.request.post('/api/v1/auth/signup', {
+    const signup = await verifiedSignup(page.request, {
       headers: { Origin: origin },
       data: {
         email: `package-schedule-${crypto.randomUUID()}@example.test`,

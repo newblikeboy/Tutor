@@ -1,3 +1,4 @@
+import { verifiedSignup } from './signup-fixture'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { applicationProfile } from './helpers/application'
@@ -11,7 +12,7 @@ test('direct Cloudinary uploads persist references and privately deliver images 
   )
   test.setTimeout(180000)
   const origin = 'http://127.0.0.1:5174'
-  const response = await page.request.post('/api/v1/auth/signup', {
+  const response = await verifiedSignup(page.request, {
     headers: { Origin: origin },
     data: {
       email: `direct-${Date.now()}@example.test`,

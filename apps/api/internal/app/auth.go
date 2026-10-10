@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/mail"
+	"regexp"
 	"strings"
 	"time"
 	"tutorplatform/internal/domain"
@@ -136,11 +137,13 @@ func (a *App) signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		Role     string `json:"role"`
-		Adult    bool   `json:"adult"`
+		Name        string `json:"name"`
+		Email       string `json:"email"`
+		Password    string `json:"password"`
+		Role        string `json:"role"`
+		Adult       bool   `json:"adult"`
+		ChallengeID string `json:"challengeId"`
+		Code        string `json:"code"`
 	}
 	if !a.decode(w, r, &in) {
 		return
@@ -153,6 +156,13 @@ func (a *App) signup(w http.ResponseWriter, r *http.Request) {
 	}
 	if !password.Valid(in.Password) {
 		a.error(w, r, domain.Fail(422, "weak_password", "Choose a less common password of 8 to 128 characters."))
+		return
+	}
+	if !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(in.ChallengeID) || !regexp.MustCompile(`^[0-9]{6}$`).MatchString(in.Code) {
+		a.error(w, r, domain.Fail(422, "email_verification_required", "Verify your email with the six-digit signup code before creating an account."))
+		return
+	}
+	if !a.mailAvailable(w, r) {
 		return
 	}
 	if e := a.authLimit(r, email, "signup"); e != nil {
@@ -170,20 +180,68 @@ func (a *App) signup(w http.ResponseWriter, r *http.Request) {
 	}
 	u := domain.User{ID: token(), Name: in.Name, Email: email, Role: in.Role, Sample: false}
 	raw, csrf := token(), token()
+	verified := false
 	e = a.Store.Tx(r.Context(), func(ctx context.Context) error {
+		verified = false
+		c, err := storage.One[emailChallenge](ctx, a.Store, "email_challenges", bson.M{"_id": in.ChallengeID, "purpose": "signup", "email": email})
+		if err == mongo.ErrNoDocuments {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if c.Consumed || c.Attempts >= 5 || !c.ExpiresAt.After(a.Now()) {
+			return nil
+		}
+		guard, err := storage.One[emailChallenge](ctx, a.Store, "email_challenges", bson.M{"_id": c.GuardID})
+		if err == mongo.ErrNoDocuments {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if guard.CurrentID != c.ID {
+			return nil
+		}
+		if _, err = a.Store.C("email_challenges").UpdateOne(ctx, bson.M{"_id": c.ID}, bson.M{"$inc": bson.M{"attempts": 1}}); err != nil {
+			return err
+		}
+		// Invalid guesses commit; returning an error inside the transaction would undo them.
+		if !hmac.Equal([]byte(c.CodeHash), []byte(a.emailCodeHash(c.ID, c.Purpose, in.Code))) {
+			return nil
+		}
+		now := a.Now()
+		u.EmailVerifiedAt = &now
 		if _, e := a.Store.C("credentials").InsertOne(ctx, credential{email, u.ID, hash}); e != nil {
 			return e
 		}
 		if _, e := a.Store.C("users").InsertOne(ctx, u); e != nil {
 			return e
 		}
-		return a.saveSession(ctx, r, u, raw, csrf)
+		if _, err = a.Store.C("email_challenges").UpdateOne(ctx, bson.M{"_id": c.ID}, bson.M{"$set": bson.M{"consumed": true}}); err != nil {
+			return err
+		}
+		if _, err = a.Store.C("email_challenges").UpdateOne(ctx, bson.M{"_id": c.GuardID}, bson.M{"$set": bson.M{"currentId": ""}, "$inc": bson.M{"version": 1}}); err != nil {
+			return err
+		}
+		if err = a.saveSession(ctx, r, u, raw, csrf); err != nil {
+			return err
+		}
+		if err = a.audit(ctx, u.ID, "auth.email_signup", u.ID); err != nil {
+			return err
+		}
+		verified = true
+		return nil
 	})
 	if mongo.IsDuplicateKeyError(e) {
 		e = domain.Fail(409, "signup_unavailable", "Unable to create an account with these details. Try signing in.")
 	}
 	if e != nil {
 		a.error(w, r, e)
+		return
+	}
+	if !verified {
+		a.error(w, r, domain.Fail(401, "invalid_code", "This code is invalid or expired. Request a new signup code."))
 		return
 	}
 	a.authResponse(w, u, raw, csrf, 201)

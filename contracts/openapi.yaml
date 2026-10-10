@@ -7694,7 +7694,9 @@
           "email",
           "password",
           "role",
-          "adult"
+          "adult",
+          "challengeId",
+          "code"
         ],
         "properties": {
           "name": {
@@ -7721,6 +7723,15 @@
           },
           "adult": {
             "const": true
+          },
+          "challengeId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$",
+            "writeOnly": true
           }
         }
       },
@@ -10474,7 +10485,8 @@
             "type": "string",
             "enum": [
               "login",
-              "reset"
+              "reset",
+              "signup"
             ]
           }
         },
