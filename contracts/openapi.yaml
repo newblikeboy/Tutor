@@ -3,7 +3,7 @@
   "info": {
     "title": "GoCoaching API",
     "version": "0.1.0",
-    "description": "Email/password accounts, supervised trials, ongoing tuition and learning continuity, and explicitly configured Razorpay sandbox billing. Production access remains gated pending operator review. Public registration never grants academic approval. No delivery, live charge or bank settlement is implied by local records."
+    "description": "Email/password accounts with explicitly configured SMTP email verification, recovery and parent/tutor code sign-in, supervised trials, ongoing tuition and learning continuity, and explicitly configured Razorpay sandbox billing. Production access remains gated pending operator review. Public registration never grants academic approval. No delivery, live charge or bank settlement is implied by local records."
   },
   "servers": [
     {
@@ -1845,6 +1845,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "history",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "0",
+                "1"
+              ]
+            },
+            "description": "Tutor-only current or completed/cancelled package history, filtered before pagination."
           }
         ]
       },
@@ -4075,6 +4088,422 @@
         }
       }
     },
+    "/auth/email/request": {
+      "post": {
+        "operationId": "post__auth_email_request",
+        "summary": "POST /auth/email/request",
+        "security": [],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailChallenge"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/email/confirm": {
+      "post": {
+        "operationId": "post__auth_email_confirm",
+        "summary": "POST /auth/email/confirm",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailCodeResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeConfirm"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/email/request": {
+      "post": {
+        "operationId": "post__account_email_request",
+        "summary": "POST /account/email/request",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailChallenge"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailEmpty"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/email/confirm": {
+      "post": {
+        "operationId": "post__account_email_confirm",
+        "summary": "POST /account/email/confirm",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailCodeResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeConfirm"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/email/preferences": {
+      "get": {
+        "operationId": "get__account_email_preferences",
+        "summary": "GET /account/email/preferences",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailPreferences"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      },
+      "put": {
+        "operationId": "put__account_email_preferences",
+        "summary": "PUT /account/email/preferences",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailPreferences"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/email-deliveries": {
+      "get": {
+        "operationId": "get__admin_email_deliveries",
+        "summary": "GET /admin/email-deliveries",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailDeliveries"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/admin/email-deliveries/{id}/retry": {
+      "post": {
+        "operationId": "post__admin_email_deliveries__id__retry",
+        "summary": "POST /admin/email-deliveries/{id}/retry",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRetry"
+              }
+            }
+          }
+        }
+      }
+    },
     "/enrollments/{id}/files": {
       "get": {
         "operationId": "get__enrollments__id__files",
@@ -5349,6 +5778,307 @@
         ]
       }
     },
+    "/tutor/workspace": {
+      "get": {
+        "operationId": "get__tutor_workspace",
+        "summary": "GET /tutor/workspace",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorWorkspace"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/tutor/learners/{id}/progress": {
+      "get": {
+        "operationId": "get__tutor_learners__id__progress",
+        "summary": "GET /tutor/learners/{id}/progress",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerProgress"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/classes/{id}/meeting": {
+      "post": {
+        "operationId": "post__classes__id__meeting",
+        "summary": "POST /classes/{id}/meeting",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetingPrepare"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/classes/{id}/meeting/join": {
+      "get": {
+        "operationId": "get__classes__id__meeting_join",
+        "summary": "GET /classes/{id}/meeting/join",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingJoin"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/trials/{id}/meeting": {
+      "post": {
+        "operationId": "post__trials__id__meeting",
+        "summary": "POST /trials/{id}/meeting",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetingPrepare"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trials/{id}/meeting/join": {
+      "get": {
+        "operationId": "get__trials__id__meeting_join",
+        "summary": "GET /trials/{id}/meeting/join",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingJoin"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/learners/{id}/progress": {
       "get": {
         "operationId": "get__learners__id__progress",
@@ -5968,6 +6698,10 @@
           "email": {
             "type": "string",
             "format": "email"
+          },
+          "emailVerifiedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -6559,6 +7293,16 @@
               "online",
               "home"
             ]
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/LessonMeeting"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -6697,6 +7441,7 @@
           "uploadsEnabled",
           "scannerConfigured",
           "mediaProvider",
+          "emailEnabled",
           "videoUploadsEnabled",
           "videoProvider",
           "meetingsEnabled"
@@ -6728,6 +7473,9 @@
           },
           "mediaProvider": {
             "type": "string"
+          },
+          "emailEnabled": {
+            "type": "boolean"
           },
           "videoUploadsEnabled": {
             "type": "boolean"
@@ -7363,7 +8111,8 @@
               "accept",
               "decline",
               "cancel",
-              "complete"
+              "complete",
+              "feedback"
             ]
           },
           "notes": {
@@ -7374,6 +8123,9 @@
           },
           "review": {
             "type": "string"
+          },
+          "version": {
+            "type": "integer"
           }
         }
       },
@@ -7465,6 +8217,10 @@
             "type": "boolean"
           },
           "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -7993,6 +8749,16 @@
               }
             ]
           },
+          "plannedSubject": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/LessonMeeting"
+          },
           "progress": {
             "$ref": "#/components/schemas/ClassProgress"
           }
@@ -8014,6 +8780,7 @@
               "cancel",
               "record",
               "resolve_attendance",
+              "plan_subject",
               "progress"
             ]
           },
@@ -8039,10 +8806,14 @@
           "developmentRecord": {
             "type": "boolean"
           },
+          "subject": {
+            "type": "string"
+          },
           "progress": {
             "$ref": "#/components/schemas/ClassProgressInput"
           }
-        }
+        },
+        "description": "Present recording requires progress; tests are optional. Progress corrections close seven days after recording, and planning is limited to booked, approved subjects."
       },
       "LearningTopic": {
         "type": "object",
@@ -8624,6 +9395,10 @@
           },
           "lastError": {
             "type": "string"
+          },
+          "smtpAcceptedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -9455,6 +10230,9 @@
           },
           "version": {
             "type": "integer"
+          },
+          "emailReminders": {
+            "type": "boolean"
           }
         }
       },
@@ -9475,6 +10253,17 @@
           },
           "preferences": {
             "$ref": "#/components/schemas/Preferences"
+          },
+          "emailVerifiedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -9571,6 +10360,218 @@
             "type": "string"
           }
         }
+      },
+      "EmailCodeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "login",
+              "reset"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "purpose"
+        ]
+      },
+      "EmailChallenge": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resendAfterSeconds": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "challengeId",
+          "expiresAt",
+          "resendAfterSeconds",
+          "message"
+        ]
+      },
+      "EmailCodeConfirm": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$",
+            "writeOnly": true
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "challengeId",
+          "code"
+        ]
+      },
+      "EmailCodeResult": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/Auth"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "ok": {
+                "type": "boolean"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ok",
+              "message"
+            ]
+          }
+        ]
+      },
+      "EmailPreferences": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reminders": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "reminders",
+          "version"
+        ]
+      },
+      "EmailEmpty": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "EmailDelivery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "recipientId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "processing",
+              "done",
+              "failed",
+              "uncertain",
+              "skipped"
+            ]
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "availableAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "smtpAcceptedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "recipientId",
+          "status",
+          "attempts",
+          "lastError",
+          "availableAt",
+          "smtpAcceptedAt"
+        ]
+      },
+      "EmailDeliveries": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailDelivery"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "EmailRetry": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
+          },
+          "acknowledgeDuplicate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "reason",
+          "acknowledgeDuplicate"
+        ]
       },
       "PrivateFile": {
         "type": "object",
@@ -11205,6 +12206,114 @@
           "version"
         ]
       },
+      "LessonMeeting": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "ready",
+              "failed"
+            ]
+          }
+        }
+      },
+      "TutorLearnerBrief": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "learnerId"
+        ],
+        "properties": {
+          "learnerId": {
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LocationPoint"
+          }
+        }
+      },
+      "TutorWorkspace": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "briefs",
+          "learners",
+          "enrollments",
+          "sessions",
+          "trials",
+          "notifications"
+        ],
+        "properties": {
+          "briefs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorLearnerBrief"
+            }
+          },
+          "learners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Learner"
+            }
+          },
+          "enrollments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Enrollment"
+            }
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClassSession"
+            }
+          },
+          "trials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Trial"
+            }
+          },
+          "notifications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            }
+          }
+        }
+      },
+      "MeetingPrepare": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "MeetingJoin": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "joinUrl"
+        ],
+        "properties": {
+          "joinUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
       "TestResult": {
         "type": "object",
         "additionalProperties": false,
@@ -11405,6 +12514,16 @@
               }
             ]
           },
+          "plannedSubject": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/LessonMeeting"
+          },
           "progress": {
             "$ref": "#/components/schemas/ClassProgress"
           },
@@ -11528,6 +12647,16 @@
               "online",
               "home"
             ]
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/LessonMeeting"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "tutorName": {
             "type": "string"

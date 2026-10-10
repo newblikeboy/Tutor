@@ -28,6 +28,12 @@ const server = createServer(async (req, res) => {
   }
   if (url.pathname === '/users/test-host/meetings') {
     if (req.method === 'POST') {
+      if (
+        body.topic?.startsWith('GoCoaching lesson ') &&
+        (!body.settings?.alternative_hosts ||
+          body.settings.alternative_hosts_email_notification !== false)
+      )
+        return json(422, { message: 'Tutor host settings are required by the fixture' })
       const id = ++nextId
       const meeting = {
         id,

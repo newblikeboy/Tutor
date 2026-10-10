@@ -1,0 +1,9 @@
+.lesson-meeting {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin: 12px 0;
+}
+.lesson-meeting p {
+  margin: 0;
+}

@@ -3,7 +3,7 @@ import '../locales/experience'
 import '../locales/files'
 import { allTutors, approvedTutorSubjects } from '../lib/tutors'
 import { SubjectSelect } from '../components/subject-select'
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -40,6 +40,8 @@ import { Conversation } from './conversations'
 import { PrivateFiles } from './files'
 import { feeLabel, TutorFees } from '../components/tutor-fees'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
+import { LessonMeeting } from '../components/lesson-meeting'
+import { teachingSubjects } from '../lib/subjects'
 import { ClassProgressFields, classProgressFromForm } from '../components/class-progress-fields'
 
 type Agreement = Schema['Agreement']
@@ -71,6 +73,7 @@ function useAction(path: string) {
         queryClient.invalidateQueries({ queryKey: ['tuition'] }),
         queryClient.invalidateQueries({ queryKey: ['handover-invitations'] }),
         queryClient.invalidateQueries({ queryKey: ['learner-progress'] }),
+        queryClient.invalidateQueries({ queryKey: ['tutor-workspace'] }),
       ])
     },
   })
@@ -303,7 +306,7 @@ function AvailabilityForm({
             />
           </Field>
         </div>
-        <TutorFees plans={initial.feePlan ? [initial.feePlan] : []} />
+        <TutorFees plans={initial.feePlans} />
         <label className="tu-check">
           <input type="checkbox" name="paused" defaultChecked={initial.paused} />
           {t('tuition.paused')}
@@ -331,15 +334,27 @@ function TuitionList() {
   const [params, setParams] = useSearchParams()
   const cursor = params.get('cursor') ?? ''
   const now = useClock()
+  const archive = params.get('history') === '1'
+  const tutor = auth.data?.user.role === 'tutor'
   const q = useQuery({
-    queryKey: ['tuition', 'list', cursor],
+    queryKey: ['tuition', 'list', cursor, tutor && archive],
     queryFn: ({ signal }) =>
-      api<Schema['EnrollmentPage']>(`/enrollments?cursor=${encodeURIComponent(cursor)}`, {
-        signal,
-      }),
+      api<Schema['EnrollmentPage']>(
+        `/enrollments?cursor=${encodeURIComponent(cursor)}${tutor && archive ? '&history=1' : ''}`,
+        {
+          signal,
+        },
+      ),
   })
   const bookings =
-    q.data?.items.filter((item) => !['awaiting_payment', 'expired'].includes(item.status)) ?? []
+    q.data?.items.filter(
+      (item) =>
+        !['awaiting_payment', 'expired'].includes(item.status) &&
+        (!tutor ||
+          (archive
+            ? ['completed', 'cancelled'].includes(item.status)
+            : !['completed', 'cancelled'].includes(item.status))),
+    ) ?? []
   const checkouts =
     q.data?.items.filter(
       (item) =>
@@ -360,7 +375,17 @@ function TuitionList() {
         }
       />
       {auth.data?.user.role === 'parent' && <NewAgreement />}
-      {auth.data?.user.role === 'tutor' && <Invitations />}
+      {tutor && (
+        <nav className="teacher-filters" aria-label="Booking history">
+          <Link to="/tuition" aria-current={!archive ? 'page' : undefined}>
+            Current bookings
+          </Link>
+          <Link to="/tuition?history=1" aria-current={archive ? 'page' : undefined}>
+            Package history
+          </Link>
+        </nav>
+      )}
+      {tutor && !archive && <Invitations />}
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -403,7 +428,15 @@ function TuitionList() {
                     <TuitionStatus status={enrollment.status} />
                   </div>
                   <h2>{enrollment.learnerName}</h2>
-                  <p>{t('tuition.withTutor', { name: enrollment.tutorName })}</p>
+                  <p>
+                    {auth.data?.user.role === 'tutor'
+                      ? `Class ${enrollment.class}`
+                      : t('tuition.withTutor', { name: enrollment.tutorName })}
+                  </p>
+                  <p>
+                    {(enrollment.agreement.subjects ?? [enrollment.agreement.subject]).join(', ')} ·{' '}
+                    {enrollment.agreement.mode === 'home' ? 'Home Tuition' : 'Online'}
+                  </p>
                   <div className="tu-card-meta">
                     <span>
                       {enrollment.agreement.sessionCount} {t('tuition.agreed')}
@@ -421,14 +454,19 @@ function TuitionList() {
           {(cursor || q.data.nextCursor) && (
             <div className="tu-actions">
               {cursor && (
-                <Button variant="secondary" onClick={() => setParams({})}>
+                <Button
+                  variant="secondary"
+                  onClick={() => setParams(archive ? { history: '1' } : {})}
+                >
                   {t('tuition.firstPage')}
                 </Button>
               )}
               {q.data.nextCursor && (
                 <Button
                   variant="secondary"
-                  onClick={() => setParams({ cursor: q.data.nextCursor })}
+                  onClick={() =>
+                    setParams({ ...(archive ? { history: '1' } : {}), cursor: q.data.nextCursor })
+                  }
                 >
                   {t('tuition.nextPage')}
                 </Button>
@@ -1075,6 +1113,19 @@ function AgreementCard({ agreement }: { agreement: Agreement }) {
           <strong>{money(agreement.totalPaise, i18n.language)}</strong>
         </div>
       </div>
+      <p>
+        <strong>{(agreement.subjects ?? [agreement.subject]).join(', ')}</strong> ?{' '}
+        {agreement.mode === 'home' ? 'Home Tuition' : 'Online'} · {agreement.minutes} minutes per
+        class
+      </p>
+      {agreement.packageFeePaise != null && (
+        <p>
+          {agreement.mode === 'online' ? 'Staff hourly price' : 'Staff package price'}:{' '}
+          {money(agreement.packageFeePaise, i18n.language)} ?{' '}
+          {agreement.subjects?.includes('All Subjects') ? 1 : (agreement.subjects?.length ?? 1)}{' '}
+          subject package(s)
+        </p>
+      )}
       <Policy />
       <details className="tu-disclosure">
         <summary>{t('tuition.classes')}</summary>
@@ -1120,19 +1171,22 @@ function TuitionDetail({ id }: { id: string }) {
   const auth = useAuth()
   const now = useClock()
   const [params, setParams] = useSearchParams()
-  const tabs = ['classes', 'plan', 'messages', 'files', 'agreement', 'handover']
-  const tab = tabs.includes(params.get('tab') ?? '') ? params.get('tab')! : 'classes'
   const q = useQuery({
     queryKey: ['tuition', id],
     queryFn: ({ signal }) => api<Detail>(`/enrollments/${id}`, { signal }),
     refetchInterval: (query) =>
-      query.state.data?.enrollment.status === 'awaiting_payment' ? 3000 : false,
+      query.state.data?.enrollment.status === 'awaiting_payment' ? 3000 : 15000,
   })
   if (q.isPending) return <Loading />
   if (q.isError) return <LoadError retry={() => void q.refetch()} />
   const d = q.data,
     e = d.enrollment,
     role = auth.data!.user.role
+  const archivedTutor = role === 'tutor' && ['completed', 'cancelled'].includes(e.status)
+  const tabs = archivedTutor
+    ? ['classes', 'plan', 'agreement']
+    : ['classes', 'plan', 'messages', 'files', 'agreement', 'handover']
+  const tab = tabs.includes(params.get('tab') ?? '') ? params.get('tab')! : 'classes'
   if (role === 'parent' && ['awaiting_payment', 'expired'].includes(e.status)) {
     const expired = e.status === 'expired' || !e.holdUntil || new Date(e.holdUntil).getTime() <= now
     return (
@@ -1327,11 +1381,23 @@ function ClassCard({
   const role = auth.data!.user.role
   const mutation = useAction(`/classes/${s.id}/action`)
   const [action, setAction] = useState('')
+  const [attendance, setAttendance] = useState('present')
+  const now = useClock()
+  const [params] = useSearchParams()
+  const correctionOpen = now <= Date.parse(s.recordedAt ?? s.end) + 7 * 86400000
+  useEffect(() => {
+    if (params.get('class') === s.id)
+      document.getElementById(`class-${s.id}`)?.scrollIntoView({ block: 'start' })
+  }, [params, s.id])
   const active = ['active', 'paused'].includes(enrollment.status)
   const editable = active && ['parent', 'tutor'].includes(role)
   const act = (body: Record<string, unknown>) => mutation.mutate({ ...body, version: s.version })
   return (
-    <article className="tu-session">
+    <article
+      className="tu-session"
+      id={`class-${s.id}`}
+      data-highlighted={params.get('class') === s.id ? 'true' : undefined}
+    >
       <div className="tu-session-mark">
         <CalendarDays size={23} />
       </div>
@@ -1340,6 +1406,39 @@ function ClassCard({
           <h2>{indiaDate(s.start, i18n.language)}</h2>
           <TuitionStatus status={s.status} />
         </div>
+        <p>
+          <strong>{s.plannedSubject ?? 'Subject not planned'}</strong>
+        </p>
+        {active &&
+          s.status === 'scheduled' &&
+          enrollment.agreement.mode === 'online' &&
+          ['parent', 'tutor'].includes(role) && (
+            <LessonMeeting kind="classes" lesson={s} role={role as 'parent' | 'tutor'} />
+          )}
+        {s.progress && (
+          <div className="tu-evidence">
+            <div>
+              <h3>Subject feedback · {s.progress.subject}</h3>
+              <p>{s.progress.feedback}</p>
+              <p>Homework: {s.progress.homeworkStatus.replaceAll('_', ' ')}</p>
+              <p>Next practice: {s.progress.nextSteps}</p>
+              {s.progress.test && (
+                <p>
+                  {s.progress.test.title}: {s.progress.test.score}/{s.progress.test.maximum}
+                </p>
+              )}
+              {s.progress.topics.map((topic) => (
+                <div key={topic.title}>
+                  <strong>
+                    {topic.title} · {topic.status.replaceAll('_', ' ')}
+                  </strong>
+                  <p>{topic.evidence}</p>
+                  <p>Practice: {topic.practice}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {s.proposal && (
           <div className="tu-policy">
             <strong>
@@ -1381,8 +1480,17 @@ function ClassCard({
           </div>
         )}
         <div className="tu-actions">
+          {role === 'tutor' && active && s.status === 'scheduled' && Date.parse(s.start) > now && (
+            <Button
+              variant="text"
+              onClick={() => setAction(action === 'plan_subject' ? '' : 'plan_subject')}
+            >
+              Plan subject
+            </Button>
+          )}
           {role === 'tutor' &&
-            active &&
+            ['active', 'paused', 'completed'].includes(enrollment.status) &&
+            correctionOpen &&
             s.tutorId === auth.data!.user.id &&
             ['completed', 'reviewed'].includes(s.status) && (
               <Button
@@ -1427,6 +1535,7 @@ function ClassCard({
               act({
                 action,
                 ...(action === 'propose' ? { start: indiaISO(value(d, 'start')) } : {}),
+                subject: value(d, 'subject'),
                 reason: value(d, 'reason'),
                 notes: value(d, 'notes'),
                 homework: value(d, 'homework'),
@@ -1438,6 +1547,19 @@ function ClassCard({
               })
             }}
           >
+            {action === 'plan_subject' && (
+              <Field label="Lesson subject">
+                <select name="subject" defaultValue={s.plannedSubject ?? ''} required>
+                  <option value="">Choose a booked subject</option>
+                  {(enrollment.class <= 5
+                    ? ['All Subjects', ...teachingSubjects]
+                    : (enrollment.agreement.subjects ?? [enrollment.agreement.subject])
+                  ).map((subject) => (
+                    <option key={subject}>{subject}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
             {action === 'propose' && (
               <Field label={t('tuition.newTime')}>
                 <input type="datetime-local" name="start" required />
@@ -1463,7 +1585,11 @@ function ClassCard({
             )}
             {['record', 'resolve_attendance'].includes(action) && (
               <Field label={t('tuition.attendance')}>
-                <select name="attendance">
+                <select
+                  name="attendance"
+                  value={attendance}
+                  onChange={(event) => setAttendance(event.target.value)}
+                >
                   {(action === 'record'
                     ? ['present', 'absent', 'disputed']
                     : ['present', 'absent']
@@ -1475,11 +1601,12 @@ function ClassCard({
                 </select>
               </Field>
             )}
-            {['record', 'progress'].includes(action) && (
+            {(action === 'progress' || (action === 'record' && attendance === 'present')) && (
               <ClassProgressFields
                 enrollment={enrollment}
                 previous={s.progress}
-                required={action === 'progress'}
+                required
+                plannedSubject={s.plannedSubject}
               />
             )}
 

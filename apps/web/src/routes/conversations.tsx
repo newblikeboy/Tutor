@@ -156,10 +156,20 @@ export function ActivityUpdates() {
                     to={
                       n.kind === 'case_update'
                         ? `/cases/${n.targetId}`
-                        : `/tuition/${n.targetId}?tab=messages`
+                        : n.kind === 'trial_requested'
+                          ? '/workspace?view=sessions&queue=requested'
+                          : `/tuition/${n.targetId}${n.kind === 'booking_confirmed' ? '' : '?tab=messages'}`
                     }
                   >
-                    {t(n.kind === 'case_update' ? 'cases.openUpdate' : 'tuition.openConversation')}
+                    {n.kind === 'booking_confirmed'
+                      ? 'Open booking'
+                      : n.kind === 'trial_requested'
+                        ? 'Open trial requests'
+                        : t(
+                            n.kind === 'case_update'
+                              ? 'cases.openUpdate'
+                              : 'tuition.openConversation',
+                          )}
                   </Link>
                   {!n.read && (
                     <Button variant="text" busy={m.isPending} onClick={() => m.mutate(n.id)}>

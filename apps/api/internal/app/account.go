@@ -16,10 +16,11 @@ import (
 )
 
 type accountPreferences struct {
-	ID       string                `json:"-" bson:"_id"`
-	Language string                `json:"language" bson:"language"`
-	Location *domain.LocationPoint `json:"location,omitempty" bson:"location,omitempty"`
-	Version  int                   `json:"version" bson:"version"`
+	ID             string                `json:"-" bson:"_id"`
+	Language       string                `json:"language" bson:"language"`
+	Location       *domain.LocationPoint `json:"location,omitempty" bson:"location,omitempty"`
+	Version        int                   `json:"version" bson:"version"`
+	EmailReminders *bool                 `json:"emailReminders,omitempty" bson:"emailReminders,omitempty"`
 }
 type accountSession struct {
 	ID        string    `json:"id"`
@@ -34,7 +35,7 @@ func (a *App) account(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, err)
 		return
 	}
-	a.json(w, 200, map[string]any{"name": user(r).Name, "email": user(r).Email, "preferences": p})
+	a.json(w, 200, map[string]any{"name": user(r).Name, "email": user(r).Email, "preferences": p, "emailVerifiedAt": user(r).EmailVerifiedAt})
 }
 func (a *App) saveAccount(w http.ResponseWriter, r *http.Request) {
 	var in struct {
@@ -82,7 +83,7 @@ func (a *App) saveAccount(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) accountSessions(w http.ResponseWriter, r *http.Request) {
 	c, _ := r.Cookie("session")
-	page, e := pageRecords[Session](r.Context(), a.Store, "sessions", bson.M{"userId": user(r).ID, "version": user(r).AuthVersion, "method": a.sessionMethod(), "expiresAt": bson.M{"$gt": a.Now()}}, r.URL.Query().Get("cursor"))
+	page, e := pageRecords[Session](r.Context(), a.Store, "sessions", bson.M{"userId": user(r).ID, "version": user(r).AuthVersion, "method": a.sessionMethods(), "expiresAt": bson.M{"$gt": a.Now()}}, r.URL.Query().Get("cursor"))
 	if e != nil {
 		a.error(w, r, e)
 		return
@@ -159,6 +160,9 @@ func (a *App) changePassword(w http.ResponseWriter, r *http.Request) {
 			return e
 		}
 		if _, e = a.Store.C("sessions").DeleteMany(ctx, bson.M{"userId": u.ID}); e != nil {
+			return e
+		}
+		if e = a.queueSecurityEmail(ctx, u.ID, "password_changed", token()); e != nil {
 			return e
 		}
 		return a.saveSession(ctx, r, u, raw, csrf)

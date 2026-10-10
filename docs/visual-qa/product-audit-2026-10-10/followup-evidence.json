@@ -1,0 +1,231 @@
+{
+  "screens": [
+    {
+      "name": "public-multiple-subjects",
+      "path": "/tutors?searched=1&class=8&mode=online&subject=Mathematics&subject=English",
+      "variants": [
+        {
+          "width": 1440,
+          "file": "public-multiple-subjects-1440.png",
+          "overflow": false,
+          "violations": []
+        },
+        {
+          "width": 390,
+          "file": "public-multiple-subjects-390.png",
+          "overflow": false,
+          "violations": [
+            {
+              "id": "heading-order",
+              "impact": "moderate",
+              "nodes": [
+                [
+                  "h3"
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "text": "Skip to content\nGoCoaching\nA considered approach to learning\n\nTUTOR MATCHES\n\nTutors that match your child’s needs.\n\nChoose the class, teaching mode, subjects and preferred time. Then compare tutors by fit, price and teaching style.\n\nChange search\n\n1 matching tutors\n\nRefine results\nMathematics\nEnglish\nClasses 8\nOnline tuition\nM\nAvailable teacher\n4 years\nMeera · sample\n\nMathematics, Science teacher for Classes 6-10\n\nSee lesson evidence, clear next steps, and a review from the academic team.\n\nOnline + Home Tuition\nHindi\nTeam confirmed\nOnline · hourly\n₹1,200.00 per hour\nHome Tuition · weekly\n₹6,000.00 per package\n6 classes · 60 minutes each\nHome Tuition · monthly\n₹24,000.00 per package\n24 classes · 60 minutes each\nView complete profile\nGoCoaching\n\nThoughtful matches. Purposeful learning. Continued support.\n\nSelection standards\nPrivacy draft\nSupport & contact\nStaff sign in"
+    },
+    {
+      "name": "parent-report-subjects",
+      "path": "/workspace?view=learners&learner=audit-learner&reportTab=subjects",
+      "variants": [
+        {
+          "width": 1440,
+          "file": "parent-report-subjects-1440.png",
+          "overflow": false,
+          "violations": []
+        },
+        {
+          "width": 390,
+          "file": "parent-report-subjects-390.png",
+          "overflow": false,
+          "violations": []
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "text": "Skip to content\nUse current location\nLearners\nAdd learner\n\nLearner\nSample learner A\nSample learner B\n\nClass 8 · CBSE · English\n\nCHILD PROGRESS REPORT\nSample learner A\n\nLearning history, tutor observations and next steps.\n\nEdit profile\nReport period\nAll time\nThis month\nCustom dates\nSubject\nAll subjects\nMathematics\nTutor\nAll tutors\nMeera · sample\nReset filters\nOverview\nSubjects\nClass history\nFeedback\nMathematics\nFractions (sample)\nPractising\n\nFictional recorded observation for audit.\n\nPractice: Sample worked examples.\n\nMeera · sample · 8 Oct 2026, 3:30 pm IST\nTest results\nPercentages compare recorded marks; test difficulty may differ.\nSample check\n7 Oct 2026, 3:30 pm IST · Meera · sample\n7/10 (70%)\nSample check\n8 Oct 2026, 3:30 pm IST · Meera · sample\n7/10 (70%)\nYour private learning workspace\nRooted in Purnea"
+    },
+    {
+      "name": "parent-report-history",
+      "path": "/workspace?view=learners&learner=audit-learner&reportTab=history",
+      "variants": [
+        {
+          "width": 1440,
+          "file": "parent-report-history-1440.png",
+          "overflow": false,
+          "violations": []
+        },
+        {
+          "width": 390,
+          "file": "parent-report-history-390.png",
+          "overflow": false,
+          "violations": []
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "text": "Skip to content\nUse current location\nLearners\nAdd learner\n\nLearner\nSample learner A\nSample learner B\n\nClass 8 · CBSE · English\n\nCHILD PROGRESS REPORT\nSample learner A\n\nLearning history, tutor observations and next steps.\n\nEdit profile\nReport period\nAll time\nThis month\nCustom dates\nSubject\nAll subjects\nMathematics\nTutor\nAll tutors\nMeera · sample\nReset filters\nOverview\nSubjects\nClass history\nFeedback\nMathematics\n12 Oct 2026, 5:30 pm IST · Meera · sample\nScheduled\nView lesson details\nMathematics\n11 Oct 2026, 5:30 pm IST · Meera · sample\nScheduled\nView lesson details\nMathematics\n10 Oct 2026, 5:30 pm IST · Meera · sample\nScheduled\nView lesson details\nMathematics\n9 Oct 2026, 3:30 pm IST · Meera · sample\nCompleted\nView lesson details\nMathematics\n8 Oct 2026, 3:30 pm IST · Meera · sample\nCompleted\nView lesson details\nMathematics\n7 Oct 2026, 3:30 pm IST · Meera · sample\nCompleted\nView lesson details\nYour private learning workspace\nRooted in Purnea"
+    },
+    {
+      "name": "parent-report-feedback",
+      "path": "/workspace?view=learners&learner=audit-learner&reportTab=feedback",
+      "variants": [
+        {
+          "width": 1440,
+          "file": "parent-report-feedback-1440.png",
+          "overflow": false,
+          "violations": []
+        },
+        {
+          "width": 390,
+          "file": "parent-report-feedback-390.png",
+          "overflow": false,
+          "violations": []
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "text": "Skip to content\nUse current location\nLearners\nAdd learner\n\nLearner\nSample learner A\nSample learner B\n\nClass 8 · CBSE · English\n\nCHILD PROGRESS REPORT\nSample learner A\n\nLearning history, tutor observations and next steps.\n\nEdit profile\nReport period\nAll time\nThis month\nCustom dates\nSubject\nAll subjects\nMathematics\nTutor\nAll tutors\nMeera · sample\nReset filters\nOverview\nSubjects\nClass history\nFeedback\nMathematics\n8 Oct 2026, 3:30 pm IST · Meera · sample\nCompleted\nLesson notes\n\nSample recorded lesson notes.\n\nAssigned homework\n\nSample practice examples.\n\nAttendance: Present\n\nHomework status: Completed\n\nFeedback\n\nSample learner explained two worked examples.\n\nWhat to practise next\n\nPractise another five sample problems.\n\nFractions (sample)\nPractising\n\nFictional recorded observation for audit.\n\nPractice: Sample worked examples.\n\nMeera · sample · 8 Oct 2026, 3:30 pm IST\nTest results\nSample check\n8 Oct 2026, 3:30 pm IST · Meera · sample\n7/10 (70%)\nUpdated 8 Oct 2026, 4:30 pm IST\nMathematics\n7 Oct 2026, 3:30 pm IST · Meera · sample\nCompleted\nLesson notes\n\nSample recorded lesson notes.\n\nAssigned homework\n\nSample practice examples.\n\nAttendance: Present\n\nHomework status: Completed\n\nFeedback\n\nSample learner explained two worked examples.\n\nWhat to practise next\n\nPractise another five sample problems.\n\nFractions (sample)\nPractising\n\nFictional recorded observation for audit.\n\nPractice: Sample worked examples.\n\nMeera · sample · 7 Oct 2026, 3:30 pm IST\nTest results\nSample check\n7 Oct 2026, 3:30 pm IST · Meera · sample\n7/10 (70%)\nUpdated 8 Oct 2026, 4:30 pm IST\nTrial feedback\nMathematics\nMeera · sample · 5 Oct 2026, 3:30 pm IST\n\nSample tutor feedback is visible directly.\n\nHistorical review\n\nSample learner worked through two examples.\n\nWhat to practise next\n\nSample practice guidance.\n\nYour private learning workspace\nRooted in Purnea"
+    },
+    {
+      "name": "parent-regular-booking",
+      "path": "/tuition",
+      "variants": [
+        {
+          "width": 1440,
+          "file": "parent-regular-booking-1440.png",
+          "overflow": false,
+          "violations": []
+        },
+        {
+          "width": 390,
+          "file": "parent-regular-booking-390.png",
+          "overflow": false,
+          "violations": []
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "text": "Skip to content\nUse current location\nRegular classes\nStart regular classes\n\nBook after your tutor has submitted trial feedback.\n\nCompleted trial\nMeera · sample\n\nSample learner A · 5 Oct 2026, 3:30 pm IST\n\nMathematics · Class 8\n6-10\nHindi\nOnline · hourly\n₹1,200.00 per hour\nHome Tuition · weekly\n₹6,000.00 per package\n6 classes · 60 minutes each\nHome Tuition · monthly\n₹24,000.00 per package\n24 classes · 60 minutes each\nCancel\nSubjects\nMathematics\nThe package fee applies to each selected subject.\nChoose package\nOnline · hourly\n₹1,200.00 · per hour\nHome Tuition · weekly\n₹6,000.00 · 6 classes · 60 minutes each\nHome Tuition · monthly\n₹24,000.00 · 24 classes · 60 minutes each\nDevelopment agreement · operator review pending\n\nAcademic support is included. Family cancellations at least 12 hours ahead retain a makeup session; later family cancellations consume it. Tutor cancellations retain a makeup session. Both parties agree to schedule changes. There is no automatic renewal.\n\nI have reviewed the schedule, fee and development terms.\nContinue to payment\nActive tuition\nSample learner A\n\nTutor: Meera · sample\n\nMathematics · Online\n\n6 Total classes\n₹7,200.00\nView classes\nYour private learning workspace\nRooted in Purnea"
+    },
+    {
+      "name": "parent-drawer",
+      "path": "/workspace",
+      "variants": [
+        {
+          "width": 1440,
+          "file": "parent-drawer-1440.png",
+          "overflow": false,
+          "violations": []
+        },
+        {
+          "width": 390,
+          "file": "parent-drawer-390.png",
+          "overflow": false,
+          "violations": []
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "text": "Skip to content\nUse current location\nHome\n\nLearner\nSample learner A\nSample learner B\n\nClass 8 · CBSE · English\n\nFind a tutor for Sample learner A\nFind a tutor\nNext trial\nSample learner A · Mathematics\n\n10 Oct 2026, 7:30 pm IST\n\nConfirmed\nClass 8 · Online · 60 minutes\n\nYour tutor will prepare the Zoom meeting.\n\nCancel trial\nView feedback (1)\nYour private learning workspace\nRooted in Purnea\nWorkspace navigation\nGoCoaching\nTHE LEARNING SPACE\n\nYOUR WORKSPACE\n\nHome\nLearners\nTrial lessons\nRegular classes\nPayments\nUpdates\nHelp\nAccount"
+    },
+    {
+      "name": "tutor-drawer",
+      "path": "/workspace",
+      "variants": [
+        {
+          "width": 1440,
+          "file": "tutor-drawer-1440.png",
+          "overflow": false,
+          "violations": []
+        },
+        {
+          "width": 390,
+          "file": "tutor-drawer-390.png",
+          "overflow": false,
+          "violations": []
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "text": "Skip to content\nHome\nHome\n\nNext lesson\nSample learner A\n\nRegular class · Mathematics\n\n10 Oct 2026, 5:30 pm IST\n\nOpen lesson\n1\nActive learners\n1\nTrial requests\n0\nFollow-up tasks\nTeaching schedule\nTeaching date\n\nTimes are shown in India Standard Time.\n\nSample learner A\n\nMathematics\n\n10 Oct 2026, 5:30 pm IST\nscheduled\nSample learner A\n\nTrial · Mathematics\n\n10 Oct 2026, 7:30 pm IST\nconfirmed\nFollow-up tasks\n\nAll lesson records are up to date.\n\nConfirmed bookings\n\nPaid bookings are ready to teach.\n\nNo unread booking alerts.\n\nAll activity\nApproved teaching scope\nApproved\nMathematics, Science\n\nClasses 6–10 · Online, Home Tuition\n\nMy application\nTeaching hours and staff-set fees\nYour private learning workspace\nRooted in Purnea\nWorkspace navigation\nGoCoaching\nTHE LEARNING SPACE\n\nYOUR WORKSPACE\n\nHome\nMy learners\nTrial lessons\nRegular classes\nEarnings & payouts\nTeaching hours\nMy application\nUpdates\nHelp\nAccount"
+    },
+    {
+      "name": "admin-drawer",
+      "path": "/workspace",
+      "variants": [
+        {
+          "width": 1440,
+          "file": "admin-drawer-1440.png",
+          "overflow": false,
+          "violations": []
+        },
+        {
+          "width": 390,
+          "file": "admin-drawer-390.png",
+          "overflow": false,
+          "violations": []
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "text": "Skip to content\nOverview\nSetup mode\nTest environment · No live bookings or payments\nStaff overview\n0\nNew applications\n0\nIn review\n0\nInterviews scheduled\n2\nActive tutors\nUpcoming interviews\nReady for review\nUpcoming interviews\nNo interviews scheduled\nYour private learning workspace\nRooted in Purnea\nWorkspace navigation\nGoCoaching\nTHE LEARNING SPACE\n\nYOUR WORKSPACE\n\nOverview\nApplications\nTutor network\nMentor logins\nFamilies\nFounder report\nDecision history\nPayments & records\nBusiness & taxes\nUpdates\nSupport & requests\nAccount"
+    },
+    {
+      "name": "admin-email-deliveries",
+      "path": "/account?tab=mail",
+      "variants": [
+        {
+          "width": 1440,
+          "file": "admin-email-deliveries-1440.png",
+          "overflow": false,
+          "violations": []
+        },
+        {
+          "width": 390,
+          "file": "admin-email-deliveries-390.png",
+          "overflow": false,
+          "violations": []
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "text": "Skip to content\nAccount\nSetup mode\nTest environment · No live bookings or payments\nAccount\nProfile\nPassword\nSign-ins\nEmails\nEmail delivery log\n\nAccepted means the SMTP server accepted the email. Inbox delivery is controlled by the recipient's mail provider.\n\nreminder\n\nRecipient account: parent-a\n\nStatus: pending · Attempts: 0\n\nreminder\n\nRecipient account: tutor-meera\n\nStatus: pending · Attempts: 0\n\nreminder\n\nRecipient account: tutor-meera\n\nStatus: pending · Attempts: 0\n\nreminder\n\nRecipient account: parent-a\n\nStatus: pending · Attempts: 0\n\nNeed account help?\nYour private learning workspace\nRooted in Purnea"
+    }
+  ],
+  "checks": [
+    {
+      "name": "drawer-Escape-focus",
+      "passed": true,
+      "dialogClosed": true
+    },
+    {
+      "name": "report-tab-arrow-focus",
+      "focused": "Subjects"
+    },
+    {
+      "name": "report-tab-reload",
+      "selected": "true"
+    },
+    {
+      "name": "report-reflow-360",
+      "overflow": false
+    },
+    {
+      "name": "report-reflow-768",
+      "overflow": false
+    },
+    {
+      "name": "report-reflow-1024",
+      "overflow": false
+    }
+  ],
+  "method": "Read-only follow-up on fictional isolated records. No booking, payment, email or staff status mutation."
+}

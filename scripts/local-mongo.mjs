@@ -9,7 +9,9 @@ const dbPath = resolve('.local/mongo')
 await mkdir(dbPath, { recursive: true })
 const rs = await MongoMemoryReplSet.create({
   binary: { version: '8.2.6' },
-  instanceOpts: [{ port: 27017, dbPath }],
+  instanceOpts: [
+    { port: 27017, dbPath, launchTimeout: 60_000, args: ['--wiredTigerCacheSizeGB', '0.25'] },
+  ],
   replSet: { name: 'rs0', count: 1, storageEngine: 'wiredTiger', ip: '127.0.0.1' },
 })
 console.log(

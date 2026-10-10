@@ -444,7 +444,6 @@ test('child progress spans tutors and packages, filters by learner and records t
       .getByLabel('Practice for next time', { exact: true })
       .fill('Practise five fraction word problems.')
     await scheduled.getByLabel('Use the development timeline', { exact: false }).check()
-    await scheduled.getByLabel('Include learning progress', { exact: true }).check()
     await scheduled.getByLabel('Topic', { exact: true }).fill('Word problems')
     await scheduled
       .getByLabel('Tutor observation', { exact: true })

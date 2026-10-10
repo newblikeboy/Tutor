@@ -235,15 +235,7 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 		d.Applications, e = storage.Many[domain.Application](ctx, a.Store, "applications", bson.M{"_id": u.ID})
 		restricted := len(d.Applications) == 0 || d.Applications[0].Status != "approved" || !d.Applications[0].Scope.ExpiresAt.After(a.Now())
 		if e == nil && !restricted {
-			d.Trials, e = storage.Many[domain.Trial](ctx, a.Store, "trials", bson.M{"tutorId": u.ID, "status": bson.M{"$in": []string{"requested", "confirmed", "completed", "reviewed"}}})
-		}
-		for i := range d.Trials {
-			if d.Trials[i].Status == "reviewed" {
-				d.Trials[i].LearnerName = ""
-				d.Trials[i].Notes = ""
-				d.Trials[i].Review = ""
-				d.Trials[i].NextSteps = ""
-			}
+			d.Trials, e = progressRecords[domain.Trial](ctx, a.Store, "trials", bson.M{"tutorId": u.ID})
 		}
 	case "mentor":
 		d.Applications, e = storage.Many[domain.Application](ctx, a.Store, "applications", staffApplicationFilter(u))

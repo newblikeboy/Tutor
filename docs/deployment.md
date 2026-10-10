@@ -82,6 +82,8 @@ Retain the previous application release for a reversible symlink rollback. Do no
 
 ## Backup/restore gate
 
+SMTP account and class emails are configured separately in the private API environment; see [email setup](email.md). The existing deployment script applies the additive `--email-only` migration before switching releases. Default email delivery is disabled until Google Workspace credentials and the persistent token key are provided. Do not put these values in frontend build settings. SMTP acceptance still needs an authorised real-recipient delivery check.
+
 Configure an Atlas backup policy appropriate to the chosen tier, retention and operator/legal requirements. An operator must perform and record a restore rehearsal into a **separate isolated database/cluster**, validate ownership indexes, consents, trial/learning records and session revocation, and agree recovery objectives before launch. No backup or restore has been performed here; availability depends on the actual Atlas arrangement. Never overwrite production during a rehearsal.
 
 Primary references checked: [DigitalOcean SSH access](https://docs.digitalocean.com/products/droplets/how-to/connect-with-ssh/), [Nginx proxy module](https://nginx.org/en/docs/http/ngx_http_proxy_module.html), [Atlas network access](https://www.mongodb.com/docs/atlas/security/ip-access-list/). Exact deployment remains an operator-reviewed activity.

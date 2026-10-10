@@ -3,13 +3,14 @@ package domain
 import "time"
 
 type User struct {
-	ID          string `json:"id" bson:"_id"`
-	Name        string `json:"name" bson:"name"`
-	Email       string `json:"email,omitempty" bson:"email,omitempty"`
-	Role        string `json:"role" bson:"role"`
-	Status      string `json:"status,omitempty" bson:"status,omitempty"`
-	Sample      bool   `json:"sample" bson:"sample"`
-	AuthVersion int    `json:"-" bson:"authVersion"`
+	ID              string     `json:"id" bson:"_id"`
+	Name            string     `json:"name" bson:"name"`
+	Email           string     `json:"email,omitempty" bson:"email,omitempty"`
+	Role            string     `json:"role" bson:"role"`
+	Status          string     `json:"status,omitempty" bson:"status,omitempty"`
+	Sample          bool       `json:"sample" bson:"sample"`
+	AuthVersion     int        `json:"-" bson:"authVersion"`
+	EmailVerifiedAt *time.Time `json:"emailVerifiedAt,omitempty" bson:"emailVerifiedAt,omitempty"`
 }
 type Scope struct {
 	Subject   string    `json:"subject" bson:"subject"`
@@ -150,30 +151,33 @@ type Requirement struct {
 	CreatedAt time.Time      `json:"createdAt" bson:"createdAt"`
 }
 type Trial struct {
-	Subjects         []string   `json:"subjects,omitempty" bson:"subjects,omitempty"`
-	Mode             string     `json:"mode,omitempty" bson:"mode,omitempty"`
-	ScheduleTimezone string     `json:"-" bson:"scheduleTimezone,omitempty"`
-	BufferMinutes    int        `json:"-" bson:"bufferMinutes,omitempty"`
-	ID               string     `json:"id" bson:"_id"`
-	OwnerID          string     `json:"-" bson:"ownerId"`
-	LearnerID        string     `json:"learnerId" bson:"learnerId"`
-	RequirementID    string     `json:"requirementId" bson:"requirementId"`
-	TutorID          string     `json:"tutorId" bson:"tutorId"`
-	MentorID         string     `json:"mentorId" bson:"mentorId"`
-	LearnerName      string     `json:"learnerName" bson:"learnerName"`
-	Subject          string     `json:"subject" bson:"subject"`
-	Class            int        `json:"class" bson:"class"`
-	Start            time.Time  `json:"start" bson:"start"`
-	End              time.Time  `json:"end" bson:"end"`
-	Status           string     `json:"status" bson:"status"`
-	FeePaise         int64      `json:"feePaise" bson:"feePaise"`
-	TermsVersion     string     `json:"termsVersion" bson:"termsVersion"`
-	Terms            string     `json:"terms" bson:"terms"`
-	Notes            string     `json:"notes" bson:"notes"`
-	NextSteps        string     `json:"nextSteps" bson:"nextSteps"`
-	Review           string     `json:"review" bson:"review"`
-	ReviewAt         *time.Time `json:"reviewAt,omitempty" bson:"reviewAt,omitempty"`
-	CreatedAt        time.Time  `json:"createdAt" bson:"createdAt"`
+	Version          int            `json:"version" bson:"version"`
+	CompletedAt      *time.Time     `json:"completedAt,omitempty" bson:"completedAt,omitempty"`
+	Meeting          *LessonMeeting `json:"meeting,omitempty" bson:"meeting,omitempty"`
+	Subjects         []string       `json:"subjects,omitempty" bson:"subjects,omitempty"`
+	Mode             string         `json:"mode,omitempty" bson:"mode,omitempty"`
+	ScheduleTimezone string         `json:"-" bson:"scheduleTimezone,omitempty"`
+	BufferMinutes    int            `json:"-" bson:"bufferMinutes,omitempty"`
+	ID               string         `json:"id" bson:"_id"`
+	OwnerID          string         `json:"-" bson:"ownerId"`
+	LearnerID        string         `json:"learnerId" bson:"learnerId"`
+	RequirementID    string         `json:"requirementId" bson:"requirementId"`
+	TutorID          string         `json:"tutorId" bson:"tutorId"`
+	MentorID         string         `json:"mentorId" bson:"mentorId"`
+	LearnerName      string         `json:"learnerName" bson:"learnerName"`
+	Subject          string         `json:"subject" bson:"subject"`
+	Class            int            `json:"class" bson:"class"`
+	Start            time.Time      `json:"start" bson:"start"`
+	End              time.Time      `json:"end" bson:"end"`
+	Status           string         `json:"status" bson:"status"`
+	FeePaise         int64          `json:"feePaise" bson:"feePaise"`
+	TermsVersion     string         `json:"termsVersion" bson:"termsVersion"`
+	Terms            string         `json:"terms" bson:"terms"`
+	Notes            string         `json:"notes" bson:"notes"`
+	NextSteps        string         `json:"nextSteps" bson:"nextSteps"`
+	Review           string         `json:"review" bson:"review"`
+	ReviewAt         *time.Time     `json:"reviewAt,omitempty" bson:"reviewAt,omitempty"`
+	CreatedAt        time.Time      `json:"createdAt" bson:"createdAt"`
 }
 type Draft struct {
 	ID        string         `json:"-" bson:"_id"`

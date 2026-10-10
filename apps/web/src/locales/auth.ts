@@ -54,10 +54,6 @@ export const authEN = {
   authTutorApproval:
     'Creating an account starts your application. Academic assessment and approval come next.',
   authPrivate: 'Your space, kept private',
-  authHelp: 'Trouble signing in?',
-  authHelpTitle: 'Let’s get you back in.',
-  authHelpBody:
-    'Password recovery is not available yet. Contact the platform operator if you’ve forgotten your password.',
   authWorking: 'Just a moment…',
   authPrivacyIntro: 'Your account details stay private. Read our',
   authPrivacyLink: 'privacy draft',

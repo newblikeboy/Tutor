@@ -20,7 +20,7 @@ export function workspaceViews(role: User['role']): WorkspaceView[] {
     case 'parent':
       return ['overview', 'learners', 'sessions', 'progress']
     case 'tutor':
-      return ['overview', 'sessions']
+      return ['overview', 'learners', 'sessions']
     case 'mentor':
       return ['overview', 'assessments', 'interviews', 'reviews']
     case 'admin':

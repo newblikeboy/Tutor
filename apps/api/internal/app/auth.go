@@ -249,6 +249,9 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	a.authResponse(w, u, raw, csrf, 200)
 }
 func (a *App) saveSession(ctx context.Context, r *http.Request, u domain.User, raw, csrf string) error {
+	return a.saveSessionWithMethod(ctx, r, u, raw, csrf, a.sessionMethod())
+}
+func (a *App) saveSessionWithMethod(ctx context.Context, r *http.Request, u domain.User, raw, csrf, method string) error {
 	if e := a.accountAccessError(u); e != nil {
 		return e
 	}
@@ -257,7 +260,7 @@ func (a *App) saveSession(ctx context.Context, r *http.Request, u domain.User, r
 			return e
 		}
 	}
-	_, e := a.Store.C("sessions").InsertOne(ctx, Session{ID: digest(raw), UserID: u.ID, Version: u.AuthVersion, ExpiresAt: a.Now().Add(8 * time.Hour), CSRF: csrf, Method: a.sessionMethod()})
+	_, e := a.Store.C("sessions").InsertOne(ctx, Session{ID: digest(raw), UserID: u.ID, Version: u.AuthVersion, ExpiresAt: a.Now().Add(8 * time.Hour), CSRF: csrf, Method: method})
 	return e
 }
 func (a *App) authResponse(w http.ResponseWriter, u domain.User, raw, csrf string, status int) {
@@ -274,7 +277,7 @@ func (a *App) authenticated(next http.Handler) http.Handler {
 			a.error(w, r, domain.Fail(401, "unauthenticated", "Please sign in to continue."))
 			return
 		}
-		s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": a.sessionMethod(), "expiresAt": bson.M{"$gt": a.Now()}})
+		s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": a.sessionMethods(), "expiresAt": bson.M{"$gt": a.Now()}})
 		if e != nil {
 			a.error(w, r, domain.Fail(401, "unauthenticated", "Your session has expired."))
 			return
@@ -282,6 +285,10 @@ func (a *App) authenticated(next http.Handler) http.Handler {
 		u, e := storage.One[domain.User](r.Context(), a.Store, "users", bson.M{"_id": s.UserID, "authVersion": s.Version})
 		if e != nil {
 			a.error(w, r, domain.Fail(401, "unauthenticated", "Please sign in again."))
+			return
+		}
+		if s.Method == a.emailSessionMethod() && !enum(u.Role, "parent", "tutor") {
+			a.error(w, r, domain.Fail(401, "unauthenticated", "Staff must sign in with a password."))
 			return
 		}
 		if r.Method != "GET" && r.Method != "HEAD" && !hmac.Equal([]byte(s.CSRF), []byte(r.Header.Get("X-CSRF-Token"))) {
@@ -325,7 +332,7 @@ func (a *App) sessionState(w http.ResponseWriter, r *http.Request) {
 		a.json(w, 200, nil)
 		return
 	}
-	s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": a.sessionMethod(), "expiresAt": bson.M{"$gt": a.Now()}})
+	s, e := storage.One[Session](r.Context(), a.Store, "sessions", bson.M{"_id": digest(cookie.Value), "method": a.sessionMethods(), "expiresAt": bson.M{"$gt": a.Now()}})
 	if e == mongo.ErrNoDocuments {
 		a.json(w, 200, nil)
 		return
@@ -343,7 +350,7 @@ func (a *App) sessionState(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
-	if a.accountAccessError(u) != nil {
+	if a.accountAccessError(u) != nil || s.Method == a.emailSessionMethod() && !enum(u.Role, "parent", "tutor") {
 		a.json(w, 200, nil)
 		return
 	}

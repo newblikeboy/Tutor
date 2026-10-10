@@ -40,10 +40,12 @@ export function ClassProgressFields({
   enrollment,
   previous,
   required = false,
+  plannedSubject,
 }: {
   enrollment: Schema['Enrollment']
   previous?: Schema['ClassProgress']
   required?: boolean
+  plannedSubject?: string
 }) {
   const { t } = useTranslation()
   const [enabled, setEnabled] = useState(required || !!previous)
@@ -79,7 +81,9 @@ export function ClassProgressFields({
           <Field label={t('childProgress.subject')}>
             <select
               name="progressSubject"
-              defaultValue={previous?.subject ?? (subjects.length === 1 ? subjects[0] : '')}
+              defaultValue={
+                previous?.subject ?? plannedSubject ?? (subjects.length === 1 ? subjects[0] : '')
+              }
               required
             >
               <option value="">{t('childProgress.chooseSubject')}</option>

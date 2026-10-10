@@ -19,13 +19,22 @@ import '../styles/learner-progress.css'
 
 const tabs = ['overview', 'subjects', 'history', 'feedback'] as const
 type Tab = (typeof tabs)[number]
-export default function LearnerProgressReport({ learner }: { learner: Learner }) {
+export default function LearnerProgressReport({
+  learner,
+  tutor = false,
+}: {
+  learner: Learner
+  tutor?: boolean
+}) {
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const q = useQuery({
-    queryKey: ['learner-progress', learner.id],
+    queryKey: ['learner-progress', tutor ? 'tutor' : 'parent', learner.id],
     queryFn: ({ signal }) =>
-      api<ProgressReport>(`/learners/${encodeURIComponent(learner.id)}/progress`, { signal }),
+      api<ProgressReport>(
+        `${tutor ? '/tutor' : ''}/learners/${encodeURIComponent(learner.id)}/progress`,
+        { signal },
+      ),
     refetchInterval: 20000,
   })
   const set = (values: Record<string, string>) => {
@@ -96,14 +105,20 @@ export default function LearnerProgressReport({ learner }: { learner: Learner })
         <div>
           <span className="eyebrow">{t('childProgress.title')}</span>
           <h2>{learner.name}</h2>
-          <p>{t('childProgress.subtitle')}</p>
+          <p>
+            {tutor
+              ? 'Progress recorded in your current teaching assignments.'
+              : t('childProgress.subtitle')}
+          </p>
         </div>
-        <Link
-          className="text-link"
-          to={`/match?profile=1&edit=1&learner=${encodeURIComponent(learner.id)}`}
-        >
-          {t('parent.edit')}
-        </Link>
+        {!tutor && (
+          <Link
+            className="text-link"
+            to={`/match?profile=1&edit=1&learner=${encodeURIComponent(learner.id)}`}
+          >
+            {t('parent.edit')}
+          </Link>
+        )}
       </header>
       <div className="child-report-filters">
         <Field label={t('childProgress.range')}>

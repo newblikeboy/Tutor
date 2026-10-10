@@ -17,6 +17,7 @@ import (
 	"time"
 	"tutorplatform/internal/config"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/mailer"
 	"tutorplatform/internal/media"
 	"tutorplatform/internal/meetings"
 	"tutorplatform/internal/payments"
@@ -33,13 +34,18 @@ type App struct {
 	Videos        media.Store
 	DirectFiles   media.DirectStore
 	Meetings      meetings.Gateway
+	Mail          mailer.Sender
+	EmailCodeWake chan struct{}
 	Scanner       media.Scanner
 	FileSlots     chan struct{}
 }
 
 func New(s *storage.Store, c config.Config) *App {
-	a := &App{Store: s, Config: c, Now: func() time.Time { return time.Now().UTC() }, PasswordSlots: make(chan struct{}, 4)}
+	a := &App{Store: s, Config: c, Now: func() time.Time { return time.Now().UTC() }, PasswordSlots: make(chan struct{}, 4), EmailCodeWake: make(chan struct{}, 1)}
 	a.FileSlots = make(chan struct{}, 2)
+	if c.MailProvider == "smtp" {
+		a.Mail = &mailer.SMTP{Host: c.SMTPHost, Port: c.SMTPPort, Security: c.SMTPSecurity, User: c.SMTPUser, Password: c.SMTPPassword, From: c.SMTPFrom}
+	}
 	if c.MeetingProvider == "zoom" {
 		provider := meetings.New(c.ZoomAccountID, c.ZoomClientID, c.ZoomSecret, c.ZoomHostID)
 		if c.Env == "test" && c.TestZoomURL != "" {
@@ -138,7 +144,7 @@ func (a *App) Routes() http.Handler {
 		if a.Payments != nil {
 			provider = "razorpay_sandbox"
 		}
-		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password", "trialFeePaise": 0, "payments": provider, "timezone": "Asia/Kolkata", "uploadsEnabled": a.Files != nil, "videoUploadsEnabled": a.Videos != nil, "videoProvider": a.Config.VideoProvider, "mediaProvider": a.Config.MediaProvider, "meetingsEnabled": a.Meetings != nil, "scannerConfigured": a.Scanner != nil})
+		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password", "emailEnabled": a.Mail != nil, "trialFeePaise": 0, "payments": provider, "timezone": "Asia/Kolkata", "uploadsEnabled": a.Files != nil, "videoUploadsEnabled": a.Videos != nil, "videoProvider": a.Config.VideoProvider, "mediaProvider": a.Config.MediaProvider, "meetingsEnabled": a.Meetings != nil, "scannerConfigured": a.Scanner != nil})
 	})
 	r.Get("/api/v1/tutors", a.tutors)
 	r.Post("/api/v1/webhooks/razorpay", a.razorpayWebhook)
@@ -149,12 +155,18 @@ func (a *App) Routes() http.Handler {
 	r.Get("/api/v1/location/reverse", a.reverseLocation)
 	r.Post("/api/v1/auth/signup", a.signup)
 	r.Post("/api/v1/auth/login", a.login)
+	r.Post("/api/v1/auth/email/request", a.requestEmailCode)
+	r.Post("/api/v1/auth/email/confirm", a.confirmEmailCode)
 	r.Get("/api/v1/auth/session", a.sessionState)
 	r.Group(func(r chi.Router) {
 		r.Use(a.authenticated)
 		r.Get("/api/v1/me", a.me)
 		r.Post("/api/v1/auth/logout", a.logout)
 		r.Get("/api/v1/account", a.account)
+		r.Post("/api/v1/account/email/request", a.requestVerification)
+		r.Post("/api/v1/account/email/confirm", a.confirmVerification)
+		r.Get("/api/v1/account/email/preferences", a.emailPreferences)
+		r.Put("/api/v1/account/email/preferences", a.saveEmailPreferences)
 		r.Put("/api/v1/account", a.saveAccount)
 		r.Get("/api/v1/account/sessions", a.accountSessions)
 		r.Post("/api/v1/account/sessions/{id}/revoke", a.revokeAccountSession)
@@ -171,6 +183,8 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/staff/followups/{id}/resolve", a.resolveTutorFollowup)
 		r.Get("/api/v1/staff/academic", a.mentorAcademicReport)
 		r.Get("/api/v1/admin/founder", a.founderReport)
+		r.Get("/api/v1/admin/email-deliveries", a.emailDeliveries)
+		r.Post("/api/v1/admin/email-deliveries/{id}/retry", a.retryEmail)
 		r.Get("/api/v1/admin/families", a.adminFamilies)
 		r.Put("/api/v1/application", a.application)
 		r.Get("/api/v1/application", a.ownApplication)
@@ -180,6 +194,8 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/learners", a.learner)
 		r.Get("/api/v1/learners/{id}", a.getLearner)
 		r.Get("/api/v1/learners/{id}/progress", a.learnerProgress)
+		r.Get("/api/v1/tutor/workspace", a.tutorWorkspace)
+		r.Get("/api/v1/tutor/learners/{id}/progress", a.tutorLearnerProgress)
 		r.Put("/api/v1/learners/{id}", a.updateLearner)
 		r.Get("/api/v1/learner-draft", a.getLearnerDraft)
 		r.Put("/api/v1/learner-draft", a.saveLearnerDraft)
@@ -196,6 +212,8 @@ func (a *App) Routes() http.Handler {
 		r.Get("/api/v1/enrollments/{id}", a.tuitionDetail)
 		r.Post("/api/v1/enrollments/{id}/action", a.enrollmentAction)
 		r.Post("/api/v1/classes/{id}/action", a.classAction)
+		r.Post("/api/v1/{kind:classes|trials}/{id}/meeting", a.prepareLessonMeeting)
+		r.Get("/api/v1/{kind:classes|trials}/{id}/meeting/join", a.joinLessonMeeting)
 		r.Post("/api/v1/enrollments/{id}/plans", a.savePlan)
 		r.Post("/api/v1/enrollments/{id}/handovers", a.requestHandover)
 		r.Get("/api/v1/handovers/invitations", a.handoverInvitations)

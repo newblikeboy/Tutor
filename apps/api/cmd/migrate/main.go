@@ -17,8 +17,15 @@ func main() {
 	applicationOnly := flag.Bool("application-only", false, "Apply application and staff validation/indexes to existing collections only")
 	inboxOnly := flag.Bool("inbox-only", false, "Apply additive Updates inbox collection and indexes only")
 	financeOnly := flag.Bool("finance-only", false, "Apply additive finance collections, validation and indexes only")
+	emailOnly := flag.Bool("email-only", false, "Apply additive email challenge collection, scheduling and delivery queue indexes only")
 	flag.Parse()
-	if *financeOnly && (*inboxOnly || *staffOnly || *applicationOnly) {
+	scopes := 0
+	for _, selected := range []bool{*financeOnly, *inboxOnly, *staffOnly, *applicationOnly, *emailOnly} {
+		if selected {
+			scopes++
+		}
+	}
+	if scopes > 1 {
 		log.Fatal("Use one migration scope at a time")
 	}
 	if e := config.LoadDevelopmentEnv(); e != nil {
@@ -35,7 +42,9 @@ func main() {
 		log.Fatal("Database connection failed; check private configuration")
 	}
 	defer s.Client.Disconnect(ctx)
-	if *financeOnly {
+	if *emailOnly {
+		e = s.MigrateEmail(ctx)
+	} else if *financeOnly {
 		e = s.MigrateFinance(ctx)
 	} else if *inboxOnly {
 		e = s.MigrateInbox(ctx)

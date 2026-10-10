@@ -6,6 +6,7 @@ import { billingContract } from './billing-contract.mjs'
 import { financeContract } from './finance-contract.mjs'
 import { casesContract } from './cases-contract.mjs'
 import { accountContract } from './account-contract.mjs'
+import { emailContract } from './email-contract.mjs'
 import { mediaContract } from './media-contract.mjs'
 import { staffContract } from './staff-contract.mjs'
 import { applicationContract } from './application-contract.mjs'
@@ -478,11 +479,12 @@ billingContract(schemas, route)
 financeContract(schemas, route)
 casesContract(schemas, route)
 accountContract(schemas, route)
+emailContract(schemas, route, paths)
 mediaContract(schemas, route, paths)
 staffContract(schemas, route, paths)
 applicationContract(schemas, route)
 feesContract(schemas, route)
-progressContract(schemas, route)
+progressContract(schemas, route, paths)
 inboxContract(schemas, route, paths)
 paths['/webhooks/razorpay'] = {
   post: {
@@ -530,7 +532,7 @@ await writeFile(
         title: 'GoCoaching API',
         version: '0.1.0',
         description:
-          'Email/password accounts, supervised trials, ongoing tuition and learning continuity, and explicitly configured Razorpay sandbox billing. Production access remains gated pending operator review. Public registration never grants academic approval. No delivery, live charge or bank settlement is implied by local records.',
+          'Email/password accounts with explicitly configured SMTP email verification, recovery and parent/tutor code sign-in, supervised trials, ongoing tuition and learning continuity, and explicitly configured Razorpay sandbox billing. Production access remains gated pending operator review. Public registration never grants academic approval. No delivery, live charge or bank settlement is implied by local records.',
       },
       servers: [{ url: '/api/v1' }],
       paths,

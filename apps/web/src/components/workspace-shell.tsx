@@ -166,9 +166,11 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
                     )
                   : pathname === '/apply'
                     ? t('applicationTitle')
-                    : t(
-                        `${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${view}`,
-                      )
+                    : user.role === 'tutor' && view === 'learners'
+                      ? 'My learners'
+                      : t(
+                          `${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${view}`,
+                        )
   const navigation = (
     <>
       <Link className="desk-brand" to={applicant ? '/apply' : '/workspace'}>
@@ -194,7 +196,9 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
               aria-current={active ? 'page' : undefined}
             >
               <Icon size={19} strokeWidth={1.7} aria-hidden="true" />
-              {t(`${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${item}`)}
+              {user.role === 'tutor' && item === 'learners'
+                ? 'My learners'
+                : t(`${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${item}`)}
               {active && <span className="desk-nav-dot" aria-hidden="true" />}
             </Link>
           )

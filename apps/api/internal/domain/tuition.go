@@ -61,22 +61,25 @@ type Enrollment struct {
 	CreatedAt       time.Time  `json:"createdAt" bson:"createdAt"`
 }
 type ClassSession struct {
-	Progress      *ClassProgress    `json:"progress,omitempty" bson:"progress,omitempty"`
-	ID            string            `json:"id" bson:"_id"`
-	EnrollmentID  string            `json:"enrollmentId" bson:"enrollmentId"`
-	TutorID       string            `json:"tutorId" bson:"tutorId"`
-	Start         time.Time         `json:"start" bson:"start"`
-	End           time.Time         `json:"end" bson:"end"`
-	BufferMinutes int               `json:"bufferMinutes" bson:"bufferMinutes"`
-	Status        string            `json:"status" bson:"status"`
-	Timezone      string            `json:"timezone" bson:"timezone"`
-	Notes         string            `json:"notes" bson:"notes"`
-	Homework      string            `json:"homework" bson:"homework"`
-	Review        string            `json:"review" bson:"review"`
-	Attendance    string            `json:"attendance" bson:"attendance"`
-	Reason        string            `json:"reason" bson:"reason"`
-	Version       int               `json:"version" bson:"version"`
-	Proposal      *ScheduleProposal `json:"proposal" bson:"proposal"`
+	PlannedSubject string            `json:"plannedSubject,omitempty" bson:"plannedSubject,omitempty"`
+	RecordedAt     *time.Time        `json:"recordedAt,omitempty" bson:"recordedAt,omitempty"`
+	Meeting        *LessonMeeting    `json:"meeting,omitempty" bson:"meeting,omitempty"`
+	Progress       *ClassProgress    `json:"progress,omitempty" bson:"progress,omitempty"`
+	ID             string            `json:"id" bson:"_id"`
+	EnrollmentID   string            `json:"enrollmentId" bson:"enrollmentId"`
+	TutorID        string            `json:"tutorId" bson:"tutorId"`
+	Start          time.Time         `json:"start" bson:"start"`
+	End            time.Time         `json:"end" bson:"end"`
+	BufferMinutes  int               `json:"bufferMinutes" bson:"bufferMinutes"`
+	Status         string            `json:"status" bson:"status"`
+	Timezone       string            `json:"timezone" bson:"timezone"`
+	Notes          string            `json:"notes" bson:"notes"`
+	Homework       string            `json:"homework" bson:"homework"`
+	Review         string            `json:"review" bson:"review"`
+	Attendance     string            `json:"attendance" bson:"attendance"`
+	Reason         string            `json:"reason" bson:"reason"`
+	Version        int               `json:"version" bson:"version"`
+	Proposal       *ScheduleProposal `json:"proposal" bson:"proposal"`
 }
 type ScheduleProposal struct {
 	Start  time.Time `json:"start" bson:"start"`

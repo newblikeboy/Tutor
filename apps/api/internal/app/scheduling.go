@@ -165,6 +165,12 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 		if _, er = a.Store.C("requests").InsertOne(ctx, bson.M{"_id": u.ID + ":" + key, "ownerId": u.ID, "fingerprint": fingerprint, "resultId": id}); er != nil {
 			return er
 		}
+		if er = a.notifyActivity(ctx, v.TutorID, "trial_requested", v.ID); er != nil {
+			return er
+		}
+		if er = a.queueTrialEmail(ctx, v, "trial_requested"); er != nil {
+			return er
+		}
 		return a.audit(ctx, u.ID, "trial.requested", id)
 	})
 	if e != nil {
@@ -175,6 +181,7 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 	var in struct {
+		Version   *int   `json:"version"`
 		Action    string `json:"action"`
 		Notes     string `json:"notes"`
 		NextSteps string `json:"nextSteps"`
@@ -267,12 +274,26 @@ func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 					return e
 				}
 			}
+			if e = a.clearLessonMeeting(ctx, "trials", v.ID, &v.Meeting); e != nil {
+				return e
+			}
 			v.Status = map[string]string{"cancel": "cancelled", "decline": "declined"}[in.Action]
-		case "complete":
+		case "complete", "feedback":
 			if u.Role != "tutor" || v.TutorID != u.ID {
 				return domain.Fail(403, "forbidden", "Only the assigned tutor can submit lesson evidence.")
 			}
-			if v.Status != "confirmed" {
+			if in.Action == "feedback" {
+				recorded := v.End
+				if v.CompletedAt != nil {
+					recorded = *v.CompletedAt
+				}
+				if !enum(v.Status, "completed", "reviewed") || a.Now().After(recorded.Add(7*24*time.Hour)) {
+					return domain.Fail(409, "correction_closed", "Trial feedback corrections close seven days after completion.")
+				}
+				if in.Version == nil || *in.Version != v.Version {
+					return domain.Fail(409, "stale_version", "This trial changed. Reload first.")
+				}
+			} else if v.Status != "confirmed" {
 				return domain.Fail(409, "invalid_transition", "Confirm the trial before adding a lesson record.")
 			}
 			if a.Config.Env == "production" && a.Now().Before(v.End) {
@@ -281,21 +302,42 @@ func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 			if !validText(in.Notes, 10, 2000) || !validText(in.NextSteps, 10, 1200) || !validText(in.Review, 10, 2000) {
 				return domain.Fail(422, "validation", "Add lesson evidence and concrete next steps.")
 			}
-			t, er := storage.One[domain.Application](ctx, a.Store, "applications", bson.M{"_id": u.ID})
+			var t domain.Application
+			er := a.Store.C("applications").FindOneAndUpdate(ctx, bson.M{"_id": u.ID}, bson.M{"$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&t)
 			if er != nil {
 				return er
 			}
-			if t.Status != "approved" {
-				return domain.Fail(403, "scope_unavailable", "Teaching access is paused pending academic review.")
+			mode := v.Mode
+			if mode == "" {
+				mode = "online"
+			}
+			subjects := v.Subjects
+			if len(subjects) == 0 {
+				subjects = []string{v.Subject}
+			}
+			if !domain.EligibleForMode(t, v.Class, mode, a.Now()) || !t.Scope.CoversSubjects(subjects) {
+				return domain.Fail(403, "scope_unavailable", "Teaching approval must cover this trial.")
 			}
 			v.Notes = in.Notes
 			v.NextSteps = clean(in.NextSteps)
 			v.Review = clean(in.Review)
-			v.Status = "completed"
+			if e = a.clearLessonMeeting(ctx, "trials", v.ID, &v.Meeting); e != nil {
+				return e
+			}
+			if in.Action == "complete" {
+				now := a.Now()
+				v.CompletedAt = &now
+				v.Status = "completed"
+			}
 		default:
 			return domain.Fail(422, "validation", fmt.Sprintf("Unsupported trial action."))
 		}
+		v.Version++
 		if _, e = a.Store.C("trials").ReplaceOne(ctx, bson.M{"_id": id}, v); e != nil {
+			return e
+		}
+		event := map[string]string{"accept": "trial_confirmed", "cancel": "trial_cancelled", "decline": "trial_declined", "complete": "trial_feedback", "feedback": "trial_feedback"}[in.Action]
+		if e = a.queueTrialEmail(ctx, v, event); e != nil {
 			return e
 		}
 		return a.audit(ctx, u.ID, "trial."+v.Status, id)

@@ -270,10 +270,18 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 		finance.ok("GET", "/enrollments/"+v.ID+"/messages", nil, 403)
 		notifications := tutor.ok("GET", "/notifications", nil, 200)
 		items := notifications["items"].([]any)
-		if len(items) != 1 {
-			t.Fatal("notification not persisted")
+		notificationID := ""
+		count := 0
+		for _, item := range items {
+			row := item.(map[string]any)
+			if row["kind"] == "conversation_message" && row["targetId"] == v.ID {
+				notificationID = row["id"].(string)
+				count++
+			}
 		}
-		notificationID := items[0].(map[string]any)["id"].(string)
+		if count != 1 {
+			t.Fatal("conversation notification not persisted exactly once")
+		}
 		other.ok("POST", "/notifications/"+notificationID+"/read", map[string]any{}, 404)
 		tutor.ok("POST", "/notifications/"+notificationID+"/read", map[string]any{}, 200)
 	})
@@ -330,7 +338,7 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 	t.Run("lesson evidence requires explicit development timing without mentor review", func(t *testing.T) {
 		d := detail(p, v.ID)
 		s := d.Sessions[0]
-		body := map[string]any{"action": "record", "version": s.Version, "attendance": "present", "notes": "Explained equivalent fractions with two worked number lines.", "homework": "Compare thirds and sixths with a number line."}
+		body := map[string]any{"action": "record", "progress": tutorProgressFixture("Mathematics"), "version": s.Version, "attendance": "present", "notes": "Explained equivalent fractions with two worked number lines.", "homework": "Compare thirds and sixths with a number line."}
 		replacement.ok("POST", "/classes/"+s.ID+"/action", body, 409)
 		body["developmentRecord"] = true
 		replacement.ok("POST", "/classes/"+s.ID+"/action", body, 200)

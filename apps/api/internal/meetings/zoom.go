@@ -19,7 +19,7 @@ type Meeting struct {
 	JoinURL string
 }
 type Gateway interface {
-	Create(context.Context, string, time.Time, time.Time) (Meeting, error)
+	Create(context.Context, string, time.Time, time.Time, ...string) (Meeting, error)
 	Update(context.Context, string, time.Time, time.Time) (Meeting, error)
 	Delete(context.Context, string) error
 	Find(context.Context, string) (Meeting, bool, error)
@@ -148,11 +148,16 @@ func (v response) meeting() (Meeting, error) {
 func details(start, end time.Time) map[string]any {
 	return map[string]any{"start_time": start.UTC().Format(time.RFC3339), "duration": int(end.Sub(start) / time.Minute), "timezone": "Asia/Kolkata"}
 }
-func (z *Zoom) Create(ctx context.Context, topic string, start, end time.Time) (Meeting, error) {
+func (z *Zoom) Create(ctx context.Context, topic string, start, end time.Time, alternativeHost ...string) (Meeting, error) {
 	body := details(start, end)
 	body["type"] = 2
 	body["topic"] = topic
 	body["settings"] = map[string]any{"waiting_room": true, "join_before_host": false, "use_pmi": false, "auto_recording": "none", "meeting_authentication": false}
+	if len(alternativeHost) > 0 && alternativeHost[0] != "" && !strings.EqualFold(alternativeHost[0], z.host) {
+		settings := body["settings"].(map[string]any)
+		settings["alternative_hosts"] = alternativeHost[0]
+		settings["alternative_hosts_email_notification"] = false
+	}
 	var v response
 	if e := z.request(ctx, http.MethodPost, "/users/"+url.PathEscape(z.host)+"/meetings", body, &v); e != nil {
 		return Meeting{}, e

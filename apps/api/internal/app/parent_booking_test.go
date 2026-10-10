@@ -51,6 +51,7 @@ func TestMongoParentBookingFlow(t *testing.T) {
 	}
 	cfg := config.Config{Env: "test", AuthProvider: "password", Origin: "http://test.local", RazorpaySecret: "test-booking-secret"}
 	a := New(s, cfg)
+	a.Mail = &testEmailSender{}
 	now := time.Now()
 	a.Now = func() time.Time { return now }
 	g := &paymentTestGateway{orders: map[string]payments.Order{}, payments: map[string]payments.Payment{}, refunds: map[string]payments.Refund{}}
@@ -180,6 +181,10 @@ func TestMongoParentBookingFlow(t *testing.T) {
 		}
 	})
 	t.Run("payment capture activates without acceptance", func(t *testing.T) {
+		count, err := s.C("outbox").CountDocuments(ctx, bson.M{"kind": "email", "payload.event": "booking_confirmed", "payload.targetId": paid.ID})
+		if err != nil || count != 0 {
+			t.Fatal("unpaid checkout sent booking confirmation")
+		}
 		status, response, raw := p.call("POST", "/enrollments/"+paid.ID+"/payment", map[string]any{"retry": false}, map[string]string{"Idempotency-Key": token()})
 		if status != 200 {
 			t.Fatalf("payment %d %s", status, raw)
@@ -192,6 +197,15 @@ func TestMongoParentBookingFlow(t *testing.T) {
 		v := p.ok("GET", "/enrollments/"+paid.ID, nil, 200)
 		if v["enrollment"].(map[string]any)["status"] != "active" || v["sessions"].([]any)[0].(map[string]any)["status"] != "scheduled" {
 			t.Fatal("payment did not schedule classes")
+		}
+		count, err = s.C("outbox").CountDocuments(ctx, bson.M{"kind": "email", "payload.event": "booking_confirmed", "payload.targetId": paid.ID})
+		if err != nil || count != 2 {
+			t.Fatal("verified payment did not queue parent and tutor confirmations", count, err)
+		}
+		p.ok("POST", "/billing/"+intent["id"].(string)+"/verify", map[string]any{"paymentId": payment.ID, "signature": signed(cfg.RazorpaySecret, []byte(order+"|"+payment.ID))}, 200)
+		count, err = s.C("outbox").CountDocuments(ctx, bson.M{"kind": "email", "payload.event": "booking_confirmed", "payload.targetId": paid.ID})
+		if err != nil || count != 2 {
+			t.Fatal("payment retry duplicated confirmation", count, err)
 		}
 	})
 	t.Run("conflicting checkout holds are atomic across API instances", func(t *testing.T) {
@@ -225,7 +239,7 @@ func TestMongoParentBookingFlow(t *testing.T) {
 	t.Run("regular notes complete without mentor review", func(t *testing.T) {
 		d := p.ok("GET", "/enrollments/"+paid.ID, nil, 200)
 		class := d["sessions"].([]any)[0].(map[string]any)
-		tutor.ok("POST", "/classes/"+class["id"].(string)+"/action", map[string]any{"action": "record", "version": class["version"], "developmentRecord": true, "attendance": "present", "notes": "The learner completed examples in both selected subjects.", "homework": "Practise the worked examples again."}, 200)
+		tutor.ok("POST", "/classes/"+class["id"].(string)+"/action", map[string]any{"action": "record", "progress": tutorProgressFixture("Mathematics"), "version": class["version"], "developmentRecord": true, "attendance": "present", "notes": "The learner completed examples in both selected subjects.", "homework": "Practise the worked examples again."}, 200)
 		d = p.ok("GET", "/enrollments/"+paid.ID, nil, 200)
 		if d["sessions"].([]any)[0].(map[string]any)["status"] != "completed" || d["delivered"] != float64(1) {
 			t.Fatal("mentor review still required")

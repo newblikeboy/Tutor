@@ -34,8 +34,6 @@ const accountEN = {
   'account.revoke': 'Sign out this session',
   'account.revoked': 'The selected session has been signed out.',
   'account.recovery': 'Need account help?',
-  'account.recoveryBody':
-    'Recovery email and staff multi-factor setup still need operator configuration. A support request does not reset a password.',
   'account.support': 'Open support & requests',
 }
 

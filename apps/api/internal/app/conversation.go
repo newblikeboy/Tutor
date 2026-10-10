@@ -97,14 +97,16 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 	a.json(w, 200, p)
 }
 func (a *App) readNotification(w http.ResponseWriter, r *http.Request) {
-	result, e := a.Store.C("notifications").UpdateOne(r.Context(), bson.M{"_id": chi.URLParam(r, "id"), "ownerId": user(r).ID}, bson.M{"$set": bson.M{"read": true}})
+	result, e := a.Store.C("notifications").UpdateOne(r.Context(), bson.M{"_id": chi.URLParam(r, "id"), "ownerId": user(r).ID, "read": bson.M{"$ne": true}}, bson.M{"$set": bson.M{"read": true, "readAt": a.Now()}})
 	if e != nil {
 		a.error(w, r, e)
 		return
 	}
 	if result.MatchedCount != 1 {
-		a.error(w, r, domain.Fail(404, "not_found", "Notification unavailable."))
-		return
+		if _, err := storage.One[domain.Notification](r.Context(), a.Store, "notifications", bson.M{"_id": chi.URLParam(r, "id"), "ownerId": user(r).ID, "read": true}); err != nil {
+			a.error(w, r, err)
+			return
+		}
 	}
 	a.json(w, 200, map[string]bool{"ok": true})
 }

@@ -84,30 +84,65 @@ func (a *App) enrollments(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "parent", "tutor", "mentor") {
 		return
 	}
-	p, e := pageRecords[domain.Enrollment](r.Context(), a.Store, "enrollments", tuitionFilter(user(r)), r.URL.Query().Get("cursor"))
+	filter := tuitionFilter(user(r))
+	if user(r).Role == "tutor" {
+		if e := a.tutorTeachingAccess(r.Context(), user(r).ID); e != nil {
+			a.error(w, r, e)
+			return
+		}
+		states := []string{"active", "paused", "pending_agreement"}
+		history := r.URL.Query().Get("history")
+		if history != "" && history != "0" && history != "1" {
+			a.error(w, r, domain.Fail(422, "validation", "Invalid booking history filter."))
+			return
+		}
+		if history == "1" {
+			states = []string{"completed", "cancelled"}
+		}
+		filter = bson.M{"tutorId": user(r).ID, "status": bson.M{"$in": states}}
+	}
+	p, e := pageRecords[domain.Enrollment](r.Context(), a.Store, "enrollments", filter, r.URL.Query().Get("cursor"))
 	if e != nil {
 		a.error(w, r, e)
 		return
 	}
+	if user(r).Role == "tutor" {
+		retained := []domain.Enrollment{}
+		for _, en := range p.Items {
+			visible, err := a.tutorArchiveVisible(r.Context(), en)
+			if err != nil {
+				a.error(w, r, err)
+				return
+			}
+			if visible {
+				retained = append(retained, en)
+			}
+		}
+		p.Items = retained
+	}
 	a.json(w, 200, p)
 }
 func (a *App) tuitionDetail(w http.ResponseWriter, r *http.Request) {
-	v, e := a.tuitionAccess(r.Context(), user(r), chi.URLParam(r, "id"))
+	v, e := a.tuitionReadAccess(r.Context(), user(r), chi.URLParam(r, "id"))
 	if e != nil {
 		a.error(w, r, e)
 		return
 	}
 	d := domain.TuitionDetail{Enrollment: v, Sessions: []domain.ClassSession{}, Plans: []domain.LearningPlan{}, Agreements: []domain.Agreement{}, Handovers: []domain.Handover{}}
 	f := bson.M{"enrollmentId": v.ID}
-	d.Sessions, e = storage.Many[domain.ClassSession](r.Context(), a.Store, "classes", f)
+	classFilter := bson.M{"enrollmentId": v.ID}
+	if user(r).Role == "tutor" {
+		classFilter["tutorId"] = user(r).ID
+	}
+	d.Sessions, e = progressRecords[domain.ClassSession](r.Context(), a.Store, "classes", classFilter)
 	if e == nil {
-		d.Plans, e = storage.Many[domain.LearningPlan](r.Context(), a.Store, "learning_plans", f)
+		d.Plans, e = progressRecords[domain.LearningPlan](r.Context(), a.Store, "learning_plans", f)
 	}
 	if e == nil {
-		d.Agreements, e = storage.Many[domain.Agreement](r.Context(), a.Store, "agreements", f)
+		d.Agreements, e = progressRecords[domain.Agreement](r.Context(), a.Store, "agreements", f)
 	}
 	if e == nil {
-		d.Handovers, e = storage.Many[domain.Handover](r.Context(), a.Store, "handovers", f)
+		d.Handovers, e = progressRecords[domain.Handover](r.Context(), a.Store, "handovers", f)
 	}
 	for _, s := range d.Sessions {
 		if enum(s.Status, "completed", "reviewed") {
@@ -397,6 +432,9 @@ func (a *App) enrollmentAction(w http.ResponseWriter, r *http.Request) {
 					if er = a.reserveClass(ctx, v, s, av, nil, true); er != nil {
 						return er
 					}
+					if er = a.clearLessonMeeting(ctx, "classes", s.ID, &s.Meeting); er != nil {
+						return er
+					}
 					s.Status = "cancelled"
 					s.Reason = in.Reason
 					s.Version++
@@ -414,6 +452,12 @@ func (a *App) enrollmentAction(w http.ResponseWriter, r *http.Request) {
 		if _, er = a.Store.C("enrollments").ReplaceOne(ctx, bson.M{"_id": v.ID}, v); er != nil {
 			return er
 		}
+		event := map[string]string{"pause": "booking_paused", "resume": "booking_resumed", "cancel": "booking_cancelled"}[in.Action]
+		if event != "" {
+			if er = a.queueEnrollmentEmail(ctx, v, event); er != nil {
+				return er
+			}
+		}
 		return a.audit(ctx, u.ID, "enrollment."+in.Action, v.ID)
 	})
 	if e != nil {
@@ -424,6 +468,7 @@ func (a *App) enrollmentAction(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 	var in struct {
+		Subject           string                `json:"subject"`
 		Action            string                `json:"action"`
 		Version           int                   `json:"version"`
 		Start             time.Time             `json:"start"`
@@ -443,25 +488,41 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 		if er != nil {
 			return er
 		}
-		v, er := a.tuitionAccess(ctx, u, s.EnrollmentID)
+		var v domain.Enrollment
+		if in.Action == "progress" {
+			v, er = a.tuitionReadAccess(ctx, u, s.EnrollmentID)
+		} else {
+			v, er = a.tuitionAccess(ctx, u, s.EnrollmentID)
+		}
 		if er != nil {
 			return er
 		}
 		if s.Version != in.Version {
 			return domain.Fail(409, "stale_version", "This class changed. Reload first.")
 		}
-		if !enum(v.Status, "active", "paused") {
+		if !enum(v.Status, "active", "paused") && !(in.Action == "progress" && v.Status == "completed") {
 			return domain.Fail(409, "invalid_transition", "Tuition must be active for class actions.")
 		}
 		// Writes to the assignment serialize class updates against handover/cancellation.
 		if _, er = a.Store.C("enrollments").UpdateOne(ctx, bson.M{"_id": v.ID}, bson.M{"$inc": bson.M{"version": 1}}); er != nil {
 			return er
 		}
-		av, er := storage.One[domain.Availability](ctx, a.Store, "availability", bson.M{"_id": v.TutorID})
-		if er != nil {
-			return er
+		var av domain.Availability
+		if enum(in.Action, "accept_change", "cancel") {
+			av, er = storage.One[domain.Availability](ctx, a.Store, "availability", bson.M{"_id": v.TutorID})
+			if er != nil {
+				return er
+			}
 		}
 		switch in.Action {
+		case "plan_subject":
+			if u.Role != "tutor" || s.TutorID != u.ID || s.Status != "scheduled" || !s.Start.After(a.Now()) {
+				return domain.Fail(403, "forbidden", "Only the assigned tutor can plan a future class.")
+			}
+			if er = a.validatePlannedSubject(ctx, u.ID, in.Subject, v); er != nil {
+				return er
+			}
+			s.PlannedSubject = in.Subject
 		case "propose":
 			if !enum(u.Role, "parent", "tutor") || !enum(s.Status, "scheduled", "makeup_due") || !in.Start.After(a.Now().Add(5*time.Minute)) || in.Start.After(a.Now().AddDate(0, 6, 0)) || !validText(in.Reason, 5, 1000) {
 				return domain.Fail(422, "validation", "Choose a future time and explain the proposed change.")
@@ -476,6 +537,9 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 				return er
 			}
 			if er = a.reserveClass(ctx, v, s, av, nil, true); er != nil {
+				return er
+			}
+			if er = a.clearLessonMeeting(ctx, "classes", s.ID, &s.Meeting); er != nil {
 				return er
 			}
 			s.Start = s.Proposal.Start
@@ -496,6 +560,9 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 				return domain.Fail(422, "validation", "A future scheduled class and cancellation reason are required.")
 			}
 			if er = a.reserveClass(ctx, v, s, av, nil, true); er != nil {
+				return er
+			}
+			if er = a.clearLessonMeeting(ctx, "classes", s.ID, &s.Meeting); er != nil {
 				return er
 			}
 			s.Status = "makeup_due"
@@ -525,6 +592,11 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 			s.Notes = clean(in.Notes)
 			s.Homework = clean(in.Homework)
 			s.Attendance = in.Attendance
+			if in.Attendance == "present" && in.Progress == nil {
+				return domain.Fail(422, "validation", "Record subject progress, topics, homework status, feedback and next steps for a present class.")
+			}
+			now := a.Now()
+			s.RecordedAt = &now
 			if in.Progress != nil {
 				if !app.Scope.CoversSubjects(agreementSubjects(v.Agreement)) {
 					return domain.Fail(403, "scope_unavailable", "The current tutor approval must cover the booked subjects.")
@@ -537,6 +609,9 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 				}
 				in.Progress.RecordedAt = a.Now()
 				s.Progress = in.Progress
+			}
+			if er = a.clearLessonMeeting(ctx, "classes", s.ID, &s.Meeting); er != nil {
+				return er
 			}
 			s.Status = "completed"
 			if s.Attendance == "absent" {
@@ -559,6 +634,10 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 			if u.Role != "tutor" || s.TutorID != u.ID || !enum(s.Status, "completed", "reviewed") {
 				return domain.Fail(403, "forbidden", "Only the assigned tutor can update progress for their completed class.")
 			}
+			if !progressCorrectionOpen(s, a.Now()) {
+				return domain.Fail(409, "correction_closed", "Progress corrections close seven days after the lesson is recorded. Historical lessons without a recording timestamp use the lesson end.")
+			}
+
 			var app domain.Application
 			er := a.Store.C("applications").FindOneAndUpdate(ctx, bson.M{"_id": u.ID}, bson.M{"$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&app)
 			if er != nil {
@@ -579,11 +658,11 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 			return domain.Fail(422, "validation", "Unknown class action.")
 		}
 		s.Version++
-		if in.Action == "progress" {
+		if enum(in.Action, "progress", "plan_subject") {
 			if _, er = a.Store.C("classes").ReplaceOne(ctx, bson.M{"_id": s.ID}, s); er != nil {
 				return er
 			}
-			return a.audit(ctx, u.ID, "class.progress", s.ID)
+			return a.audit(ctx, u.ID, "class."+in.Action, s.ID)
 		}
 		if er = a.recognizeEarning(ctx, s); er != nil {
 			return er
@@ -611,6 +690,12 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 				if _, er = a.Store.C("enrollments").UpdateOne(ctx, bson.M{"_id": v.ID}, bson.M{"$set": bson.M{"status": "completed"}}); er != nil {
 					return er
 				}
+			}
+		}
+		event := map[string]string{"propose": "class_change_proposed", "accept_change": "class_rescheduled", "cancel": "class_cancelled"}[in.Action]
+		if event != "" {
+			if er = a.queueClassEmail(ctx, v, s, event); er != nil {
+				return er
 			}
 		}
 		return a.audit(ctx, u.ID, "class."+in.Action, s.ID)

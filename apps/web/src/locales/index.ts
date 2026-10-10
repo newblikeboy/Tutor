@@ -232,7 +232,7 @@ const en = {
   suspended: 'Suspended',
   requested: 'Requested',
   confirmed: 'Confirmed',
-  completed: 'Awaiting academic review',
+  completed: 'Feedback submitted',
   reviewed: 'Reviewed',
   cancelled: 'Cancelled',
   reviewApplication: 'Take this assessment',

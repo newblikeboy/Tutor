@@ -223,6 +223,9 @@ func (a *App) handoverAction(w http.ResponseWriter, r *http.Request) {
 				if er = a.reserveClass(ctx, v, s, old, nil, true); er != nil {
 					return er
 				}
+				if er = a.clearLessonMeeting(ctx, "classes", s.ID, &s.Meeting); er != nil {
+					return er
+				}
 				s.TutorID = app.ID
 				s.BufferMinutes = av.BufferMinutes
 				s.Timezone = av.Timezone

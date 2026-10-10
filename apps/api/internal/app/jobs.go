@@ -12,26 +12,31 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
+	"sync"
 	"time"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/mailer"
 	"tutorplatform/internal/meetings"
 	"tutorplatform/internal/payments"
 	"tutorplatform/internal/storage"
 )
 
 type job struct {
-	ID                  string            `json:"id" bson:"_id"`
-	Kind                string            `json:"kind" bson:"kind"`
-	Status              string            `json:"status" bson:"status"`
-	Attempts            int               `json:"attempts" bson:"attempts"`
-	AvailableAt         time.Time         `json:"availableAt" bson:"availableAt"`
-	LeaseUntil          time.Time         `json:"leaseUntil" bson:"leaseUntil"`
-	LeaseOwner          string            `json:"-" bson:"leaseOwner"`
-	Payload             map[string]string `json:"-" bson:"payload"`
-	LastError           string            `json:"lastError" bson:"lastError"`
-	ZoomCreateAttempted bool              `json:"-" bson:"zoomCreateAttempted"`
-	ZoomMeetingID       string            `json:"-" bson:"zoomMeetingId"`
-	ZoomJoinURL         string            `json:"-" bson:"zoomJoinUrl"`
+	ID                    string            `json:"id" bson:"_id"`
+	Kind                  string            `json:"kind" bson:"kind"`
+	Status                string            `json:"status" bson:"status"`
+	Attempts              int               `json:"attempts" bson:"attempts"`
+	AvailableAt           time.Time         `json:"availableAt" bson:"availableAt"`
+	LeaseUntil            time.Time         `json:"leaseUntil" bson:"leaseUntil"`
+	LeaseOwner            string            `json:"-" bson:"leaseOwner"`
+	Payload               map[string]string `json:"-" bson:"payload"`
+	LastError             string            `json:"lastError" bson:"lastError"`
+	ZoomCreateAttempted   bool              `json:"-" bson:"zoomCreateAttempted"`
+	ZoomMeetingID         string            `json:"-" bson:"zoomMeetingId"`
+	ZoomJoinURL           string            `json:"-" bson:"zoomJoinUrl"`
+	SMTPSubmissionStarted bool              `json:"-" bson:"smtpSubmissionStarted"`
+	SMTPAcceptedAt        *time.Time        `json:"smtpAcceptedAt,omitempty" bson:"smtpAcceptedAt,omitempty"`
 }
 
 func (a *App) razorpayWebhook(w http.ResponseWriter, r *http.Request) {
@@ -104,6 +109,18 @@ func (a *App) razorpayWebhook(w http.ResponseWriter, r *http.Request) {
 	a.json(w, 200, map[string]bool{"ok": true})
 }
 func (a *App) RunJobs(ctx context.Context) {
+	// Email delivery has reserved capacity independent of provider work and scheduling.
+	var workers sync.WaitGroup
+	if a.Mail != nil {
+		for _, codesOnly := range []bool{true, false} {
+			workers.Add(1)
+			go func() {
+				defer workers.Done()
+				a.runEmailWorker(ctx, codesOnly)
+			}()
+		}
+	}
+	defer workers.Wait()
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -114,6 +131,9 @@ func (a *App) RunJobs(ctx context.Context) {
 			work, cancel := context.WithTimeout(ctx, 12*time.Second)
 			if err := a.expireHolds(work); err != nil {
 				slog.Error("hold expiry failed", "type", fmt.Sprintf("%T", err))
+			}
+			if err := a.scheduleEmailReminders(work); err != nil {
+				slog.Error("email reminder scheduling failed", "type", fmt.Sprintf("%T", err))
 			}
 			if _, err := a.runJobBatch(work, 25); err != nil {
 				slog.Error("job batch failed", "type", fmt.Sprintf("%T", err))
@@ -175,10 +195,15 @@ func (a *App) runOneJob(ctx context.Context) (bool, error) {
 	if (a.Files != nil || a.Videos != nil) && a.Scanner != nil {
 		kinds = append(kinds, "file_scan")
 	}
+	return a.runOneJobMatching(ctx, bson.M{"kind": bson.M{"$in": kinds}})
+}
+
+func (a *App) runOneJobMatching(ctx context.Context, filter bson.M) (bool, error) {
 	owner := token()
 	now := a.Now()
+	filter["$or"] = []bson.M{{"status": "pending", "availableAt": bson.M{"$lte": now}}, {"status": "processing", "leaseUntil": bson.M{"$lte": now}}}
 	var j job
-	e := a.Store.C("outbox").FindOneAndUpdate(ctx, bson.M{"kind": bson.M{"$in": kinds}, "$or": []bson.M{{"status": "pending", "availableAt": bson.M{"$lte": now}}, {"status": "processing", "leaseUntil": bson.M{"$lte": now}}}}, bson.M{"$set": bson.M{"status": "processing", "leaseOwner": owner, "leaseUntil": now.Add(40 * time.Second)}, "$inc": bson.M{"attempts": 1}}, options.FindOneAndUpdate().SetSort(bson.D{{Key: "availableAt", Value: 1}}).SetReturnDocument(options.After)).Decode(&j)
+	e := a.Store.C("outbox").FindOneAndUpdate(ctx, filter, bson.M{"$set": bson.M{"status": "processing", "leaseOwner": owner, "leaseUntil": now.Add(40 * time.Second)}, "$inc": bson.M{"attempts": 1}}, options.FindOneAndUpdate().SetSort(bson.D{{Key: "availableAt", Value: 1}, {Key: "_id", Value: 1}}).SetReturnDocument(options.After)).Decode(&j)
 	if errors.Is(e, mongo.ErrNoDocuments) {
 		return false, nil
 	}
@@ -198,17 +223,39 @@ func (a *App) runOneJob(ctx context.Context) (bool, error) {
 		if j.Attempts >= 8 || j.Kind == "zoom_meeting" && meetings.Definitive(e) {
 			status = "failed"
 		}
+		if j.Kind == "email" {
+			var smtpError *mailer.Error
+			if errors.As(e, &smtpError) {
+				if smtpError.Ambiguous {
+					status = "uncertain"
+					last = "smtp_acceptance_uncertain"
+				} else if smtpError.Permanent {
+					status = "failed"
+					last = "smtp_rejected"
+				}
+			}
+			if strings.HasPrefix(last, "email_skip_") {
+				status = "skipped"
+			}
+		}
 		backoff := time.Second * time.Duration(1<<min(j.Attempts, 8))
 		next = next.Add(backoff)
 		slog.Warn("job processing deferred", "kind", j.Kind, "attempt", j.Attempts, "status", status, "type", fmt.Sprintf("%T", e))
 	}
 	_, persistErr := a.Store.C("outbox").UpdateOne(ctx, bson.M{"_id": j.ID, "leaseOwner": owner}, bson.M{"$set": bson.M{"status": status, "lastError": last, "availableAt": next}, "$unset": bson.M{"leaseOwner": "", "leaseUntil": ""}})
 	if persistErr == nil && j.Kind == "zoom_meeting" && status == "failed" {
-		_, persistErr = a.Store.C("applications").UpdateOne(ctx, bson.M{"_id": j.Payload["applicationId"], "interview.jobId": j.ID}, bson.M{"$set": bson.M{"interview.syncStatus": "failed", "updatedAt": a.Now()}, "$inc": bson.M{"version": 1}})
+		if enum(j.Payload["lessonKind"], "classes", "trials") {
+			_, persistErr = a.Store.C(j.Payload["lessonKind"]).UpdateOne(ctx, bson.M{"_id": j.Payload["lessonId"], "meeting.jobId": j.ID}, bson.M{"$set": bson.M{"meeting.status": "failed"}})
+		} else {
+			_, persistErr = a.Store.C("applications").UpdateOne(ctx, bson.M{"_id": j.Payload["applicationId"], "interview.jobId": j.ID}, bson.M{"$set": bson.M{"interview.syncStatus": "failed", "updatedAt": a.Now()}, "$inc": bson.M{"version": 1}})
+		}
 	}
 	return true, persistErr
 }
 func (a *App) processJob(ctx context.Context, j job) error {
+	if j.Kind == "email" {
+		return a.processEmail(ctx, j)
+	}
 	if j.Kind == "finance_earning" {
 		return a.Store.Tx(ctx, func(ctx context.Context) error {
 			s, e := storage.One[domain.ClassSession](ctx, a.Store, "classes", bson.M{"_id": j.Payload["classId"]})

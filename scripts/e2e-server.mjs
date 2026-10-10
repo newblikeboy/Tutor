@@ -17,6 +17,7 @@ Object.assign(env, {
   AUTH_PROVIDER: 'password',
   SEED_PASSWORD: 'E2E-only learning passphrase 426!',
   PAYMENT_PROVIDER: 'disabled',
+  MAIL_PROVIDER: 'disabled',
   MEDIA_PROVIDER: 'disk',
   VIDEO_PROVIDER: 'disk',
   MEETING_PROVIDER: 'zoom',
@@ -43,6 +44,19 @@ if (process.env.E2E_CLOUDINARY === '1')
     TEST_CLOUDINARY_ENDPOINT: 'http://127.0.0.1:7998',
   })
 else env.TEST_CLOUDINARY_ENDPOINT = ''
+// Browser email tests inspect encrypted jobs in their isolated database.
+// SMTP transport and accepted content are tested separately with a private TLS fixture.
+if (process.env.E2E_EMAIL === '1')
+  Object.assign(env, {
+    MAIL_PROVIDER: 'smtp',
+    SMTP_HOST: '127.0.0.1',
+    SMTP_PORT: '7997',
+    SMTP_SECURITY: 'starttls',
+    SMTP_USER: 'fixture-user',
+    SMTP_PASSWORD: 'fixture-secret',
+    SMTP_FROM: 'support@gocoaching.in',
+    MAIL_TOKEN_KEY: Buffer.alloc(32).toString('base64'),
+  })
 console.log('E2E database:', env.MONGODB_DATABASE, '(isolated, retained for review)')
 const children = []
 function start(command, args, cwd) {

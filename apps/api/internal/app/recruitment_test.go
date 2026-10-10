@@ -26,7 +26,7 @@ type recruitmentMeetings struct {
 	ambiguous, findAvailable  bool
 }
 
-func (g *recruitmentMeetings) Create(context.Context, string, time.Time, time.Time) (meetings.Meeting, error) {
+func (g *recruitmentMeetings) Create(context.Context, string, time.Time, time.Time, ...string) (meetings.Meeting, error) {
 	g.creates++
 	if g.ambiguous {
 		return meetings.Meeting{}, errors.New("test lost response")

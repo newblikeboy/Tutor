@@ -12,15 +12,21 @@ import {
   locationLabel,
   type StoredLocation,
 } from '../components/location-search'
+import { useAuth } from '../lib/session'
+import { EmailDeliveries } from '../components/email-deliveries'
+import { EmailSettings } from '../components/email-settings'
 import '../styles/tuition.css'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
 export default function Account() {
   const { t } = useTranslation()
   const [saved, setSaved] = useState(false)
+  const auth = useAuth()
+  const tabs =
+    auth.data?.user.role === 'admin'
+      ? ['profile', 'password', 'signins', 'mail']
+      : ['profile', 'password', 'signins']
   const [params, setParams] = useSearchParams()
-  const tab = ['password', 'signins'].includes(params.get('tab') ?? '')
-    ? params.get('tab')!
-    : 'profile'
+  const tab = tabs.includes(params.get('tab') ?? '') ? params.get('tab')! : 'profile'
   const q = useQuery({
     queryKey: ['account'],
     queryFn: ({ signal }) => api<Schema['Account']>('/account', { signal }),
@@ -32,9 +38,12 @@ export default function Account() {
         id="account"
         label={t('account.title')}
         value={tab}
-        options={['profile', 'password', 'signins'].map((value) => ({
+        options={tabs.map((value) => ({
           value,
-          label: t(`experience.${value === 'signins' ? 'signIns' : value}`),
+          label:
+            value === 'mail'
+              ? 'Emails'
+              : t(`experience.${value === 'signins' ? 'signIns' : value}`),
         }))}
         onChange={(value) => {
           const next = new URLSearchParams(params)
@@ -49,7 +58,14 @@ export default function Account() {
         ) : q.isError ? (
           <LoadError retry={() => void q.refetch()} />
         ) : (
-          <Details key={q.data.preferences.version} data={q.data} onSaved={() => setSaved(true)} />
+          <div className="tu-stack">
+            <Details
+              key={q.data.preferences.version}
+              data={q.data}
+              onSaved={() => setSaved(true)}
+            />
+            <EmailSettings data={q.data} />
+          </div>
         )}
       </TabPanel>
       <TabPanel id="account" value="password" active={tab === 'password'} preserve>
@@ -58,6 +74,11 @@ export default function Account() {
       <TabPanel id="account" value="signins" active={tab === 'signins'}>
         <Sessions />
       </TabPanel>
+      {auth.data?.user.role === 'admin' && (
+        <TabPanel id="account" value="mail" active={tab === 'mail'}>
+          <EmailDeliveries />
+        </TabPanel>
+      )}
       <Link className="text-link account-help" to="/cases">
         {t('account.recovery')}
       </Link>
@@ -67,9 +88,7 @@ export default function Account() {
 function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => void }) {
   const { t } = useTranslation(),
     [name, setName] = useState(data.name)
-  const [location, setLocation] = useState<StoredLocation | null>(
-    data.preferences.location ?? null,
-  )
+  const [location, setLocation] = useState<StoredLocation | null>(data.preferences.location ?? null)
   const [changingLocation, setChangingLocation] = useState(!data.preferences.location)
   const save = useMutation({
     mutationFn: (nextLocation?: StoredLocation | null) =>
@@ -88,6 +107,7 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
       setChangingLocation(false)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['account'] }),
+        queryClient.invalidateQueries({ queryKey: ['email-preferences'] }),
         queryClient.invalidateQueries({ queryKey: ['me'] }),
         queryClient.invalidateQueries({ queryKey: ['tutors'] }),
       ])
@@ -135,7 +155,11 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
                 <small>{t('account.currentLocation')}</small>
                 <strong>{locationLabel(location)}</strong>
                 {(location.city || location.state || location.postalCode) && (
-                  <em>{[location.city, location.state, location.postalCode].filter(Boolean).join(', ')}</em>
+                  <em>
+                    {[location.city, location.state, location.postalCode]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </em>
                 )}
               </span>
               <Button type="button" variant="secondary" onClick={() => setChangingLocation(true)}>

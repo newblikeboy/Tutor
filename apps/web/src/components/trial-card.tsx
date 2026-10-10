@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { indiaDate, queryClient, send, type Trial } from '../lib/api'
+import { LessonMeeting } from './lesson-meeting'
+import { useClock } from '../lib/clock'
 import { useConfig } from '../lib/session'
 import { Alert, Badge, Button, Field, LinkButton, MutationError, Status } from './ui'
 export function TrialCard({
@@ -14,13 +16,23 @@ export function TrialCard({
 }) {
   const { t, i18n } = useTranslation()
   const config = useConfig()
-  const [notes, setNotes] = useState('')
-  const [nextSteps, setNextSteps] = useState('')
-  const [review, setReview] = useState('')
+  const now = useClock()
+  const [editing, setEditing] = useState(false)
+  const correctionOpen = now <= Date.parse(v.completedAt ?? v.end) + 7 * 86400000
+  const [notes, setNotes] = useState(v.notes)
+  const [nextSteps, setNextSteps] = useState(v.nextSteps)
+  const [review, setReview] = useState(v.review)
   const mutation = useMutation({
     mutationFn: (action: string) =>
-      send(`/trials/${v.id}/action`, { action, notes, nextSteps, review }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      send(`/trials/${v.id}/action`, { action, notes, nextSteps, review, version: v.version ?? 0 }),
+    onSuccess: async () => {
+      setEditing(false)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['tutor-workspace'] }),
+        queryClient.invalidateQueries({ queryKey: ['learner-progress'] }),
+      ])
+    },
   })
   return (
     <article
@@ -45,7 +57,13 @@ export function TrialCard({
         </>
       </div>
       <div className="record-content">
-        {role !== 'parent' && <small>{t('freeTrialBody')}</small>}
+        <small>
+          Class {v.class} · {v.mode === 'home' ? 'Home Tuition' : 'Online'} ·{' '}
+          {Math.round((Date.parse(v.end) - Date.parse(v.start)) / 60000)} minutes
+        </small>
+        {v.status === 'confirmed' && v.mode !== 'home' && role !== 'mentor' && (
+          <LessonMeeting kind="trials" lesson={v} role={role} />
+        )}
         {role === 'tutor' && v.status === 'requested' && (
           <div className="button-row">
             <Button busy={mutation.isPending} onClick={() => mutation.mutate('accept')}>
@@ -60,15 +78,20 @@ export function TrialCard({
             </Button>
           </div>
         )}
-        {role === 'tutor' && v.status === 'confirmed' && (
+        {role === 'tutor' && ['completed', 'reviewed'].includes(v.status) && correctionOpen && (
+          <Button variant="text" onClick={() => setEditing(!editing)}>
+            Correct trial feedback
+          </Button>
+        )}
+        {role === 'tutor' && (v.status === 'confirmed' || editing) && (
           <form
             className="record-form"
             onSubmit={(e) => {
               e.preventDefault()
-              mutation.mutate('complete')
+              mutation.mutate(editing ? 'feedback' : 'complete')
             }}
           >
-            {config.data?.development && <Alert>{t('simulation')}</Alert>}
+            {!editing && config.data?.development && <Alert>{t('simulation')}</Alert>}
             <Field label={t('lessonNotes')}>
               <textarea
                 value={notes}
@@ -97,12 +120,11 @@ export function TrialCard({
               />
             </Field>
             <Button type="submit" busy={mutation.isPending}>
-              {t('completeLesson')}
+              {editing ? 'Save feedback correction' : t('completeLesson')}
             </Button>
           </form>
         )}
-        {((role === 'mentor' && ['completed', 'reviewed'].includes(v.status)) ||
-          (role === 'parent' && ['completed', 'reviewed'].includes(v.status))) && (
+        {['completed', 'reviewed'].includes(v.status) && (
           <>
             <div>
               <h4>{t(role === 'parent' ? 'experience.lesson' : 'lesson')}</h4>
@@ -114,9 +136,9 @@ export function TrialCard({
             </div>
           </>
         )}
-        {['completed', 'reviewed'].includes(v.status) && role !== 'tutor' && (
+        {['completed', 'reviewed'].includes(v.status) && (
           <div>
-            <h4>{t(role === 'parent' ? 'parent.completed' : 'reviewNotes')}</h4>
+            <h4>{t('parent.completed')}</h4>
             <p>{v.review}</p>
           </div>
         )}

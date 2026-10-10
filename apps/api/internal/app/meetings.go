@@ -15,6 +15,9 @@ func (a *App) queueMeeting(ctx context.Context, v *domain.Application, operation
 	if a.Meetings == nil {
 		return domain.Fail(503, "meeting_unconfigured", "Zoom is not configured.")
 	}
+	if err := a.reserveZoom(ctx, "application:"+v.ID, v.Interview.Start, v.Interview.End, operation == "delete"); err != nil {
+		return err
+	}
 	id := "zoom:" + token()
 	v.Interview.Provider = "zoom"
 	v.Interview.SyncStatus = "pending"
@@ -25,6 +28,21 @@ func (a *App) queueMeeting(ctx context.Context, v *domain.Application, operation
 func (a *App) processMeeting(ctx context.Context, j job) error {
 	if a.Meetings == nil {
 		return domain.Fail(503, "meeting_unconfigured", "Zoom is not configured.")
+	}
+	if enum(j.Payload["lessonKind"], "classes", "trials") && j.Payload["operation"] == "create" {
+		matches, err := a.Store.C(j.Payload["lessonKind"]).CountDocuments(ctx, bson.M{"_id": j.Payload["lessonId"], "meeting.jobId": j.ID})
+		if err != nil {
+			return err
+		}
+		if matches == 0 {
+			current, err := storage.One[job](ctx, a.Store, "outbox", bson.M{"_id": j.ID})
+			if err != nil {
+				return err
+			}
+			if !current.ZoomCreateAttempted {
+				return nil
+			}
+		}
 	}
 	start, e := time.Parse(time.RFC3339, j.Payload["start"])
 	if e != nil {
@@ -58,7 +76,7 @@ func (a *App) processMeeting(ctx context.Context, j job) error {
 				e = domain.Fail(503, "zoom_reconcile_required", "The previous create request needs confirmation from Zoom.")
 			}
 		} else {
-			meeting, e = a.Meetings.Create(ctx, j.Payload["topic"], start, end)
+			meeting, e = a.Meetings.Create(ctx, j.Payload["topic"], start, end, j.Payload["tutorEmail"])
 			if e != nil && meetings.Definitive(e) {
 				_, err = a.Store.C("outbox").UpdateOne(ctx, bson.M{"_id": j.ID}, bson.M{"$set": bson.M{"zoomCreateAttempted": false}})
 				if err != nil {
@@ -87,6 +105,9 @@ func (a *App) processMeeting(ctx context.Context, j job) error {
 	}
 	if j.Payload["operation"] != "delete" && !meetings.ValidJoinURL(meeting.JoinURL) {
 		return domain.Fail(503, "meeting_unavailable", "Zoom did not return a valid meeting.")
+	}
+	if j.Payload["lessonKind"] != "" {
+		return a.finishLessonMeeting(ctx, j, meeting)
 	}
 	return a.Store.Tx(ctx, func(ctx context.Context) error {
 		v, err := storage.One[domain.Application](ctx, a.Store, "applications", bson.M{"_id": j.Payload["applicationId"]})

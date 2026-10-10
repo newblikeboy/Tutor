@@ -1,0 +1,76 @@
+.tutor-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.tutor-summary a {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--paper);
+  color: var(--navy);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.tutor-summary strong {
+  font-size: 1.65rem;
+}
+.tutor-learners {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.tutor-preparation > div + div {
+  margin-top: 16px;
+}
+.tutor-schedule-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--navy);
+  overflow-wrap: anywhere;
+}
+.tutor-schedule-row p {
+  margin: 5px 0;
+}
+.tutor-schedule-row time {
+  font-size: 0.85rem;
+}
+.tutor-booking-alert {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.tutor-day .teacher-section-heading {
+  align-items: start;
+}
+.tutor-day input {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  .tutor-summary {
+    gap: 8px;
+  }
+  .tutor-summary a {
+    padding: 13px 10px;
+    font-size: 0.78rem;
+  }
+  .tutor-day .teacher-section-heading {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tutor-schedule-row {
+    align-items: start;
+  }
+  .tutor-schedule-row > span {
+    max-width: 95px;
+    flex-shrink: 0;
+  }
+}

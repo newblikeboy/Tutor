@@ -199,7 +199,7 @@ export function TutorEarnings() {
           within the platform’s 25% allocation.
         </p>
         <p>
-          Completed classes with reviewed attendance are due on Wednesday after the review week.
+          Recorded completed classes are due on Wednesday after the finance review week.
           Future classes, unresolved refunds and disputed attendance remain on hold.
         </p>
       </section>
@@ -441,7 +441,7 @@ function Earnings({ tutor = false }: { tutor?: boolean }) {
           {!q.data.items.length && (
             <Empty
               title="No earnings released yet"
-              body="Completed classes appear after attendance and tax review."
+              body="Recorded completed classes appear after the required finance checks."
             />
           )}
           <div className="finance-cards">

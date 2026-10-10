@@ -139,5 +139,8 @@ func (s *Store) Migrate(ctx context.Context) error {
 	if e = s.MigrateFinance(ctx); e != nil {
 		return e
 	}
-	return s.MigrateInbox(ctx)
+	if e = s.MigrateInbox(ctx); e != nil {
+		return e
+	}
+	return s.MigrateEmail(ctx)
 }

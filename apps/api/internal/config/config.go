@@ -1,24 +1,28 @@
 package config
 
 import (
+	"encoding/base64"
 	"errors"
 	"net"
+	"net/mail"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 type Config struct {
-	TestZoomURL                                                                               string
-	TestCloudinaryURL                                                                         string
-	Env, Name, Addr, Origin, URI, Database, AuthProvider                                      string
-	PaymentProvider, RazorpayKeyID, RazorpaySecret, RazorpayWebhookSecret                     string
-	MediaProvider, MediaRoot, S3Endpoint, S3Region, S3Bucket, S3Key, S3Secret, ScannerAddress string
-	VideoProvider, CloudinaryCloud, CloudinaryKey, CloudinarySecret                           string
-	MeetingProvider, ZoomAccountID, ZoomClientID, ZoomSecret, ZoomHostID                      string
-	GoogleMapsAPIKey                                                                          string
+	TestZoomURL                                                                                    string
+	TestCloudinaryURL                                                                              string
+	Env, Name, Addr, Origin, URI, Database, AuthProvider                                           string
+	PaymentProvider, RazorpayKeyID, RazorpaySecret, RazorpayWebhookSecret                          string
+	MediaProvider, MediaRoot, S3Endpoint, S3Region, S3Bucket, S3Key, S3Secret, ScannerAddress      string
+	VideoProvider, CloudinaryCloud, CloudinaryKey, CloudinarySecret                                string
+	MeetingProvider, ZoomAccountID, ZoomClientID, ZoomSecret, ZoomHostID                           string
+	GoogleMapsAPIKey                                                                               string
+	MailProvider, SMTPHost, SMTPPort, SMTPSecurity, SMTPUser, SMTPPassword, SMTPFrom, MailTokenKey string
 }
 
 func env(key, fallback string) string {
@@ -45,6 +49,21 @@ func Load() (Config, error) {
 	c.TestZoomURL = os.Getenv("TEST_ZOOM_ENDPOINT")
 	c.TestCloudinaryURL = os.Getenv("TEST_CLOUDINARY_ENDPOINT")
 	c.GoogleMapsAPIKey = os.Getenv("GOOGLE_MAPS_API_KEY")
+	c.MailProvider = env("MAIL_PROVIDER", "disabled")
+	c.SMTPHost, c.SMTPPort, c.SMTPSecurity = env("SMTP_HOST", "smtp.gmail.com"), env("SMTP_PORT", "587"), env("SMTP_SECURITY", "starttls")
+	c.SMTPUser, c.SMTPPassword, c.SMTPFrom = os.Getenv("SMTP_USER"), os.Getenv("SMTP_PASSWORD"), env("SMTP_FROM", "support@gocoaching.in")
+	c.MailTokenKey = os.Getenv("MAIL_TOKEN_KEY")
+	if c.MailProvider != "disabled" && c.MailProvider != "smtp" {
+		return c, errors.New("invalid email provider")
+	}
+	if c.MailProvider == "smtp" {
+		port, portErr := strconv.Atoi(c.SMTPPort)
+		key, keyErr := base64.StdEncoding.DecodeString(c.MailTokenKey)
+		from, fromErr := mail.ParseAddress(c.SMTPFrom)
+		if strings.TrimSpace(c.SMTPHost) == "" || strings.ContainsAny(c.SMTPHost, "/:@ \r\n") || portErr != nil || port < 1 || port > 65535 || !((c.SMTPSecurity == "starttls") || (c.SMTPSecurity == "tls")) || c.SMTPUser == "" || strings.ContainsAny(c.SMTPUser, "\r\n") || c.SMTPPassword == "" || fromErr != nil || from.Address != c.SMTPFrom || strings.ContainsAny(c.SMTPFrom, "\r\n") || keyErr != nil || len(key) != 32 {
+			return c, errors.New("SMTP requires a host, port, verified TLS mode, private login/app password, sender address and base64 32-byte MAIL_TOKEN_KEY")
+		}
+	}
 	if c.TestCloudinaryURL != "" {
 		u, e := url.Parse(c.TestCloudinaryURL)
 		if e != nil || c.Env != "test" || u.Scheme != "http" || u.Hostname() != "127.0.0.1" || u.Port() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {

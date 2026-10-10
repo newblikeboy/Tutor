@@ -12,10 +12,11 @@ type Message struct {
 	CreatedAt    time.Time `json:"createdAt" bson:"createdAt"`
 }
 type Notification struct {
-	ID        string    `json:"id" bson:"_id"`
-	OwnerID   string    `json:"-" bson:"ownerId"`
-	Kind      string    `json:"kind" bson:"kind"`
-	TargetID  string    `json:"targetId" bson:"targetId"`
-	Read      bool      `json:"read" bson:"read"`
-	CreatedAt time.Time `json:"createdAt" bson:"createdAt"`
+	ReadAt    *time.Time `json:"readAt,omitempty" bson:"readAt,omitempty"`
+	ID        string     `json:"id" bson:"_id"`
+	OwnerID   string     `json:"-" bson:"ownerId"`
+	Kind      string     `json:"kind" bson:"kind"`
+	TargetID  string     `json:"targetId" bson:"targetId"`
+	Read      bool       `json:"read" bson:"read"`
+	CreatedAt time.Time  `json:"createdAt" bson:"createdAt"`
 }

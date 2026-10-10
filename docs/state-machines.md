@@ -46,3 +46,7 @@ No illegal transitions are silently coerced. Repeated accepted/cancelled actions
 See [Updates inbox](updates-inbox.md) for access revocation and legacy-record retention. Existing tuition chat and Activity notifications remain separate.
 
 Privacy deletion, disputes, payout settlement and automated renewal states remain open implementation scope. Case closure records an operator response, not automatic legal fulfillment.
+
+## Tutor lesson follow-up (2026-10-10)
+
+Future scheduled class subject planning is versioned and limited to booked/approved scope. Present recording requires structured progress; tests are optional. Progress-only correction is allowed for the assigned approved tutor on completed/reviewed lessons within seven days of recording, including a completed enrollment, without changing attendance, package status or finance. Cancelled archives do not grant correction access. Trial feedback correction retains completed/reviewed status and uses the same seven-day, expected-version gate. See `tutor-workspace.md` for assignment-scoped archives, Home address limits and durable Zoom lesson transitions.

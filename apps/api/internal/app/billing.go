@@ -273,10 +273,17 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 			}
 		}
 		if usable {
+			if e = a.notifyActivity(ctx, enrollment.TutorID, "booking_confirmed", enrollment.ID); e != nil {
+				return e
+			}
 			if e = a.createFinanceBooking(ctx, v, enrollment); e != nil {
 				return e
 			}
 			if _, e = a.Store.C("enrollments").UpdateOne(ctx, bson.M{"_id": enrollment.ID}, bson.M{"$set": bson.M{"status": "active", "holdUntil": nil}}); e != nil {
+				return e
+			}
+			enrollment.Status = "active"
+			if e = a.queueEnrollmentEmail(ctx, enrollment, "booking_confirmed"); e != nil {
 				return e
 			}
 		} else {

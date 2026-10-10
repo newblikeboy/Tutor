@@ -15,6 +15,8 @@ const tuitionEN = {
     noNotifications: 'You are all caught up.',
     read: 'Mark as read',
     unread: 'Unread',
+    booking_confirmed: 'Booking confirmed',
+    trial_requested: 'New trial request',
     conversation_message: 'A new message in your family conversation',
     openConversation: 'Open conversation',
     closedConversation: 'This arrangement is closed for new messages.',

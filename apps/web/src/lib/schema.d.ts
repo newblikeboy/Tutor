@@ -1086,6 +1086,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/email/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /auth/email/request */
+        post: operations["post__auth_email_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /auth/email/confirm */
+        post: operations["post__auth_email_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/email/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /account/email/request */
+        post: operations["post__account_email_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /account/email/confirm */
+        post: operations["post__account_email_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/email/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /account/email/preferences */
+        get: operations["get__account_email_preferences"];
+        /** PUT /account/email/preferences */
+        put: operations["put__account_email_preferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/email-deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /admin/email-deliveries */
+        get: operations["get__admin_email_deliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/email-deliveries/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /admin/email-deliveries/{id}/retry */
+        post: operations["post__admin_email_deliveries__id__retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/enrollments/{id}/files": {
         parameters: {
             query?: never;
@@ -1412,6 +1532,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tutor/workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /tutor/workspace */
+        get: operations["get__tutor_workspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tutor/learners/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /tutor/learners/{id}/progress */
+        get: operations["get__tutor_learners__id__progress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classes/{id}/meeting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /classes/{id}/meeting */
+        post: operations["post__classes__id__meeting"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classes/{id}/meeting/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /classes/{id}/meeting/join */
+        get: operations["get__classes__id__meeting_join"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/trials/{id}/meeting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /trials/{id}/meeting */
+        post: operations["post__trials__id__meeting"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/trials/{id}/meeting/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /trials/{id}/meeting/join */
+        get: operations["get__trials__id__meeting_join"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learners/{id}/progress": {
         parameters: {
             query?: never;
@@ -1628,6 +1850,8 @@ export interface components {
             sample: boolean;
             /** Format: email */
             email?: string;
+            /** Format: date-time */
+            emailVerifiedAt?: string;
         };
         Scope: {
             subject: string;
@@ -1761,6 +1985,10 @@ export interface components {
             subjects?: ("All Subjects" | "Mathematics" | "Science" | "English" | "Hindi" | "Social Science")[];
             /** @enum {string} */
             mode?: "online" | "home";
+            meeting?: components["schemas"]["LessonMeeting"];
+            version?: number;
+            /** Format: date-time */
+            completedAt?: string;
         };
         Draft: {
             step: number;
@@ -1796,6 +2024,7 @@ export interface components {
             uploadsEnabled: boolean;
             scannerConfigured: boolean;
             mediaProvider: string;
+            emailEnabled: boolean;
             videoUploadsEnabled: boolean;
             videoProvider: string;
             meetingsEnabled: boolean;
@@ -1932,10 +2161,11 @@ export interface components {
         } & (unknown | unknown);
         ActionInput: {
             /** @enum {string} */
-            action: "accept" | "decline" | "cancel" | "complete";
+            action: "accept" | "decline" | "cancel" | "complete" | "feedback";
             notes: string;
             nextSteps: string;
             review: string;
+            version?: number;
         };
         Message: {
             id: string;
@@ -1960,6 +2190,8 @@ export interface components {
             read: boolean;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            readAt?: string;
         };
         NotificationPage: {
             items: components["schemas"]["Notification"][];
@@ -2078,11 +2310,16 @@ export interface components {
             reason: string;
             version: number;
             proposal: components["schemas"]["ScheduleProposal"] | null;
+            plannedSubject?: string;
+            /** Format: date-time */
+            recordedAt?: string;
+            meeting?: components["schemas"]["LessonMeeting"];
             progress?: components["schemas"]["ClassProgress"];
         };
+        /** @description Present recording requires progress; tests are optional. Progress corrections close seven days after recording, and planning is limited to booked, approved subjects. */
         ClassAction: {
             /** @enum {string} */
-            action: "propose" | "accept_change" | "cancel" | "record" | "resolve_attendance" | "progress";
+            action: "propose" | "accept_change" | "cancel" | "record" | "resolve_attendance" | "plan_subject" | "progress";
             version: number;
             /** Format: date-time */
             start?: string;
@@ -2091,6 +2328,7 @@ export interface components {
             homework?: string;
             attendance?: string;
             developmentRecord?: boolean;
+            subject?: string;
             progress?: components["schemas"]["ClassProgressInput"];
         };
         LearningTopic: {
@@ -2239,6 +2477,8 @@ export interface components {
             /** Format: date-time */
             leaseUntil: string;
             lastError: string;
+            /** Format: date-time */
+            smtpAcceptedAt?: string;
         };
         JobPage: {
             items: components["schemas"]["Job"][];
@@ -2448,11 +2688,13 @@ export interface components {
             language: "en" | "hi";
             location?: components["schemas"]["LocationPoint"] | null;
             version: number;
+            emailReminders?: boolean;
         };
         Account: {
             name: string;
             email: string;
             preferences: components["schemas"]["Preferences"];
+            emailVerifiedAt?: string | null;
         };
         AccountInput: {
             name: string;
@@ -2474,6 +2716,53 @@ export interface components {
         AccountSessions: {
             items: components["schemas"]["AccountSession"][];
             nextCursor: string;
+        };
+        EmailCodeRequest: {
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            purpose: "login" | "reset";
+        };
+        EmailChallenge: {
+            challengeId: string;
+            /** Format: date-time */
+            expiresAt: string;
+            resendAfterSeconds: number;
+            message: string;
+        };
+        EmailCodeConfirm: {
+            challengeId: string;
+            code: string;
+            newPassword?: string;
+        };
+        EmailCodeResult: components["schemas"]["Auth"] | {
+            ok: boolean;
+            message: string;
+        };
+        EmailPreferences: {
+            reminders: boolean;
+            version: number;
+        };
+        EmailEmpty: Record<string, never>;
+        EmailDelivery: {
+            id: string;
+            event: string;
+            recipientId: string;
+            /** @enum {string} */
+            status: "pending" | "processing" | "done" | "failed" | "uncertain" | "skipped";
+            attempts: number;
+            lastError: string;
+            /** Format: date-time */
+            availableAt: string;
+            smtpAcceptedAt: string | null;
+        };
+        EmailDeliveries: {
+            items: components["schemas"]["EmailDelivery"][];
+            nextCursor: string;
+        };
+        EmailRetry: {
+            reason: string;
+            acknowledgeDuplicate: boolean;
         };
         PrivateFile: {
             id: string;
@@ -2863,6 +3152,29 @@ export interface components {
             paused: boolean;
             version: number;
         };
+        LessonMeeting: {
+            /** @enum {string} */
+            status: "pending" | "ready" | "failed";
+        };
+        TutorLearnerBrief: {
+            learnerId: string;
+            location?: components["schemas"]["LocationPoint"];
+        };
+        TutorWorkspace: {
+            briefs: components["schemas"]["TutorLearnerBrief"][];
+            learners: components["schemas"]["Learner"][];
+            enrollments: components["schemas"]["Enrollment"][];
+            sessions: components["schemas"]["ClassSession"][];
+            trials: components["schemas"]["Trial"][];
+            notifications: components["schemas"]["Notification"][];
+        };
+        MeetingPrepare: {
+            version: number;
+        };
+        MeetingJoin: {
+            /** Format: uri */
+            joinUrl: string;
+        };
         TestResult: {
             title: string;
             score: number;
@@ -2906,6 +3218,10 @@ export interface components {
             reason: string;
             version: number;
             proposal: components["schemas"]["ScheduleProposal"] | null;
+            plannedSubject?: string;
+            /** Format: date-time */
+            recordedAt?: string;
+            meeting?: components["schemas"]["LessonMeeting"];
             progress?: components["schemas"]["ClassProgress"];
             tutorName: string;
             subjects: string[];
@@ -2937,6 +3253,10 @@ export interface components {
             subjects?: ("All Subjects" | "Mathematics" | "Science" | "English" | "Hindi" | "Social Science")[];
             /** @enum {string} */
             mode?: "online" | "home";
+            meeting?: components["schemas"]["LessonMeeting"];
+            version?: number;
+            /** Format: date-time */
+            completedAt?: string;
             tutorName: string;
         };
         ProgressPlan: {
@@ -4174,6 +4494,8 @@ export interface operations {
         parameters: {
             query?: {
                 cursor?: string;
+                /** @description Tutor-only current or completed/cancelled package history, filtered before pagination. */
+                history?: "0" | "1";
             };
             header?: never;
             path?: never;
@@ -5556,6 +5878,280 @@ export interface operations {
             };
         };
     };
+    post__auth_email_request: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailChallenge"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__auth_email_confirm: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailCodeConfirm"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailCodeResult"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__account_email_request: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailEmpty"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailChallenge"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__account_email_confirm: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailCodeConfirm"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailCodeResult"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__account_email_preferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailPreferences"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    put__account_email_preferences: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailPreferences"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__admin_email_deliveries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailDeliveries"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__admin_email_deliveries__id__retry: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailRetry"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     get__enrollments__id__files: {
         parameters: {
             query?: {
@@ -6305,6 +6901,204 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminFamilies"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__tutor_workspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TutorWorkspace"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__tutor_learners__id__progress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerProgress"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__classes__id__meeting: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeetingPrepare"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__classes__id__meeting_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetingJoin"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__trials__id__meeting: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeetingPrepare"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__trials__id__meeting_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetingJoin"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */

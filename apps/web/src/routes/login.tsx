@@ -19,7 +19,8 @@ import { z } from 'zod'
 import { queryClient, send, setCSRF } from '../lib/api'
 import type { Schema } from '../lib/api'
 import { useAuth, useConfig } from '../lib/session'
-import { Alert, Button, Field, LinkButton, Loading, Modal, MutationError } from '../components/ui'
+import { Alert, Button, Field, LinkButton, Loading, MutationError } from '../components/ui'
+import { EmailCodeForm } from '../components/email-code-form'
 import '../styles/auth.css'
 
 const accountSchema = z.object({
@@ -46,6 +47,13 @@ export default function Login() {
   const signup = pathname.replace(/\/+$/, '') === '/signup'
   const [params] = useSearchParams()
   const staff = !signup && params.get('staff') === '1'
+  const emailMethod =
+    !signup && params.get('method') === 'recover'
+      ? 'reset'
+      : !signup && !staff && params.get('method') === 'otp'
+        ? 'login'
+        : undefined
+  const [recovered, setRecovered] = useState(false)
   const initialRole =
     params.get('role') === 'tutor' ||
     (!params.has('role') && /^\/(apply|availability)(\?|$)/.test(params.get('return') ?? ''))
@@ -90,6 +98,14 @@ export default function Login() {
     return `${create ? '/signup' : '/login'}?${nextParams.toString()}`
   }
   const switchPath = accountPath(role, !signup)
+  const emailPath = (method: 'otp' | 'recover') => `${accountPath(loginRole)}&method=${method}`
+  const signedIn = async (data: Schema['Auth']) => {
+    await queryClient.cancelQueries()
+    queryClient.clear()
+    setCSRF(data.csrf)
+    queryClient.setQueryData(['me'], data)
+    navigate(returnPath ?? '/workspace', { replace: true })
+  }
   const mutation = useMutation({
     mutationFn: (values: AccountValues) =>
       send<Schema['Auth']>(
@@ -241,7 +257,13 @@ export default function Login() {
                 <div className="auth-form-symbol">
                   <LoginIcon size={23} aria-hidden="true" />
                 </div>
-                <h1 id="auth-title">{t(loginIdentity.title)}</h1>
+                <h1 id="auth-title">
+                  {emailMethod === 'reset'
+                    ? 'Reset your password'
+                    : emailMethod === 'login'
+                      ? 'Sign in with email code'
+                      : t(loginIdentity.title)}
+                </h1>
               </div>
             )}
             {config.isPending || auth.isPending ? (
@@ -256,13 +278,42 @@ export default function Login() {
                   {t('retry')}
                 </Button>
               </div>
-            ) : auth.data ? (
+            ) : auth.data && emailMethod !== 'reset' ? (
               <div className="auth-signed-in">
                 <p>{t('authSignedIn', { name: auth.data.user.name })}</p>
                 <LinkButton to={returnPath ?? '/workspace'}>{t('viewWorkspace')}</LinkButton>
               </div>
             ) : !config.data?.authEnabled ? (
               <Alert>{t('authUnavailable')}</Alert>
+            ) : emailMethod ? (
+              <div>
+                {recovered && emailMethod === 'reset' ? (
+                  <Alert kind="success">Password updated. Sign in with your new password.</Alert>
+                ) : config.data.emailEnabled ? (
+                  <EmailCodeForm
+                    key={`${emailMethod}:${loginRole}`}
+                    purpose={emailMethod}
+                    onSuccess={async (data) => {
+                      if ('csrf' in data) await signedIn(data)
+                      else {
+                        await queryClient.cancelQueries()
+                        queryClient.clear()
+                        setCSRF('')
+                        setRecovered(true)
+                      }
+                    }}
+                  />
+                ) : (
+                  <Alert>
+                    Email delivery is not configured. Contact support@gocoaching.in for help.
+                  </Alert>
+                )}
+                <p>
+                  <Link className="text-link" to={accountPath(loginRole)}>
+                    Sign in with password
+                  </Link>
+                </p>
+              </div>
             ) : (
               <form onSubmit={submit} noValidate className="auth-form">
                 {signup && (
@@ -366,17 +417,14 @@ export default function Login() {
                   </div>
                 ) : (
                   <div className="auth-help-row">
-                    <Modal
-                      title={t('authHelpTitle')}
-                      description={t('authHelpBody')}
-                      trigger={
-                        <button type="button" className="auth-help-link">
-                          {t('authHelp')}
-                        </button>
-                      }
-                    >
-                      <LinkButton to="/support">{t('support')}</LinkButton>
-                    </Modal>
+                    <Link className="auth-help-link" to={emailPath('recover')}>
+                      Forgot password?
+                    </Link>
+                    {!staff && config.data.emailEnabled && (
+                      <Link className="auth-help-link" to={emailPath('otp')}>
+                        Use email code
+                      </Link>
+                    )}
                   </div>
                 )}
                 <MutationError error={mutation.error} />
