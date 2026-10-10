@@ -250,6 +250,7 @@ export default function LearnerProgressReport({
                     const balance = packageBalance(d, e.id)
                     return (
                       <div className="child-report-package" key={e.id}>
+                        {e.paymentSimulated && <Badge tone="amber">Test booking</Badge>}
                         <strong>
                           {(e.agreement.subjects ?? [e.agreement.subject]).join(', ')}
                         </strong>

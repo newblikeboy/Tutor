@@ -47,6 +47,9 @@ func (a *App) recordInvoice(w http.ResponseWriter, r *http.Request) {
 		if e != nil {
 			return e
 		}
+		if p.Provider == "simulation" {
+			return domain.Fail(409, "simulated_payment", "Test payments cannot have paid invoices.")
+		}
 		if p.Refunded > 0 || p.RefundReserved > 0 {
 			return domain.Fail(409, "invoice_refund", "Resolve the refund and its credit note before recording this invoice.")
 		}

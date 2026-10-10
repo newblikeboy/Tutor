@@ -7,6 +7,18 @@ const billingEN = {
     intro: 'Follow your agreement payment, saved receipts and reviewed refund requests.',
     sandbox: 'Razorpay test mode',
     sandboxBody: 'Test payment only. Use Razorpay test payment details.',
+    simulation: 'GoCoaching test checkout',
+    simulationBody: 'No money will be charged. Complete a test payment to confirm these classes.',
+    completeSimulation: 'Complete test payment',
+    simulationSuccess: 'Test payment successful. Your booking is confirmed. No money was charged.',
+    simulatedCapture: 'Test payment captured',
+    simulationRecord:
+      'Test payment only. No money was charged. This record is not proof of a real payment.',
+    testReference: 'Test payment reference',
+    capturedAt: 'Recorded',
+    providerChanged: 'The payment provider changed. Refresh this booking before continuing.',
+    simulationDisabled:
+      'Test payments are disabled. Refresh this booking to see the current payment option.',
     disabled: 'Payment is unavailable',
     disabledBody: 'Please try again later. Your booking will be confirmed after payment.',
     pay: 'Pay & confirm booking (test)',

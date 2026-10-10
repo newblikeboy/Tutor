@@ -125,7 +125,7 @@ func (a *App) paymentCollections(ctx context.Context) (domain.FounderRevenue, []
 		Payments int64  `bson:"payments"`
 	}
 	rows, err := reportRows[month](ctx, a.Store, "payment_intents", bson.A{
-		bson.M{"$match": bson.M{"state": bson.M{"$in": []string{"captured", "refund_review"}}}},
+		bson.M{"$match": bson.M{"provider": bson.M{"$ne": "simulation"}, "state": bson.M{"$in": []string{"captured", "refund_review"}}}},
 		bson.M{"$set": bson.M{"collectionMonth": bson.M{"$dateToString": bson.M{"format": "%Y-%m", "date": "$createdAt", "timezone": "UTC", "onNull": "unknown"}}}},
 		bson.M{"$group": bson.M{
 			"_id":   bson.M{"$cond": bson.A{bson.M{"$eq": bson.A{"$collectionMonth", "0001-01"}}, "unknown", "$collectionMonth"}},

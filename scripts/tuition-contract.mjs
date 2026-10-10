@@ -74,6 +74,7 @@ export function tuitionContract(schemas, route) {
       createdAt: date,
     }),
     Enrollment: obj({
+      paymentSimulated: bool,
       paymentIntentId: str,
       id: str,
       trialId: str,

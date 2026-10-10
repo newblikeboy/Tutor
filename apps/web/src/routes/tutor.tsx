@@ -345,12 +345,15 @@ export default function TutorWorkspace({ data, view }: { data: Dashboard; view: 
       <aside className="teacher-secondary">
         <section className="tu-panel">
           <h2>Confirmed bookings</h2>
-          <p>Paid bookings are ready to teach.</p>
+          <p>Confirmed bookings are ready to teach.</p>
           {d.notifications.map((n) => (
             <div className="tutor-booking-alert" key={n.id}>
               <Link className="text-link" to={`/tuition/${encodeURIComponent(n.targetId)}`}>
                 {byID.get(n.targetId)?.learnerName ?? 'Confirmed booking'}
               </Link>
+              {byID.get(n.targetId)?.paymentSimulated && (
+                <p>Test booking · No money was charged.</p>
+              )}
               <p>{indiaDate(n.createdAt, 'en')}</p>
               <Button variant="text" busy={mark.isPending} onClick={() => mark.mutate(n.id)}>
                 Mark read

@@ -21,7 +21,7 @@ import (
 	"tutorplatform/internal/storage"
 )
 
-// This gateway exists only in tests. Runtime has only the real HTTPS adapter or disabled payments.
+// This stub tests Razorpay semantics; runtime simulation uses its own labelled checkout.
 type paymentTestGateway struct {
 	mu                      sync.Mutex
 	orders                  map[string]payments.Order
@@ -127,7 +127,11 @@ func TestMongoBillingLifecycle(t *testing.T) {
 	tutor.ok("PUT", "/availability", av, 200)
 	create := func(days int) domain.Enrollment {
 		first := a.Now().In(mustLocation()).AddDate(0, 0, days)
-		status, _, raw := p.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "subjects": []string{"Mathematics"}, "packageMode": "online", "packagePeriod": "hour", "accepted": true, "offeringVersion": 1, "feeVersion": 2, "schedule": RecurrenceInput{StartDate: first.Format("2006-01-02"), Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{int(first.Weekday())}, Count: 1, Minutes: 60}}, map[string]string{"Idempotency-Key": token()})
+		current, err := storage.One[domain.Availability](ctx, s, "availability", bson.M{"_id": "tutor-meera"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		status, _, raw := p.call("POST", "/enrollments", map[string]any{"trialId": trial.ID, "subjects": []string{"Mathematics"}, "packageMode": "online", "packagePeriod": "hour", "accepted": true, "offeringVersion": current.Version, "feeVersion": 2, "schedule": RecurrenceInput{StartDate: first.Format("2006-01-02"), Time: "10:00", Timezone: "Asia/Kolkata", Weekdays: []int{int(first.Weekday())}, Count: 1, Minutes: 60}}, map[string]string{"Idempotency-Key": token()})
 		if status != 201 {
 			t.Fatalf("proposal %d %s", status, raw)
 		}
@@ -343,6 +347,119 @@ func TestMongoBillingLifecycle(t *testing.T) {
 		n, _ := s.C("ledger").CountDocuments(ctx, bson.M{"intentId": intent.ID})
 		if n != 2 {
 			t.Fatal("failed refund created journal")
+		}
+	})
+	t.Run("explicit simulation persists once, activates classes and stays outside real finance", func(t *testing.T) {
+		a.Config.PaymentProvider = "simulation"
+		v := create(14)
+		var checkout struct {
+			Intent domain.PaymentIntent `json:"intent"`
+		}
+		for i := 0; i < 2; i++ {
+			status, _, raw := p.call("POST", "/enrollments/"+v.ID+"/payment", map[string]any{"retry": true}, map[string]string{"Idempotency-Key": "simulation-checkout"})
+			if status != 200 {
+				t.Fatalf("test checkout %d %s", status, raw)
+			}
+			if err := json.Unmarshal(raw, &checkout); err != nil {
+				t.Fatal(err)
+			}
+		}
+		pi := checkout.Intent
+		if pi.Provider != "simulation" || pi.State != "created" || pi.Amount != v.Agreement.TotalPaise || !strings.HasPrefix(pi.OrderID, "sim_order_") {
+			t.Fatal("unlabelled or mispriced test order")
+		}
+		other.ok("POST", "/billing/"+pi.ID+"/simulate", map[string]any{"confirmed": true}, 404)
+		tutor.ok("POST", "/billing/"+pi.ID+"/simulate", map[string]any{"confirmed": true}, 403)
+		p.ok("POST", "/billing/"+intent.ID+"/simulate", map[string]any{"confirmed": true}, 404)
+		p.ok("POST", "/billing/"+pi.ID+"/simulate", map[string]any{"confirmed": true, "amountPaise": 1}, 422)
+		p.ok("POST", "/billing/"+pi.ID+"/simulate", map[string]any{"confirmed": false}, 422)
+		p.ok("POST", "/billing/"+pi.ID+"/verify", map[string]any{"paymentId": "sim_pay_" + pi.ID, "signature": signed(cfg.RazorpaySecret, []byte(pi.OrderID+"|sim_pay_"+pi.ID))}, 422)
+		capture := payments.Payment{ID: "forged_real_capture", OrderID: pi.OrderID, Amount: pi.Amount, Currency: "INR", Status: "captured", Captured: true}
+		if err := a.applyCaptured(ctx, pi.ID, capture); err == nil {
+			t.Fatal("real-provider capture accepted a simulated order")
+		}
+		before, _, err := a.paymentCollections(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		captureStatuses := make(chan int, 3)
+		for i := 0; i < 3; i++ {
+			go func() {
+				status, _, _ := p.call("POST", "/billing/"+pi.ID+"/simulate", map[string]any{"confirmed": true}, nil)
+				captureStatuses <- status
+			}()
+		}
+		for i := 0; i < 3; i++ {
+			if status := <-captureStatuses; status != 200 {
+				t.Fatal("concurrent test capture", status)
+			}
+		}
+		stored, err := storage.One[domain.PaymentIntent](ctx, s, "payment_intents", bson.M{"_id": pi.ID})
+		if err != nil || stored.State != "captured" || stored.PaymentID != "sim_pay_"+pi.ID || stored.CapturedAt == nil {
+			t.Fatal("test capture was not persisted", err)
+		}
+		paid, err := storage.One[domain.Enrollment](ctx, s, "enrollments", bson.M{"_id": v.ID})
+		if err != nil || paid.Status != "active" || !paid.PaymentSimulated || paid.HoldUntil != nil {
+			t.Fatal("test booking not activated", err)
+		}
+		classes, err := storage.Many[domain.ClassSession](ctx, s, "classes", bson.M{"enrollmentId": v.ID, "status": "scheduled"})
+		if err != nil || len(classes) != v.Agreement.SessionCount {
+			t.Fatal("test classes not scheduled", err)
+		}
+		tutor.ok("GET", "/enrollments/"+v.ID, nil, 200)
+		p.ok("GET", "/billing/"+pi.ID, nil, 200)
+		for _, recipient := range []string{"parent-a", "tutor-meera"} {
+			u, err := storage.One[domain.User](ctx, s, "users", bson.M{"_id": recipient})
+			if err != nil {
+				t.Fatal(err)
+			}
+			email, err := a.emailTemplate(ctx, job{Kind: "email_event", Payload: map[string]string{"event": "booking_confirmed", "targetKind": "enrollment", "targetId": v.ID, "expectedStatus": "active", "tutorId": v.TutorID}}, u)
+			if err != nil || !strings.HasPrefix(email.Title, "Test booking:") || !strings.Contains(email.Intro, "simulated payment") || !strings.Contains(email.Notice, "No money was charged") {
+				t.Fatal("unlabelled test booking email", err)
+			}
+		}
+		finance.ok("POST", "/billing/"+pi.ID+"/invoice", map[string]any{"number": "TEST/SIM/001", "issuerName": "Fictional supplier", "issuerAddress": "Fictional supplier office address", "customerName": "Fictional parent", "customerAddress": "Fictional family address", "supplyState": "10", "sac": "999293", "description": "Fictional simulated booking invoice rejection.", "gstBps": 0, "issuedAt": a.Now(), "confirmed": true}, 409)
+		finished := classes[0]
+		finished.Status, finished.Attendance, finished.End = "completed", "present", a.Now().Add(-time.Minute)
+		if err := a.recognizeEarning(ctx, finished); err != nil {
+			t.Fatal("test class earning handling", err)
+		}
+		after, _, err := a.paymentCollections(ctx)
+		if err != nil || before != after {
+			t.Fatal("simulation inflated collections", err)
+		}
+		for _, collection := range []string{"ledger", "finance_bookings", "paid_invoices"} {
+			n, err := s.C(collection).CountDocuments(ctx, bson.M{"$or": bson.A{bson.M{"_id": pi.ID}, bson.M{"intentId": pi.ID}}})
+			if err != nil || n != 0 {
+				t.Fatal("simulation created real financial records", collection, err)
+			}
+		}
+		n, err := s.C("notifications").CountDocuments(ctx, bson.M{"kind": "booking_confirmed", "targetId": v.ID})
+		if err != nil || n != 1 {
+			t.Fatal("duplicate booking notification", err)
+		}
+		refundStatus, _, refundBody := p.call("POST", "/billing/"+pi.ID+"/refunds", map[string]any{"amountPaise": 100, "reason": "Test simulation cannot refund real money."}, map[string]string{"Idempotency-Key": "simulation-refund"})
+		if refundStatus != 409 {
+			t.Fatalf("simulation refund %d %s", refundStatus, refundBody)
+		}
+		a.Config.PaymentProvider = "disabled"
+		p.ok("POST", "/billing/"+pi.ID+"/simulate", map[string]any{"confirmed": true}, 503)
+		p.ok("GET", "/billing/"+pi.ID, nil, 200)
+		a.Config.PaymentProvider = "simulation"
+		late := create(21)
+		status, _, raw := p.call("POST", "/enrollments/"+late.ID+"/payment", map[string]any{"retry": true}, map[string]string{"Idempotency-Key": "simulation-expired"})
+		if status != 200 {
+			t.Fatalf("expired checkout %d %s", status, raw)
+		}
+		if err := json.Unmarshal(raw, &checkout); err != nil {
+			t.Fatal(err)
+		}
+		expiredNow := a.Now().Add(16 * time.Minute)
+		a.Now = func() time.Time { return expiredNow }
+		p.ok("POST", "/billing/"+checkout.Intent.ID+"/simulate", map[string]any{"confirmed": true}, 409)
+		uncaptured, err := storage.One[domain.PaymentIntent](ctx, s, "payment_intents", bson.M{"_id": checkout.Intent.ID})
+		if err != nil || uncaptured.State != "created" || uncaptured.PaymentID != "" || uncaptured.CapturedAt != nil {
+			t.Fatal("expired hold recorded pretend success", err)
 		}
 	})
 }

@@ -122,6 +122,7 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 	}
 	var learner, subjects, mode, tutor string
 	var start, end time.Time
+	simulated := false
 	switch p["targetKind"] {
 	case "trial":
 		t, err := storage.One[domain.Trial](ctx, a.Store, "trials", bson.M{"_id": p["targetId"]})
@@ -231,6 +232,7 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 			}
 		}
 		learner = en.LearnerName
+		simulated = en.PaymentSimulated
 		subjects = strings.Join(agreementSubjects(en.Agreement), ", ")
 		mode = en.Agreement.Mode
 		tutor = en.TutorName
@@ -322,6 +324,13 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 		d.Notice = "View the authorised teaching address in your account. If you need to change the schedule, use the class controls so everyone sees the same update."
 	} else {
 		d.Notice = "Open the lesson in your account to use the protected Zoom join control. It opens 15 minutes before the lesson; a meeting must first be prepared by the tutor."
+	}
+	if simulated {
+		d.Title = "Test booking: " + d.Title
+		if p["event"] == "booking_confirmed" {
+			d.Intro = "A simulated payment confirmed this test booking. The saved class schedule is ready to view."
+		}
+		d.Notice = "Test booking only. No money was charged; this booking does not create tutor earnings. " + d.Notice
 	}
 	return d, nil
 }

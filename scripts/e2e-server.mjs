@@ -16,7 +16,7 @@ Object.assign(env, {
   APP_ENV: 'test',
   AUTH_PROVIDER: 'password',
   SEED_PASSWORD: 'E2E-only learning passphrase 426!',
-  PAYMENT_PROVIDER: 'disabled',
+  PAYMENT_PROVIDER: process.env.E2E_PAYMENT_SIMULATION === '1' ? 'simulation' : 'disabled',
   MAIL_PROVIDER: 'disabled',
   MEDIA_PROVIDER: 'disk',
   VIDEO_PROVIDER: 'disk',

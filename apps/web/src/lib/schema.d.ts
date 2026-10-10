@@ -691,6 +691,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/{id}/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /billing/{id}/simulate */
+        post: operations["post__billing__id__simulate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/{id}/reconcile": {
         parameters: {
             query?: never;
@@ -2248,6 +2265,7 @@ export interface components {
             packageFeePaise?: number;
         };
         Enrollment: {
+            paymentSimulated: boolean;
             paymentIntentId: string;
             id: string;
             trialId: string;
@@ -2400,6 +2418,8 @@ export interface components {
             delivered: number;
         };
         PaymentIntent: {
+            provider: string;
+            capturedAt: string | null;
             id: string;
             enrollmentId: string;
             amountPaise: number;
@@ -2427,6 +2447,9 @@ export interface components {
         PaymentVerify: {
             paymentId: string;
             signature: string;
+        };
+        SimulationInput: {
+            confirmed: boolean;
         };
         RefundRequest: {
             id: string;
@@ -4936,6 +4959,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__billing__id__simulate: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulationInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentIntent"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */

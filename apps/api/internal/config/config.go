@@ -137,7 +137,7 @@ func Load() (Config, error) {
 	if env("TRIAL_FEE_PAISE", "0") != "0" {
 		return c, errors.New("paid trials are not enabled in this milestone")
 	}
-	if c.PaymentProvider != "disabled" && c.PaymentProvider != "razorpay" {
+	if c.PaymentProvider != "disabled" && c.PaymentProvider != "razorpay" && c.PaymentProvider != "simulation" {
 		return c, errors.New("unsupported payment provider")
 	}
 	if c.PaymentProvider == "razorpay" {

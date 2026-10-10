@@ -426,6 +426,7 @@ function TuitionList() {
                       <BookOpen />
                     </span>
                     <TuitionStatus status={enrollment.status} />
+                    {enrollment.paymentSimulated && <Badge tone="amber">Test booking</Badge>}
                   </div>
                   <h2>{enrollment.learnerName}</h2>
                   <p>
@@ -1222,6 +1223,13 @@ function TuitionDetail({ id }: { id: string }) {
         body={t('tuition.withTutor', { name: e.tutorName })}
         action={<TuitionStatus status={e.status} />}
       />
+      {e.paymentSimulated && (
+        <Alert kind={role === 'parent' && e.status === 'active' ? 'success' : 'info'}>
+          {role === 'parent' && e.status === 'active'
+            ? t('billing.simulationSuccess')
+            : t('billing.simulationRecord')}
+        </Alert>
+      )}
       <div className="tu-overview">
         {[
           ['agreed', e.agreement.sessionCount],
@@ -1245,7 +1253,7 @@ function TuitionDetail({ id }: { id: string }) {
           )}
         </section>
       )}
-      {role === 'parent' && e.status === 'active' && e.paymentIntentId && (
+      {role === 'parent' && e.status === 'active' && e.paymentIntentId && !e.paymentSimulated && (
         <Alert kind="success">{t('tuition.bookingConfirmed')}</Alert>
       )}
       <TabBar

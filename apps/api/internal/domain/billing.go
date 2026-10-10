@@ -3,18 +3,20 @@ package domain
 import "time"
 
 type PaymentIntent struct {
-	ID             string    `json:"id" bson:"_id"`
-	OwnerID        string    `json:"-" bson:"ownerId"`
-	EnrollmentID   string    `json:"enrollmentId" bson:"enrollmentId"`
-	Amount         int64     `json:"amountPaise" bson:"amountPaise"`
-	Currency       string    `json:"currency" bson:"currency"`
-	State          string    `json:"state" bson:"state"`
-	OrderID        string    `json:"orderId" bson:"orderId"`
-	PaymentID      string    `json:"paymentId" bson:"paymentId"`
-	RefundReserved int64     `json:"refundReservedPaise" bson:"refundReservedPaise"`
-	Refunded       int64     `json:"refundedPaise" bson:"refundedPaise"`
-	EarnedGross    int64     `json:"-" bson:"earnedGrossPaise"`
-	CreatedAt      time.Time `json:"createdAt" bson:"createdAt"`
+	Provider       string     `json:"provider" bson:"provider,omitempty"`
+	CapturedAt     *time.Time `json:"capturedAt" bson:"capturedAt,omitempty"`
+	ID             string     `json:"id" bson:"_id"`
+	OwnerID        string     `json:"-" bson:"ownerId"`
+	EnrollmentID   string     `json:"enrollmentId" bson:"enrollmentId"`
+	Amount         int64      `json:"amountPaise" bson:"amountPaise"`
+	Currency       string     `json:"currency" bson:"currency"`
+	State          string     `json:"state" bson:"state"`
+	OrderID        string     `json:"orderId" bson:"orderId"`
+	PaymentID      string     `json:"paymentId" bson:"paymentId"`
+	RefundReserved int64      `json:"refundReservedPaise" bson:"refundReservedPaise"`
+	Refunded       int64      `json:"refundedPaise" bson:"refundedPaise"`
+	EarnedGross    int64      `json:"-" bson:"earnedGrossPaise"`
+	CreatedAt      time.Time  `json:"createdAt" bson:"createdAt"`
 }
 type RefundRequest struct {
 	ID          string    `json:"id" bson:"_id"`

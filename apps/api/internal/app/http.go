@@ -141,7 +141,9 @@ func (a *App) Routes() http.Handler {
 	})
 	r.Get("/api/v1/config", func(w http.ResponseWriter, r *http.Request) {
 		provider := "disabled"
-		if a.Payments != nil {
+		if a.Config.PaymentProvider == "simulation" {
+			provider = "simulation"
+		} else if a.Payments != nil {
 			provider = "razorpay_sandbox"
 		}
 		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password", "emailEnabled": a.Mail != nil, "trialFeePaise": 0, "payments": provider, "timezone": "Asia/Kolkata", "uploadsEnabled": a.Files != nil, "videoUploadsEnabled": a.Videos != nil, "videoProvider": a.Config.VideoProvider, "mediaProvider": a.Config.MediaProvider, "meetingsEnabled": a.Meetings != nil, "scannerConfigured": a.Scanner != nil})
@@ -219,6 +221,7 @@ func (a *App) Routes() http.Handler {
 		r.Get("/api/v1/handovers/invitations", a.handoverInvitations)
 		r.Post("/api/v1/handovers/{id}/action", a.handoverAction)
 		r.Post("/api/v1/enrollments/{id}/payment", a.createPayment)
+		r.Post("/api/v1/billing/{id}/simulate", a.simulatePayment)
 		r.Get("/api/v1/billing", a.billing)
 		r.Get("/api/v1/finance/business", a.businessSettings)
 		r.Put("/api/v1/finance/business", a.saveBusinessSettings)

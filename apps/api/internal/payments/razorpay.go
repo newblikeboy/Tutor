@@ -27,6 +27,8 @@ type Order struct {
 	Status     string `json:"status"`
 }
 type Payment struct {
+	// Only the server's explicit simulation checkout can set this marker.
+	Simulated      bool   `json:"-"`
 	ID             string `json:"id"`
 	OrderID        string `json:"order_id"`
 	Amount         int64  `json:"amount"`

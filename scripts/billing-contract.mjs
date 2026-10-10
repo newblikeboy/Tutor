@@ -13,6 +13,8 @@ export function billingContract(schemas, route) {
   })
   Object.assign(schemas, {
     PaymentIntent: obj({
+      provider: s,
+      capturedAt: { anyOf: [date, { type: 'null' }] },
       id: s,
       enrollmentId: s,
       amountPaise: i,
@@ -28,6 +30,7 @@ export function billingContract(schemas, route) {
     CheckoutInput: obj({ retry: b }),
     Checkout: obj({ intent: ref('PaymentIntent'), keyId: s, sandbox: b }),
     PaymentVerify: obj({ paymentId: s, signature: s }),
+    SimulationInput: obj({ confirmed: b }),
     RefundRequest: obj({
       id: s,
       intentId: s,
@@ -73,6 +76,7 @@ export function billingContract(schemas, route) {
   route('/billing', 'get', 'PaymentPage')
   route('/billing/{id}', 'get', 'BillingDetail')
   route('/billing/{id}/verify', 'post', 'OK', 'PaymentVerify')
+  route('/billing/{id}/simulate', 'post', 'PaymentIntent', 'SimulationInput')
   route('/billing/{id}/reconcile', 'post', 'OK')
   route('/billing/{id}/refunds', 'post', 'RefundRequest', 'RefundInput')
   route('/refunds/{id}/action', 'post', 'OK', 'RefundAction')

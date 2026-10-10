@@ -2,6 +2,26 @@ package config
 
 import "testing"
 
+func TestExplicitPaymentSimulationConfiguration(t *testing.T) {
+	for k, v := range map[string]string{"MONGODB_URI": "mongodb://127.0.0.1", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "simulation", "MAIL_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "HTTP_ADDR": "127.0.0.1:8080", "WEB_ORIGIN": "https://example.invalid", "TRIAL_FEE_PAISE": "0", "TEST_ZOOM_ENDPOINT": "", "TEST_CLOUDINARY_ENDPOINT": "", "RAZORPAY_KEY_ID": "", "RAZORPAY_KEY_SECRET": "", "RAZORPAY_WEBHOOK_SECRET": ""} {
+		t.Setenv(k, v)
+	}
+	for _, environment := range []string{"test", "development", "production"} {
+		t.Setenv("APP_ENV", environment)
+		if c, err := Load(); err != nil || c.PaymentProvider != "simulation" {
+			t.Fatal("explicit simulation rejected", environment, err)
+		}
+	}
+	t.Setenv("PAYMENT_PROVIDER", "")
+	if c, err := Load(); err != nil || c.PaymentProvider != "disabled" {
+		t.Fatal("missing keys must never enable simulation", err)
+	}
+	t.Setenv("PAYMENT_PROVIDER", "razorpay")
+	if _, err := Load(); err == nil {
+		t.Fatal("Razorpay gate weakened by simulation")
+	}
+}
+
 func TestRecruitmentProviderConfiguration(t *testing.T) {
 	for k, v := range map[string]string{"MONGODB_URI": "mongodb://localhost", "APP_ENV": "test", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "CLAMAV_ADDRESS": "", "TRIAL_FEE_PAISE": "0", "TEST_ZOOM_ENDPOINT": ""} {
 		t.Setenv(k, v)

@@ -2589,6 +2589,75 @@
         }
       }
     },
+    "/billing/{id}/simulate": {
+      "post": {
+        "operationId": "post__billing__id__simulate",
+        "summary": "POST /billing/{id}/simulate",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentIntent"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              }
+            }
+          }
+        }
+      }
+    },
     "/billing/{id}/reconcile": {
       "post": {
         "operationId": "post__billing__id__reconcile",
@@ -8481,6 +8550,7 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "paymentSimulated",
           "paymentIntentId",
           "id",
           "trialId",
@@ -8498,6 +8568,9 @@
           "createdAt"
         ],
         "properties": {
+          "paymentSimulated": {
+            "type": "boolean"
+          },
           "paymentIntentId": {
             "type": "string"
           },
@@ -9093,6 +9166,8 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "provider",
+          "capturedAt",
           "id",
           "enrollmentId",
           "amountPaise",
@@ -9105,6 +9180,20 @@
           "createdAt"
         ],
         "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "capturedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -9202,6 +9291,18 @@
           },
           "signature": {
             "type": "string"
+          }
+        }
+      },
+      "SimulationInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "confirmed"
+        ],
+        "properties": {
+          "confirmed": {
+            "type": "boolean"
           }
         }
       },

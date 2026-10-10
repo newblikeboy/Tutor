@@ -16,6 +16,7 @@ import {
   Loading,
   LoadError,
   MutationError,
+  Modal,
 } from '../components/ui'
 import '../styles/tuition.css'
 import { BusinessSettings, FinanceOverview, TutorEarnings } from './finance'
@@ -149,6 +150,7 @@ export function Checkout({ enrollment }: { enrollment: Schema['Enrollment'] }) {
   })
   if (config.isPending) return <Loading />
   if (config.isError) return <LoadError retry={() => void config.refetch()} />
+  if (config.data?.payments === 'simulation') return <SimulationCheckout enrollment={enrollment} />
   if (config.data?.payments === 'disabled')
     return (
       <Alert>
@@ -178,7 +180,75 @@ export function Checkout({ enrollment }: { enrollment: Schema['Enrollment'] }) {
     </section>
   )
 }
-function PaymentStatus({ state }: { state: string }) {
+function SimulationCheckout({ enrollment }: { enrollment: Schema['Enrollment'] }) {
+  const { t, i18n } = useTranslation()
+  const [key] = useState(() => crypto.randomUUID())
+  const start = useMutation({
+    mutationFn: () =>
+      send<Schema['Checkout']>(`/enrollments/${enrollment.id}/payment`, { retry: true }, 'POST', {
+        'Idempotency-Key': key,
+      }),
+    onSuccess: async (result) => {
+      if (result.intent.state === 'captured') await refresh()
+    },
+  })
+  const complete = useMutation({
+    mutationFn: (id: string) =>
+      send<Schema['PaymentIntent']>(`/billing/${id}/simulate`, { confirmed: true }),
+    onSuccess: refresh,
+  })
+  return (
+    <section className="tu-panel tu-stack">
+      <div className="tu-panel-title">
+        <ShieldCheck />
+        <h2>{t('billing.simulation')}</h2>
+      </div>
+      <p>{t('billing.simulationBody')}</p>
+      <Modal
+        title={t('billing.simulation')}
+        description={t('billing.simulationBody')}
+        trigger={
+          <Button
+            onClick={() => {
+              complete.reset()
+              start.mutate()
+            }}
+          >
+            {t('billing.pay')}
+          </Button>
+        }
+      >
+        <div className="tu-stack">
+          <p>
+            <strong>{enrollment.learnerName}</strong> · {enrollment.tutorName}
+          </p>
+          <p>
+            {t('billing.amount')}:{' '}
+            <strong>{price(enrollment.agreement.totalPaise, i18n.language)}</strong>
+          </p>
+          {start.isPending && <Loading />}
+          <MutationError error={start.error} />
+          <MutationError error={complete.error} />
+          {start.isSuccess && start.data.intent.provider !== 'simulation' && (
+            <Alert>{t('billing.providerChanged')}</Alert>
+          )}
+          {start.isSuccess &&
+            start.data.intent.provider === 'simulation' &&
+            start.data.intent.state === 'created' && (
+              <Button
+                busy={complete.isPending}
+                onClick={() => complete.mutate(start.data.intent.id)}
+              >
+                {t('billing.completeSimulation')}
+              </Button>
+            )}
+          {complete.isSuccess && <Alert kind="success">{t('billing.simulationSuccess')}</Alert>}
+        </div>
+      </Modal>
+    </section>
+  )
+}
+function PaymentStatus({ state, simulated = false }: { state: string; simulated?: boolean }) {
   const { t } = useTranslation()
   return (
     <Badge
@@ -190,7 +260,7 @@ function PaymentStatus({ state }: { state: string }) {
             : 'neutral'
       }
     >
-      {t(`billing.state.${state}`)}
+      {t(simulated && state === 'captured' ? 'billing.simulatedCapture' : `billing.state.${state}`)}
     </Badge>
   )
 }
@@ -289,7 +359,7 @@ function PaymentList() {
                     <span className="tu-book">
                       <ReceiptText />
                     </span>
-                    <PaymentStatus state={v.state} />
+                    <PaymentStatus state={v.state} simulated={v.provider === 'simulation'} />
                   </div>
                   <h2>{price(v.amountPaise, i18n.language)}</h2>
                   <p>{indiaDate(v.createdAt, i18n.language)}</p>
@@ -347,6 +417,14 @@ function PaymentDetail({ id }: { id: string }) {
   if (q.isError) return <LoadError retry={() => void q.refetch()} />
   const v = q.data.intent,
     staff = ['finance', 'admin'].includes(auth.data!.user.role)
+  const amounts: [string, number][] =
+    v.provider === 'simulation'
+      ? [['amount', v.amountPaise]]
+      : [
+          ['amount', v.amountPaise],
+          ['refunded', v.refundedPaise],
+          ['reserved', v.refundReservedPaise],
+        ]
   return (
     <>
       <Link className="tu-back" to="/billing">
@@ -356,57 +434,68 @@ function PaymentDetail({ id }: { id: string }) {
       <article className="tu-panel tu-stack">
         <div className="tu-card-top">
           <h2>{t('billing.receipt')}</h2>
-          <PaymentStatus state={v.state} />
+          <PaymentStatus state={v.state} simulated={v.provider === 'simulation'} />
         </div>
-        {q.data.sandbox && <Alert>{t('billing.sandbox')}</Alert>}
+        {v.provider === 'simulation' ? (
+          <Alert>{t('billing.simulationRecord')}</Alert>
+        ) : (
+          q.data.sandbox && <Alert>{t('billing.sandbox')}</Alert>
+        )}
         <div className="tu-quote">
-          {[
-            ['amount', v.amountPaise],
-            ['refunded', v.refundedPaise],
-            ['reserved', v.refundReservedPaise],
-          ].map(([key, n]) => (
+          {amounts.map(([key, n]) => (
             <div key={key}>
               <span>{t(`billing.${key}`)}</span>
               <strong>{price(Number(n), i18n.language)}</strong>
             </div>
           ))}
         </div>
-        {!q.data.invoice && <p>{t('billing.receiptBody')}</p>}
+        {v.provider !== 'simulation' && !q.data.invoice && <p>{t('billing.receiptBody')}</p>}
         <div>
-          <h3>{t('billing.reference')}</h3>
+          <h3>{t(v.provider === 'simulation' ? 'billing.testReference' : 'billing.reference')}</h3>
           <p>{v.paymentId || v.orderId || '—'}</p>
         </div>
+        {v.provider === 'simulation' && v.capturedAt && (
+          <p>
+            {t('billing.capturedAt')}: {indiaDate(v.capturedAt, i18n.language)}
+          </p>
+        )}
         {!staff && (
           <Link to={`/tuition/${v.enrollmentId}`} className="text-link">
             {t('billing.openTuition')}
           </Link>
         )}
-        {staff && ['creating', 'reconciliation_required'].includes(v.state) && (
-          <>
-            <p>{t('billing.reconcileBody')}</p>
-            <Button busy={reconcile.isPending} onClick={() => reconcile.mutate()}>
-              {t('billing.reconcile')}
-            </Button>
-            <MutationError error={reconcile.error} />
-          </>
-        )}
+        {staff &&
+          v.provider !== 'simulation' &&
+          ['creating', 'reconciliation_required'].includes(v.state) && (
+            <>
+              <p>{t('billing.reconcileBody')}</p>
+              <Button busy={reconcile.isPending} onClick={() => reconcile.mutate()}>
+                {t('billing.reconcile')}
+              </Button>
+              <MutationError error={reconcile.error} />
+            </>
+          )}
       </article>
       {q.data.invoice && <PaidInvoice invoice={q.data.invoice} />}
-      {staff && v.paymentId && !q.data.invoice && <InvoiceForm id={id} />}
-      {v.paymentId && v.amountPaise - v.refundedPaise - v.refundReservedPaise > 0 && (
-        <RefundForm intent={v} />
+      {staff && v.provider !== 'simulation' && v.paymentId && !q.data.invoice && (
+        <InvoiceForm id={id} />
       )}
-      <section className="tu-stack">
-        <h2>{t('billing.history')}</h2>
-        {!q.data.refunds.length ? (
-          <p>{t('billing.noRefunds')}</p>
-        ) : (
-          q.data.refunds.map((r) => (
-            <RefundCard key={`${r.id}:${r.status}`} item={r} staff={staff} />
-          ))
-        )}
-      </section>
-      {staff && (
+      {v.provider !== 'simulation' &&
+        v.paymentId &&
+        v.amountPaise - v.refundedPaise - v.refundReservedPaise > 0 && <RefundForm intent={v} />}
+      {v.provider !== 'simulation' && (
+        <section className="tu-stack">
+          <h2>{t('billing.history')}</h2>
+          {!q.data.refunds.length ? (
+            <p>{t('billing.noRefunds')}</p>
+          ) : (
+            q.data.refunds.map((r) => (
+              <RefundCard key={`${r.id}:${r.status}`} item={r} staff={staff} />
+            ))
+          )}
+        </section>
+      )}
+      {staff && v.provider !== 'simulation' && (
         <section className="tu-panel tu-stack">
           <h2>{t('billing.ledger')}</h2>
           <p>{t('billing.ledgerBody')}</p>

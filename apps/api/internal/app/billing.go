@@ -79,7 +79,11 @@ func (a *App) billingDetail(w http.ResponseWriter, r *http.Request) {
 	a.json(w, 200, response)
 }
 func (a *App) createPayment(w http.ResponseWriter, r *http.Request) {
-	if !a.role(w, r, "parent") || !a.paymentEnabled(w, r) {
+	if !a.role(w, r, "parent") {
+		return
+	}
+	simulation := a.Config.PaymentProvider == "simulation"
+	if !simulation && !a.paymentEnabled(w, r) {
 		return
 	}
 	var in struct {
@@ -118,7 +122,12 @@ func (a *App) createPayment(w http.ResponseWriter, r *http.Request) {
 				return a.saveReceipt(ctx, "payment:"+u.ID, r.Header.Get("Idempotency-Key"), fp, intent.ID)
 			}
 		}
-		intent = domain.PaymentIntent{ID: id, OwnerID: u.ID, EnrollmentID: v.ID, Amount: v.Agreement.TotalPaise, Currency: "INR", State: "creating", CreatedAt: a.Now()}
+		intent = domain.PaymentIntent{ID: id, OwnerID: u.ID, EnrollmentID: v.ID, Amount: v.Agreement.TotalPaise, Currency: "INR", State: "creating", Provider: "razorpay", CreatedAt: a.Now()}
+		if simulation {
+			intent.Provider = "simulation"
+			intent.OrderID = "sim_order_" + id
+			intent.State = "created"
+		}
 		if _, er = a.Store.C("payment_intents").InsertOne(ctx, intent); er != nil {
 			return er
 		}
@@ -135,8 +144,12 @@ func (a *App) createPayment(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
+	if (intent.Provider == "simulation") != simulation {
+		a.error(w, r, domain.Fail(409, "provider_changed", "This checkout uses a different payment provider. Choose new dates to start a new booking."))
+		return
+	}
 	// Provider calls never run inside a retryable MongoDB transaction.
-	if fresh {
+	if fresh && !simulation {
 		order, providerErr := a.Payments.CreateOrder(r.Context(), intent.Amount, intent.ID)
 		if providerErr != nil {
 			_, e = a.Store.C("payment_intents").UpdateOne(r.Context(), bson.M{"_id": intent.ID, "state": "creating"}, bson.M{"$set": bson.M{"state": "reconciliation_required"}})
@@ -155,6 +168,47 @@ func (a *App) createPayment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	a.json(w, 200, map[string]any{"intent": intent, "keyId": a.Config.RazorpayKeyID, "sandbox": a.Config.Env != "production"})
+}
+
+// Test checkout persists an explicitly simulated capture. It never calls Razorpay.
+func (a *App) simulatePayment(w http.ResponseWriter, r *http.Request) {
+	if !a.role(w, r, "parent") {
+		return
+	}
+	if a.Config.PaymentProvider != "simulation" {
+		a.error(w, r, domain.Fail(503, "simulation_disabled", "Test payments are disabled."))
+		return
+	}
+	var in struct {
+		Confirmed bool `json:"confirmed"`
+	}
+	if !a.decode(w, r, &in) {
+		return
+	}
+	if !in.Confirmed {
+		a.error(w, r, domain.Fail(422, "validation", "Confirm the test payment to continue."))
+		return
+	}
+	v, e := storage.One[domain.PaymentIntent](r.Context(), a.Store, "payment_intents", bson.M{"_id": chi.URLParam(r, "id"), "ownerId": user(r).ID, "provider": "simulation"})
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	if v.State != "created" && v.State != "captured" {
+		a.error(w, r, domain.Fail(409, "invalid_transition", "This test payment cannot be completed."))
+		return
+	}
+	p := payments.Payment{ID: "sim_pay_" + v.ID, OrderID: v.OrderID, Amount: v.Amount, Currency: v.Currency, Status: "captured", Captured: true, Simulated: true}
+	if e = a.applyCaptured(r.Context(), v.ID, p); e != nil {
+		a.error(w, r, e)
+		return
+	}
+	v, e = storage.One[domain.PaymentIntent](r.Context(), a.Store, "payment_intents", bson.M{"_id": v.ID, "ownerId": user(r).ID})
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	a.json(w, 200, v)
 }
 func (a *App) attachOrder(ctx context.Context, v domain.PaymentIntent, order payments.Order) error {
 	if order.ID == "" || order.Receipt != v.ID || order.Amount != v.Amount || order.Currency != "INR" {
@@ -179,7 +233,7 @@ func (a *App) verifyPayment(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
-	if !payments.VerifyCheckout(a.Config.RazorpaySecret, v.OrderID, in.PaymentID, in.Signature) {
+	if v.Provider == "simulation" || !payments.VerifyCheckout(a.Config.RazorpaySecret, v.OrderID, in.PaymentID, in.Signature) {
 		a.error(w, r, domain.Fail(422, "signature", "Payment confirmation could not be verified."))
 		return
 	}
@@ -212,7 +266,7 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 		if e != nil {
 			return e
 		}
-		if v.OrderID != p.OrderID || v.Amount != p.Amount || v.Currency != p.Currency || p.ID == "" {
+		if (v.Provider == "simulation") != p.Simulated || v.OrderID != p.OrderID || v.Amount != p.Amount || v.Currency != p.Currency || p.ID == "" {
 			return domain.Fail(409, "provider_mismatch", "Payment does not match its order and amount.")
 		}
 		if v.PaymentID != "" {
@@ -230,6 +284,8 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 		}
 		v.PaymentID = p.ID
 		v.State = "captured"
+		now := a.Now()
+		v.CapturedAt = &now
 		usable := !forceReview && enrollment.Status == "awaiting_payment" && enrollment.HoldUntil != nil && enrollment.HoldUntil.After(a.Now()) && enrollment.PaymentIntentID == v.ID && p.AmountRefunded == 0
 		if usable {
 			app, av, er := a.lockOffering(ctx, enrollment.TutorID, enrollment.Class, enrollment.Agreement.Mode)
@@ -272,17 +328,23 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 				}
 			}
 		}
+		if !usable && p.Simulated {
+			return domain.Fail(409, "hold_expired", "The reserved classes are no longer available. Choose new dates before making a test payment.")
+		}
 		if usable {
 			if e = a.notifyActivity(ctx, enrollment.TutorID, "booking_confirmed", enrollment.ID); e != nil {
 				return e
 			}
-			if e = a.createFinanceBooking(ctx, v, enrollment); e != nil {
-				return e
+			if !p.Simulated {
+				if e = a.createFinanceBooking(ctx, v, enrollment); e != nil {
+					return e
+				}
 			}
-			if _, e = a.Store.C("enrollments").UpdateOne(ctx, bson.M{"_id": enrollment.ID}, bson.M{"$set": bson.M{"status": "active", "holdUntil": nil}}); e != nil {
+			if _, e = a.Store.C("enrollments").UpdateOne(ctx, bson.M{"_id": enrollment.ID}, bson.M{"$set": bson.M{"status": "active", "holdUntil": nil, "paymentSimulated": p.Simulated}}); e != nil {
 				return e
 			}
 			enrollment.Status = "active"
+			enrollment.PaymentSimulated = p.Simulated
 			if e = a.queueEnrollmentEmail(ctx, enrollment, "booking_confirmed"); e != nil {
 				return e
 			}
@@ -299,6 +361,9 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 		}
 		if _, e = a.Store.C("payment_intents").ReplaceOne(ctx, bson.M{"_id": v.ID}, v); e != nil {
 			return e
+		}
+		if p.Simulated {
+			return a.audit(ctx, v.OwnerID, "payment.simulated_capture", v.ID)
 		}
 		entry := domain.LedgerEntry{ID: "capture:" + p.ID, OwnerID: v.OwnerID, IntentID: v.ID, Amount: v.Amount, Debit: "gateway_receivable", Credit: "family_prepaid", Reference: p.ID, CreatedAt: a.Now()}
 		if _, e = a.Store.C("ledger").InsertOne(ctx, entry); e != nil {
@@ -331,6 +396,10 @@ func (a *App) reconcilePayment(w http.ResponseWriter, r *http.Request) {
 	v, e := storage.One[domain.PaymentIntent](r.Context(), a.Store, "payment_intents", bson.M{"_id": chi.URLParam(r, "id")})
 	if e != nil {
 		a.error(w, r, e)
+		return
+	}
+	if v.Provider == "simulation" {
+		a.error(w, r, domain.Fail(409, "simulated_payment", "Test payments cannot be reconciled with Razorpay."))
 		return
 	}
 	if v.OrderID == "" {
@@ -388,6 +457,9 @@ func (a *App) requestRefund(w http.ResponseWriter, r *http.Request) {
 		v, er := storage.One[domain.PaymentIntent](ctx, a.Store, "payment_intents", f)
 		if er != nil {
 			return er
+		}
+		if v.Provider == "simulation" {
+			return domain.Fail(409, "simulated_payment", "No money was charged. Test payments cannot be refunded.")
 		}
 		if v.PaymentID == "" || v.Amount-v.RefundReserved-v.Refunded-v.EarnedGross < in.Amount {
 			return domain.Fail(409, "refund_amount", "This amount exceeds the unreserved payment balance.")

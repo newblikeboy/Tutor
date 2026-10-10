@@ -167,6 +167,98 @@ test('staff fee changes require renewed consent before payment and tutors only e
     await inspect(parent, 'tuition-payment-pending-en-desktop')
     await parent.setViewportSize({ width: 390, height: 844 })
     await inspect(parent, 'tuition-payment-pending-en-mobile')
+    if (process.env.E2E_PAYMENT_SIMULATION === '1') {
+      let razorpayRequests = 0
+      parent.on('request', (request) => {
+        if (request.url().includes('razorpay.com')) razorpayRequests++
+      })
+      const success = 'Test payment successful. Your booking is confirmed. No money was charged.'
+      const enrollmentId = new URL(parent.url()).pathname.split('/').pop()!
+      await parent
+        .getByRole('button', { name: 'Pay & confirm booking (test)', exact: true })
+        .click()
+      const dialog = parent.getByRole('dialog', { name: 'GoCoaching test checkout' })
+      await expect(
+        dialog.getByRole('button', { name: 'Complete test payment', exact: true }),
+      ).toBeVisible()
+      await inspect(parent, 'tuition-test-checkout-en-mobile')
+      await parent.setViewportSize({ width: 1440, height: 1000 })
+      await inspect(parent, 'tuition-test-checkout-en-desktop')
+      // Closing a gateway never confirms a booking; reopening resumes the persisted order.
+      await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+      const unpaid = await (await parent.request.get(`/api/v1/enrollments/${enrollmentId}`)).json()
+      expect(unpaid.enrollment.status).toBe('awaiting_payment')
+      await parent
+        .getByRole('button', { name: 'Pay & confirm booking (test)', exact: true })
+        .click()
+      await dialog.getByRole('button', { name: 'Complete test payment', exact: true }).click()
+      await expect(parent.getByText(success, { exact: true })).toBeVisible()
+      await parent.reload()
+      await expect(parent.getByText(success, { exact: true })).toBeVisible()
+      await inspect(parent, 'tuition-test-confirmed-en-desktop')
+      const savedBooking = await (
+        await parent.request.get(`/api/v1/enrollments/${enrollmentId}`)
+      ).json()
+      expect(savedBooking.enrollment.status).toBe('active')
+      expect(savedBooking.enrollment.paymentSimulated).toBe(true)
+      expect(savedBooking.sessions.every((s: { status: string }) => s.status === 'scheduled')).toBe(
+        true,
+      )
+      const paymentId = savedBooking.enrollment.paymentIntentId
+      const payment = await (await parent.request.get(`/api/v1/billing/${paymentId}`)).json()
+      expect(payment.intent).toMatchObject({
+        provider: 'simulation',
+        state: 'captured',
+        amountPaise: 250000,
+      })
+      expect(payment.intent.paymentId).toMatch(/^sim_pay_/)
+      expect(payment.intent.capturedAt).toBeTruthy()
+      expect(payment.invoice).toBeUndefined()
+      await tutor.goto(`/tuition/${enrollmentId}`)
+      await expect(tutor.getByText(/Test payment only/)).toBeVisible()
+      await expect(
+        tutor.getByRole('button', { name: /Accept agreement|Accept booking/ }),
+      ).toHaveCount(0)
+      const lesson = savedBooking.sessions[0]
+      await write(tutor, `/classes/${lesson.id}/action`, {
+        action: 'record',
+        version: lesson.version,
+        developmentRecord: true,
+        attendance: 'present',
+        notes: 'The learner solved the worked fraction examples independently.',
+        homework: 'Practise the next five fraction examples.',
+        progress: {
+          subject: 'Mathematics',
+          topics: [
+            {
+              title: 'Fractions',
+              status: 'practising',
+              evidence: 'Solved worked examples independently.',
+              practice: 'Practise five fraction problems.',
+            },
+          ],
+          homeworkStatus: 'not_checked',
+          feedback: 'Understands the fraction examples.',
+          nextSteps: 'Practise fraction word problems.',
+        },
+      })
+      await parent.goto(`/workspace?view=learners&learner=${learner.id}&reportTab=history`)
+      await parent.getByText('View lesson details', { exact: true }).click()
+      await expect(
+        parent.getByText('The learner solved the worked fraction examples independently.', {
+          exact: true,
+        }),
+      ).toBeVisible()
+      await parent.goto(`/billing/${paymentId}`)
+      await expect(parent.getByText('Test payment captured', { exact: true })).toBeVisible()
+      await expect(
+        parent.getByRole('button', { name: 'Request a refund', exact: true }),
+      ).toHaveCount(0)
+      await inspect(parent, 'tuition-test-payment-record-en-desktop')
+      await parent.setViewportSize({ width: 390, height: 844 })
+      await inspect(parent, 'tuition-test-payment-record-en-mobile')
+      expect(razorpayRequests).toBe(0)
+    }
   } finally {
     await Promise.all(contexts.map((context) => context.close()))
   }
