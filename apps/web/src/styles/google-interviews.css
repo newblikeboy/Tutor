@@ -1,0 +1,93 @@
+.google-connection {
+  background: linear-gradient(150deg, #fff, #fffefa);
+  border: 1px solid #dce3d8;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 5px 22px #15353b04;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin: 0 0 24px;
+}
+.google-connection-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1 1 340px;
+  min-width: 0;
+}
+.google-connection-main > svg {
+  flex: none;
+  margin-top: 5px;
+  color: #46694e;
+}
+.google-connection h2 {
+  font-size: 19px;
+  margin: 0 0 8px;
+}
+.google-connection p {
+  margin: 4px 0;
+  color: #526365;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.google-connection .google-connected-email {
+  color: #173b3f;
+  font-weight: 650;
+}
+.google-connection-outcome {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-basis: 100%;
+}
+.google-connection-outcome .alert {
+  flex: 1;
+}
+.interview-assessment {
+  margin-top: 20px;
+  border-top: 1px solid #dce3d8;
+  padding-top: 20px;
+}
+.interview-assessment h3 {
+  margin: 0 0 12px;
+}
+.interview-assessment .assessment-ratings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.interview-assessment p {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.calendar-review {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #dce3d8;
+  background: #fff;
+  border-radius: 10px;
+}
+.calendar-review p {
+  line-height: 1.6;
+}
+@media (max-width: 520px) {
+  .google-connection-main {
+    flex-basis: 100%;
+  }
+  .google-connection .button-row {
+    width: 100%;
+  }
+  .google-connection .button-row > .btn {
+    flex: 1;
+  }
+  .google-connection-outcome {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .interview-assessment .assessment-ratings {
+    grid-template-columns: 1fr;
+  }
+}

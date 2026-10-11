@@ -26,6 +26,9 @@ test('an unapproved tutor can continue their application without teaching access
     'Fictional pending tutor',
   )
   await expect(page.getByRole('link', { name: 'My learners', exact: true })).toHaveCount(0)
+  await expect(
+    page.getByRole('navigation', { name: 'Everyday navigation', exact: true }),
+  ).toHaveCount(0)
   expect((await page.request.get('/api/v1/tutor/workspace')).status()).toBe(403)
   await mkdir('docs/visual-qa/tutor-workspace', { recursive: true })
   for (const width of [1440, 390]) {

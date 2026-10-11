@@ -1,21 +1,31 @@
 import '../locales/staff'
+import '../styles/interview.css'
 import { CalendarDays, ExternalLink, Video } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { indiaDate, send, queryClient, type Application } from '../lib/api'
-import { Badge, Button, Status, MutationError } from './ui'
+import { api, indiaDate, send, queryClient, type Application, type Schema } from '../lib/api'
+import { Alert, Badge, Button, Status } from './ui'
+import { GoogleError } from './google-connection'
 import { useAuth } from '../lib/session'
 import { useMutation } from '@tanstack/react-query'
 
 export function InterviewCard({ application }: { application: Application }) {
   const { t, i18n } = useTranslation()
   const auth = useAuth()
-  const retry = useMutation({
+  const review = useMutation({
     mutationFn: () =>
-      send(`/staff/applications/${application.id}/meeting/retry`, { version: application.version }),
+      api<Schema['CalendarReview']>(`/staff/applications/${application.id}/meeting/calendar`),
+  })
+  const retry = useMutation({
+    mutationFn: (calendarETag?: string) =>
+      send(`/staff/applications/${application.id}/meeting/retry`, {
+        version: application.version,
+        calendarETag,
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['staff'] }),
   })
   const meeting = application.interview
   if (!meeting) return null
+  const google = meeting.provider === 'google'
   function downloadCalendar() {
     if (!meeting) return
     const stamp = (value: string) =>
@@ -58,9 +68,11 @@ export function InterviewCard({ application }: { application: Application }) {
           <Video size={20} aria-hidden="true" />
           {t('staffOps.interview')}
         </h3>
-        {meeting.syncStatus === 'pending' || meeting.syncStatus === 'failed' ? (
+        {google && (meeting.syncStatus === 'pending' || meeting.syncStatus === 'failed') ? (
           <Badge tone="amber">
-            {t(meeting.syncStatus === 'pending' ? 'staffOps.zoomPending' : 'staffOps.zoomFailed')}
+            {meeting.syncStatus === 'pending'
+              ? 'Confirming with Google Calendar'
+              : 'Google confirmation failed'}
           </Badge>
         ) : meeting.status === 'completed' ? (
           <Badge tone="teal">{t('staffOps.interviewCompleted')}</Badge>
@@ -70,22 +82,48 @@ export function InterviewCard({ application }: { application: Application }) {
       </div>
       <time dateTime={meeting.start}>{indiaDate(meeting.start, i18n.language)}</time>
       <p>
+        {google ? 'Google Meet' : 'Historical meeting'} ·{' '}
+        {meeting.mentorName && <>Mentor: {meeting.mentorName} · </>}
         {t('staffOps.minutes', {
           count: Math.round((Date.parse(meeting.end) - Date.parse(meeting.start)) / 60_000),
         })}
       </p>
-      {meeting.status === 'scheduled' &&
+      {meeting.rescheduledAt && (
+        <p>Rescheduled {indiaDate(meeting.rescheduledAt, i18n.language)}</p>
+      )}
+      {meeting.notes && <p>{meeting.notes}</p>}
+      {google && meeting.status === 'scheduled' && meeting.meetingCode && (
+        <p>Meeting code: {meeting.meetingCode}</p>
+      )}
+      {google && meeting.syncStatus === 'pending' && (
+        <p>The meeting is being confirmed. Your join link will appear when Google confirms it.</p>
+      )}
+      {google && meeting.syncStatus === 'failed' && (
+        <Alert kind="error">
+          {meeting.lastError === 'google_calendar_conflict'
+            ? 'This event changed in Google Calendar. The mentor must review the change before retrying.'
+            : meeting.lastError === 'google_calendar_busy'
+              ? 'The connected calendar has another event at this time. Cancel this request and choose another time.'
+              : meeting.lastError === 'google_event_missing'
+                ? 'The event was removed from Google Calendar. Cancel this interview and schedule a new one.'
+                : 'The meeting could not be confirmed. The mentor can reconnect Google or retry.'}
+        </Alert>
+      )}
+      {google &&
+        meeting.status === 'scheduled' &&
         meeting.joinUrl &&
-        (!meeting.provider || meeting.syncStatus === 'ready') && (
+        ((auth.data?.user.role === 'tutor' && auth.data.user.id === application.id) ||
+          (auth.data?.user.role === 'mentor' && auth.data.user.id === application.assessorId)) &&
+        meeting.syncStatus === 'ready' && (
           <div className="button-row">
             <a
               className="btn primary"
-              href={meeting.joinUrl}
+              href={`/api/v1/applications/${encodeURIComponent(application.id)}/interview/join`}
               target="_blank"
               rel="noopener noreferrer"
               referrerPolicy="no-referrer"
             >
-              {t('staffOps.join')}
+              Join Meeting
               <ExternalLink size={15} aria-hidden="true" />
             </a>
             <Button variant="secondary" onClick={downloadCalendar}>
@@ -94,13 +132,43 @@ export function InterviewCard({ application }: { application: Application }) {
             </Button>
           </div>
         )}
-      {meeting.syncStatus === 'failed' &&
-        ['admin', 'mentor'].includes(auth.data?.user.role ?? '') && (
-          <Button variant="secondary" busy={retry.isPending} onClick={() => retry.mutate()}>
-            {t('staffOps.retryZoom')}
-          </Button>
+      {google &&
+        meeting.syncStatus === 'failed' &&
+        auth.data?.user.role === 'mentor' &&
+        application.assessorId === auth.data.user.id && (
+          <>
+            {meeting.lastError === 'google_calendar_conflict' ? (
+              <Button variant="secondary" busy={review.isPending} onClick={() => review.mutate()}>
+                Review Calendar changes
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                busy={retry.isPending}
+                onClick={() => retry.mutate(undefined)}
+              >
+                Retry Google confirmation
+              </Button>
+            )}
+            {review.data && (
+              <div className="calendar-review">
+                <h4>Current Calendar event</h4>
+                <p>
+                  {review.data.start && indiaDate(review.data.start, 'en')} · {review.data.status}
+                </p>
+                <p>
+                  {review.data.operation === 'delete'
+                    ? 'Confirm to cancel this changed Calendar event.'
+                    : 'Confirm to apply the GoCoaching interview time shown above to this changed Calendar event.'}
+                </p>
+                <Button busy={retry.isPending} onClick={() => retry.mutate(review.data?.etag)}>
+                  Confirm reviewed change & retry
+                </Button>
+              </div>
+            )}
+          </>
         )}
-      <MutationError error={retry.error} />
+      <GoogleError error={retry.error || review.error} />
     </section>
   )
 }

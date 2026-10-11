@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { applicationSteps, weekDays, type ApplicationProfile } from '../lib/application'
 import { Button } from './ui'
 import { indiaDate, type Application } from '../lib/api'
+import { approvedTutorSubjects, tutorModeLabel } from '../lib/tutors'
 import '../styles/application.css'
 export function ApplicationSummary({
   profile: p,
@@ -160,8 +161,8 @@ export function ApplicationScope({ application }: { application: Application }) 
     <section className="panel af-approved-scope">
       <h3>{t('applicationForm.approvedScope')}</h3>
       <p>
-        {t(`applicationForm.${s.subject}`)} · {t('classes')} {s.minClass}–{s.maxClass} ·{' '}
-        {t(`applicationForm.${s.mode}`)}
+        {approvedTutorSubjects(s).join(', ')} · {t('classes')} {s.minClass}–{s.maxClass} ·{' '}
+        {tutorModeLabel(s, t)}
       </p>
       <p>
         {t('staffOps.reviewDate')}: {indiaDate(s.expiresAt, i18n.language)}

@@ -2,6 +2,8 @@
 
 The tutor update follows the parent booking direction. Parent payment confirmation activates regular tuition without tutor acceptance. Trial requests and consented replacement invitations still have their own acceptance steps.
 
+The 2026-10-11 visual redesign applies to the tutor workspace/dashboard. Home prioritises actual counts, the next lesson, its authorised lesson link, the date-filtered teaching schedule and follow-up tasks. A Teaching hours shortcut and light sidebar match the mentor workspace. Learner briefs/reports, trial feedback and regular-class controls use the same white/paper/sage surfaces; the underlying requests, scope checks, progress, saved fees, package history and provider gates are unchanged. Teaching dates and trial/report filters remain in the URL. The approved sign-in page is unchanged. Visual and regression evidence is recorded in `visual-qa/tutor-workspace/redesign/README.md` and the latest progress entry.
+
 ## Teaching flow
 
 1. Complete the application and staff approval for the teaching scope and fees.
@@ -18,14 +20,8 @@ The tutor update follows the parent booking direction. Parent payment confirmati
 
 ## Online lessons
 
-An assigned approved tutor can prepare a Zoom meeting for a scheduled online regular lesson or confirmed online trial. A durable outbox job creates and verifies the provider meeting. The tutor's account email becomes the alternative host, with provider email notifications disabled. The tutor signs into Zoom using that email; no shared host credentials or reusable host start URL are sent to the browser.
-
-Parent and tutor join controls open fifteen minutes before the lesson. The server rechecks current ownership/assignment, active booking, approved scope, actual lesson status, timing and the provider-verified URL before issuing the participant link with `Cache-Control: no-store`. Rescheduling, cancellation, development completion and handover remove the old meeting association and queue provider cleanup. A create that finishes after its association changes queues orphan cleanup; cancelled jobs that have never attempted creation skip the provider POST.
-
-Retries reconcile uncertain creation by its unique opaque topic and durable provider ID. Failed jobs expose retry controls and never fabricate a meeting. The configured Zoom host is a single resource: overlapping prepared lessons/interviews are rejected, including retained interview bookings from before this update. Multiple independent host accounts and automatic paid license provisioning are outside this configured adapter.
-
-The operator must configure Zoom credentials and ensure each teaching tutor is an eligible licensed alternative host in the Zoom account. These are Zoom requirements, not automatic application signup benefits. See [Zoom alternative-host requirements](https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0082130) and [Zoom meeting API settings](https://godevelopers.zoom.us/docs/api/meetings/). No paid provisioning, real meetings or real payment capture are performed by the acceptance tests.
+Online regular lessons and trials use each approved tutor's Google Calendar authorization and Google Meet. Prepare meetings from actual lesson controls, with current assignment, scope, version and join-window checks. Durable jobs reconcile uncertain creation, retain old metadata and conditionally cancel events; explicit Calendar conflict recovery is available from Home or Account → Sign-ins. See [Google lesson implementation and verification](google-lessons.md).
 
 ## Acceptance evidence
 
-Go/MongoDB tests cover complete scoped history, owner/assignment boundaries, invalid/stale subject planning, mandatory present-progress evidence, closed correction windows, final-package correction without scheduling access, notification deduplication and immutable first reads, Home-address revocation, disabled Zoom, host conflicts, uncertain-create reconciliation and meeting cleanup. The browser workflow uses the real isolated Go/MongoDB backend, with fictional recorded-history fixtures and a loopback Zoom provider. It covers tutor reports, trial corrections, lesson planning, completed-package correction, provider-backed join rendering, fee plans and outage recovery. See the latest progress checkpoint for final results and inspected desktop/mobile captures.
+The teaching regression preserves report/history, recorded progress, correction windows, payment labels, current-assignment privacy and handover revocation while exercising Google connections, legacy metadata preservation, calendar conflicts, duplicate prevention and cancellation recovery. Browser flows use the isolated Go/MongoDB backend with loopback provider fixtures. See the latest progress checkpoint for results and limits.

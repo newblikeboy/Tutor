@@ -101,6 +101,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 	c := config.Config{Env: "test", Name: "GoCoaching", Origin: "http://test.local", AuthProvider: "password", MailTokenKey: base64.StdEncoding.EncodeToString(make([]byte, 32))}
 	a := New(s, c)
 	a.Mail = &testEmailSender{}
+	installGoogleFixture(t, a, "mentor-a")
 	server := httptest.NewServer(a.Routes())
 	defer server.Close()
 	s2, e := storage.Connect(ctx, uri, name)
@@ -233,9 +234,11 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		parent.ok("GET", "/tutors/tutor-a", nil, 404)
 	})
 	t.Run("assigned evidence based approval", func(t *testing.T) {
-		mentor.decide("tutor-a", map[string]any{"action": "review", "conflictClear": true}, 200)
-		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": domain.Interview{Start: a.Now().Add(-time.Minute), End: a.Now().Add(29 * time.Minute), Timezone: "Asia/Kolkata", JoinURL: "https://zoom.us/j/12345678901"}}, 200)
-		mentor.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Explained equivalent fractions and identified denominator misconception."}, 200)
+		clock := a.Now()
+		a.Now = func() time.Time { return clock }
+		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": domain.Interview{Start: a.Now().Add(time.Minute), End: a.Now().Add(31 * time.Minute), Timezone: "Asia/Kolkata"}}, 200)
+		clock = clock.Add(2 * time.Minute)
+		finishTestInterview(t, a, "tutor-a")
 		mentor.setTestFees("tutor-a", 0)
 		mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "minClass": 8, "maxClass": 8, "reason": "Observed subject explanation supports class eight online Mathematics."}, 200)
 		v := parent.ok("GET", "/tutors/tutor-a", nil, 200)

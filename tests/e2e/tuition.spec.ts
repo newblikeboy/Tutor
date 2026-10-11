@@ -63,7 +63,7 @@ test('staff fee changes require renewed consent before payment and tutors only e
     })
     expect(signup.status()).toBe(201)
     await signIn(tutor, 'tutor-meera')
-    await signIn(staff, 'admin-a')
+    await signIn(staff, 'mentor-a')
     const setPrice = async (amountPaise: number) => {
       const review = await (
         await staff.request.get('/api/v1/staff/applications/tutor-meera')

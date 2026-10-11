@@ -10,29 +10,6 @@
   display: grid;
   gap: 24px;
 }
-.teacher-next {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  padding: 27px 30px;
-  border: 1px solid #cbd8af;
-  border-radius: 18px;
-  background: linear-gradient(120deg, #f4f7e7, #dfe8bc 75%, #d2dfaf);
-  box-shadow: var(--desk-elevation);
-}
-.teacher-next::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  width: 250px;
-  height: 350px;
-  right: -105px;
-  top: -85px;
-  transform: rotate(28deg);
-  background: linear-gradient(90deg, #ffffff00, #ffffff55);
-  border-left: 1px solid #ffffff88;
-  pointer-events: none;
-}
 .teacher-panel-title,
 .teacher-section-heading {
   display: flex;
@@ -43,29 +20,6 @@
 .teacher-panel-title > svg {
   color: #4d7150;
   flex-shrink: 0;
-}
-.teacher-next h2 {
-  font-size: clamp(24px, 2.3vw, 32px);
-  font-weight: 600;
-  letter-spacing: -1px;
-  line-height: 1.4;
-  margin-top: 26px;
-  overflow-wrap: anywhere;
-}
-.teacher-next p {
-  margin-top: 8px;
-  color: #3d5547;
-  font-size: 14px;
-}
-.teacher-next-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 24px;
-  min-height: 44px;
-  margin-top: 22px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #264837;
 }
 .teacher-section-heading {
   margin-bottom: 17px;
@@ -163,12 +117,6 @@
   }
   .desk-content[data-role='tutor'] .desk-page-actions {
     margin-top: 0;
-  }
-  .teacher-next {
-    padding: 22px;
-  }
-  .teacher-next h2 {
-    margin-top: 20px;
   }
   .teacher-secondary {
     grid-template-columns: minmax(0, 1fr);

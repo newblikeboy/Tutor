@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/googlecalendar"
 	"tutorplatform/internal/mailer"
-	"tutorplatform/internal/meetings"
 	"tutorplatform/internal/payments"
 	"tutorplatform/internal/storage"
 )
@@ -32,9 +32,6 @@ type job struct {
 	LeaseOwner            string            `json:"-" bson:"leaseOwner"`
 	Payload               map[string]string `json:"-" bson:"payload"`
 	LastError             string            `json:"lastError" bson:"lastError"`
-	ZoomCreateAttempted   bool              `json:"-" bson:"zoomCreateAttempted"`
-	ZoomMeetingID         string            `json:"-" bson:"zoomMeetingId"`
-	ZoomJoinURL           string            `json:"-" bson:"zoomJoinUrl"`
 	SMTPSubmissionStarted bool              `json:"-" bson:"smtpSubmissionStarted"`
 	SMTPAcceptedAt        *time.Time        `json:"smtpAcceptedAt,omitempty" bson:"smtpAcceptedAt,omitempty"`
 }
@@ -186,8 +183,8 @@ func (a *App) runJobBatch(ctx context.Context, limit int) (int, error) {
 
 func (a *App) runOneJob(ctx context.Context) (bool, error) {
 	kinds := []string{"finance_earning"}
-	if a.Meetings != nil {
-		kinds = append(kinds, "zoom_meeting")
+	if a.Google != nil {
+		kinds = append(kinds, "google_interview", "google_lesson", "google_revoke")
 	}
 	if a.Payments != nil {
 		kinds = append(kinds, "razorpay_event", "razorpay_refund")
@@ -220,8 +217,19 @@ func (a *App) runOneJobMatching(ctx context.Context, filter bson.M) (bool, error
 		if errors.As(e, &f) {
 			last = f.Code
 		}
-		if j.Attempts >= 8 || j.Kind == "zoom_meeting" && meetings.Definitive(e) {
+		var googleError *googlecalendar.Error
+		if errors.As(e, &googleError) {
+			last = googleError.Code
+		}
+		if j.Attempts >= 8 {
 			status = "failed"
+		}
+		if enum(j.Kind, "google_interview", "google_lesson") && googlecalendar.Permanent(e) {
+			status = "failed"
+		}
+		// Pending conference creation is polled without spending the failure budget.
+		if enum(j.Kind, "google_interview", "google_lesson") && last == "google_conference_pending" {
+			status = "pending"
 		}
 		if j.Kind == "email" {
 			var smtpError *mailer.Error
@@ -243,16 +251,21 @@ func (a *App) runOneJobMatching(ctx context.Context, filter bson.M) (bool, error
 		slog.Warn("job processing deferred", "kind", j.Kind, "attempt", j.Attempts, "status", status, "type", fmt.Sprintf("%T", e))
 	}
 	_, persistErr := a.Store.C("outbox").UpdateOne(ctx, bson.M{"_id": j.ID, "leaseOwner": owner}, bson.M{"$set": bson.M{"status": status, "lastError": last, "availableAt": next}, "$unset": bson.M{"leaseOwner": "", "leaseUntil": ""}})
-	if persistErr == nil && j.Kind == "zoom_meeting" && status == "failed" {
-		if enum(j.Payload["lessonKind"], "classes", "trials") {
-			_, persistErr = a.Store.C(j.Payload["lessonKind"]).UpdateOne(ctx, bson.M{"_id": j.Payload["lessonId"], "meeting.jobId": j.ID}, bson.M{"$set": bson.M{"meeting.status": "failed"}})
-		} else {
-			_, persistErr = a.Store.C("applications").UpdateOne(ctx, bson.M{"_id": j.Payload["applicationId"], "interview.jobId": j.ID}, bson.M{"$set": bson.M{"interview.syncStatus": "failed", "updatedAt": a.Now()}, "$inc": bson.M{"version": 1}})
-		}
+	if persistErr == nil && j.Kind == "google_lesson" && status == "failed" {
+		_, persistErr = a.Store.C(j.Payload["lessonKind"]).UpdateOne(ctx, bson.M{"_id": j.Payload["lessonId"], "meeting.jobId": j.ID}, bson.M{"$set": bson.M{"meeting.status": "failed", "meeting.lastError": last}})
+	}
+	if persistErr == nil && j.Kind == "google_interview" && status == "failed" {
+		_, persistErr = a.Store.C("applications").UpdateOne(ctx, bson.M{"_id": j.Payload["applicationId"], "interview.jobId": j.ID, "interview.syncStatus": bson.M{"$ne": "failed"}}, bson.M{"$set": bson.M{"interview.syncStatus": "failed", "interview.lastError": last, "updatedAt": a.Now()}, "$inc": bson.M{"version": 1}})
 	}
 	return true, persistErr
 }
 func (a *App) processJob(ctx context.Context, j job) error {
+	if j.Kind == "google_interview" {
+		return a.processGoogleInterview(ctx, j)
+	}
+	if j.Kind == "google_revoke" {
+		return a.processGoogleRevoke(ctx, j)
+	}
 	if j.Kind == "email" {
 		return a.processEmail(ctx, j)
 	}
@@ -265,8 +278,8 @@ func (a *App) processJob(ctx context.Context, j job) error {
 			return a.recognizeEarning(ctx, s)
 		})
 	}
-	if j.Kind == "zoom_meeting" {
-		return a.processMeeting(ctx, j)
+	if j.Kind == "google_lesson" {
+		return a.processGoogleLesson(ctx, j)
 	}
 	if j.Kind == "file_scan" {
 		return a.scanFile(ctx, j.Payload["fileId"])

@@ -1,3 +1,4 @@
+import { connectGoogle } from './helpers/google'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { readFile, mkdir } from 'node:fs/promises'
@@ -6,7 +7,7 @@ const { MongoClient } = createRequire(import.meta.url)('mongodb') as typeof impo
 const origin = 'http://127.0.0.1:5174'
 const password = 'E2E-only learning passphrase 426!'
 
-test('tutor daily teaching, scoped reports, planning, feedback, archives and Zoom', async ({
+test('tutor daily teaching, scoped reports, planning, feedback, archives and Google Meet', async ({
   page,
   browser,
 }) => {
@@ -70,6 +71,8 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Zoo
       {
         $set: {
           'scope.subjects': ['Mathematics', 'Science'],
+          'scope.minClass': 6,
+          'scope.maxClass': 10,
           'scope.modes': ['online', 'home'],
           fees: {
             version: 1,
@@ -197,13 +200,21 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Zoo
     const inspect = async (p: Page, name: string) => {
       await p.evaluate(() => document.fonts.ready)
       await expect(p.locator('.loading-state')).toHaveCount(0)
-      expect((await new AxeBuilder({ page: p }).analyze()).violations).toEqual([])
+      const accessibility = new AxeBuilder({ page: p })
+      if (name.includes('history')) {
+        // Inspect the repeated history component once; retain the full 127-record assertion.
+        accessibility.exclude('.child-report-lesson ~ .child-report-lesson')
+      }
+      expect((await accessibility.analyze()).violations).toEqual([])
       expect(
         await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
       ).toBeLessThanOrEqual(1)
-      await mkdir('docs/visual-qa/tutor-workspace', { recursive: true })
+      const directory = name.startsWith('google-')
+        ? 'docs/visual-qa/google-lessons'
+        : 'docs/visual-qa/tutor-workspace'
+      await mkdir(directory, { recursive: true })
       await p.screenshot({
-        path: `docs/visual-qa/tutor-workspace/${name}.png`,
+        path: `${directory}/${name}.png`,
         fullPage: !name.includes('history'),
       })
     }
@@ -253,14 +264,20 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Zoo
     await future.getByRole('button', { name: 'Confirm', exact: true }).click()
     expect((await planned).status()).toBe(200)
     await expect(future.getByText('Science', { exact: true }).first()).toBeVisible()
+    await page.goto('/workspace?view=home')
+    await capture('google-disconnected')
+    await connectGoogle(page, 'tutor')
+    await capture('google-connected')
+    await page.goto(`/tuition/${en}?class=${en}-today`)
     const today = page.locator(`#class-${en}-today`)
-    await today.getByRole('button', { name: 'Prepare Zoom meeting', exact: true }).click()
-    await expect(today.getByRole('link', { name: 'Open Zoom', exact: true })).toBeVisible({
+    await today.getByRole('button', { name: 'Prepare Google Meet', exact: true }).click()
+    await expect(today.getByRole('link', { name: 'Open Google Meet', exact: true })).toBeVisible({
       timeout: 30000,
     })
     expect(
-      await today.getByRole('link', { name: 'Open Zoom', exact: true }).getAttribute('href'),
-    ).toMatch(/^https:\/\/zoom.us\/j\//)
+      await today.getByRole('link', { name: 'Open Google Meet', exact: true }).getAttribute('href'),
+    ).toMatch(/^https:\/\/meet\.google\.com\//)
+    await capture('google-lesson-ready')
     await page.goto('/tuition?history=1')
     await expect(page.locator('.tu-enrollment')).toHaveCount(1)
     await page.locator('.tu-enrollment').getByRole('link').click()

@@ -66,13 +66,14 @@ test('unconfigured payments stay blocked while family conversation and owned upd
     expect(signup.status()).toBe(201)
     await login(tutor, 'tutor-arjun')
     await login(finance, 'finance-a')
-    await login(admin, 'admin-a')
+    await login(admin, 'mentor-a')
     const review = await (await admin.request.get('/api/v1/staff/applications/tutor-arjun')).json()
     await write(admin, '/applications/tutor-arjun/decision', {
       action: 'fees',
       version: review.application.version,
       feePlans: [{ mode: 'online', period: 'hour', amountPaise: 50000, classes: 1, minutes: 60 }],
     })
+    await login(admin, 'admin-a')
     const av = await (await tutor.request.get('/api/v1/availability')).json()
     await write(
       tutor,

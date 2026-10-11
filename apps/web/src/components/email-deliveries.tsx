@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { MailCheck } from 'lucide-react'
 import { api, send, queryClient, indiaDate, type Schema } from '../lib/api'
 import { Alert, Button, Field, Loading, LoadError, MutationError } from './ui'
 
@@ -15,8 +16,11 @@ export function EmailDeliveries() {
     refetchInterval: 15_000,
   })
   return (
-    <section className="tu-panel" aria-labelledby="mail-delivery-title">
-      <h2 id="mail-delivery-title">Email delivery log</h2>
+    <section className="tu-panel account-deliveries" aria-labelledby="mail-delivery-title">
+      <div className="account-section-heading">
+        <MailCheck size={20} aria-hidden="true" />
+        <h2 id="mail-delivery-title">Email delivery log</h2>
+      </div>
       <p>
         Accepted means the SMTP server accepted the email. Inbox delivery is controlled by the
         recipient's mail provider.
@@ -62,7 +66,7 @@ function Delivery({ item }: { item: Schema['EmailDelivery'] }) {
     },
   })
   return (
-    <article className="tu-panel">
+    <article className="account-delivery">
       <h3>{item.event.replaceAll('_', ' ')}</h3>
       <p>Recipient account: {item.recipientId}</p>
       <p>

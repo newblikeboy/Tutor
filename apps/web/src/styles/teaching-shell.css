@@ -1,0 +1,71 @@
+/* Shared teaching-role navigation; parent and administrative shells retain their theme. */
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) {
+  --teaching-surface: #fff;
+  --teaching-line: #dce3d9;
+  --teaching-soft: #edf2e5;
+  --teaching-muted: #53665c;
+  --border: var(--teaching-line);
+  --shadow: 0 3px 14px #15353b04;
+}
+.desk-shell:is([data-role='mentor'], [data-role='tutor']) {
+  background: var(--teaching-surface);
+}
+.desk-shell:is([data-role='mentor'], [data-role='tutor']) .desk-frame {
+  background: var(--paper);
+}
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) a:focus-visible,
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) button:focus-visible {
+  outline-color: var(--teal);
+}
+.desk-shell:is([data-role='mentor'], [data-role='tutor']) .desk-sidebar,
+.desk-drawer:is([data-role='mentor'], [data-role='tutor']) {
+  color: var(--navy);
+  background: var(--teaching-surface);
+  border-right: 1px solid var(--teaching-line);
+}
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) .desk-brand-icon {
+  background: var(--paper);
+  border: 1px solid var(--teaching-line);
+}
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) .desk-brand small,
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) .desk-nav-label {
+  color: var(--teaching-muted);
+}
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) .desk-nav-label {
+  font-size: 10px;
+  margin-top: 38px;
+}
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) .desk-nav a {
+  color: #465e54;
+  min-height: 48px;
+}
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) .desk-nav a:hover {
+  background: var(--teaching-soft);
+  color: var(--navy);
+}
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) .desk-nav a.active {
+  background: var(--navy);
+  color: #fff;
+  box-shadow: none;
+}
+:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) .desk-nav-dot {
+  background: var(--desk-sage);
+}
+.desk-shell:is([data-role='mentor'], [data-role='tutor']) .desk-topbar {
+  background: var(--teaching-surface);
+}
+.desk-drawer:is([data-role='mentor'], [data-role='tutor']) .desk-drawer-close {
+  color: var(--navy);
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) * {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  :is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) .desk-nav a.active {
+    color: HighlightText;
+    background: Highlight;
+    border: 1px solid Highlight;
+  }
+}

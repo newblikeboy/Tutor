@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
-import { MapPin, Monitor } from 'lucide-react'
+import { ArrowRight, CircleHelp, LockKeyhole, MapPin, Monitor, UserRound } from 'lucide-react'
 import { api, send, setCSRF, queryClient, indiaDate, type Schema } from '../lib/api'
 import { Alert, Button, Field, Loading, LoadError, MutationError } from '../components/ui'
 import {
@@ -15,8 +15,10 @@ import {
 import { useAuth } from '../lib/session'
 import { EmailDeliveries } from '../components/email-deliveries'
 import { EmailSettings } from '../components/email-settings'
+import { GoogleConnection } from '../components/google-connection'
 import '../styles/tuition.css'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
+import '../styles/account.css'
 export default function Account() {
   const { t } = useTranslation()
   const [saved, setSaved] = useState(false)
@@ -33,7 +35,10 @@ export default function Account() {
   })
   return (
     <div className="tu-page account-page">
-      <h1 className="sr-only">{t('account.title')}</h1>
+      <header className="account-heading">
+        <h1>{t('account.title')}</h1>
+        <p>{t('account.intro')}</p>
+      </header>
       <TabBar
         id="account"
         label={t('account.title')}
@@ -58,7 +63,7 @@ export default function Account() {
         ) : q.isError ? (
           <LoadError retry={() => void q.refetch()} />
         ) : (
-          <div className="tu-stack">
+          <div className="account-profile-layout">
             <Details
               key={q.data.preferences.version}
               data={q.data}
@@ -73,15 +78,20 @@ export default function Account() {
       </TabPanel>
       <TabPanel id="account" value="signins" active={tab === 'signins'}>
         <Sessions />
+        {auth.data?.user.role === 'tutor' && <GoogleConnection />}
       </TabPanel>
       {auth.data?.user.role === 'admin' && (
         <TabPanel id="account" value="mail" active={tab === 'mail'}>
           <EmailDeliveries />
         </TabPanel>
       )}
-      <Link className="text-link account-help" to="/cases">
-        {t('account.recovery')}
-      </Link>
+      <footer className="account-help">
+        <CircleHelp size={20} aria-hidden="true" />
+        <Link className="text-link" to="/cases">
+          {t('account.recovery')}
+          <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+      </footer>
     </div>
   )
 }
@@ -118,8 +128,11 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
     save.mutate(nextLocation)
   }
   return (
-    <section className="tu-panel">
-      <h2>{t('account.details')}</h2>
+    <section className="tu-panel account-details">
+      <div className="account-section-heading">
+        <UserRound size={20} aria-hidden="true" />
+        <h2>{t('account.details')}</h2>
+      </div>
       <form
         className="tu-stack account-profile-form"
         onSubmit={(e) => {
@@ -201,9 +214,14 @@ function PasswordChange() {
     },
   })
   return (
-    <section className="tu-panel">
-      <h2>{t('account.security')}</h2>
-      <p>{t('account.securityBody')}</p>
+    <section className="tu-panel account-security">
+      <div className="account-section-heading">
+        <LockKeyhole size={20} aria-hidden="true" />
+        <div>
+          <h2>{t('account.security')}</h2>
+          <p>{t('account.securityBody')}</p>
+        </div>
+      </div>
       <form
         className="tu-stack account-password-form"
         onSubmit={(e) => {
@@ -272,8 +290,11 @@ function Sessions() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['account', 'sessions'] }),
   })
   return (
-    <section className="tu-panel">
-      <h2>{t('account.sessions')}</h2>
+    <section className="tu-panel account-signins">
+      <div className="account-section-heading">
+        <Monitor size={20} aria-hidden="true" />
+        <h2>{t('account.sessions')}</h2>
+      </div>
       <MutationError error={revoke.error} />
       {revoke.isSuccess && <Alert kind="success">{t('account.revoked')}</Alert>}
       {q.isPending ? (
@@ -282,18 +303,17 @@ function Sessions() {
         <LoadError retry={() => void q.refetch()} />
       ) : (
         <>
-          <div className="tu-session-list">
+          <div className="account-session-list">
             {q.data.items.map((s) => (
-              <article className="tu-panel" key={s.id}>
-                <div className="tu-card-top">
-                  <h3>
-                    <Monitor size={18} aria-hidden="true" />{' '}
-                    {t(s.current ? 'account.thisSession' : 'account.otherSession')}
-                  </h3>
+              <article className="account-session" key={s.id} data-current={s.current}>
+                <Monitor size={20} aria-hidden="true" />
+                <div>
+                  <h3>{t(s.current ? 'account.thisSession' : 'account.otherSession')}</h3>
+                  <p>
+                    {t('account.expires')}:{' '}
+                    <time dateTime={s.expiresAt}>{indiaDate(s.expiresAt, i18n.language)}</time>
+                  </p>
                 </div>
-                <p>
-                  {t('account.expires')}: {indiaDate(s.expiresAt, i18n.language)}
-                </p>
                 {!s.current && (
                   <Button
                     variant="secondary"

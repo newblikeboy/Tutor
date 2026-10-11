@@ -6,7 +6,7 @@ import (
 )
 
 func TestSMTPConfiguration(t *testing.T) {
-	for key, value := range map[string]string{"APP_ENV": "test", "MONGODB_URI": "mongodb://127.0.0.1", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "TEST_ZOOM_ENDPOINT": "", "TEST_CLOUDINARY_ENDPOINT": "", "CLAMAV_ADDRESS": "", "TRIAL_FEE_PAISE": "0", "MAIL_PROVIDER": "disabled"} {
+	for key, value := range map[string]string{"APP_ENV": "test", "MONGODB_URI": "mongodb://127.0.0.1", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "TEST_CLOUDINARY_ENDPOINT": "", "CLAMAV_ADDRESS": "", "TRIAL_FEE_PAISE": "0", "MAIL_PROVIDER": "disabled"} {
 		t.Setenv(key, value)
 	}
 	if _, err := Load(); err != nil {

@@ -1797,7 +1797,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Retry or reconcile a failed Zoom meeting operation */
+        /** Retry a failed provider operation; explicitly accept a reviewed Calendar ETag when required */
         post: {
             parameters: {
                 query?: never;
@@ -1811,6 +1811,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         version: number;
+                        calendarETag?: string;
                     };
                 };
             };
@@ -1826,7 +1827,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Not the assigned reviewer or admin */
+                /** @description Not the assigned mentor */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -1840,7 +1841,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Zoom is not configured */
+                /** @description Google Meet is not configured */
                 503: {
                     headers: {
                         [name: string]: unknown;
@@ -1849,6 +1850,483 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assigned host Google Calendar integration */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GoogleConnection"];
+                    };
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/google/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assigned host Google Calendar integration */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GoogleAuthorization"];
+                    };
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/google/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assigned host Google Calendar integration */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OK"];
+                    };
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/google/revoke/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assigned host Google Calendar integration */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OK"];
+                    };
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/google/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assigned host Google Calendar integration */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GoogleLessonRecoveryList"];
+                    };
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/google/lessons/{id}/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assigned host Google Calendar integration */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarReview"];
+                    };
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/google/lessons/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assigned host Google Calendar integration */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        calendarETag?: string;
+                        calendarMissing?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OK"];
+                    };
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/applications/{id}/meeting/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assigned host Google Calendar integration */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarReview"];
+                    };
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications/{id}/interview/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assigned host Google Calendar integration */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Authorized redirect to the provider-confirmed meeting */
+                303: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/google/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Google callback at /api/integrations/google/callback */
+        get: {
+            parameters: {
+                query: {
+                    state: string;
+                    code?: string;
+                    error?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to the initiating host workspace with a fixed outcome code */
+                303: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1954,6 +2432,7 @@ export interface components {
             submission: components["schemas"]["ApplicationReceipt"] | null;
             eligibility: components["schemas"]["EligibilityReview"] | null;
             fees: components["schemas"]["TutorFees"] | null;
+            interviewAssessment?: components["schemas"]["InterviewAssessment"];
         };
         Learner: {
             id: string;
@@ -2045,6 +2524,9 @@ export interface components {
             videoUploadsEnabled: boolean;
             videoProvider: string;
             meetingsEnabled: boolean;
+            interviewsEnabled: boolean;
+            /** @enum {string} */
+            interviewProvider: "disabled" | "google";
         };
         Auth: {
             user: components["schemas"]["User"];
@@ -2099,7 +2581,7 @@ export interface components {
         };
         DecisionInput: {
             /** @enum {string} */
-            action: "review" | "assign" | "confirm_conflict" | "schedule" | "reschedule" | "cancel_interview" | "no_show" | "assess" | "approve" | "improve" | "decline" | "suspend" | "reinstate" | "terminate" | "reopen" | "note" | "eligibility" | "fees";
+            action: "review" | "assign" | "confirm_conflict" | "schedule" | "reschedule" | "cancel_interview" | "no_show" | "assess" | "approve" | "improve" | "decline" | "suspend" | "reinstate" | "terminate" | "reopen" | "note" | "eligibility" | "fees" | "interview_assessment";
             version: number;
             reason?: string;
             evidence?: string;
@@ -2116,6 +2598,7 @@ export interface components {
             /** @enum {string} */
             eligibility?: "cleared" | "blocked";
             feePlans?: components["schemas"]["FeePlan"][];
+            assessment?: components["schemas"]["AssessmentInput"];
         };
         ConsentInput: {
             /** @enum {string} */
@@ -2843,10 +3326,16 @@ export interface components {
             timezone: string;
             joinUrl: string;
             status: string;
-            /** @enum {string} */
-            provider?: "zoom";
+            /** @description Google for active interviews; other values are retained history */
+            provider?: string;
             /** @enum {string} */
             syncStatus?: "pending" | "ready" | "failed";
+            mentorName?: string;
+            meetingCode?: string;
+            notes?: string;
+            lastError?: string;
+            /** Format: date-time */
+            rescheduledAt?: string;
         };
         StaffMember: {
             id: string;
@@ -2976,6 +3465,7 @@ export interface components {
             application: components["schemas"]["Application"];
             email: string;
             assessor: components["schemas"]["StaffMember"];
+            googleConnection?: components["schemas"]["GoogleConnection"];
         };
         StaffEvent: {
             id: string;
@@ -2994,6 +3484,7 @@ export interface components {
             scope: components["schemas"]["Scope"] | null;
             eligibility?: components["schemas"]["EligibilityReview"] | null;
             fees: components["schemas"]["TutorFees"] | null;
+            assessment?: components["schemas"]["InterviewAssessment"];
         };
         StaffEvents: {
             items: components["schemas"]["StaffEvent"][];
@@ -3179,7 +3670,9 @@ export interface components {
         };
         LessonMeeting: {
             /** @enum {string} */
-            status: "pending" | "ready" | "failed";
+            status: "pending" | "ready" | "failed" | "cancelled" | "retired";
+            provider?: string;
+            lastError?: string;
         };
         TutorLearnerBrief: {
             learnerId: string;
@@ -3355,6 +3848,55 @@ export interface components {
         InboxReadInput: Record<string, never>;
         InboxStatus: {
             unreadCount: number;
+        };
+        InterviewAssessment: {
+            scores: number[];
+            /** @enum {string} */
+            recommendation: "approve" | "reject" | "reinterview";
+            comments: string;
+            mentorId: string;
+            /** Format: date-time */
+            submittedAt: string;
+        };
+        AssessmentInput: {
+            scores: number[];
+            /** @enum {string} */
+            recommendation: "approve" | "reject" | "reinterview";
+            comments: string;
+            /** @constant */
+            conducted: true;
+        };
+        GoogleConnection: {
+            enabled: boolean;
+            /** @enum {string} */
+            status: "unconfigured" | "disconnected" | "connected" | "reconnect_required" | "unavailable";
+            email?: string;
+            /** Format: date-time */
+            checkedAt?: string;
+            /** @enum {string} */
+            revocationStatus?: "pending" | "processing" | "failed";
+        };
+        GoogleAuthorization: {
+            /** Format: uri */
+            url: string;
+        };
+        CalendarReview: {
+            etag: string;
+            status: string;
+            start?: string;
+            end?: string;
+            operation: string;
+            calendarMissing?: boolean;
+        };
+        GoogleLessonRecovery: {
+            id: string;
+            operation: string;
+            lessonKind: string;
+            lessonId: string;
+            lastError: string;
+        };
+        GoogleLessonRecoveryList: {
+            items: components["schemas"]["GoogleLessonRecovery"][];
         };
     };
     responses: never;

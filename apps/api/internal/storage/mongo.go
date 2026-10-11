@@ -142,5 +142,8 @@ func (s *Store) Migrate(ctx context.Context) error {
 	if e = s.MigrateInbox(ctx); e != nil {
 		return e
 	}
-	return s.MigrateEmail(ctx)
+	if e = s.MigrateEmail(ctx); e != nil {
+		return e
+	}
+	return s.MigrateGoogle(ctx)
 }

@@ -60,6 +60,11 @@ func TestApplicationValidation(t *testing.T) {
 		{"required data consent", "declarations.dataUse", func(p *domain.TutorApplication) { p.Declarations.DataUse = false }},
 		{"old notice", "declarations.noticeVersion", func(p *domain.TutorApplication) { p.Declarations.NoticeVersion = "old" }},
 		{"invalid class range", "teachingAreas.0.maxClass", func(p *domain.TutorApplication) { p.TeachingAreas[0].MaxClass = 5 }},
+		{"all subjects above primary classes", "teachingAreas.0.maxClass", func(p *domain.TutorApplication) {
+			p.TeachingAreas[0].Subject = domain.AllSubjects
+			p.TeachingAreas[0].MinClass = 5
+			p.TeachingAreas[0].MaxClass = 10
+		}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -69,6 +74,13 @@ func TestApplicationValidation(t *testing.T) {
 				t.Fatal("accepted invalid application")
 			}
 		})
+	}
+	p = completeApplication("Test applicant", now)
+	p.TeachingAreas[0].Subject = domain.AllSubjects
+	p.TeachingAreas[0].MinClass = 1
+	p.TeachingAreas[0].MaxClass = 5
+	if errors := applicationErrors(p, true, now); len(errors) > 0 {
+		t.Fatal(errors)
 	}
 	p = completeApplication("Test applicant", now)
 	p.TeachingAreas[0].Modes = []string{"online"}
@@ -226,7 +238,7 @@ func TestApplicationHomeLocationAndRadius(t *testing.T) {
 	}
 }
 
-func TestMongoApplicationDraftAndEligibility(t *testing.T) {
+func TestMongoApplicationDraftAndMentorApproval(t *testing.T) {
 	uri := os.Getenv("TEST_MONGODB_URI")
 	if uri == "" {
 		t.Skip("TEST_MONGODB_URI required")
@@ -261,6 +273,7 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 		t.Fatal(e)
 	}
 	a := New(s, config.Config{Env: "test", AuthProvider: "password", Origin: "http://test.local", MediaProvider: "disk", MediaRoot: t.TempDir()})
+	installGoogleFixture(t, a, "mentor-a")
 	if e = a.ConfigureMedia(); e != nil {
 		t.Fatal(e)
 	}
@@ -319,7 +332,7 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 	if stored.AssessorID != "mentor-a" || stored.ConflictClear {
 		t.Fatalf("first submitted application was not assigned to first mentor without conflict confirmation: %#v", stored.AssessorID)
 	}
-	if !stored.Profile.HasMode("home") || !stored.Profile.HasMode("online") || len(stored.Profile.Fees.Rates) != 0 || stored.Profile.Fees.Preference != "staff" || stored.Fees != nil || stored.Eligibility.Status != "pending" || stored.Submission == nil || stored.Submission.Marketing || stored.Scope.Mode != "" {
+	if !stored.Profile.HasMode("home") || !stored.Profile.HasMode("online") || len(stored.Profile.Fees.Rates) != 0 || stored.Profile.Fees.Preference != "staff" || stored.Fees != nil || stored.Eligibility != nil || stored.Submission == nil || stored.Submission.Marketing || stored.Scope.Mode != "" {
 		t.Fatal("application receipt or requested preferences incorrect")
 	}
 	p2 := completeApplication("Second private applicant", time.Now())
@@ -333,7 +346,7 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 	}
 	mentor.ok("GET", "/staff/applications/tutor-a", nil, 200)
 	mentor.ok("GET", "/staff/applications/tutor-b", nil, 404)
-	mentor.ok("POST", "/applications/tutor-b/decision", map[string]any{"action": "review", "version": storedB.Version, "conflictClear": true}, 403)
+	mentor.ok("POST", "/applications/tutor-b/decision", map[string]any{"action": "fees", "version": storedB.Version}, 403)
 	mentorB.ok("GET", "/staff/applications/tutor-b", nil, 200)
 	filtered := admin.ok("GET", "/staff/applications?mode=home", nil, 200)
 	if len(filtered["items"].([]any)) != 2 {
@@ -343,14 +356,13 @@ func TestMongoApplicationDraftAndEligibility(t *testing.T) {
 	if bytes.Contains(raw, []byte("9876543210")) || bytes.Contains(raw, []byte("Private applicant")) {
 		t.Fatal("private application leaked")
 	}
-	// Assessment completion is covered by the staff integration suite. Here isolate eligibility/scope gates.
-	_, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-a"}, bson.M{"$set": bson.M{"status": "assessed", "assessorId": "mentor-a", "conflictClear": true}})
-	if e != nil {
-		t.Fatal(e)
-	}
-	mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 409)
-	mentor.decide("tutor-a", map[string]any{"action": "eligibility", "eligibility": "cleared", "reason": "Fictional employment permission evidence reviewed."}, 403)
-	admin.decide("tutor-a", map[string]any{"action": "eligibility", "eligibility": "cleared", "reason": "Fictional employer permission evidence reviewed."}, 200)
+	// The assigned mentor proceeds without a separate eligibility or scorecard step.
+	clock := a.Now()
+	a.Now = func() time.Time { return clock }
+	mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": domain.Interview{Start: a.Now().Add(time.Minute), End: a.Now().Add(31 * time.Minute), Timezone: "Asia/Kolkata"}}, 200)
+	clock = clock.Add(2 * time.Minute)
+	finishTestInterview(t, a, "tutor-a")
+	mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "mode": "online", "minClass": 6, "maxClass": 10}, 409)
 	// A home-only request must never become an online permission.
 	_, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-a"}, bson.M{"$set": bson.M{"profile.teachingAreas.0.modes": []string{"home"}}})
 	if e != nil {

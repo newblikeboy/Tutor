@@ -411,14 +411,14 @@
   font-size: 11px;
   color: #56675a;
 }
-.staff-detail-grid {
+.staff-approval-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 20px;
   gap: 24px;
   align-items: start;
 }
-.staff-detail-main,
-.staff-actions {
+.staff-detail-main {
   display: grid;
   gap: 20px;
 }
@@ -443,56 +443,7 @@
   font-size: 14px;
   line-height: 1.85;
 }
-.staff-interview {
-  background: linear-gradient(145deg, #fff, #f1f6e5 60%, #e4eccd);
-  border: 1px solid #d1ddbf;
-  border-radius: 16px;
-  box-shadow: inset 0 1px 0 #fff;
-  padding: 24px;
-}
-.staff-interview time {
-  display: block;
-  font-size: 18px;
-  font-weight: 650;
-  line-height: 1.5;
-}
-.staff-interview > p {
-  margin: 6px 0 20px;
-  font-size: 13px;
-  color: #526753;
-}
-.staff-interview .button-row {
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.staff-interview .btn {
-  font-size: 12px;
-}
-.staff-score-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin: 20px 0;
-}
-.staff-score-summary > div {
-  background: #f2f5ec;
-  border-radius: 10px;
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-}
-.staff-score-summary span {
-  font-size: 11px;
-}
-.staff-score-summary strong {
-  font-size: 23px;
-}
-.staff-score-summary small {
-  font-size: 12px;
-  font-weight: 500;
-  color: #637465;
-}
-.staff-score-inputs {
+.staff-form-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
@@ -513,22 +464,16 @@
   color: #637465;
   font-size: 13px;
 }
-.staff-actions .field {
+.staff-approval-grid .field {
   margin: 0;
 }
-.staff-eligibility-edit {
-  margin-top: 16px;
-}
-.staff-eligibility-edit[open] > summary {
-  margin-bottom: 16px;
-}
-.staff-actions label {
+.staff-approval-grid label {
   font-size: 13px;
 }
-.staff-actions .btn {
+.staff-approval-grid .btn {
   width: 100%;
 }
-.staff-actions .staff-panel {
+.staff-approval-grid .staff-panel {
   padding: 22px;
 }
 .staff-check {
@@ -554,15 +499,6 @@
 .staff-panel[open] summary,
 .staff-followups details[open] summary {
   margin-bottom: 20px;
-}
-.staff-action-pair {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.staff-action-pair .btn {
-  width: auto;
-  flex: 1;
 }
 .staff-history ol {
   list-style: none;
@@ -642,8 +578,8 @@
   .staff-metrics svg:last-child {
     display: none;
   }
-  .staff-detail-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
+  .staff-approval-grid {
+    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 760px) {
@@ -663,7 +599,7 @@
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  .staff-detail-grid {
+  .staff-approval-grid {
     grid-template-columns: 1fr;
   }
   .staff-team-grid {
@@ -719,9 +655,6 @@
   .staff-facts {
     grid-template-columns: 1fr;
   }
-  .staff-score-summary {
-    grid-template-columns: 1fr 1fr;
-  }
   .staff-report-cards {
     grid-template-columns: 1fr;
   }
@@ -741,8 +674,26 @@
 @media (forced-colors: active) {
   .staff-avatar,
   .staff-metrics,
-  .staff-panel,
-  .staff-interview {
+  .staff-panel {
     border: 1px solid CanvasText;
   }
+}
+
+.staff-approval-grid > .staff-panel {
+  min-width: 0;
+}
+.staff-approval-grid .staff-interview {
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.staff-approval-grid .alert {
+  margin: 16px 0;
+}
+.staff-access-actions {
+  margin-top: 24px;
+}
+.staff-decision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }

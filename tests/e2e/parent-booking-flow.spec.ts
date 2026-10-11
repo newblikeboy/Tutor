@@ -73,7 +73,6 @@ test('parent finder, direct tutor feedback and payment booking follow the learne
         minClass: fixture.minClass,
         maxClass: fixture.maxClass,
         modes: ['online'],
-        mentorId: 'mentor-a',
         reason: 'Explicit assessed subject scope for fictional test fixture.',
       })
     }
@@ -162,6 +161,23 @@ test('parent finder, direct tutor feedback and payment booking follow the learne
     expect(trial.subjects).toEqual(['Mathematics', 'Science'])
     expect(trial.requirementId).toBe('')
     await write(tutorContext.request, `/trials/${trial.id}/action`, { action: 'accept' })
+    await mkdir('docs/visual-qa/customer-workspaces/parent', { recursive: true })
+    await page.goto(`/workspace?learner=${older.id}`)
+    await expect(page.locator('.parent-next-trial .record-card')).toContainText('Confirmed')
+    for (const [size, width] of [
+      ['desktop', 1440],
+      ['mobile', 390],
+    ] as const) {
+      await page.setViewportSize({ width, height: 1000 })
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      )
+      await page.screenshot({
+        path: `docs/visual-qa/customer-workspaces/parent/home-with-trial-${size}.png`,
+        fullPage: true,
+      })
+    }
     await write(tutorContext.request, `/trials/${trial.id}/action`, {
       action: 'complete',
       notes: 'Tutor explained the learner questions with worked examples.',

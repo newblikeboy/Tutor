@@ -19,7 +19,30 @@ try {
 const sensitive = new Map()
 for (const line of privateEnv.replace(/^\uFEFF/, '').split(/\r?\n/)) {
   const match = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/)
-  if (!match || !/(?:URI|SECRET|PASSWORD|TOKEN|ACCESS_KEY|PRIVATE_KEY)$/.test(match[1])) continue
+  if (
+    !match ||
+    !/(?:URI|SECRET|PASSWORD|TOKEN|TOKEN_KEY|ACCESS_KEY|PRIVATE_KEY|API_KEY|CLIENT_ID)$/.test(
+      match[1],
+    )
+  )
+    continue
+  if (match[1] === 'GOOGLE_OAUTH_REDIRECT_URI') {
+    try {
+      const callback = new URL(match[2].replace(/^(['"])(.*)\1$/, '$2'))
+      if (
+        !callback.username &&
+        !callback.password &&
+        !callback.search &&
+        !callback.hash &&
+        callback.pathname === '/api/integrations/google/callback' &&
+        (callback.protocol === 'https:' ||
+          (callback.protocol === 'http:' && callback.hostname === '127.0.0.1'))
+      )
+        continue
+    } catch {
+      /* malformed/private addresses remain part of the scan */
+    }
+  }
   const value = match[2].replace(/^(['"])(.*)\1$/, '$2')
   if (value.length >= 12) sensitive.set(match[1], value)
 }

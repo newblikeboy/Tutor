@@ -45,6 +45,11 @@ import { Button, Loading, LoadError, MutationError } from './ui'
 import { CurrentLocationButton, locationLabel, type StoredLocation } from './location-search'
 import '../styles/workspace.css'
 import '../styles/experience.css'
+import '../styles/teaching-shell.css'
+import '../styles/mentor-workspace.css'
+import '../styles/tutor-experience.css'
+import '../styles/admin-workspace.css'
+import '../styles/customer-workspace.css'
 
 const icons: Record<WorkspaceView, typeof BookOpen> = {
   overview: LayoutDashboard,
@@ -168,9 +173,32 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
                     ? t('applicationTitle')
                     : user.role === 'tutor' && view === 'learners'
                       ? 'My learners'
-                      : t(
-                          `${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${view}`,
-                        )
+                      : user.role === 'mentor'
+                        ? t(`desk.mentorNav.${view}`)
+                        : t(
+                            `${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${view}`,
+                          )
+  const navigationViews = applicant ? [] : workspaceNavigationViews(user.role)
+  function workspaceNavigationItem(item: WorkspaceView) {
+    const Icon = icons[item]
+    const active = pathname === '/workspace' && workspaceNavigationView(user.role, view) === item
+    return (
+      <Link
+        key={item}
+        to={workspaceLink(item, user.role === 'parent' ? params.get('learner') : null)}
+        className={active ? 'active' : undefined}
+        aria-current={active ? 'page' : undefined}
+      >
+        <Icon size={19} strokeWidth={1.7} aria-hidden="true" />
+        {user.role === 'tutor' && item === 'learners'
+          ? 'My learners'
+          : user.role === 'mentor'
+            ? t(`desk.mentorNav.${item}`)
+            : t(`${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${item}`)}
+        {active && <span className="desk-nav-dot" aria-hidden="true" />}
+      </Link>
+    )
+  }
   const navigation = (
     <>
       <Link className="desk-brand" to={applicant ? '/apply' : '/workspace'}>
@@ -182,27 +210,43 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           <small>{t('desk.brandLabel')}</small>
         </span>
       </Link>
-      <p className="desk-nav-label">{t('desk.workspaceLabel')}</p>
+      <p className="desk-nav-label">
+        {t(
+          user.role === 'mentor'
+            ? 'desk.mentorLabel'
+            : user.role === 'tutor'
+              ? 'desk.tutorLabel'
+              : user.role === 'admin'
+                ? 'desk.adminLabel'
+                : 'desk.workspaceLabel',
+        )}
+      </p>
       <nav className="desk-nav" aria-label={t('desk.navigation')}>
-        {(applicant ? [] : workspaceNavigationViews(user.role)).map((item) => {
-          const Icon = icons[item]
-          const active =
-            pathname === '/workspace' && workspaceNavigationView(user.role, view) === item
-          return (
-            <Link
-              key={item}
-              to={workspaceLink(item, user.role === 'parent' ? params.get('learner') : null)}
-              className={active ? 'active' : undefined}
-              aria-current={active ? 'page' : undefined}
-            >
-              <Icon size={19} strokeWidth={1.7} aria-hidden="true" />
-              {user.role === 'tutor' && item === 'learners'
-                ? 'My learners'
-                : t(`${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${item}`)}
-              {active && <span className="desk-nav-dot" aria-hidden="true" />}
-            </Link>
+        {user.role === 'admin' && (
+          <p className="admin-nav-group">{t('desk.adminGroups.teaching')}</p>
+        )}
+        {user.role === 'mentor' && (
+          <p className="mentor-nav-group">{t('desk.mentorGroups.approval')}</p>
+        )}
+        {navigationViews
+          .filter((item) =>
+            user.role === 'admin'
+              ? !['reports', 'audit'].includes(item)
+              : user.role !== 'mentor' || item !== 'reviews',
           )
-        })}
+          .map(workspaceNavigationItem)}
+        {user.role === 'admin' && (
+          <>
+            <p className="admin-nav-group">{t('desk.adminGroups.business')}</p>
+            {workspaceNavigationItem('reports')}
+          </>
+        )}
+        {user.role === 'mentor' && (
+          <>
+            <p className="mentor-nav-group">{t('desk.mentorGroups.learners')}</p>
+            {workspaceNavigationItem('reviews')}
+          </>
+        )}
         {!applicant && ['parent', 'tutor', 'mentor'].includes(user.role) && (
           <Link
             to="/tuition"
@@ -267,6 +311,15 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             {t('desk.application')}
           </Link>
         )}
+        {user.role === 'admin' && (
+          <>
+            <p className="admin-nav-group">{t('desk.adminGroups.administration')}</p>
+            {workspaceNavigationItem('audit')}
+          </>
+        )}
+        {user.role === 'mentor' && (
+          <p className="mentor-nav-group">{t('desk.mentorGroups.account')}</p>
+        )}
         <Link
           to="/notifications"
           className={pathname === '/notifications' ? 'active' : undefined}
@@ -314,7 +367,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         <header className="desk-topbar">
           <div className="desk-breadcrumb">
             <div className="desk-mobile-menu" key={location.key}>
-              <WorkspaceMenu>{navigation}</WorkspaceMenu>
+              <WorkspaceMenu role={user.role}>{navigation}</WorkspaceMenu>
             </div>
             {user.role === 'parent' ? (
               <ParentTopbarLocation account={parentAccount.data} />
@@ -370,11 +423,46 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           <span>{t('desk.purnea')}</span>
         </footer>
       </div>
+      {!applicant && ['parent', 'tutor'].includes(user.role) && (
+        <nav className="customer-mobile-nav" aria-label="Everyday navigation">
+          {[
+            {
+              to: workspaceLink('overview', user.role === 'parent' ? params.get('learner') : null),
+              label: 'Home',
+              icon: LayoutDashboard,
+              active: pathname === '/workspace' && view === 'overview',
+            },
+            {
+              to: workspaceLink('learners', user.role === 'parent' ? params.get('learner') : null),
+              label: user.role === 'tutor' ? 'My learners' : 'Learners',
+              icon: Users,
+              active: pathname === '/workspace' && view === 'learners',
+            },
+            {
+              to: '/tuition',
+              label: 'Classes',
+              icon: BookOpen,
+              active: pathname.startsWith('/tuition'),
+            },
+            {
+              to: '/notifications',
+              label: 'Updates',
+              icon: Mail,
+              active: pathname === '/notifications',
+            },
+          ].map(({ to, label, icon: Icon, active }) => (
+            <Link key={to} to={to} aria-current={active ? 'page' : undefined}>
+              <Icon size={21} aria-hidden="true" />
+              <span>{label}</span>
+            </Link>
+          ))}
+        </nav>
+      )}
     </div>
   )
 }
 
-function WorkspaceMenu({ children }: { children: ReactNode }) {
+function WorkspaceMenu({ children, role }: { children: ReactNode; role: Schema['User']['role'] }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   return (
@@ -388,6 +476,7 @@ function WorkspaceMenu({ children }: { children: ReactNode }) {
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content
           className="desk-drawer"
+          data-role={role}
           aria-describedby={undefined}
           onClick={(event) => {
             if (event.target instanceof Element && event.target.closest('a[href]')) setOpen(false)

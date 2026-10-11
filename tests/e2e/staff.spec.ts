@@ -1,5 +1,6 @@
+import { connectGoogle, conductInterview } from './helpers/google'
 import { verifiedSignup } from './signup-fixture'
-import { fillApplication, fillStaffFees } from './helpers/application'
+import { applicationProfile, fillStaffFees } from './helpers/application'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir, readFile } from 'node:fs/promises'
@@ -15,10 +16,10 @@ async function signIn(page: Page, email = 'admin-a@example.test') {
   return response.json()
 }
 async function capture(page: Page, name: string) {
-  await mkdir('docs/visual-qa/english-only/staff-tabs/lifecycle', { recursive: true })
+  await mkdir('docs/visual-qa/mentor-approval/lifecycle', { recursive: true })
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({
-    path: `docs/visual-qa/english-only/staff-tabs/lifecycle/${name}.png`,
+    path: `docs/visual-qa/mentor-approval/lifecycle/${name}.png`,
     fullPage: true,
   })
   const results = await new AxeBuilder({ page }).analyze()
@@ -36,7 +37,7 @@ async function decide(page: Page, label: string, reason: string) {
   await expect(dialog).toHaveCount(0)
 }
 
-test('staff reviews a real application, schedules Zoom, approves and manages the tutor lifecycle', async ({
+test('staff reviews a real application, schedules Google Meet, approves and manages the tutor lifecycle', async ({
   browser,
   page,
 }) => {
@@ -54,13 +55,33 @@ test('staff reviews a real application, schedules Zoom, approves and manages the
     expect(signup.status()).toBe(201)
     const account = await signup.json()
     const id = account.user.id as string
+    const profile = applicationProfile('Fictional staff-flow applicant')
+    profile.about.location = {
+      address: 'Fictional test location',
+      locality: 'Line Bazar',
+      city: 'Purnea',
+      district: 'Purnea',
+      state: 'Bihar',
+      country: 'India',
+      postalCode: '854301',
+      latitude: 25.77,
+      longitude: 87.47,
+      accuracyMeters: 100,
+      source: 'manual',
+    }
+    const submitted = await tutor.request.put('/api/v1/application', {
+      headers: { Origin: origin, 'X-CSRF-Token': account.csrf },
+      data: { version: 0, step: 5, profile, submit: true },
+    })
+    expect(submitted.status(), await submitted.text()).toBe(200)
+    expect((await submitted.json()).assessorId).toBe('mentor-a')
     await tutor.goto('/apply')
-    await fillApplication(tutor, 'Fictional staff-flow applicant')
     await expect(tutor.getByText('Submitted', { exact: true })).toBeVisible()
     expect((await tutor.request.get('/api/v1/staff/overview')).status()).toBe(403)
 
-    await signIn(page)
-    await page.goto('/workspace?view=applications&status=submitted')
+    await signIn(page, 'mentor-a@example.test')
+    await connectGoogle(page)
+    await page.goto('/workspace?view=assessments&status=submitted')
     await page
       .locator('.staff-row')
       .filter({ hasText: 'Fictional staff-flow applicant' })
@@ -68,23 +89,22 @@ test('staff reviews a real application, schedules Zoom, approves and manages the
       .click()
     await expect(page).toHaveURL(new RegExp(`application=${id}`))
     await page.getByRole('tab', { name: 'Review & decision', exact: true }).click()
-    await page.getByRole('checkbox', { name: 'I have no conflict of interest' }).check()
-    await page.getByRole('button', { name: 'Start review', exact: true }).click()
     await page
       .getByLabel('Interview date and time (IST)')
       .fill(new Date(Date.now() + 86_400_000 + 19_800_000).toISOString().slice(0, 16))
-    await expect(page.getByLabel('Zoom join link', { exact: true })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Create Zoom meeting', exact: true }).click()
-    await expect(page.getByRole('link', { name: 'Join Zoom meeting' })).toBeVisible()
-    const zoom = (await page.getByRole('link', { name: 'Join Zoom meeting' }).getAttribute('href'))!
-    expect(zoom).toMatch(/^https:\/\/zoom\.us\/j\/\d+\?pwd=fictional-test-only$/)
-    await expect(page.getByRole('button', { name: 'Save assessment', exact: true })).toBeDisabled()
+    await expect(page.getByLabel('Meeting join link', { exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Schedule Google Meet', exact: true }).click()
+    await expect(page.getByRole('link', { name: 'Join Meeting' })).toBeVisible()
+    const meeting = (await (await page.request.get(`/api/v1/staff/applications/${id}`)).json())
+      .application.interview.joinUrl
+    expect(meeting).toMatch(/^https:\/\/meet\.google\.com\/[a-z-]+$/)
+    await expect(page.getByRole('button', { name: 'Approve tutor', exact: true })).toBeDisabled()
     await capture(page, 'interview-en-desktop')
 
     await tutor.reload()
-    await expect(tutor.getByRole('link', { name: 'Join Zoom meeting' })).toHaveAttribute(
+    await expect(tutor.getByRole('link', { name: 'Join Meeting' })).toHaveAttribute(
       'href',
-      zoom,
+      `/api/v1/applications/${id}/interview/join`,
     )
     const download = tutor.waitForEvent('download')
     await tutor.getByRole('button', { name: 'Add to calendar' }).click()
@@ -92,44 +112,10 @@ test('staff reviews a real application, schedules Zoom, approves and manages the
     expect(file.suggestedFilename()).toBe('tutor-interview.ics')
     const contents = await readFile((await file.path())!, 'utf8')
     expect(contents).toContain('BEGIN:VEVENT')
-    expect(contents).toContain(zoom)
+    expect(contents).toContain(meeting)
     await capture(tutor, 'applicant-interview-en-desktop')
 
-    await page.getByText('Reschedule interview', { exact: true }).click()
-    const reschedule = page.getByRole('form', { name: 'Reschedule interview', exact: true })
-    await reschedule
-      .getByLabel('Interview date and time (IST)')
-      .fill(new Date(Date.now() - 60_000 + 19_800_000).toISOString().slice(0, 16))
-    await reschedule
-      .getByLabel('Reason / feedback', { exact: true })
-      .fill('Fictional applicant is ready; bring forward the sample interview.')
-    await reschedule.getByRole('button', { name: 'Reschedule Zoom meeting', exact: true }).click()
-    await expect(page.getByRole('link', { name: 'Join Zoom meeting' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Save assessment', exact: true })).toBeEnabled()
-    for (const label of [
-      'Subject knowledge',
-      'Explanation',
-      'Misconceptions',
-      'Patience',
-      'Planning',
-      'Reliability',
-    ]) {
-      await page
-        .getByRole('form', { name: 'Assessment', exact: true })
-        .getByLabel(label, { exact: true })
-        .selectOption('4')
-    }
-    await page
-      .getByLabel('Assessment evidence', { exact: true })
-      .fill(
-        'Explained equivalent fractions using a number line and checked the denominator misconception.',
-      )
-    await page.setViewportSize({ width: 390, height: 1000 })
-    await expect(page.locator('.language-button')).toHaveCount(0)
-    await capture(page, 'assessment-en-mobile')
-    await expect(page.locator('.language-button')).toHaveCount(0)
-    await page.setViewportSize({ width: 1440, height: 1000 })
-    await page.getByRole('button', { name: 'Save assessment', exact: true }).click()
+    await conductInterview(page, id)
     await fillStaffFees(page)
     const fees = (await (await page.request.get(`/api/v1/staff/applications/${id}`)).json())
       .application.fees
@@ -142,84 +128,40 @@ test('staff reviews a real application, schedules Zoom, approves and manages the
         .locator('.staff-fee-form')
         .getByRole('group', { name: 'Home Tuition · monthly', exact: true })
         .getByLabel('Classes included'),
-    ).toHaveValue('12')
-    await mkdir('docs/visual-qa/english-only/staff-fees', { recursive: true })
+    ).toHaveValue('24')
+    await mkdir('docs/visual-qa/mentor-approval/fees', { recursive: true })
     await page
       .locator('.staff-fee-form')
-      .screenshot({ path: 'docs/visual-qa/english-only/staff-fees/fees-en-desktop.png' })
+      .screenshot({ path: 'docs/visual-qa/mentor-approval/fees/fees-en-desktop.png' })
     await page.setViewportSize({ width: 390, height: 1000 })
     await expect(page.locator('.language-button')).toHaveCount(0)
     await page
       .locator('.staff-fee-form')
-      .screenshot({ path: 'docs/visual-qa/english-only/staff-fees/fees-en-mobile.png' })
+      .screenshot({ path: 'docs/visual-qa/mentor-approval/fees/fees-en-mobile.png' })
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await expect(page.locator('.language-button')).toHaveCount(0)
     await page.setViewportSize({ width: 1440, height: 1000 })
     const approval = page.getByRole('form', { name: 'Approve tutor', exact: true })
-    await approval.getByLabel('Academic mentor for ongoing learning').selectOption('mentor-a')
     await approval.getByLabel('From class', { exact: true }).fill('8')
     await approval.getByLabel('To class', { exact: true }).fill('9')
-    await approval
-      .getByLabel('Reason / feedback', { exact: true })
-      .fill('Evidence supports classes eight and nine online Mathematics with mentor oversight.')
     await approval.getByRole('button', { name: 'Approve tutor', exact: true }).click()
     await expect(page.locator('.staff-person-heading .badge')).toHaveText('Approved')
     await capture(page, 'approved-en-desktop')
-    const familyContext = await browser.newContext({
-      baseURL: origin,
-      viewport: { width: 1440, height: 1000 },
-    })
-    try {
-      const family = await familyContext.newPage()
-      await signIn(family, 'parent-a@example.test')
-      await family.goto(`/tutors/${id}`)
-      await expect(family.locator('.tutor-fees')).toContainText('₹400.00')
-      await expect(family.locator('.tutor-fees')).toContainText('per hour')
-      await family.screenshot({
-        path: 'docs/visual-qa/english-only/staff-fees/parent-fee-en-desktop.png',
-        fullPage: true,
-      })
-      await family.setViewportSize({ width: 390, height: 844 })
-      await expect(family.locator('.language-button')).toHaveCount(0)
-      await family.screenshot({
-        path: 'docs/visual-qa/english-only/staff-fees/parent-fee-en-mobile.png',
-        fullPage: true,
-      })
-      expect((await new AxeBuilder({ page: family }).analyze()).violations).toEqual([])
-      expect(await family.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-        true,
-      )
-    } finally {
-      await familyContext.close()
-    }
+    const publicTutor = await (await page.request.get(`/api/v1/tutors/${id}`)).json()
+    expect(publicTutor.feePlans.map((plan: { amountPaise: number }) => plan.amountPaise)).toEqual([
+      40000, 150000, 500000,
+    ])
     expect(
       (await (await page.request.get('/api/v1/tutors')).json()).some(
         (v: { id: string }) => v.id === id,
       ),
     ).toBe(true)
 
-    await page
-      .locator('summary')
-      .filter({ hasText: /^Internal note$/ })
-      .click()
-    await page
-      .getByLabel('Internal note', { exact: true })
-      .fill('Private operator note for the next scope review.')
-    await page.getByRole('button', { name: 'Save note', exact: true }).click()
-    await page.getByRole('tab', { name: 'History', exact: true }).click()
-    await expect(page.locator('.staff-history')).toContainText(
-      'Private operator note for the next scope review.',
-    )
-    await tutor.reload()
-    await expect(tutor.getByText('Private operator note for the next scope review.')).toHaveCount(0)
-    await tutor.goto('/workspace')
-    await expect(tutor.locator('.desk-sidebar a[href="/availability"]')).toBeVisible()
-    await expect(
-      tutor.locator('.desk-sidebar').getByRole('link', { name: 'Trial lessons', exact: true }),
-    ).toBeVisible()
+    expect((await tutor.request.get('/api/v1/enrollments')).status()).toBe(200)
 
-    await page.getByRole('tab', { name: 'Review & decision', exact: true }).click()
+    await signIn(page)
+    await page.goto(`/workspace?view=tutors&application=${id}&tab=review`)
     await decide(page, 'Suspend tutor', 'Sample conduct review requires teaching access to pause.')
     await expect(page.locator('.staff-person-heading .badge')).toHaveText('Suspended')
     expect((await tutor.request.get('/api/v1/dashboard')).status()).toBe(401)
@@ -249,7 +191,11 @@ test('staff reviews a real application, schedules Zoom, approves and manages the
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     await expect(page.locator('.staff-history')).toContainText('Tutor terminated')
 
-    await page.goto('/workspace?view=followups')
+    await page
+      .locator('.desk-sidebar')
+      .getByRole('link', { name: 'Tutor network', exact: true })
+      .click()
+    await page.getByRole('tab', { name: 'Follow-ups', exact: true }).click()
     const followup = page
       .locator('.staff-followups article')
       .filter({ hasText: 'Fictional staff-flow applicant' })
@@ -294,9 +240,9 @@ test('staff errors are recoverable and stale decisions cannot overwrite another 
   const concurrent = await page.request.post('/api/v1/applications/tutor-arjun/decision', {
     headers: { Origin: origin, 'X-CSRF-Token': auth.csrf },
     data: {
-      action: 'note',
+      action: 'suspend',
       version: snapshot.application.version,
-      reason: 'Another operator recorded a sample update.',
+      reason: 'Another operator paused this sample tutor.',
     },
   })
   expect(concurrent.status()).toBe(200)
@@ -310,7 +256,18 @@ test('staff errors are recoverable and stale decisions cannot overwrite another 
   expect(
     (await (await page.request.get('/api/v1/staff/applications/tutor-arjun')).json()).application
       .status,
-  ).toBe('approved')
+  ).toBe('suspended')
   await page.keyboard.press('Escape')
   await expect(page.getByRole('button', { name: 'Suspend tutor', exact: true })).toBeFocused()
+  const latest = (await (await page.request.get('/api/v1/staff/applications/tutor-arjun')).json())
+    .application
+  const restored = await page.request.post('/api/v1/applications/tutor-arjun/decision', {
+    headers: { Origin: origin, 'X-CSRF-Token': auth.csrf },
+    data: {
+      action: 'reinstate',
+      version: latest.version,
+      reason: 'Restore this isolated sample after the stale-decision check.',
+    },
+  })
+  expect(restored.status(), await restored.text()).toBe(200)
 })

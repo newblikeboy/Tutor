@@ -4,8 +4,8 @@ const applicationEN = {
     introductionVideo: 'Video introduction',
     journey: 'Application stages',
     applicationStage: 'Complete application',
-    reviewStage: 'Staff review',
-    interviewStage: 'Zoom interview',
+    reviewStage: 'Mentor review',
+    interviewStage: 'Interview',
     approvalStage: 'Approval',
     videoUnavailable: 'Video upload is not available yet.',
     localitiesError: 'Enter 1–12 localities, with 2–100 characters per line.',
@@ -131,6 +131,8 @@ const applicationEN = {
     home: 'Home Tuition',
     online: 'Online',
     priorExperience: 'Have you taught this subject and class range?',
+    allSubjectsLimit:
+      'All Subjects is limited to Classes 1–5. For Classes 6–12, choose individual subjects.',
     requests:
       'Choose the subjects and classes you want to teach. Each needs approval from our academic team.',
     slots: 'Weekly availability · IST',
@@ -205,17 +207,14 @@ const applicationEN = {
     noticeData:
       'Your application and private attachments are used by authorised staff to assess eligibility, arrange assessments and decide teaching scope. Only an approved public profile is published. Retention and deletion terms are awaiting release review; this notice does not promise automatic deletion.',
     submitted: 'Application received',
-    submittedBody: 'Your application is private and awaiting staff review.',
-    eligibility: 'Employment eligibility review',
-    eligibilityPending: 'Staff must clear employment eligibility before approval.',
+    submittedBody:
+      'Your assigned mentor will arrange an interview, finalize fees and approve your subjects and teaching modes.',
     pending: 'Pending review',
     not_required: 'No additional review flagged',
     cleared: 'Cleared',
     blocked: 'Not cleared',
-    reason: 'Review evidence / reason',
-    recordReview: 'Record eligibility review',
     scopeBoundary:
-      'Current activation supports Mathematics, classes 6–10, within a requested teaching area and mode. Other requests remain for staff review.',
+      'Choose only subject, class and mode combinations within an eligible requested teaching area.',
     noAnswer: 'Not provided',
   },
 }

@@ -225,7 +225,7 @@ const en = {
   draft: 'Draft',
   submitted: 'Submitted',
   under_review: 'Under review',
-  assessment_scheduled: 'Assessment scheduled',
+  assessment_scheduled: 'Interview scheduled',
   approved: 'Approved',
   improvement_required: 'Improvement requested',
   declined: 'Declined',

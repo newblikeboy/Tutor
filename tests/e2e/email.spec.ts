@@ -118,6 +118,9 @@ test('email login, recovery, verification and reminder settings on desktop and m
     await page.getByRole('link', { name: 'Use email code', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Send email code', exact: true })).toBeVisible()
     await page.getByRole('link', { name: 'Sign in with password', exact: true }).click()
+    // Wait for the replacement password form; both forms label their email field identically.
+    await expect(page.getByRole('heading', { name: 'Parent sign in', exact: true })).toBeVisible()
+    await expect(page.getByLabel('Password', { exact: true })).toBeVisible()
     await page.getByLabel('Email address', { exact: true }).fill(email)
     await page.getByLabel('Password', { exact: true }).fill(next)
     await page.getByRole('button', { name: 'Sign in', exact: true }).click()

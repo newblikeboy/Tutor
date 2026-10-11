@@ -3,19 +3,27 @@ package domain
 import "time"
 
 type Interview struct {
-	Start      time.Time `json:"start" bson:"start"`
-	End        time.Time `json:"end" bson:"end"`
-	Timezone   string    `json:"timezone" bson:"timezone"`
-	JoinURL    string    `json:"joinUrl" bson:"joinUrl"`
-	Status     string    `json:"status" bson:"status"`
-	Provider   string    `json:"provider,omitempty" bson:"provider,omitempty"`
-	SyncStatus string    `json:"syncStatus,omitempty" bson:"syncStatus,omitempty"`
-	MeetingID  string    `json:"-" bson:"meetingId,omitempty"`
-	JobID      string    `json:"-" bson:"jobId,omitempty"`
-	HostKey    string    `json:"-" bson:"hostKey,omitempty"`
+	MentorID      string     `json:"-" bson:"mentorId,omitempty"`
+	MentorName    string     `json:"mentorName,omitempty" bson:"mentorName,omitempty"`
+	MeetingCode   string     `json:"meetingCode,omitempty" bson:"meetingCode,omitempty"`
+	ETag          string     `json:"-" bson:"etag,omitempty"`
+	Notes         string     `json:"notes,omitempty" bson:"notes,omitempty"`
+	LastError     string     `json:"lastError,omitempty" bson:"lastError,omitempty"`
+	RescheduledAt *time.Time `json:"rescheduledAt,omitempty" bson:"rescheduledAt,omitempty"`
+	Start         time.Time  `json:"start" bson:"start"`
+	End           time.Time  `json:"end" bson:"end"`
+	Timezone      string     `json:"timezone" bson:"timezone"`
+	JoinURL       string     `json:"joinUrl" bson:"joinUrl"`
+	Status        string     `json:"status" bson:"status"`
+	Provider      string     `json:"provider,omitempty" bson:"provider,omitempty"`
+	SyncStatus    string     `json:"syncStatus,omitempty" bson:"syncStatus,omitempty"`
+	MeetingID     string     `json:"-" bson:"meetingId,omitempty"`
+	JobID         string     `json:"-" bson:"jobId,omitempty"`
+	HostKey       string     `json:"-" bson:"hostKey,omitempty"`
 }
 
 type StaffEvent struct {
+	Assessment  *InterviewAssessment `json:"assessment,omitempty" bson:"assessment,omitempty"`
 	Event       `bson:",inline"`
 	ActorName   string             `json:"actorName" bson:"actorName"`
 	Reason      string             `json:"reason" bson:"reason"`
@@ -27,6 +35,14 @@ type StaffEvent struct {
 	Scope       *Scope             `json:"scope" bson:"scope,omitempty"`
 	Eligibility *EligibilityReview `json:"eligibility" bson:"eligibility,omitempty"`
 	Fees        *TutorFees         `json:"fees" bson:"fees,omitempty"`
+}
+
+type InterviewAssessment struct {
+	Scores         []int     `json:"scores" bson:"scores"`
+	Recommendation string    `json:"recommendation" bson:"recommendation"`
+	Comments       string    `json:"comments" bson:"comments"`
+	MentorID       string    `json:"mentorId" bson:"mentorId"`
+	SubmittedAt    time.Time `json:"submittedAt" bson:"submittedAt"`
 }
 
 func (a Application) AcademicMentor() string {

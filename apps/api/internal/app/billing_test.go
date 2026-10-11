@@ -120,7 +120,7 @@ func TestMongoBillingLifecycle(t *testing.T) {
 		t.Fatal(e)
 	}
 	av := defaultAvailability("tutor-meera")
-	client("admin-a").setTestFees("tutor-meera", 100000)
+	client("mentor-a").setTestFees("tutor-meera", 100000)
 	for d := 0; d < 7; d++ {
 		av.Windows = append(av.Windows, domain.WeeklyWindow{Day: d, StartMinute: 0, EndMinute: 1440})
 	}

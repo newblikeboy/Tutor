@@ -14,13 +14,18 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"tutorplatform/internal/domain"
-	"tutorplatform/internal/meetings"
 	staffprovision "tutorplatform/internal/staff"
 	"tutorplatform/internal/storage"
 )
 
 func restrictedTutorRoute(path, id string) bool {
+	if path == "/api/v1/applications/"+id+"/interview/join" {
+		return true
+	}
 	if enum(path, "/api/v1/me", "/api/v1/dashboard", "/api/v1/application", "/api/v1/auth/logout") {
+		return true
+	}
+	if enum(path, "/api/v1/integrations/google", "/api/v1/integrations/google/connect", "/api/integrations/google/callback", "/api/v1/integrations/google/disconnect", "/api/v1/integrations/google/revoke/retry") || strings.HasPrefix(path, "/api/v1/integrations/google/lessons") {
 		return true
 	}
 	for _, prefix := range []string{"/api/v1/account", "/api/v1/cases", "/api/v1/notifications", "/api/v1/inbox", "/api/v1/files", "/api/v1/applications/" + id + "/files"} {
@@ -176,7 +181,20 @@ func (a *App) staffApplicationDetail(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	a.json(w, 200, map[string]any{"application": v, "email": u.Email, "assessor": assessor})
+	response := map[string]any{"application": v, "email": u.Email, "assessor": assessor}
+	if v.Interview != nil && v.Interview.Provider == "google" {
+		c, err := storage.One[googleConnection](r.Context(), a.Store, "google_connections", bson.M{"_id": v.Interview.MentorID})
+		if err != nil && err != mongo.ErrNoDocuments {
+			a.error(w, r, err)
+			return
+		}
+		status := c.Status
+		if status == "" {
+			status = "disconnected"
+		}
+		response["googleConnection"] = map[string]any{"enabled": a.Google != nil, "status": status, "checkedAt": c.CheckedAt}
+	}
+	a.json(w, 200, response)
 }
 
 func (a *App) staffMembers(w http.ResponseWriter, r *http.Request) {
@@ -291,22 +309,23 @@ func (a *App) staffEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 type staffDecisionInput struct {
-	Action        string            `json:"action"`
-	Version       *int              `json:"version"`
-	Reason        string            `json:"reason"`
-	Evidence      string            `json:"evidence"`
-	Scores        []int             `json:"scores"`
-	Subjects      []string          `json:"subjects"`
-	MinClass      int               `json:"minClass"`
-	MaxClass      int               `json:"maxClass"`
-	Mode          string            `json:"mode"`
-	Modes         []string          `json:"modes"`
-	AssessorID    string            `json:"assessorId"`
-	MentorID      string            `json:"mentorId"`
-	ConflictClear bool              `json:"conflictClear"`
-	Eligibility   string            `json:"eligibility"`
-	Interview     *domain.Interview `json:"interview"`
-	FeePlans      []domain.FeePlan  `json:"feePlans"`
+	Assessment *struct {
+		Scores         []int  `json:"scores"`
+		Recommendation string `json:"recommendation"`
+		Comments       string `json:"comments"`
+		Conducted      bool   `json:"conducted"`
+	} `json:"assessment"`
+	Action     string            `json:"action"`
+	Version    *int              `json:"version"`
+	Reason     string            `json:"reason"`
+	Subjects   []string          `json:"subjects"`
+	MinClass   int               `json:"minClass"`
+	MaxClass   int               `json:"maxClass"`
+	Mode       string            `json:"mode"`
+	Modes      []string          `json:"modes"`
+	AssessorID string            `json:"assessorId"`
+	Interview  *domain.Interview `json:"interview"`
+	FeePlans   []domain.FeePlan  `json:"feePlans"`
 }
 
 func normalizeApprovedModes(modes []string) []string {
@@ -354,9 +373,6 @@ func approvedFeePlansComplete(a domain.Application) bool {
 	return len(seen) > 0
 }
 
-func validInterview(v *domain.Interview, now time.Time) bool {
-	return validInterviewTime(v, now) && meetings.ValidJoinURL(v.JoinURL)
-}
 func validInterviewTime(v *domain.Interview, now time.Time) bool {
 	if v == nil || v.Start.Before(now.Add(-5*time.Minute)) || v.Start.After(now.AddDate(0, 3, 0)) || v.End.Sub(v.Start) < 15*time.Minute || v.End.Sub(v.Start) > 2*time.Hour {
 		return false
@@ -375,7 +391,8 @@ func interviewKeys(v domain.Application) []string {
 	for day := v.Interview.Start.UTC().Truncate(24 * time.Hour); day.Before(v.Interview.End); day = day.Add(24 * time.Hour) {
 		ids := []string{v.ID, v.AssessorID}
 		if v.Interview.HostKey != "" {
-			ids = append(ids, "zoom-host:"+v.Interview.HostKey)
+			prefix := "google-calendar:"
+			ids = append(ids, prefix+v.Interview.HostKey)
 		}
 		for _, id := range ids {
 			keys = append(keys, "interview:"+id+":"+day.Format("2006-01-02"))
@@ -424,6 +441,7 @@ func (a *App) staffAudit(ctx context.Context, u domain.User, action, target, rea
 		event.Scope = &application.Scope
 		event.Eligibility = application.Eligibility
 		event.Fees = application.Fees
+		event.Assessment = application.InterviewAssessment
 	}
 	_, e := a.Store.C("audit").InsertOne(ctx, event)
 	return e
@@ -435,6 +453,10 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 	}
 	var in staffDecisionInput
 	if !a.decode(w, r, &in) {
+		return
+	}
+	if user(r).Role == "admin" && !enum(in.Action, "assign", "suspend", "reinstate", "terminate", "reopen") {
+		a.error(w, r, domain.Fail(403, "forbidden", "Only the assigned mentor handles interviews, fees and tutor approval."))
 		return
 	}
 	if in.Version == nil || *in.Version < 0 {
@@ -465,21 +487,17 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			copy := *v.Interview
 			previous = &copy
 		}
-		if previous != nil && previous.Provider == "zoom" && previous.SyncStatus != "ready" && !enum(in.Action, "note", "eligibility") {
-			return domain.Fail(409, "meeting_pending", "Finish or retry the Zoom operation before changing this interview.")
+		if previous != nil && previous.Provider == "google" && previous.SyncStatus != "ready" && in.Action != "fees" && !(previous.Provider == "google" && previous.SyncStatus == "failed" && enum(in.Action, "cancel_interview", "decline")) {
+			return domain.Fail(409, "meeting_pending", "Finish or retry the meeting operation before changing this interview.")
 		}
-		needsReason := enum(in.Action, "assign", "reschedule", "cancel_interview", "no_show", "approve", "improve", "decline", "suspend", "reinstate", "terminate", "reopen", "note", "eligibility")
+		needsReason := enum(in.Action, "decline", "assign", "reschedule", "cancel_interview", "no_show", "suspend", "reinstate", "terminate", "reopen")
 		if needsReason && !validText(in.Reason, 10, 1000) {
 			return domain.Fail(422, "validation", "Record a reason of 10–1000 characters.")
 		}
 		switch in.Action {
 		case "fees":
-			if !enum(v.Status, "assessment_scheduled", "assessed", "approved", "suspended") ||
-				(v.Status == "assessment_scheduled" && (v.Interview == nil || a.Now().Before(v.Interview.Start))) {
-				return domain.Fail(409, "invalid_transition", "Set fees during or after the interview.")
-			}
-			if u.Role != "admin" && (v.AssessorID != u.ID || !v.ConflictClear) {
-				return domain.Fail(403, "forbidden", "Only an administrator or the assigned reviewer can set fees.")
+			if !enum(v.Status, "submitted", "under_review", "assessment_scheduled", "assessed", "approved", "suspended") {
+				return domain.Fail(409, "invalid_transition", "Set fees for a submitted application or existing tutor.")
 			}
 			if e = validateFeePlans(v, in.FeePlans); e != nil {
 				return e
@@ -490,37 +508,15 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 				version = max(version, v.Fees.Version+1)
 			}
 			v.Fees = &domain.TutorFees{Plans: in.FeePlans, Version: version, SetBy: u.ID, SetAt: a.Now()}
-		case "eligibility":
-			if u.Role != "admin" || v.Profile == nil || !enum(v.Status, "submitted", "under_review", "assessment_scheduled", "assessed", "improvement_required") {
-				return domain.Fail(403, "forbidden", "An administrator reviews eligibility before approval.")
+		case "assign":
+			if u.Role != "admin" || !enum(v.Status, "submitted", "under_review", "assessment_scheduled", "assessed") {
+				return domain.Fail(403, "forbidden", "Only administrators can route pending applications to a mentor.")
 			}
-			if !enum(in.Eligibility, "cleared", "blocked") {
-				return domain.Fail(422, "validation", "Record an eligibility outcome.")
-			}
-			now := a.Now()
-			v.Eligibility = &domain.EligibilityReview{Status: in.Eligibility, Reason: clean(in.Reason), ReviewerID: u.ID, ReviewedAt: &now}
-		case "review", "assign":
-			if !enum(v.Status, "submitted", "under_review", "assessment_scheduled") {
-				return domain.Fail(409, "invalid_transition", "This application cannot be assigned at this stage.")
-			}
-			if in.Action == "review" && v.Status != "submitted" {
-				return domain.Fail(409, "invalid_transition", "This application is already assigned.")
-			}
-			assessor := u.ID
-			if in.Action == "assign" {
-				if u.Role != "admin" {
-					return domain.Fail(403, "forbidden", "Only administrators can reassign reviews.")
+			if _, e = storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": in.AssessorID, "role": "mentor", "$or": activeStaffFilter()["$or"]}); e != nil {
+				if e != mongo.ErrNoDocuments {
+					return e
 				}
-				assessor = in.AssessorID
-			}
-			if assessor == id {
-				return domain.Fail(403, "self_assessment", "An applicant cannot assess themselves.")
-			}
-			if _, e = storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": assessor, "role": bson.M{"$in": []string{"mentor", "admin"}}, "$or": activeStaffFilter()["$or"]}); e != nil {
-				return domain.Fail(422, "validation", "Choose a provisioned academic reviewer.")
-			}
-			if in.Action == "review" && !in.ConflictClear {
-				return domain.Fail(422, "validation", "Confirm there is no conflict of interest.")
+				return domain.Fail(422, "validation", "Choose an active academic mentor.")
 			}
 			if e = a.reserveInterview(ctx, v, true); e != nil {
 				return e
@@ -528,51 +524,67 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			if v.Interview != nil {
 				v.Interview.Status = "cancelled"
 			}
-			v.AssessorID = assessor
-			v.Status = "under_review"
-			v.ConflictClear = in.Action == "review" && in.ConflictClear
-		case "confirm_conflict":
-			if v.AssessorID != u.ID || !in.ConflictClear || v.Status != "under_review" {
-				return domain.Fail(403, "forbidden", "The assigned reviewer must confirm no conflict of interest.")
-			}
-			v.ConflictClear = true
+			v.AssessorID = in.AssessorID
+			v.Status = "submitted"
 		case "schedule", "reschedule":
-			if v.AssessorID != u.ID || !v.ConflictClear {
-				return domain.Fail(403, "forbidden", "The assigned reviewer must confirm no conflict of interest.")
+			if in.Action == "reschedule" && previous != nil && previous.Provider != "google" {
+				return domain.Fail(409, "provider_retired", "Cancel the historical interview and schedule a new Google Meet interview.")
 			}
-			if !(in.Action == "schedule" && v.Status == "under_review" || in.Action == "reschedule" && v.Status == "assessment_scheduled") {
+			if !(in.Action == "schedule" && enum(v.Status, "submitted", "under_review", "assessed") || in.Action == "reschedule" && v.Status == "assessment_scheduled") {
 				return domain.Fail(409, "invalid_transition", "This interview cannot be scheduled at this stage.")
 			}
-			zoom := a.Meetings != nil || previous != nil && previous.Provider == "zoom"
-			if zoom && a.Meetings == nil {
-				return domain.Fail(503, "meeting_unconfigured", "Zoom is not configured.")
+			if a.Google == nil || a.Config.InterviewProvider == "disabled" {
+				return domain.Fail(503, "meeting_unconfigured", "Interview meetings are not configured.")
 			}
-			if zoom && (!validInterviewTime(in.Interview, a.Now()) || in.Interview.JoinURL != "") || !zoom && !validInterview(in.Interview, a.Now()) {
-				return domain.Fail(422, "interview_validation", "Choose a valid interview time, timezone and Zoom join link.")
+			if !validInterviewTime(in.Interview, a.Now()) || a.Google != nil && !in.Interview.Start.After(a.Now()) || in.Interview.JoinURL != "" || !validText(in.Interview.Notes, 0, 1000) {
+				return domain.Fail(422, "interview_validation", "Choose a future interview time and timezone; the meeting provider supplies the join link.")
 			}
 			if e = a.reserveInterview(ctx, v, true); e != nil {
 				return e
 			}
-			v.Interview = &domain.Interview{Start: in.Interview.Start, End: in.Interview.End, Timezone: in.Interview.Timezone, JoinURL: in.Interview.JoinURL}
+			v.Interview = &domain.Interview{Start: in.Interview.Start, End: in.Interview.End, Timezone: in.Interview.Timezone, Notes: clean(in.Interview.Notes), MentorName: u.Name}
+			v.InterviewAssessment = nil
 			v.Interview.Start = v.Interview.Start.UTC()
 			v.Interview.End = v.Interview.End.UTC()
 			v.Interview.Status = "scheduled"
-			if zoom {
-				operation := "create"
-				v.Interview.HostKey = digest(a.Config.ZoomHostID)[:16]
-				if in.Action == "reschedule" && previous != nil && previous.Provider == "zoom" {
-					operation = "update"
-					v.Interview.MeetingID = previous.MeetingID
-					v.Interview.HostKey = previous.HostKey
-				}
-				if e = a.queueMeeting(ctx, &v, operation); e != nil {
-					return e
-				}
+			operation := "create"
+			if in.Action == "reschedule" && previous != nil && previous.Provider == "google" {
+				operation = "update"
+				v.Interview.Provider = previous.Provider
+				v.Interview.MentorID = previous.MentorID
+				v.Interview.ETag = previous.ETag
+				now := a.Now()
+				v.Interview.RescheduledAt = &now
+				v.Interview.MeetingID = previous.MeetingID
+				v.Interview.HostKey = previous.HostKey
+			}
+			if e = a.queueGoogleInterview(ctx, &v, operation); e != nil {
+				return e
 			}
 			if e = a.reserveInterview(ctx, v, false); e != nil {
 				return e
 			}
 			v.Status = "assessment_scheduled"
+		case "interview_assessment":
+			if v.Status != "assessment_scheduled" || v.Interview == nil || v.Interview.SyncStatus != "ready" || a.Now().Before(v.Interview.Start) || v.Interview.Status != "scheduled" {
+				return domain.Fail(409, "interview_pending", "Submit the assessment after conducting the confirmed interview.")
+			}
+			assessment := in.Assessment
+			if assessment == nil || !assessment.Conducted || len(assessment.Scores) != 4 || !enum(assessment.Recommendation, "approve", "reject", "reinterview") || !validText(assessment.Comments, 10, 1000) {
+				return domain.Fail(422, "assessment_validation", "Confirm the interview and enter four ratings, a recommendation and 10–1000 characters of feedback.")
+			}
+			for _, score := range assessment.Scores {
+				if score < 1 || score > 5 {
+					return domain.Fail(422, "assessment_validation", "Interview ratings must be from 1 to 5.")
+				}
+			}
+			if e = a.reserveInterview(ctx, v, true); e != nil {
+				return e
+			}
+			v.InterviewAssessment = &domain.InterviewAssessment{Scores: assessment.Scores, Recommendation: assessment.Recommendation, Comments: clean(assessment.Comments), MentorID: u.ID, SubmittedAt: a.Now()}
+			v.Interview.Status = "completed"
+			v.Status = "assessed"
+			v.AssessmentAt = a.Now()
 		case "cancel_interview", "no_show":
 			if v.Status != "assessment_scheduled" || v.Interview == nil {
 				return domain.Fail(409, "invalid_transition", "No interview is scheduled.")
@@ -585,29 +597,32 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			}
 			v.Interview.Status = map[string]string{"cancel_interview": "cancelled", "no_show": "no_show"}[in.Action]
 			v.Status = "under_review"
-		case "assess":
-			if v.Status != "assessment_scheduled" || v.AssessorID != u.ID || !v.ConflictClear || v.Interview == nil || a.Now().Before(v.Interview.Start) {
-				return domain.Fail(409, "invalid_transition", "The assigned reviewer can assess after the interview starts.")
-			}
-			if len(in.Scores) != 6 || !validText(in.Evidence, 10, 1200) {
-				return domain.Fail(422, "validation", "Record all six scores and assessment evidence.")
-			}
-			for _, score := range in.Scores {
-				if score < 1 || score > 5 {
-					return domain.Fail(422, "validation", "Scores must be from 1 to 5.")
-				}
+		case "decline":
+			if !enum(v.Status, "submitted", "under_review", "assessment_scheduled", "assessed") {
+				return domain.Fail(409, "invalid_transition", "Only pending applications can be rejected.")
 			}
 			if e = a.reserveInterview(ctx, v, true); e != nil {
 				return e
 			}
-			v.Interview.Status = "completed"
-			v.Scores = in.Scores
-			v.Evidence = clean(in.Evidence)
-			v.AssessmentAt = a.Now()
-			v.Status = "assessed"
+			if v.Interview != nil && v.Interview.Status == "scheduled" {
+				v.Interview.Status = "cancelled"
+			}
+			v.Status = "declined"
+			v.Reason = clean(in.Reason)
 		case "approve":
-			if !enum(v.Status, "assessed", "approved") || v.AssessorID != u.ID || !v.ConflictClear {
-				return domain.Fail(409, "invalid_transition", "Only the assigned reviewer can approve or update an approved application.")
+			if !enum(v.Status, "assessment_scheduled", "assessed", "approved") {
+				return domain.Fail(409, "invalid_transition", "Schedule the Google Meet interview before approving this tutor.")
+			}
+			if v.Status != "approved" || !v.Scope.ExpiresAt.After(a.Now()) {
+				if v.Interview == nil || !enum(v.Interview.Status, "scheduled", "completed") || v.Interview.SyncStatus != "ready" || !validInterviewLink(v.Interview) || a.Now().Before(v.Interview.Start) {
+					return domain.Fail(409, "interview_pending", "Approve after the confirmed interview starts.")
+				}
+				if v.Interview.Provider == "google" && (v.InterviewAssessment == nil || v.InterviewAssessment.Recommendation != "approve" || v.InterviewAssessment.MentorID != u.ID || v.Interview.Status != "completed") {
+					return domain.Fail(409, "assessment_required", "Submit an approval recommendation after conducting the Google Meet interview.")
+				}
+				if v.Status == "approved" && !v.Interview.Start.After(v.Scope.ExpiresAt) {
+					return domain.Fail(409, "invalid_transition", "Schedule a new interview to renew an expired approval.")
+				}
 			}
 			if in.MinClass < 1 || in.MaxClass > 12 || in.MinClass > in.MaxClass {
 				return domain.Fail(422, "validation", "Approved classes must be within 1-12.")
@@ -628,15 +643,12 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 				return domain.Fail(422, "validation", "All Subjects approval is limited to Classes 1–5.")
 			}
 			if v.Profile != nil {
-				if v.Profile.NeedsEligibilityReview() && (v.Eligibility == nil || v.Eligibility.Status != "cleared" || v.Eligibility.ReviewedAt == nil) || v.Eligibility != nil && v.Eligibility.Status == "blocked" {
-					return domain.Fail(409, "eligibility_pending", "An administrator must complete the required eligibility review.")
-				}
 				var area domain.RequestedTeachingArea
 				for _, subject := range subjects {
 					var ok bool
 					area, ok = v.Profile.RequestedArea(subject, in.MinClass, in.MaxClass, selectedModes)
 					if !ok {
-						return domain.Fail(409, "requested_scope", "Approve only assessed, requested subject/class/mode combinations.")
+						return domain.Fail(409, "requested_scope", "Approve only requested subject/class/mode combinations.")
 					}
 				}
 				if len(area.Languages) > 0 {
@@ -662,34 +674,24 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			v.Scope.Subjects = subjects
 			v.Scope.Mode = selectedModes[0]
 			v.Scope.Modes = selectedModes
-			mentorID := in.MentorID
 			if !approvedFeePlansComplete(v) {
 				return domain.Fail(409, "fees_pending", "Finalize the tutor's fees before approval.")
 			}
-			if mentorID == "" && u.Role == "mentor" {
-				mentorID = u.ID
+			if v.Interview != nil && v.Interview.Status == "scheduled" {
+				if e = a.reserveInterview(ctx, v, true); e != nil {
+					return e
+				}
+				v.Interview.Status = "completed"
 			}
-			if _, e = storage.One[domain.User](ctx, a.Store, "users", bson.M{"_id": mentorID, "role": "mentor", "$or": activeStaffFilter()["$or"]}); e != nil {
-				return domain.Fail(422, "validation", "Choose the academic mentor who will support this tutor's learners.")
+			if v.Status != "approved" {
+				v.AssessmentAt = a.Now()
 			}
-			v.MentorID = mentorID
+			v.MentorID = u.ID
 			v.Scope.MinClass = in.MinClass
 			v.Scope.MaxClass = in.MaxClass
 			v.Scope.ExpiresAt = a.Now().AddDate(0, 6, 0)
 			v.Status = "approved"
-			v.Reason = clean(in.Reason)
-		case "improve", "decline":
-			if !enum(v.Status, "under_review", "assessment_scheduled", "assessed") || v.AssessorID != u.ID || !v.ConflictClear {
-				return domain.Fail(409, "invalid_transition", "The assigned reviewer must review this application first.")
-			}
-			if e = a.reserveInterview(ctx, v, true); e != nil {
-				return e
-			}
-			if v.Interview != nil && v.Interview.Status == "scheduled" {
-				v.Interview.Status = "cancelled"
-			}
-			v.Status = map[string]string{"improve": "improvement_required", "decline": "declined"}[in.Action]
-			v.Reason = clean(in.Reason)
+			v.Reason = ""
 		case "suspend", "reinstate", "terminate", "reopen":
 			if u.Role != "admin" {
 				return domain.Fail(403, "forbidden", "Tutor access changes require an administrator.")
@@ -716,10 +718,15 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 				}
 				v.Status = "submitted"
 				v.Fees = nil
-				v.AssessorID = ""
+				mentor, err := a.nextApplicationMentor(ctx)
+				if err != nil {
+					return err
+				}
+				v.AssessorID = mentor.ID
 				v.ConflictClear = false
 				v.Scores = nil
 				v.Evidence = ""
+				v.InterviewAssessment = nil
 			}
 			v.Reason = clean(in.Reason)
 			if enum(in.Action, "suspend", "terminate") {
@@ -740,15 +747,15 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			if _, e = a.Store.C("sessions").DeleteMany(ctx, bson.M{"userId": id}); e != nil {
 				return e
 			}
-		case "note":
-			if u.Role != "admin" && v.AssessorID != u.ID {
-				return domain.Fail(403, "forbidden", "Only the assigned reviewer can add notes.")
-			}
 		default:
 			return domain.Fail(422, "validation", "Unknown staff action.")
 		}
-		if previous != nil && previous.Provider == "zoom" && previous.Status == "scheduled" && v.Interview != nil && v.Interview.Status == "cancelled" {
-			if e = a.queueMeeting(ctx, &v, "delete"); e != nil {
+		if previous != nil && previous.Provider != "google" && v.Interview != nil && v.Interview.Status == "cancelled" {
+			v.Interview.JoinURL = ""
+			v.Interview.SyncStatus = "ready"
+		}
+		if previous != nil && previous.Provider == "google" && previous.Status == "scheduled" && v.Interview != nil && v.Interview.Status == "cancelled" {
+			if e = a.queueGoogleInterview(ctx, &v, "delete"); e != nil {
 				return e
 			}
 		}

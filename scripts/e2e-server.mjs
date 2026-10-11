@@ -20,12 +20,13 @@ Object.assign(env, {
   MAIL_PROVIDER: 'disabled',
   MEDIA_PROVIDER: 'disk',
   VIDEO_PROVIDER: 'disk',
-  MEETING_PROVIDER: 'zoom',
-  ZOOM_ACCOUNT_ID: 'test-account',
-  ZOOM_CLIENT_ID: 'test-client',
-  ZOOM_CLIENT_SECRET: 'test-secret',
-  ZOOM_HOST_USER_ID: 'test-host',
-  TEST_ZOOM_ENDPOINT: 'http://127.0.0.1:7999',
+  MEETING_PROVIDER: 'google',
+  INTERVIEW_PROVIDER: 'google',
+  GOOGLE_OAUTH_CLIENT_ID: 'fixture-client',
+  GOOGLE_OAUTH_CLIENT_SECRET: 'fixture-secret',
+  GOOGLE_OAUTH_REDIRECT_URI: 'http://127.0.0.1:5174/api/integrations/google/callback',
+  GOOGLE_TOKEN_KEY: Buffer.alloc(32, 7).toString('base64'),
+  TEST_GOOGLE_ENDPOINT: 'http://127.0.0.1:7996',
   MEDIA_ROOT: resolve(`.local/e2e-files-${Date.now()}`),
   CLAMAV_ADDRESS: '',
   TRIAL_FEE_PAISE: '0',
@@ -79,7 +80,7 @@ await writeFile(
   resolve('.local/e2e-runtime.json'),
   JSON.stringify({ databaseName: env.MONGODB_DATABASE, webOrigin: env.WEB_ORIGIN }),
 )
-start(process.execPath, [resolve('scripts/zoom-test-server.mjs')], resolve('.'))
+start(process.execPath, [resolve('scripts/google-test-server.mjs')], resolve('.'))
 if (process.env.E2E_CLOUDINARY === '1')
   start(process.execPath, [resolve('scripts/cloudinary-test-server.mjs')], resolve('.'))
 await run('go', ['run', './cmd/migrate'], resolve('apps/api'))

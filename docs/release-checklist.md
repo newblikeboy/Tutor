@@ -2,6 +2,8 @@
 
 ## Implemented development capabilities
 
+Google interview release gates: apply the additive `--google-only` migration, configure the independent private `GOOGLE_TOKEN_KEY` and explicit interview provider, verify Google consent audience/test users/scopes/publishing status and exact deployed callback, then run an operator-authorized live mentor/tutor connection/event/conference/reschedule/cancel/assessment/disconnect check. Mocked provider and local MongoDB/browser verification do not satisfy Google's sensitive-scope verification or prove live account eligibility. Preserve disabled API access logs and back up the token encryption key. See [Google interviews](google-interviews.md). No production deployment or live Google meeting was performed during implementation.
+
 - [x] Email/password accounts, Argon2id protection, opaque sessions, Origin/CSRF, ownership and scoped academic approval.
 - [x] Mandatory public signup email OTP before user/credential/session creation, using the durable priority code outbox. Configured SMTP is required; actual Google acceptance/inbox delivery still needs an authorised recipient check. See `email.md` and latest progress for local test evidence.
 - [x] Availability, recurring agreements/classes, authoritative tutor/learner scheduling, holds/expiry, rescheduling/makeup and reviewed lesson evidence.

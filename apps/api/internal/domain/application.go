@@ -155,9 +155,6 @@ func (p TutorApplication) HasMode(mode string) bool {
 	}
 	return false
 }
-func (p TutorApplication) NeedsEligibilityReview() bool {
-	return p.Education.Occupation == "employed_teacher" || p.Education.OutsideWork != "none"
-}
 
 // RequestedArea requires one complete requested area to cover the approved scope.
 // Separate cards must not be combined into an unrequested class/mode combination.

@@ -142,6 +142,9 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 		choice(prefix+"subject", a.Subject, true, "All Subjects", "Mathematics", "Science", "English", "Hindi", "Social Science")
 		number(prefix+"minClass", a.MinClass, 1, 12)
 		number(prefix+"maxClass", a.MaxClass, 1, 12)
+		if a.Subject == domain.AllSubjects && (a.MinClass > 5 || a.MaxClass > 5) {
+			errors[prefix+"maxClass"] = "range"
+		}
 		if a.MinClass > a.MaxClass && a.MaxClass != 0 {
 			errors[prefix+"maxClass"] = "range"
 		}

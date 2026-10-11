@@ -21,7 +21,10 @@ export async function fillStaffFees(page: Page) {
     }
   }
   const saved = page.waitForResponse(
-    (r) => r.url().endsWith('/decision') && r.request().method() === 'POST',
+    (r) =>
+      r.url().endsWith('/decision') &&
+      r.request().method() === 'POST' &&
+      r.request().postDataJSON()?.action === 'fees',
   )
   await form.getByRole('button', { name: 'Save fees' }).click()
   expect((await saved).status()).toBe(200)

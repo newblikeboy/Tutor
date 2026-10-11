@@ -1,6 +1,15 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
+  ArrowRight,
+  Bell,
+  BookOpen,
+  CalendarDays,
+  ClipboardCheck,
+  GraduationCap,
+  Users,
+} from 'lucide-react'
+import {
   api,
   APIError,
   indiaDate,
@@ -15,6 +24,8 @@ import type { WorkspaceView } from '../lib/workspace'
 import LearnerProgressReport from '../components/learner-progress'
 import { TrialCard } from '../components/trial-card'
 import { InterviewCard } from '../components/interview'
+import { LearningMotif } from '../components/learning-motif'
+import { GoogleConnection } from '../components/google-connection'
 import { Alert, Badge, Button, Empty, Field, Loading, LoadError, Status } from '../components/ui'
 import '../styles/tuition.css'
 import '../styles/tutor-workspace.css'
@@ -270,127 +281,166 @@ export default function TutorWorkspace({ data, view }: { data: Dashboard; view: 
     d.enrollments.filter((en) => en.status === 'active').map((en) => en.learnerId),
   )
   return (
-    <div className="teacher-overview">
-      <div className="teacher-primary">
-        <section className="teacher-next">
-          <span className="desk-eyebrow">Next lesson</span>
+    <div className="tutor-home">
+      <section className="teacher-next customer-hero">
+        <div className="customer-hero-copy">
+          <span className="customer-eyebrow">
+            <BookOpen size={17} aria-hidden="true" />
+            Next lesson
+          </span>
           <h2>{next?.name ?? 'No upcoming lessons'}</h2>
-          {next && (
+          {next ? (
             <>
               <p>
                 {next.label} · {next.subject}
               </p>
-              <p>{indiaDate(next.start, 'en')}</p>
-            </>
-          )}
-          <Link className="teacher-next-link" to={next?.link ?? '/availability'}>
-            {next ? 'Open lesson' : 'Set teaching hours'}
-          </Link>
-        </section>
-        <div className="tutor-summary">
-          <Link to="/workspace?view=learners">
-            <strong>{activeLearners.size}</strong>Active learners
-          </Link>
-          <Link to="/workspace?view=sessions&queue=requested">
-            <strong>{trials.filter((t) => t.status === 'requested').length}</strong>Trial requests
-          </Link>
-          <a href="#tutor-follow-up">
-            <strong>{tasks.length}</strong>Follow-up tasks
-          </a>
-        </div>
-        <section className="tu-panel tutor-day">
-          <div className="teacher-section-heading">
-            <h2>Teaching schedule</h2>
-            <Field label="Teaching date">
-              <input type="date" value={date} onChange={(e) => set({ date: e.target.value })} />
-            </Field>
-          </div>
-          <p>Times are shown in India Standard Time.</p>
-          {day.length ? (
-            day.map((s) => (
-              <Link className="tutor-schedule-row" key={s.id} to={s.link}>
-                <div>
-                  <strong>{s.name}</strong>
-                  <p>{s.label}</p>
-                  <time dateTime={s.start}>{indiaDate(s.start, 'en')}</time>
-                </div>
-                <Badge tone={['completed', 'reviewed'].includes(s.status) ? 'teal' : 'neutral'}>
-                  {s.status.replaceAll('_', ' ')}
-                </Badge>
-              </Link>
-            ))
-          ) : (
-            <p>No lessons on this date.</p>
-          )}
-        </section>
-        <section className="tu-panel" id="tutor-follow-up">
-          <h2>Follow-up tasks</h2>
-          {tasks.length ? (
-            tasks.map(({ id, name, start, link, label }) => (
-              <Link className="tutor-schedule-row" key={id} to={link}>
-                <div>
-                  <strong>{name}</strong>
-                  <p>
-                    {label} · {indiaDate(start, 'en')}
-                  </p>
-                </div>
-                <span>Open lesson</span>
-              </Link>
-            ))
-          ) : (
-            <p>All lesson records are up to date.</p>
-          )}
-        </section>
-      </div>
-      <aside className="teacher-secondary">
-        <section className="tu-panel">
-          <h2>Confirmed bookings</h2>
-          <p>Confirmed bookings are ready to teach.</p>
-          {d.notifications.map((n) => (
-            <div className="tutor-booking-alert" key={n.id}>
-              <Link className="text-link" to={`/tuition/${encodeURIComponent(n.targetId)}`}>
-                {byID.get(n.targetId)?.learnerName ?? 'Confirmed booking'}
-              </Link>
-              {byID.get(n.targetId)?.paymentSimulated && (
-                <p>Test booking · No money was charged.</p>
-              )}
-              <p>{indiaDate(n.createdAt, 'en')}</p>
-              <Button variant="text" busy={mark.isPending} onClick={() => mark.mutate(n.id)}>
-                Mark read
-              </Button>
-            </div>
-          ))}
-          {!d.notifications.length && <p>No unread booking alerts.</p>}
-          {mark.error && (
-            <Alert kind="error">Could not mark the alert read. Please try again.</Alert>
-          )}
-          <Link className="text-link" to="/notifications?folder=activity">
-            All activity
-          </Link>
-        </section>
-        <section className="teacher-application">
-          <h2>Approved teaching scope</h2>
-          {application && (
-            <>
-              <Status status={application.status} />
-              <h3>{(application.scope.subjects ?? [application.scope.subject]).join(', ')}</h3>
-              <p>
-                Classes {application.scope.minClass}–{application.scope.maxClass} ·{' '}
-                {(application.scope.modes ?? [application.scope.mode])
-                  .map((m) => (m === 'home' ? 'Home Tuition' : 'Online'))
-                  .join(', ')}
+              <p className="tutor-next-time">
+                <CalendarDays size={16} aria-hidden="true" />
+                <time dateTime={next.start}>{indiaDate(next.start, 'en')}</time>
               </p>
             </>
+          ) : (
+            <p>Your next teaching moment starts with the hours you can offer.</p>
           )}
-          <Link className="teacher-panel-link" to="/apply">
-            My application
+          <Link className="btn primary teacher-next-link" to={next?.link ?? '/availability'}>
+            {next ? 'Open lesson' : 'Set teaching hours'}
+            <ArrowRight size={17} aria-hidden="true" />
           </Link>
-          <Link className="teacher-panel-link" to="/availability">
-            Teaching hours and staff-set fees
-          </Link>
-        </section>
-        {application?.interview && <InterviewCard application={application} />}
-      </aside>
+        </div>
+        <LearningMotif />
+      </section>
+      <nav className="tutor-summary" aria-label="Teaching overview">
+        <Link to="/workspace?view=learners">
+          <Users size={21} aria-hidden="true" />
+          <strong>{activeLearners.size}</strong>
+          <span>Active learners</span>
+          <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+        <Link to="/workspace?view=sessions&queue=requested">
+          <BookOpen size={21} aria-hidden="true" />
+          <strong>{trials.filter((t) => t.status === 'requested').length}</strong>
+          <span>Trial requests</span>
+          <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+        <a href="#tutor-follow-up">
+          <ClipboardCheck size={21} aria-hidden="true" />
+          <strong>{tasks.length}</strong>
+          <span>Follow-up tasks</span>
+          <ArrowRight size={16} aria-hidden="true" />
+        </a>
+      </nav>
+      <div className="teacher-overview">
+        <div className="teacher-primary">
+          <section className="tu-panel tutor-day">
+            <div className="teacher-section-heading">
+              <h2>
+                <CalendarDays size={20} aria-hidden="true" />
+                Teaching schedule
+              </h2>
+              <Field label="Teaching date">
+                <input type="date" value={date} onChange={(e) => set({ date: e.target.value })} />
+              </Field>
+            </div>
+            <p>Times are shown in India Standard Time.</p>
+            {day.length ? (
+              day.map((s) => (
+                <Link className="tutor-schedule-row" key={s.id} to={s.link}>
+                  <div>
+                    <strong>{s.name}</strong>
+                    <p>{s.label}</p>
+                    <time dateTime={s.start}>{indiaDate(s.start, 'en')}</time>
+                  </div>
+                  <Badge tone={['completed', 'reviewed'].includes(s.status) ? 'teal' : 'neutral'}>
+                    {s.status.replaceAll('_', ' ')}
+                  </Badge>
+                </Link>
+              ))
+            ) : (
+              <p>No lessons on this date.</p>
+            )}
+          </section>
+          <section className="tu-panel" id="tutor-follow-up">
+            <h2>
+              <ClipboardCheck size={20} aria-hidden="true" />
+              Follow-up tasks
+            </h2>
+            {tasks.length ? (
+              tasks.map(({ id, name, start, link, label }) => (
+                <Link className="tutor-schedule-row" key={id} to={link}>
+                  <div>
+                    <strong>{name}</strong>
+                    <p>
+                      {label} · {indiaDate(start, 'en')}
+                    </p>
+                  </div>
+                  <span className="tutor-row-action">
+                    Open lesson
+                    <ArrowRight size={16} aria-hidden="true" />
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <p>All lesson records are up to date.</p>
+            )}
+          </section>
+        </div>
+        <aside className="teacher-secondary">
+          <section className="tu-panel">
+            <h2>
+              <Bell size={20} aria-hidden="true" />
+              Confirmed bookings
+            </h2>
+            <p>Confirmed bookings are ready to teach.</p>
+            {d.notifications.map((n) => (
+              <div className="tutor-booking-alert" key={n.id}>
+                <Link className="text-link" to={`/tuition/${encodeURIComponent(n.targetId)}`}>
+                  {byID.get(n.targetId)?.learnerName ?? 'Confirmed booking'}
+                </Link>
+                {byID.get(n.targetId)?.paymentSimulated && (
+                  <p>Test booking · No money was charged.</p>
+                )}
+                <p>{indiaDate(n.createdAt, 'en')}</p>
+                <Button variant="text" busy={mark.isPending} onClick={() => mark.mutate(n.id)}>
+                  Mark read
+                </Button>
+              </div>
+            ))}
+            {!d.notifications.length && <p>No unread booking alerts.</p>}
+            {mark.error && (
+              <Alert kind="error">Could not mark the alert read. Please try again.</Alert>
+            )}
+            <Link className="text-link" to="/notifications?folder=activity">
+              All activity
+            </Link>
+          </section>
+          <section className="teacher-application">
+            <h2>
+              <GraduationCap size={20} aria-hidden="true" />
+              Approved teaching scope
+            </h2>
+            {application && (
+              <>
+                <Status status={application.status} />
+                <h3>{(application.scope.subjects ?? [application.scope.subject]).join(', ')}</h3>
+                <p>
+                  Classes {application.scope.minClass}–{application.scope.maxClass} ·{' '}
+                  {(application.scope.modes ?? [application.scope.mode])
+                    .map((m) => (m === 'home' ? 'Home Tuition' : 'Online'))
+                    .join(', ')}
+                </p>
+              </>
+            )}
+            <Link className="teacher-panel-link" to="/apply">
+              My application
+            </Link>
+            <Link className="teacher-panel-link" to="/availability">
+              Teaching hours and staff-set fees
+            </Link>
+          </section>
+          {application?.interview && <InterviewCard application={application} />}
+          <GoogleConnection />
+        </aside>
+      </div>
     </div>
   )
 }

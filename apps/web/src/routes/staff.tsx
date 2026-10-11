@@ -21,8 +21,17 @@ import {
   UserPlus,
   Users,
   Video,
+  Wallet,
 } from 'lucide-react'
-import { api, indiaDate, queryClient, send, type Application, type Schema } from '../lib/api'
+import {
+  APIError,
+  api,
+  indiaDate,
+  queryClient,
+  send,
+  type Application,
+  type Schema,
+} from '../lib/api'
 import { approvedTutorSubjects, approvedTutorModes, tutorModeLabel } from '../lib/tutors'
 import { initials, workspaceLink, workspaceView } from '../lib/workspace'
 import { useAuth, useConfig } from '../lib/session'
@@ -38,6 +47,7 @@ import {
   Status,
 } from '../components/ui'
 import { InterviewCard } from '../components/interview'
+import { GoogleConnection, GoogleError } from '../components/google-connection'
 import { TutorFees, feeLabel } from '../components/tutor-fees'
 import { PrivateFiles } from './files'
 import { ApplicationScope, ApplicationSummary } from '../components/application-summary'
@@ -87,6 +97,8 @@ export default function StaffWorkspace() {
   const auth = useAuth()
   const [params, setParams] = useSearchParams()
   const role = auth.data!.user.role
+  const mentor = role === 'mentor'
+  const now = useClock()
   const view = workspaceView(role, params.get('view'))
   const application = params.get('application')
   const queueView = role === 'admin' ? 'applications' : 'assessments'
@@ -105,21 +117,69 @@ export default function StaffWorkspace() {
       <div className="desk-page-heading staff-page-heading">
         <div>
           <h1>
-            {application
-              ? t('staffOps.applications')
-              : view === 'overview'
-                ? t('staffOps.title')
-                : t(`desk.nav.${network ? 'tutors' : view === 'interviews' ? queueView : view}`)}
+            {mentor &&
+            (application || view === 'overview' || ['assessments', 'interviews'].includes(view))
+              ? t(
+                  application
+                    ? 'staffOps.mentorReview'
+                    : view === 'overview'
+                      ? 'staffOps.mentorOverview'
+                      : 'staffOps.mentorApplications',
+                )
+              : application
+                ? t('staffOps.applications')
+                : view === 'overview'
+                  ? t('staffOps.adminOverview')
+                  : t(`desk.nav.${network ? 'tutors' : view === 'interviews' ? queueView : view}`)}
           </h1>
+          {mentor && (
+            <p className="mentor-page-description">
+              {t(
+                application
+                  ? 'staffOps.mentorReviewBody'
+                  : view === 'overview'
+                    ? 'staffOps.mentorOverviewBody'
+                    : 'staffOps.mentorApplicationsBody',
+              )}
+            </p>
+          )}
+          {!mentor && view === 'overview' && !application && (
+            <p className="admin-page-description">{t('staffOps.adminOverviewBody')}</p>
+          )}
         </div>
-        <Button
-          variant="secondary"
-          aria-label={t('desk.refresh')}
-          onClick={() => void queryClient.invalidateQueries({ queryKey: ['staff'] })}
-        >
-          <RefreshCw size={18} aria-hidden="true" />
-        </Button>
+        <div className="staff-page-actions">
+          {mentor && view === 'overview' && !application && (
+            <Link className="btn primary" to={workspaceLink('assessments')}>
+              {t('staffOps.mentorReviewAction')}
+              <ArrowRight size={17} aria-hidden="true" />
+            </Link>
+          )}
+          <Button
+            variant="secondary"
+            aria-label={t('desk.refresh')}
+            onClick={() => void queryClient.invalidateQueries({ queryKey: ['staff'] })}
+          >
+            <RefreshCw size={18} aria-hidden="true" />
+            {t('desk.refresh')}
+          </Button>
+        </div>
       </div>
+      {mentor && view === 'overview' && !application && (
+        <p className="mentor-current-date">
+          <CalendarDays size={15} aria-hidden="true" />
+          <time dateTime={new Date(now).toISOString()}>
+            {new Intl.DateTimeFormat('en-IN', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              timeZone: 'Asia/Kolkata',
+            }).format(now)}
+          </time>
+        </p>
+      )}
+      {mentor && (application || ['overview', 'assessments', 'interviews'].includes(view)) && (
+        <GoogleConnection />
+      )}
       {application ? (
         <ApplicationDetail key={application} id={application} />
       ) : view === 'overview' ? (
@@ -155,7 +215,7 @@ export default function StaffWorkspace() {
               value={tab.value}
               active={view === tab.value}
             >
-              <h2 className="sr-only">{tab.label}</h2>
+              <h2 className={mentor ? 'mentor-record-title' : 'admin-record-title'}>{tab.label}</h2>
               {tab.value === 'followups' ? (
                 <Followups />
               ) : (
@@ -673,7 +733,11 @@ function StaffOverview({ queueView }: { queueView: string }) {
   const { t } = useTranslation()
   const auth = useAuth()
   const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'applications' ? 'applications' : 'interviews'
+  const mentor = auth.data!.user.role === 'mentor'
+  const tab =
+    params.get('tab') === 'applications' || (mentor && params.get('tab') !== 'interviews')
+      ? 'applications'
+      : 'interviews'
   const query = useQuery({
     queryKey: ['staff', 'overview'],
     queryFn: ({ signal }) => api<Schema['StaffOverview']>('/staff/overview', { signal }),
@@ -723,65 +787,179 @@ function StaffOverview({ queueView }: { queueView: string }) {
           </Link>
         ))}
       </nav>
-      {followups > 0 && (
+      {mentor && followups > 0 && (
         <Link className="staff-followup-alert" to={workspaceLink('followups')}>
           <ShieldCheck size={22} aria-hidden="true" />
           <span>{t('staffOps.followupCount', { count: followups })}</span>
           <ArrowRight size={18} aria-hidden="true" />
         </Link>
       )}
-      <TabBar
-        id="staff-overview"
-        label={t('staffOps.title')}
-        value={tab}
-        options={[
-          { value: 'interviews', label: t('staffOps.nextInterviews') },
-          { value: 'applications', label: t('staffOps.newQueue') },
-        ]}
-        onChange={(value) => {
-          const next = new URLSearchParams(params)
-          next.set('tab', value)
-          setParams(next)
-        }}
-      />
-      <TabPanel id="staff-overview" value="applications" active={tab === 'applications'}>
-        <section className="staff-panel">
-          <div className="staff-section-title">
-            <h2>{t('staffOps.newQueue')}</h2>
-            <Link to={`/workspace?view=${queueView}`}>
-              {t('staffOps.viewAll')}
-              <ArrowRight size={15} aria-hidden="true" />
+      <div className={mentor ? 'mentor-overview-layout' : 'admin-overview-layout'}>
+        <div className={mentor ? 'mentor-work-queue' : 'admin-work-queue'}>
+          <TabBar
+            id="staff-overview"
+            label={t('staffOps.title')}
+            value={tab}
+            options={
+              mentor
+                ? [
+                    { value: 'applications', label: t('staffOps.mentorNewApplications') },
+                    { value: 'interviews', label: t('staffOps.nextInterviews') },
+                  ]
+                : [
+                    { value: 'interviews', label: t('staffOps.nextInterviews') },
+                    { value: 'applications', label: t('staffOps.newQueue') },
+                  ]
+            }
+            onChange={(value) => {
+              const next = new URLSearchParams(params)
+              next.set('tab', value)
+              setParams(next)
+            }}
+          />
+          <TabPanel id="staff-overview" value="applications" active={tab === 'applications'}>
+            <section className="staff-panel">
+              <div className="staff-section-title">
+                <h2>{t(mentor ? 'staffOps.mentorNewApplications' : 'staffOps.newQueue')}</h2>
+                <Link to={`/workspace?view=${queueView}`}>
+                  {t('staffOps.viewAll')}
+                  <ArrowRight size={15} aria-hidden="true" />
+                </Link>
+              </div>
+              <ApplicationQueue compact kind="applications" />
+            </section>
+          </TabPanel>
+          <TabPanel id="staff-overview" value="interviews" active={tab === 'interviews'}>
+            <section className="staff-panel">
+              <div className="staff-section-title">
+                <h2>{t('staffOps.nextInterviews')}</h2>
+                <CalendarDays size={20} aria-hidden="true" />
+              </div>
+              {upcoming.length ? (
+                <ApplicationRows applications={upcoming} view="interviews" />
+              ) : (
+                <Empty title={t('staffOps.noInterviews')} />
+              )}
+            </section>
+          </TabPanel>
+        </div>
+        {!mentor && (
+          <aside
+            className="staff-panel admin-overview-aside"
+            aria-labelledby="admin-operations-title"
+          >
+            <div className="staff-section-title">
+              <h2 id="admin-operations-title">{t('staffOps.adminOperations')}</h2>
+              <Users size={20} aria-hidden="true" />
+            </div>
+            <Link className="admin-followup-summary" to={workspaceLink('followups')}>
+              <ShieldCheck size={20} aria-hidden="true" />
+              <span>{t('staffOps.adminFollowups')}</span>
+              <strong>{followups}</strong>
+              <ArrowRight size={16} aria-hidden="true" />
             </Link>
-          </div>
-          <ApplicationQueue compact kind="applications" />
-        </section>
-      </TabPanel>
-      <TabPanel id="staff-overview" value="interviews" active={tab === 'interviews'}>
-        <section className="staff-panel">
-          <div className="staff-section-title">
-            <h2>{t('staffOps.nextInterviews')}</h2>
-            <CalendarDays size={20} aria-hidden="true" />
-          </div>
-          {upcoming.length ? (
-            <ApplicationRows applications={upcoming} view="interviews" />
-          ) : (
-            <Empty title={t('staffOps.noInterviews')} />
-          )}
-        </section>
-      </TabPanel>
+            <div className="admin-operation-links">
+              {(
+                [
+                  ['team', 'adminMentorsBody', Users],
+                  ['families', 'adminFamiliesBody', Users],
+                  ['reports', 'adminReportsBody', FileText],
+                ] as const
+              ).map(([target, description, Icon]) => (
+                <Link key={target} to={workspaceLink(target)}>
+                  <Icon size={19} aria-hidden="true" />
+                  <span>
+                    <strong>{t(`desk.nav.${target}`)}</strong>
+                    <small>{t(`staffOps.${description}`)}</small>
+                  </span>
+                  <ArrowRight size={16} aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          </aside>
+        )}
+        {mentor && (
+          <aside className="mentor-overview-aside" aria-label={t('staffOps.mentorApprovalGuide')}>
+            {upcoming[0] && (
+              <section
+                className="mentor-next-interview"
+                aria-labelledby="mentor-next-interview-title"
+              >
+                <div className="staff-section-title">
+                  <h2 id="mentor-next-interview-title">{t('staffOps.mentorNextInterview')}</h2>
+                  <Video size={19} aria-hidden="true" />
+                </div>
+                <p className="mentor-next-name">{upcoming[0].name}</p>
+                {upcoming[0].sample && <p className="staff-sample">{t('sample')}</p>}
+                <InterviewCard application={upcoming[0]} />
+                <Link
+                  className="mentor-open-application"
+                  to={`${applicationURL(upcoming[0].id, queueView)}&tab=review`}
+                >
+                  {t('staffOps.mentorOpenApplication')}
+                  <ArrowRight size={16} aria-hidden="true" />
+                </Link>
+              </section>
+            )}
+            <section
+              className="mentor-approval-guide"
+              aria-labelledby="mentor-approval-guide-title"
+            >
+              <h2 id="mentor-approval-guide-title">{t('staffOps.mentorApprovalGuide')}</h2>
+              <ol>
+                {(
+                  [
+                    ['mentorInterviewGuide', 'mentorInterviewGuideBody', Video],
+                    ['mentorFeesGuide', 'mentorFeesGuideBody', Wallet],
+                    ['mentorScopeGuide', 'mentorScopeGuideBody', ClipboardCheck],
+                  ] as const
+                ).map(([title, body, Icon]) => (
+                  <li key={title}>
+                    <span className="mentor-guide-icon">
+                      <Icon size={18} aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h3>{t(`staffOps.${title}`)}</h3>
+                      <p>{t(`staffOps.${body}`)}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          </aside>
+        )}
+      </div>
     </>
   )
 }
 
 function ApplicationRows({ applications, view }: { applications: Application[]; view: string }) {
   const { t, i18n } = useTranslation()
+  const role = useAuth().data?.user.role
+  const mentor = role === 'mentor'
+  const structured = mentor || role === 'admin'
   const [params] = useSearchParams()
   return (
     <div className="staff-rows">
+      {structured && applications.length > 0 && (
+        <div className={mentor ? 'mentor-list-heading' : 'admin-list-heading'} aria-hidden="true">
+          <span>{t('staffOps.mentorTutorColumn')}</span>
+          <span>{t('staffOps.mentorScopeColumn')}</span>
+          <span>{t('staffOps.status')}</span>
+        </div>
+      )}
       {applications.map((application) => {
         const next = new URLSearchParams(params)
         next.set('view', view)
         next.set('application', application.id)
+        const scope = application.profile
+          ? application.profile.teachingAreas
+              .map(
+                (area) =>
+                  `${t(`applicationForm.${area.subject}`)} ${area.minClass}–${area.maxClass} · ${area.modes.map((m) => t(`applicationForm.${m}`)).join(' / ')}`,
+              )
+              .join('; ')
+          : `${approvedTutorSubjects(application.scope).join(', ')} · ${t('classes')} ${application.scope.minClass}–${application.scope.maxClass}${structured ? ` · ${tutorModeLabel(application.scope, t)}` : ''}`
         return (
           <Link className="staff-row" key={application.id} to={`/workspace?${next}`}>
             <span className="staff-avatar" aria-hidden="true">
@@ -789,27 +967,20 @@ function ApplicationRows({ applications, view }: { applications: Application[]; 
             </span>
             <div className="staff-row-person">
               <strong>{application.name}</strong>
-              <p>
-                {application.profile ? (
-                  application.profile.teachingAreas
-                    .map(
-                      (area) =>
-                        `${t(`applicationForm.${area.subject}`)} ${area.minClass}–${area.maxClass} · ${area.modes.map((m) => t(`applicationForm.${m}`)).join(' / ')}`,
-                    )
-                    .join('; ')
-                ) : (
-                  <>
-                    {approvedTutorSubjects(application.scope).join(', ')} · {t('classes')}{' '}
-                    {application.scope.minClass}–{application.scope.maxClass}
-                  </>
-                )}
-              </p>
+              {structured ? (
+                application.sample && <p className="staff-sample">{t('sample')}</p>
+              ) : (
+                <p>{scope}</p>
+              )}
               {view === 'interviews' && application.interview && (
                 <time dateTime={application.interview.start}>
                   {indiaDate(application.interview.start, i18n.language)}
                 </time>
               )}
             </div>
+            {structured && (
+              <p className={mentor ? 'mentor-row-scope' : 'admin-row-scope'}>{scope}</p>
+            )}
             <Status status={application.status} />
             <ArrowRight size={17} aria-hidden="true" />
           </Link>
@@ -822,6 +993,7 @@ function ApplicationRows({ applications, view }: { applications: Application[]; 
 function ApplicationQueue({ kind, compact = false }: { kind: string; compact?: boolean }) {
   const { t } = useTranslation()
   const auth = useAuth()
+  const mentor = auth.data!.user.role === 'mentor'
   const [params, setParams] = useSearchParams()
   const request = new URLSearchParams({ kind })
   for (const key of ['status', 'q', 'assignee', 'mode']) {
@@ -894,21 +1066,23 @@ function ApplicationQueue({ kind, compact = false }: { kind: string; compact?: b
               </select>
             </Field>
           )}
-          <Field label={t('staffOps.assigneeFilter')}>
-            <select
-              value={params.get('assignee') ?? ''}
-              onChange={(event) => update('assignee', event.target.value)}
-            >
-              <option value="">{t('staffOps.everyone')}</option>
-              <option value="mine">{t('staffOps.mine')}</option>
-            </select>
-          </Field>
+          {!mentor && (
+            <Field label={t('staffOps.assigneeFilter')}>
+              <select
+                value={params.get('assignee') ?? ''}
+                onChange={(event) => update('assignee', event.target.value)}
+              >
+                <option value="">{t('staffOps.everyone')}</option>
+                <option value="mine">{t('staffOps.mine')}</option>
+              </select>
+            </Field>
+          )}
           <Field label={t('applicationForm.requestedMode')}>
             <select
               value={params.get('mode') ?? ''}
               onChange={(event) => update('mode', event.target.value)}
             >
-              <option value="">{t('staffOps.all')}</option>
+              <option value="">{t('staffOps.allTeachingModes')}</option>
               <option value="home">{t('applicationForm.home')}</option>
               <option value="online">{t('applicationForm.online')}</option>
             </select>
@@ -926,6 +1100,16 @@ function ApplicationQueue({ kind, compact = false }: { kind: string; compact?: b
             </Button>
           )}
         </div>
+      )}
+      {mentor && !compact && query.isSuccess && (
+        <p className="mentor-queue-summary">
+          {t('staffOps.mentorLoaded', { count: applications.length })}
+        </p>
+      )}
+      {auth.data!.user.role === 'admin' && !compact && query.isSuccess && (
+        <p className="admin-queue-summary">
+          {t('staffOps.adminLoaded', { count: applications.length })}
+        </p>
       )}
       {query.isPending ? (
         <Loading />
@@ -955,7 +1139,7 @@ function ApplicationQueue({ kind, compact = false }: { kind: string; compact?: b
 }
 
 function ApplicationDetail({ id }: { id: string }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const auth = useAuth()
   const now = useClock()
@@ -1052,151 +1236,109 @@ function ApplicationDetail({ id }: { id: string }) {
           </div>
         </TabPanel>
         <TabPanel id="staff-detail" value="review" active={tab === 'review'} preserve>
-          <div className="staff-detail-grid">
-            <div className="staff-detail-main">
-              <ApplicationScope application={a} />
-              <section className="staff-panel">
-                <h3>{t('staffOps.reviewer')}</h3>
-                <p>{assessor.name || t('staffOps.unassigned')}</p>
-              </section>
+          {!assigned || admin ? <Alert>{t('staffOps.mentorApprovalOnly')}</Alert> : null}
+          <div className="staff-approval-grid">
+            <section className="staff-panel">
+              <h3>
+                {!admin && <Video size={19} aria-hidden="true" />}
+                {t('staffOps.interviewStep')}
+              </h3>
               <InterviewCard application={a} />
-              {a.fees && (
-                <section className="staff-panel">
-                  <h3>{t('tutorFees.title')}</h3>
-                  <TutorFees plans={a.fees.plans} />
-                </section>
-              )}
-              {!!a.scores?.length && (
-                <section className="staff-panel">
-                  <h3>{t('staffOps.assessment')}</h3>
-                  <div className="staff-score-summary">
-                    {(t('scoreLabels', { returnObjects: true }) as string[]).map((label, index) => (
-                      <div key={label}>
-                        <span>{label}</span>
-                        <strong>
-                          {a.scores[index]}
-                          <small> / 5</small>
-                        </strong>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="staff-prose">{a.evidence}</p>
-                </section>
-              )}
-              {a.reason && (
-                <section className="staff-panel">
-                  <h3>{t('staffOps.decision')}</h3>
-                  <p className="staff-prose">{a.reason}</p>
-                  {['approved', 'suspended'].includes(a.status) && (
-                    <p className="muted">
-                      {t('staffOps.reviewDate')}: {indiaDate(a.scope.expiresAt, i18n.language)}
+              {!admin &&
+                assigned &&
+                ['submitted', 'under_review', 'assessed'].includes(a.status) && (
+                  <InterviewForm application={a} />
+                )}
+              {!admin && assigned && a.status === 'assessment_scheduled' && (
+                <>
+                  {a.interview?.provider === 'google' && (
+                    <details>
+                      <summary>{t('staffOps.reschedule')}</summary>
+                      <InterviewForm application={a} reschedule />
+                    </details>
+                  )}
+                  {a.interview?.provider !== 'google' && (
+                    <p>
+                      This is a historical meeting. Cancel this booking before scheduling Google
+                      Meet. Manage any old provider invitation separately.
                     </p>
                   )}
-                </section>
-              )}
-            </div>
-            <aside className="staff-actions" key={a.id} aria-label={t('staffOps.decision')}>
-              {a.profile && (
-                <section className="staff-panel">
-                  <h3>{t('applicationForm.eligibility')}</h3>
-                  <p>{t(`applicationForm.${a.eligibility?.status ?? 'pending'}`)}</p>
-                  {a.eligibility?.reason && <p>{a.eligibility.reason}</p>}
-                  {admin &&
-                    [
-                      'submitted',
-                      'under_review',
-                      'assessment_scheduled',
-                      'assessed',
-                      'improvement_required',
-                    ].includes(a.status) && (
-                      <details
-                        className="staff-eligibility-edit"
-                        open={['pending', 'blocked'].includes(a.eligibility?.status ?? 'pending')}
-                      >
-                        <summary>{t('applicationForm.recordReview')}</summary>
-                        <EligibilityForm application={a} />
-                      </details>
-                    )}
-                </section>
-              )}
-              {a.status === 'submitted' && (
-                <section className="staff-panel">
-                  <h3>{t('staffOps.takeReview')}</h3>
-                  <ReviewForm application={a} />
-                </section>
-              )}
-              {assigned && a.status === 'under_review' && !a.conflictClear && (
-                <section className="staff-panel">
-                  <h3>{t('staffOps.confirmConflict')}</h3>
-                  <ReviewForm application={a} confirm />
-                </section>
-              )}
-              {assigned && a.conflictClear && a.status === 'under_review' && (
-                <section className="staff-panel">
-                  <h3>{t('staffOps.schedule')}</h3>
-                  <InterviewForm application={a} />
-                </section>
-              )}
-              {assigned && a.status === 'assessment_scheduled' && (
-                <>
-                  <section className="staff-panel">
-                    <h3>{t('staffOps.assessment')}</h3>
-                    <AssessmentForm application={a} />
-                  </section>
-                  <details className="staff-panel">
-                    <summary>{t('staffOps.reschedule')}</summary>
-                    <InterviewForm application={a} reschedule />
-                  </details>
                   <ActionDialog application={a} action="cancel_interview" label="cancelInterview" />
                   {a.interview && Date.parse(a.interview.start) <= now && (
                     <ActionDialog application={a} action="no_show" label="noShow" />
                   )}
                 </>
               )}
-              {(admin || assigned) &&
-                ['assessment_scheduled', 'assessed', 'approved', 'suspended'].includes(
-                  a.status,
-                ) && (
-                  <section className="staff-panel">
-                    <h3>{t('tutorFees.title')}</h3>
-                    <FeeForm key={`${a.id}:${a.fees?.version ?? 0}`} application={a} />
-                  </section>
-                )}
-              {assigned && ['assessed', 'approved'].includes(a.status) && (
-                <section className="staff-panel">
-                  <h3>
-                    {t(
-                      a.status === 'approved' ? 'staffOps.updateApprovedScope' : 'staffOps.approve',
-                    )}
-                  </h3>
-                  <ApprovalForm application={a} />
-                </section>
+              {!a.interview && (admin || !assigned) && <p>{t('staffOps.noInterview')}</p>}
+              {a.interview?.provider === 'google' && (
+                <InterviewAssessment application={a} canEdit={!admin && assigned} />
               )}
-              {assigned &&
-                a.conflictClear &&
-                ['under_review', 'assessment_scheduled', 'assessed'].includes(a.status) && (
-                  <div className="staff-action-pair">
-                    <ActionDialog application={a} action="improve" label="improve" />
-                    <ActionDialog application={a} action="decline" label="decline" />
-                  </div>
-                )}
-              {!assigned &&
-                ![
-                  'submitted',
-                  'approved',
-                  'suspended',
-                  'terminated',
-                  'declined',
-                  'improvement_required',
-                ].includes(a.status) && <Alert>{t('staffOps.awaitingReviewer')}</Alert>}
-              {admin &&
-                ['submitted', 'under_review', 'assessment_scheduled'].includes(a.status) && (
-                  <details className="staff-panel">
-                    <summary>{t(assessor.id ? 'staffOps.reassign' : 'staffOps.assign')}</summary>
-                    <AssignmentForm application={a} />
-                  </details>
-                )}
-              {admin && a.status === 'approved' && (
+              {admin && query.data.googleConnection && (
+                <p>
+                  Google integration: {query.data.googleConnection.status.replace(/_/g, ' ')}
+                  {query.data.googleConnection.checkedAt && (
+                    <> · Last checked {indiaDate(query.data.googleConnection.checkedAt, 'en')}</>
+                  )}
+                </p>
+              )}
+            </section>
+            <section className="staff-panel">
+              <h3>
+                {!admin && <Wallet size={19} aria-hidden="true" />}
+                {t('staffOps.feesStep')}
+              </h3>
+              {!admin &&
+              assigned &&
+              [
+                'submitted',
+                'under_review',
+                'assessment_scheduled',
+                'assessed',
+                'approved',
+                'suspended',
+              ].includes(a.status) ? (
+                <FeeForm key={`${a.id}:${a.fees?.version ?? 0}`} application={a} />
+              ) : (
+                <TutorFees plans={a.fees?.plans} />
+              )}
+            </section>
+            <section className="staff-panel">
+              <h3>
+                {!admin && <GraduationCap size={19} aria-hidden="true" />}
+                {t('staffOps.scopeStep')}
+              </h3>
+              {!admin &&
+              assigned &&
+              [
+                'submitted',
+                'under_review',
+                'assessment_scheduled',
+                'assessed',
+                'approved',
+              ].includes(a.status) ? (
+                <ApprovalForm application={a} />
+              ) : (
+                <>
+                  <ApplicationScope application={a} />
+                  {!['approved', 'suspended', 'terminated'].includes(a.status) && (
+                    <p>{t('staffOps.noApprovedScope')}</p>
+                  )}
+                </>
+              )}
+            </section>
+          </div>
+          {admin && (
+            <section className="staff-panel staff-access-actions">
+              <h3>{t('staffOps.accountOperations')}</h3>
+              {['submitted', 'under_review', 'assessment_scheduled', 'assessed'].includes(
+                a.status,
+              ) && (
+                <details>
+                  <summary>{t('staffOps.reassignMentor')}</summary>
+                  <AssignmentForm application={a} />
+                </details>
+              )}
+              {a.status === 'approved' && (
                 <ActionDialog
                   application={a}
                   action="suspend"
@@ -1205,7 +1347,7 @@ function ApplicationDetail({ id }: { id: string }) {
                   danger
                 />
               )}
-              {admin && a.status === 'suspended' && !expired && (
+              {a.status === 'suspended' && !expired && (
                 <ActionDialog
                   application={a}
                   action="reinstate"
@@ -1213,7 +1355,7 @@ function ApplicationDetail({ id }: { id: string }) {
                   description="reinstateBody"
                 />
               )}
-              {admin && ['approved', 'suspended'].includes(a.status) && (
+              {['approved', 'suspended'].includes(a.status) && (
                 <ActionDialog
                   application={a}
                   action="terminate"
@@ -1222,24 +1364,17 @@ function ApplicationDetail({ id }: { id: string }) {
                   danger
                 />
               )}
-              {admin &&
-                (a.status === 'declined' ||
-                  (expired && ['approved', 'suspended'].includes(a.status))) && (
-                  <ActionDialog
-                    application={a}
-                    action="reopen"
-                    label="reopen"
-                    description="reopenBody"
-                  />
-                )}
-              {(admin || assigned) && (
-                <details className="staff-panel">
-                  <summary>{t('staffOps.note')}</summary>
-                  <ReasonForm application={a} action="note" label="addNote" hint="noteHint" />
-                </details>
+              {(a.status === 'declined' ||
+                (expired && ['approved', 'suspended'].includes(a.status))) && (
+                <ActionDialog
+                  application={a}
+                  action="reopen"
+                  label="reopen"
+                  description="reopenBody"
+                />
               )}
-            </aside>
-          </div>
+            </section>
+          )}
         </TabPanel>
         {(admin || assigned) && (
           <TabPanel id="staff-detail" value="documents" active={tab === 'documents'}>
@@ -1257,35 +1392,6 @@ function ApplicationDetail({ id }: { id: string }) {
   )
 }
 
-function ReviewForm({
-  application,
-  confirm = false,
-}: {
-  application: Application
-  confirm?: boolean
-}) {
-  const { t } = useTranslation()
-  const mutation = useDecision(application)
-  return (
-    <form
-      className="form-stack"
-      onSubmit={(event) => {
-        event.preventDefault()
-        mutation.mutate({ action: confirm ? 'confirm_conflict' : 'review', conflictClear: true })
-      }}
-    >
-      <label className="staff-check">
-        <input type="checkbox" required />
-        <span>{t('staffOps.conflictClear')}</span>
-      </label>
-      <MutationError error={mutation.error} />
-      <Button type="submit" busy={mutation.isPending}>
-        {t(confirm ? 'staffOps.confirmConflict' : 'staffOps.takeReview')}
-      </Button>
-    </form>
-  )
-}
-
 function InterviewForm({
   application,
   reschedule = false,
@@ -1298,8 +1404,10 @@ function InterviewForm({
   const mutation = useDecision(application)
   const [start, setStart] = useState(() =>
     new Date(
-      (application.interview ? Date.parse(application.interview.start) : Date.now() + 86_400_000) +
-        19_800_000,
+      Math.max(
+        reschedule && application.interview ? Date.parse(application.interview.start) : 0,
+        Date.now() + 86_400_000,
+      ) + 19_800_000,
     )
       .toISOString()
       .slice(0, 16),
@@ -1312,6 +1420,7 @@ function InterviewForm({
       : 30,
   )
   const [reason, setReason] = useState('')
+  const [notes, setNotes] = useState(application.interview?.notes ?? '')
   return (
     <form
       className="form-stack"
@@ -1328,6 +1437,7 @@ function InterviewForm({
             timezone: 'Asia/Kolkata',
             joinUrl: '',
             status: 'scheduled',
+            notes,
           },
         })
       }}
@@ -1349,7 +1459,14 @@ function InterviewForm({
           ))}
         </select>
       </Field>
-      {!config.data?.meetingsEnabled && <Alert>{t('staffOps.zoomUnconfigured')}</Alert>}
+      <Field label="Interview details (optional, shared with tutor)">
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          maxLength={1000}
+        />
+      </Field>
+      {!config.data?.interviewsEnabled && <Alert>{t('staffOps.meetingUnconfigured')}</Alert>}
       {reschedule && (
         <Field label={t('staffOps.reason')}>
           <textarea
@@ -1361,123 +1478,169 @@ function InterviewForm({
           />
         </Field>
       )}
-      <MutationError error={mutation.error} />
-      <Button
-        type="submit"
-        busy={mutation.isPending}
-        disabled={!config.data?.meetingsEnabled || application.interview?.syncStatus === 'pending'}
-      >
-        {t(reschedule ? 'staffOps.updateZoom' : 'staffOps.createZoom')}
-      </Button>
-    </form>
-  )
-}
-
-function AssessmentForm({ application }: { application: Application }) {
-  const { t } = useTranslation()
-  const mutation = useDecision(application)
-  const [scores, setScores] = useState([0, 0, 0, 0, 0, 0])
-  const [evidence, setEvidence] = useState('')
-  const now = useClock()
-  const future = !!application.interview && Date.parse(application.interview.start) > now
-  return (
-    <form
-      className="form-stack"
-      aria-label={t('staffOps.assessment')}
-      onSubmit={(event) => {
-        event.preventDefault()
-        mutation.mutate({ action: 'assess', scores, evidence })
-      }}
-    >
-      <div className="staff-score-inputs">
-        {(t('scoreLabels', { returnObjects: true }) as string[]).map((label, index) => (
-          <Field label={label} key={label}>
-            <select
-              required
-              value={scores[index] || ''}
-              onChange={(event) =>
-                setScores((old) =>
-                  old.map((score, i) => (i === index ? Number(event.target.value) : score)),
-                )
-              }
-            >
-              <option value="">{t('choose')}</option>
-              {[1, 2, 3, 4, 5].map((score) => (
-                <option key={score} value={score}>
-                  {score} / 5
-                </option>
-              ))}
-            </select>
-          </Field>
-        ))}
-      </div>
-      <Field label={t('evidence')}>
-        <textarea
-          value={evidence}
-          onChange={(event) => setEvidence(event.target.value)}
-          required
-          minLength={10}
-          maxLength={1200}
-        />
-      </Field>
-      <MutationError error={mutation.error} />
-      {future && <p className="muted">{t('staffOps.afterInterview')}</p>}
+      <GoogleError error={mutation.error} />
       <Button
         type="submit"
         busy={mutation.isPending}
         disabled={
-          future ||
-          (!!application.interview?.provider && application.interview.syncStatus !== 'ready')
+          !config.data?.interviewsEnabled || application.interview?.syncStatus === 'pending'
         }
       >
-        {t('staffOps.recordAssessment')}
+        {config.data?.interviewProvider === 'google'
+          ? reschedule
+            ? 'Reschedule Google Meet'
+            : 'Schedule Google Meet'
+          : t(reschedule ? 'staffOps.updateMeeting' : 'staffOps.createMeeting')}
       </Button>
     </form>
   )
 }
 
-function EligibilityForm({ application }: { application: Application }) {
-  const { t } = useTranslation(),
-    mutation = useDecision(application)
-  const [outcome, setOutcome] = useState<'cleared' | 'blocked'>('cleared'),
-    [reason, setReason] = useState('')
+function InterviewAssessment({
+  application,
+  canEdit,
+}: {
+  application: Application
+  canEdit: boolean
+}) {
+  const mutation = useDecision(application)
+  const now = useClock()
+  const [scores, setScores] = useState([0, 0, 0, 0])
+  const [recommendation, setRecommendation] =
+    useState<Schema['AssessmentInput']['recommendation']>('approve')
+  const [comments, setComments] = useState('')
+  const [conducted, setConducted] = useState(false)
+  const saved = application.interviewAssessment
+  if (saved)
+    return (
+      <section className="interview-assessment" aria-label="Interview assessment">
+        <h3>Interview assessment submitted</h3>
+        <p>
+          Recommendation:{' '}
+          {saved.recommendation === 'approve'
+            ? 'Recommend approval'
+            : saved.recommendation === 'reject'
+              ? 'Recommend rejection'
+              : 'Re-interview required'}
+        </p>
+        <p>{saved.comments}</p>
+        <p>
+          {['Subject knowledge', 'Teaching ability', 'Communication', 'Professionalism']
+            .map((name, i) => `${name}: ${saved.scores[i]}/5`)
+            .join(' · ')}
+        </p>
+        <p>
+          Submitted {indiaDate(saved.submittedAt, 'en')}. Use the approval or rejection controls to
+          make the decision.
+        </p>
+      </section>
+    )
+  if (
+    !canEdit ||
+    application.status !== 'assessment_scheduled' ||
+    application.interview?.syncStatus !== 'ready'
+  )
+    return null
+  if (Date.parse(application.interview.start) > now)
+    return (
+      <p>
+        The assessment opens after the scheduled start. Confirm the actual interview before
+        submitting it.
+      </p>
+    )
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        mutation.mutate({ action: 'eligibility', eligibility: outcome, reason })
+      className="form-stack interview-assessment"
+      aria-label="Interview assessment"
+      onSubmit={(event) => {
+        event.preventDefault()
+        mutation.mutate({
+          action: 'interview_assessment',
+          assessment: { scores, recommendation, comments, conducted: true },
+        })
       }}
     >
-      <Field label={t('applicationForm.eligibility')}>
+      <h3>Interview assessment</h3>
+      <p>
+        Record what you observed. Opening the meeting link or reaching the end time does not confirm
+        attendance.
+      </p>
+      <div className="assessment-ratings">
+        {['Subject knowledge', 'Teaching ability', 'Communication skills', 'Professionalism'].map(
+          (name, index) => (
+            <Field key={name} label={name}>
+              <select
+                value={scores[index]}
+                required
+                onChange={(event) =>
+                  setScores(
+                    scores.map((score, i) => (i === index ? Number(event.target.value) : score)),
+                  )
+                }
+              >
+                <option value="">Choose a rating</option>
+                <option value="0" disabled>
+                  Choose a rating
+                </option>
+                {[1, 2, 3, 4, 5].map((score) => (
+                  <option key={score} value={score}>
+                    {score} / 5
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ),
+        )}
+      </div>
+      <Field label="Recommendation">
         <select
-          value={outcome}
-          onChange={(e) => setOutcome(e.target.value as 'cleared' | 'blocked')}
+          value={recommendation}
+          onChange={(event) =>
+            setRecommendation(event.target.value as Schema['AssessmentInput']['recommendation'])
+          }
         >
-          <option value="cleared">{t('applicationForm.cleared')}</option>
-          <option value="blocked">{t('applicationForm.blocked')}</option>
+          <option value="approve">Recommend approval</option>
+          <option value="reject">Recommend rejection</option>
+          <option value="reinterview">Re-interview required</option>
         </select>
       </Field>
-      <Field label={t('applicationForm.reason')}>
+      <Field label="Mentor feedback (visible to tutor)">
         <textarea
-          required
+          value={comments}
+          onChange={(event) => setComments(event.target.value)}
           minLength={10}
           maxLength={1000}
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          required
         />
       </Field>
-      <MutationError error={mutation.error} />
-      <Button busy={mutation.isPending}>{t('applicationForm.recordReview')}</Button>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={conducted}
+          onChange={(event) => setConducted(event.target.checked)}
+          required
+        />
+        I conducted this interview and confirm this assessment.
+      </label>
+      <GoogleError error={mutation.error} />
+      <Button
+        type="submit"
+        busy={mutation.isPending}
+        disabled={!conducted || scores.some((score) => score < 1)}
+      >
+        Submit assessment
+      </Button>
     </form>
   )
 }
+
 function FeeForm({ application }: { application: Application }) {
   const { t } = useTranslation()
   const mutation = useDecision(application)
-  const now = useClock()
   const [plans, setPlans] = useState(() => {
     const modes = new Set(
-      application.profile?.teachingAreas.flatMap((area) => area.modes) ?? [application.scope.mode],
+      application.profile?.teachingAreas.flatMap((area) => area.modes) ??
+        approvedTutorModes(application.scope),
     )
     const choices: Pick<Schema['FeePlan'], 'mode' | 'period'>[] = [
       { mode: 'online', period: 'hour' },
@@ -1500,11 +1663,6 @@ function FeeForm({ application }: { application: Application }) {
   })
   const edit = (index: number, field: 'amount' | 'minutes', value: string) =>
     setPlans((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
-  const waiting =
-    application.status === 'assessment_scheduled' &&
-    (!application.interview ||
-      Date.parse(application.interview.start) > now ||
-      (!!application.interview.provider && application.interview.syncStatus !== 'ready'))
   return (
     <form
       className="form-stack staff-fee-form"
@@ -1524,7 +1682,11 @@ function FeeForm({ application }: { application: Application }) {
       }}
     >
       {plans.map((plan, index) => (
-        <fieldset key={`${plan.mode}:${plan.period}`} disabled={waiting || mutation.isPending}>
+        <fieldset
+          key={`${plan.mode}:${plan.period}`}
+          data-mode={plan.mode}
+          disabled={mutation.isPending}
+        >
           <legend>{t(`tutorFees.${feeLabel(plan)}`)}</legend>
           <Field label={t('tutorFees.amount')}>
             <input
@@ -1538,7 +1700,7 @@ function FeeForm({ application }: { application: Application }) {
             />
           </Field>
           {plan.mode === 'home' && (
-            <div className="staff-score-inputs">
+            <div className="staff-form-columns">
               <Field label={t('tutorFees.classes')}>
                 <input type="number" readOnly value={plan.classes} />
               </Field>
@@ -1557,7 +1719,7 @@ function FeeForm({ application }: { application: Application }) {
         </fieldset>
       ))}
       <MutationError error={mutation.error} />
-      <Button type="submit" busy={mutation.isPending} disabled={waiting || !plans.length}>
+      <Button type="submit" busy={mutation.isPending} disabled={!plans.length}>
         {t('tutorFees.save')}
       </Button>
     </form>
@@ -1567,24 +1729,45 @@ function FeeForm({ application }: { application: Application }) {
 function ApprovalForm({ application }: { application: Application }) {
   const { t } = useTranslation()
   const mutation = useDecision(application)
-  const requestedAreas = application.profile?.teachingAreas.filter(
-    (area) =>
-      area.minClass <= 12 &&
-      area.maxClass >= 1 &&
-      area.modes.some((mode) => mode === 'home' || mode === 'online'),
-  )
+  const requestedAreas = application.profile?.teachingAreas
+    .map((area) => ({
+      ...area,
+      maxClass: Math.min(area.maxClass, area.subject === 'All Subjects' ? 5 : 12),
+    }))
+    .filter(
+      (area) =>
+        area.minClass <= area.maxClass &&
+        area.maxClass >= 1 &&
+        area.modes.some((mode) => mode === 'home' || mode === 'online'),
+    )
   const requestedArea = requestedAreas?.[0]
+  const approved = application.status === 'approved'
+  const now = useClock()
+  const interviewReady =
+    (approved && Date.parse(application.scope.expiresAt) > now) ||
+    (!!application.interview &&
+      application.interview.provider === 'google' &&
+      application.interview.syncStatus === 'ready' &&
+      !!application.interview.joinUrl &&
+      application.interview.status === 'completed' &&
+      Date.parse(application.interview.start) <= now &&
+      application.interviewAssessment?.recommendation === 'approve' &&
+      (!approved ||
+        Date.parse(application.interview.start) > Date.parse(application.scope.expiresAt)))
   const [minClass, setMinClass] = useState(
-    requestedArea ? requestedArea.minClass : application.scope.minClass,
+    !approved && requestedArea ? requestedArea.minClass : application.scope.minClass,
   )
   const [maxClass, setMaxClass] = useState(
-    requestedArea ? requestedArea.maxClass : application.scope.maxClass,
+    !approved && requestedArea ? requestedArea.maxClass : application.scope.maxClass,
   )
   const approvalModes = [
-    ...new Set(requestedAreas?.flatMap((area) => area.modes) ?? [application.scope.mode]),
+    ...new Set(
+      requestedAreas?.flatMap((area) => area.modes) ?? approvedTutorModes(application.scope),
+    ),
   ].filter((mode): mode is 'home' | 'online' => mode === 'home' || mode === 'online')
   const [modes, setModes] = useState<('home' | 'online')[]>(() => {
-    if (requestedArea) return approvalModes.filter((mode) => requestedArea.modes.includes(mode))
+    if (!approved && requestedArea)
+      return approvalModes.filter((mode) => requestedArea.modes.includes(mode))
     const saved = approvedTutorModes(application.scope).filter((mode) =>
       approvalModes.includes(mode),
     )
@@ -1598,22 +1781,27 @@ function ApprovalForm({ application }: { application: Application }) {
     ...new Set(requestedAreas?.map((area) => area.subject) ?? approvedSubjects),
   ]
   const [subjects, setSubjects] = useState<string[]>(
-    requestedArea ? [requestedArea.subject] : approvedSubjects,
+    !approved && requestedArea ? [requestedArea.subject] : approvedSubjects,
   )
-  const [reason, setReason] = useState('')
-  const auth = useAuth()
-  const [mentorId, setMentorId] = useState(
-    application.mentorId || (auth.data!.user.role === 'mentor' ? auth.data!.user.id : ''),
-  )
-  const members = useStaffPage<Schema['StaffMembers']>('/staff/members')
+  const classLimit = subjects.includes('All Subjects') ? 5 : 12
+  const invalidClasses =
+    !Number.isInteger(minClass) ||
+    !Number.isInteger(maxClass) ||
+    minClass < 1 ||
+    minClass > maxClass ||
+    maxClass > classLimit
   if (application.profile && !requestedArea)
-    return <Alert>{t('applicationForm.scopeBoundary')}</Alert>
-  if (application.eligibility && ['pending', 'blocked'].includes(application.eligibility.status))
-    return <Alert>{t('applicationForm.eligibilityPending')}</Alert>
-  if (!application.fees) return <Alert>{t('tutorFees.required')}</Alert>
+    return (
+      <div className="form-stack">
+        <Alert>{t('applicationForm.scopeBoundary')}</Alert>
+        {!approved && (
+          <ActionDialog application={application} action="decline" label="decline" danger />
+        )}
+      </div>
+    )
   return (
     <form
-      className="form-stack"
+      className="form-stack staff-approval-form"
       aria-label={t('staffOps.approve')}
       onSubmit={(event) => {
         event.preventDefault()
@@ -1624,35 +1812,12 @@ function ApprovalForm({ application }: { application: Application }) {
           maxClass,
           mode: modes[0],
           modes,
-          reason,
-          mentorId,
         })
       }}
     >
-      {members.isError ? (
-        <LoadError retry={() => void members.refetch()} />
-      ) : (
-        <Field label={t('staffOps.academicMentor')}>
-          <select value={mentorId} onChange={(event) => setMentorId(event.target.value)} required>
-            <option value="">{t('choose')}</option>
-            {members.data?.pages
-              .flatMap((page) => page.items)
-              .filter((member) => member.role === 'mentor')
-              .map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name}
-                </option>
-              ))}
-          </select>
-        </Field>
-      )}
-      {members.hasNextPage && (
-        <Button type="button" variant="text" onClick={() => void members.fetchNextPage()}>
-          {t('staffOps.more')}
-        </Button>
-      )}
       <fieldset>
         <legend>Approved subjects</legend>
+        {subjectOptions.includes('All Subjects') && <p>{t('applicationForm.allSubjectsLimit')}</p>}
         {subjectOptions.map((subject) => (
           <label className="check-label" key={subject}>
             <input
@@ -1690,12 +1855,12 @@ function ApprovalForm({ application }: { application: Application }) {
           </label>
         ))}
       </fieldset>
-      <div className="staff-score-inputs">
+      <div className="staff-form-columns">
         <Field label={t('minClass')}>
           <input
             type="number"
             min={1}
-            max={12}
+            max={classLimit}
             value={minClass}
             onChange={(event) => setMinClass(Number(event.target.value))}
             required
@@ -1705,27 +1870,42 @@ function ApprovalForm({ application }: { application: Application }) {
           <input
             type="number"
             min={minClass}
-            max={12}
+            max={classLimit}
             value={maxClass}
             onChange={(event) => setMaxClass(Number(event.target.value))}
             required
           />
         </Field>
       </div>
-      <Field label={t('staffOps.reason')} hint={t('staffOps.decisionReason')}>
-        <textarea
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-          required
-          minLength={10}
-          maxLength={1000}
-        />
-      </Field>
-      <MutationError error={mutation.error} />
-      <Button type="submit" busy={mutation.isPending} disabled={!modes.length || !subjects.length}>
-        <Check size={17} aria-hidden="true" />
-        {t(application.status === 'approved' ? 'staffOps.updateApprovedScope' : 'staffOps.approve')}
-      </Button>
+      {!interviewReady && <Alert>{t('staffOps.approvalAfterInterview')}</Alert>}
+      {!application.fees && <Alert>{t('tutorFees.required')}</Alert>}
+      {invalidClasses && (
+        <Alert kind="error">{t('staffOps.approvalClasses', { max: classLimit })}</Alert>
+      )}
+      {mutation.error instanceof APIError && mutation.error.status === 422 ? (
+        <Alert kind="error">{mutation.error.message}</Alert>
+      ) : (
+        <MutationError error={mutation.error} />
+      )}
+      <div className="staff-decision-actions">
+        <Button
+          type="submit"
+          busy={mutation.isPending}
+          disabled={
+            !modes.length ||
+            !subjects.length ||
+            invalidClasses ||
+            !interviewReady ||
+            !application.fees
+          }
+        >
+          <Check size={17} aria-hidden="true" />
+          {t(approved ? 'staffOps.updateApprovedScope' : 'staffOps.approve')}
+        </Button>
+        {!approved && (
+          <ActionDialog application={application} action="decline" label="decline" danger />
+        )}
+      </div>
     </form>
   )
 }
@@ -1748,7 +1928,11 @@ function ActionDialog({
     <Modal
       title={t(`staffOps.${label}`)}
       description={description ? t(`staffOps.${description}`) : t('staffOps.decisionReason')}
-      trigger={<Button variant={danger ? 'danger' : 'secondary'}>{t(`staffOps.${label}`)}</Button>}
+      trigger={
+        <Button type="button" variant={danger ? 'danger' : 'secondary'}>
+          {t(`staffOps.${label}`)}
+        </Button>
+      }
     >
       <ReasonForm application={application} action={action} label={label} danger={danger} />
     </Modal>
@@ -1760,13 +1944,11 @@ function ReasonForm({
   action,
   label,
   danger = false,
-  hint,
 }: {
   application: Application
   action: Decision['action']
   label: string
   danger?: boolean
-  hint?: string
 }) {
   const { t } = useTranslation()
   const mutation = useDecision(application)
@@ -1777,13 +1959,11 @@ function ReasonForm({
       aria-label={t(`staffOps.${label}`)}
       onSubmit={(event) => {
         event.preventDefault()
+        event.stopPropagation()
         mutation.mutate({ action, reason })
       }}
     >
-      <Field
-        label={t(action === 'note' ? 'staffOps.note' : 'staffOps.reason')}
-        hint={hint ? t(`staffOps.${hint}`) : undefined}
-      >
+      <Field label={t('staffOps.reason')}>
         <textarea
           value={reason}
           onChange={(event) => setReason(event.target.value)}
@@ -1828,7 +2008,7 @@ function AssignmentForm({ application }: { application: Application }) {
           <option value="">{t('choose')}</option>
           {query.data.pages
             .flatMap((p) => p.items)
-            .filter((person) => person.id !== application.id)
+            .filter((person) => person.role === 'mentor' && person.status === 'active')
             .map((person) => (
               <option key={person.id} value={person.id}>
                 {person.name}
@@ -1896,6 +2076,33 @@ function History({ application, applicantName }: { application?: string; applica
                   · <time dateTime={event.at}>{indiaDate(event.at, i18n.language)}</time>
                 </p>
                 {event.reason && <blockquote>{event.reason}</blockquote>}
+                {event.action === 'application.interview_assessment' && event.assessment && (
+                  <details>
+                    <summary>Interview feedback and ratings</summary>
+                    <p>
+                      Recommendation:{' '}
+                      {event.assessment.recommendation === 'approve'
+                        ? 'Approval'
+                        : event.assessment.recommendation === 'reject'
+                          ? 'Rejection'
+                          : 'Re-interview'}
+                    </p>
+                    <p className="staff-prose">{event.assessment.comments}</p>
+                    <dl className="staff-facts">
+                      {[
+                        'Subject knowledge',
+                        'Teaching ability',
+                        'Communication',
+                        'Professionalism',
+                      ].map((label, index) => (
+                        <div key={label}>
+                          <dt>{label}</dt>
+                          <dd>{event.assessment?.scores[index]} / 5</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </details>
+                )}
                 {event.action === 'application.fees' && event.fees && (
                   <TutorFees plans={event.fees.plans} />
                 )}

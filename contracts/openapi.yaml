@@ -6657,7 +6657,7 @@
     },
     "/staff/applications/{id}/meeting/retry": {
       "post": {
-        "summary": "Retry or reconcile a failed Zoom meeting operation",
+        "summary": "Retry a failed provider operation; explicitly accept a reviewed Calendar ETag when required",
         "security": [
           {
             "cookieAuth": []
@@ -6687,6 +6687,9 @@
                   "version": {
                     "type": "integer",
                     "minimum": 0
+                  },
+                  "calendarETag": {
+                    "type": "string"
                   }
                 }
               }
@@ -6713,13 +6716,447 @@
             }
           },
           "403": {
-            "description": "Not the assigned reviewer or admin"
+            "description": "Not the assigned mentor"
           },
           "409": {
             "description": "Stale application or operation is not failed"
           },
           "503": {
-            "description": "Zoom is not configured"
+            "description": "Google Meet is not configured"
+          }
+        }
+      }
+    },
+    "/integrations/google": {
+      "get": {
+        "summary": "Assigned host Google Calendar integration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/google/connect": {
+      "post": {
+        "summary": "Assigned host Google Calendar integration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleAuthorization"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/google/disconnect": {
+      "post": {
+        "summary": "Assigned host Google Calendar integration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/google/revoke/retry": {
+      "post": {
+        "summary": "Assigned host Google Calendar integration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/google/lessons": {
+      "get": {
+        "summary": "Assigned host Google Calendar integration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleLessonRecoveryList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/google/lessons/{id}/calendar": {
+      "get": {
+        "summary": "Assigned host Google Calendar integration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarReview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/integrations/google/lessons/{id}/retry": {
+      "post": {
+        "summary": "Assigned host Google Calendar integration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "calendarETag": {
+                    "type": "string"
+                  },
+                  "calendarMissing": {
+                    "type": "boolean"
+                  }
+                },
+                "required": []
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/staff/applications/{id}/meeting/calendar": {
+      "get": {
+        "summary": "Assigned host Google Calendar integration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarReview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/applications/{id}/interview/join": {
+      "get": {
+        "summary": "Assigned host Google Calendar integration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Authorized redirect to the provider-confirmed meeting"
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/integrations/google/callback": {
+      "get": {
+        "summary": "Google callback at /api/integrations/google/callback",
+        "servers": [
+          {
+            "url": "/api"
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Redirect to the initiating host workspace with a fixed outcome code"
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -7165,6 +7602,9 @@
                 "type": "null"
               }
             ]
+          },
+          "interviewAssessment": {
+            "$ref": "#/components/schemas/InterviewAssessment"
           }
         }
       },
@@ -7513,7 +7953,9 @@
           "emailEnabled",
           "videoUploadsEnabled",
           "videoProvider",
-          "meetingsEnabled"
+          "meetingsEnabled",
+          "interviewsEnabled",
+          "interviewProvider"
         ],
         "properties": {
           "appName": {
@@ -7554,6 +7996,16 @@
           },
           "meetingsEnabled": {
             "type": "boolean"
+          },
+          "interviewsEnabled": {
+            "type": "boolean"
+          },
+          "interviewProvider": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "google"
+            ]
           }
         }
       },
@@ -7790,7 +8242,8 @@
               "reopen",
               "note",
               "eligibility",
-              "fees"
+              "fees",
+              "interview_assessment"
             ]
           },
           "version": {
@@ -7873,6 +8326,9 @@
             "items": {
               "$ref": "#/components/schemas/FeePlan"
             }
+          },
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentInput"
           }
         }
       },
@@ -10896,9 +11352,7 @@
           },
           "provider": {
             "type": "string",
-            "enum": [
-              "zoom"
-            ]
+            "description": "Google for active interviews; other values are retained history"
           },
           "syncStatus": {
             "type": "string",
@@ -10907,6 +11361,23 @@
               "ready",
               "failed"
             ]
+          },
+          "mentorName": {
+            "type": "string"
+          },
+          "meetingCode": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "rescheduledAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -11418,6 +11889,9 @@
           },
           "assessor": {
             "$ref": "#/components/schemas/StaffMember"
+          },
+          "googleConnection": {
+            "$ref": "#/components/schemas/GoogleConnection"
           }
         }
       },
@@ -11524,6 +11998,9 @@
                 "type": "null"
               }
             ]
+          },
+          "assessment": {
+            "$ref": "#/components/schemas/InterviewAssessment"
           }
         }
       },
@@ -12331,8 +12808,16 @@
             "enum": [
               "pending",
               "ready",
-              "failed"
+              "failed",
+              "cancelled",
+              "retired"
             ]
+          },
+          "provider": {
+            "type": "string"
+          },
+          "lastError": {
+            "type": "string"
           }
         }
       },
@@ -13110,6 +13595,211 @@
             "minimum": 0
           }
         }
+      },
+      "InterviewAssessment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scores": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "recommendation": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject",
+              "reinterview"
+            ]
+          },
+          "comments": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
+          },
+          "mentorId": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "scores",
+          "recommendation",
+          "comments",
+          "mentorId",
+          "submittedAt"
+        ]
+      },
+      "AssessmentInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scores": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "recommendation": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject",
+              "reinterview"
+            ]
+          },
+          "comments": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
+          },
+          "conducted": {
+            "const": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "scores",
+          "recommendation",
+          "comments",
+          "conducted"
+        ]
+      },
+      "GoogleConnection": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "unconfigured",
+              "disconnected",
+              "connected",
+              "reconnect_required",
+              "unavailable"
+            ]
+          },
+          "email": {
+            "type": "string"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revocationStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "processing",
+              "failed"
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "status"
+        ]
+      },
+      "GoogleAuthorization": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "CalendarReview": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "etag": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "calendarMissing": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "etag",
+          "status",
+          "operation"
+        ]
+      },
+      "GoogleLessonRecovery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "lessonKind": {
+            "type": "string"
+          },
+          "lessonId": {
+            "type": "string"
+          },
+          "lastError": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "operation",
+          "lessonKind",
+          "lessonId",
+          "lastError"
+        ]
+      },
+      "GoogleLessonRecoveryList": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleLessonRecovery"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
       }
     }
   }

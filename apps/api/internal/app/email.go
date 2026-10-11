@@ -76,6 +76,26 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 		d.Support = "support@gocoaching.in"
 	}
 	switch p["event"] {
+	case "interview_update":
+		v, err := storage.One[domain.Application](ctx, a.Store, "applications", bson.M{"_id": p["targetId"]})
+		if err != nil {
+			return d, err
+		}
+		if v.Interview == nil || v.Interview.JobID != p["jobId"] || v.Interview.SyncStatus != "ready" || u.ID != v.ID && u.ID != v.Interview.MentorID {
+			return d, emailSkip("interview_changed")
+		}
+		d.Title = "Tutor interview updated"
+		d.Intro = "Your GoCoaching tutor interview schedule has been updated. Check your account for the current details."
+		if p["operation"] == "delete" {
+			d.Title = "Tutor interview cancelled"
+			d.Intro = "Your GoCoaching tutor interview has been cancelled. The previous meeting link is no longer available in your account."
+		}
+		d.URL = a.Config.Origin + "/workspace"
+		if u.Role == "tutor" {
+			d.URL = a.Config.Origin + "/apply"
+		}
+		d.Action = "View interview"
+		return d, nil
 	case "auth_code":
 		c, err := storage.One[emailChallenge](ctx, a.Store, "email_challenges", bson.M{"_id": p["challengeId"]})
 		if err == mongo.ErrNoDocuments {
@@ -333,7 +353,7 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 	} else if mode == "home" {
 		d.Notice = "View the authorised teaching address in your account. If you need to change the schedule, use the class controls so everyone sees the same update."
 	} else {
-		d.Notice = "Open the lesson in your account to use the protected Zoom join control. It opens 15 minutes before the lesson; a meeting must first be prepared by the tutor."
+		d.Notice = "Open the lesson in your account to use the protected Google Meet join control. It opens 15 minutes before the lesson; a meeting must first be prepared by the tutor."
 	}
 	if simulated {
 		d.Title = "Test booking: " + d.Title

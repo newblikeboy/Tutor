@@ -10,7 +10,7 @@ Object.assign(schemas.Config.properties, {
 for (const key of ['videoUploadsEnabled', 'videoProvider', 'meetingsEnabled'])
   if (!schemas.Config.required.includes(key)) schemas.Config.required.push(key)
 Object.assign(schemas.Interview.properties, {
-  provider: { type: 'string', enum: ['zoom'] },
+  provider: { type: 'string', enum: ['google'] },
   syncStatus: { type: 'string', enum: ['pending', 'ready', 'failed'] },
 })
 schemas.PrivateFile.properties.provider = { type: 'string' }
@@ -30,7 +30,7 @@ playback.responses['206'] = {
 playback.responses['416'] = { description: 'Requested byte range is not satisfiable' }
 spec.paths['/staff/applications/{id}/meeting/retry'] = {
   post: {
-    summary: 'Retry or reconcile a failed Zoom meeting operation',
+    summary: 'Retry or reconcile a failed Google Meet operation',
     security: [{ cookieAuth: [] }],
     parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
     requestBody: {
@@ -55,10 +55,11 @@ spec.paths['/staff/applications/{id}/meeting/retry'] = {
           },
         },
       },
-      403: { description: 'Not the assigned reviewer or admin' },
+      403: { description: 'Not the assigned mentor' },
       409: { description: 'Stale application or operation is not failed' },
-      503: { description: 'Zoom is not configured' },
+      503: { description: 'Google Meet is not configured' },
     },
   },
 }
 writeFileSync(path, JSON.stringify(spec, null, 2) + '\n')
+await import('./google-contract.mjs')

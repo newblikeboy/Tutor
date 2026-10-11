@@ -14,15 +14,16 @@ import (
 )
 
 type Config struct {
-	TestZoomURL                                                                                    string
-	TestCloudinaryURL                                                                              string
-	Env, Name, Addr, Origin, URI, Database, AuthProvider                                           string
-	PaymentProvider, RazorpayKeyID, RazorpaySecret, RazorpayWebhookSecret                          string
-	MediaProvider, MediaRoot, S3Endpoint, S3Region, S3Bucket, S3Key, S3Secret, ScannerAddress      string
-	VideoProvider, CloudinaryCloud, CloudinaryKey, CloudinarySecret                                string
-	MeetingProvider, ZoomAccountID, ZoomClientID, ZoomSecret, ZoomHostID                           string
-	GoogleMapsAPIKey                                                                               string
-	MailProvider, SMTPHost, SMTPPort, SMTPSecurity, SMTPUser, SMTPPassword, SMTPFrom, MailTokenKey string
+	TestGoogleURL                                                                                           string
+	InterviewProvider, GoogleOAuthClientID, GoogleOAuthClientSecret, GoogleOAuthRedirectURI, GoogleTokenKey string
+	TestCloudinaryURL                                                                                       string
+	Env, Name, Addr, Origin, URI, Database, AuthProvider                                                    string
+	PaymentProvider, RazorpayKeyID, RazorpaySecret, RazorpayWebhookSecret                                   string
+	MediaProvider, MediaRoot, S3Endpoint, S3Region, S3Bucket, S3Key, S3Secret, ScannerAddress               string
+	VideoProvider, CloudinaryCloud, CloudinaryKey, CloudinarySecret                                         string
+	MeetingProvider                                                                                         string
+	GoogleMapsAPIKey                                                                                        string
+	MailProvider, SMTPHost, SMTPPort, SMTPSecurity, SMTPUser, SMTPPassword, SMTPFrom, MailTokenKey          string
 }
 
 func env(key, fallback string) string {
@@ -45,8 +46,29 @@ func Load() (Config, error) {
 	c.VideoProvider = env("VIDEO_PROVIDER", "disabled")
 	c.CloudinaryCloud, c.CloudinaryKey, c.CloudinarySecret = os.Getenv("CLOUDINARY_CLOUD_NAME"), os.Getenv("CLOUDINARY_API_KEY"), os.Getenv("CLOUDINARY_API_SECRET")
 	c.MeetingProvider = env("MEETING_PROVIDER", "disabled")
-	c.ZoomAccountID, c.ZoomClientID, c.ZoomSecret, c.ZoomHostID = os.Getenv("ZOOM_ACCOUNT_ID"), os.Getenv("ZOOM_CLIENT_ID"), os.Getenv("ZOOM_CLIENT_SECRET"), os.Getenv("ZOOM_HOST_USER_ID")
-	c.TestZoomURL = os.Getenv("TEST_ZOOM_ENDPOINT")
+	c.InterviewProvider = env("INTERVIEW_PROVIDER", c.MeetingProvider)
+	c.GoogleOAuthClientID, c.GoogleOAuthClientSecret, c.GoogleOAuthRedirectURI, c.GoogleTokenKey = os.Getenv("GOOGLE_OAUTH_CLIENT_ID"), os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"), os.Getenv("GOOGLE_OAUTH_REDIRECT_URI"), os.Getenv("GOOGLE_TOKEN_KEY")
+	if c.InterviewProvider != "disabled" && c.InterviewProvider != "google" {
+		return c, errors.New("invalid interview provider")
+	}
+	if c.InterviewProvider == "google" || c.MeetingProvider == "google" {
+		key, keyErr := base64.StdEncoding.DecodeString(c.GoogleTokenKey)
+		u, e := url.Parse(c.GoogleOAuthRedirectURI)
+		if c.GoogleOAuthClientID == "" || c.GoogleOAuthClientSecret == "" || keyErr != nil || len(key) != 32 || e != nil || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "/api/integrations/google/callback" || (u.Scheme != "https" && !(c.Env != "production" && u.Scheme == "http" && u.Hostname() == "127.0.0.1")) {
+			return c, errors.New("Google meetings require private OAuth client credentials, registered callback URI and base64 32-byte GOOGLE_TOKEN_KEY")
+		}
+		if c.Env == "production" && u.Scheme+"://"+u.Host != c.Origin {
+			return c, errors.New("Google callback must share production WEB_ORIGIN")
+		}
+	}
+
+	c.TestGoogleURL = os.Getenv("TEST_GOOGLE_ENDPOINT")
+	if c.TestGoogleURL != "" {
+		u, e := url.Parse(c.TestGoogleURL)
+		if e != nil || c.Env != "test" || u.Scheme != "http" || u.Hostname() != "127.0.0.1" || u.Port() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+			return c, errors.New("Google fixture endpoint is restricted to loopback in APP_ENV=test")
+		}
+	}
 	c.TestCloudinaryURL = os.Getenv("TEST_CLOUDINARY_ENDPOINT")
 	c.GoogleMapsAPIKey = os.Getenv("GOOGLE_MAPS_API_KEY")
 	c.MailProvider = env("MAIL_PROVIDER", "disabled")
@@ -70,12 +92,6 @@ func Load() (Config, error) {
 			return c, errors.New("Cloudinary fixture endpoint is restricted to loopback in APP_ENV=test")
 		}
 	}
-	if c.TestZoomURL != "" {
-		u, e := url.Parse(c.TestZoomURL)
-		if e != nil || c.Env != "test" || u.Scheme != "http" || u.Hostname() != "127.0.0.1" || u.Port() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
-			return c, errors.New("Zoom fixture endpoint is restricted to loopback in APP_ENV=test")
-		}
-	}
 	if c.VideoProvider != "disabled" && c.VideoProvider != "cloudinary" && c.VideoProvider != "disk" {
 		return c, errors.New("invalid video provider")
 	}
@@ -85,11 +101,8 @@ func Load() (Config, error) {
 	if c.VideoProvider == "disk" && (c.Env == "production" || c.MediaProvider != "disk") {
 		return c, errors.New("disk video storage is an explicit development/test adapter and requires MEDIA_PROVIDER=disk")
 	}
-	if c.MeetingProvider != "disabled" && c.MeetingProvider != "zoom" {
+	if c.MeetingProvider != "disabled" && c.MeetingProvider != "google" {
 		return c, errors.New("invalid meeting provider")
-	}
-	if c.MeetingProvider == "zoom" && (c.ZoomAccountID == "" || c.ZoomClientID == "" || c.ZoomSecret == "" || strings.TrimSpace(c.ZoomHostID) == "") {
-		return c, errors.New("Zoom requires private server-to-server OAuth credentials and a host user ID")
 	}
 	c.S3Endpoint = os.Getenv("S3_ENDPOINT")
 	c.S3Region = os.Getenv("S3_REGION")

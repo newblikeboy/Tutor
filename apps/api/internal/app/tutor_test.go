@@ -106,8 +106,12 @@ func TestMongoTutorWorkspace(t *testing.T) {
 	tutor.ok("POST", "/classes/teach-next/action", map[string]any{"action": "plan_subject", "subject": "Science", "version": 1}, 409)
 	tutor.ok("POST", "/classes/teach-000/action", map[string]any{"action": "progress", "version": 1, "progress": tutorProgressFixture("Mathematics")}, 409)
 	tutor.ok("POST", "/classes/teach-next/meeting", map[string]any{"version": 2}, 503)
-	gateway := &recruitmentMeetings{ambiguous: true}
-	a.Meetings = gateway
+	gateway := installGoogleFixture(t, a, "tutor-arjun")
+	tutor.ok("POST", "/integrations/google/connect", map[string]any{}, 200)
+	legacy := &domain.LessonMeeting{Status: "ready", ID: "historical-provider-event", JobID: "historical-provider-job", JoinURL: "https://retired.example.test/meeting"}
+	update("classes", lesson.ID, bson.M{"meeting": legacy})
+	p.ok("GET", "/classes/teach-next/meeting/join", nil, 409)
+	gateway.ambiguous.Store(true)
 	other.ok("GET", "/classes/teach-next/meeting/join", nil, 404)
 	p.ok("POST", "/classes/teach-next/meeting", map[string]any{"version": 2}, 403)
 	tutor.ok("POST", "/classes/teach-next/meeting", map[string]any{"version": 2}, 200)
@@ -115,22 +119,25 @@ func TestMongoTutorWorkspace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(current.MeetingHistory) != 1 || current.MeetingHistory[0].ID != legacy.ID || current.MeetingHistory[0].JoinURL != legacy.JoinURL || current.Meeting.Provider != "google" {
+		t.Fatal("replacing the retired meeting lost historical metadata")
+	}
 	j, err := storage.One[job](ctx, s, "outbox", bson.M{"_id": current.Meeting.JobID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = a.processMeeting(ctx, j); err == nil {
+	if err = a.processGoogleLesson(ctx, j); err == nil {
 		t.Fatal("ambiguous provider result masked")
 	}
-	gateway.findAvailable = true
-	if err = a.processMeeting(ctx, j); err != nil {
+	gateway.findAvailable.Store(true)
+	if err = a.processGoogleLesson(ctx, j); err != nil {
 		t.Fatal(err)
 	}
-	if gateway.creates != 1 {
+	if gateway.creates.Load() != 1 {
 		t.Fatal("ambiguous create duplicated")
 	}
 	update("outbox", j.ID, bson.M{"status": "done"})
-	if j.Payload["tutorEmail"] != "tutor-arjun@example.test" {
+	if j.Payload["organizerId"] != "tutor-arjun" {
 		t.Fatal("assigned host not attached")
 	}
 	conflicting := domain.Trial{ID: "host-conflict", OwnerID: "parent-b", LearnerID: l.ID, TutorID: en.TutorID, Class: 8, Subject: "Mathematics", Mode: "online", Status: "confirmed", Start: lesson.Start, End: lesson.End}
@@ -151,10 +158,10 @@ func TestMongoTutorWorkspace(t *testing.T) {
 		t.Fatal(err)
 	}
 	tutor.ok("POST", "/trials/cancel-before-provider/action", map[string]any{"action": "cancel"}, 200)
-	if err = a.processMeeting(ctx, queuedJob); err != nil {
+	if err = a.processGoogleLesson(ctx, queuedJob); err != nil {
 		t.Fatal(err)
 	}
-	if gateway.creates != 1 {
+	if gateway.creates.Load() != 1 {
 		t.Fatal("cancelled meeting created anyway")
 	}
 	update("outbox", queuedJob.ID, bson.M{"status": "done"})
@@ -172,7 +179,7 @@ func TestMongoTutorWorkspace(t *testing.T) {
 			t.Fatal("private provider data exposed")
 		}
 	}
-	record := map[string]any{"action": "record", "version": 3, "developmentRecord": true, "attendance": "present", "notes": "Explained the worked examples independently.", "homework": "Complete the next worked examples."}
+	record := map[string]any{"action": "record", "version": 4, "developmentRecord": true, "attendance": "present", "notes": "Explained the worked examples independently.", "homework": "Complete the next worked examples."}
 	tutor.ok("POST", "/classes/teach-next/action", record, 422)
 	record["progress"] = tutorProgressFixture("Science")
 	tutor.ok("POST", "/classes/teach-next/action", record, 200)
@@ -182,14 +189,102 @@ func TestMongoTutorWorkspace(t *testing.T) {
 	if len(currentPage["items"].([]any)) != 0 {
 		t.Fatal("completed package remained a current assignment")
 	}
-	tutor.ok("POST", "/classes/teach-next/action", map[string]any{"action": "progress", "version": 4, "progress": tutorProgressFixture("Science")}, 200)
-	tutor.ok("POST", "/classes/teach-next/action", map[string]any{"action": "propose", "version": 5, "start": a.Now().Add(time.Hour)}, 404)
+	tutor.ok("POST", "/classes/teach-next/action", map[string]any{"action": "progress", "version": 5, "progress": tutorProgressFixture("Science")}, 200)
+	tutor.ok("POST", "/classes/teach-next/action", map[string]any{"action": "propose", "version": 6, "start": a.Now().Add(time.Hour)}, 404)
 	p.ok("GET", "/classes/teach-next/meeting/join", nil, 404)
 	if _, err = a.runJobBatch(ctx, 10); err != nil {
 		t.Fatal(err)
 	}
-	if gateway.deletes != 1 {
+	if gateway.deletes.Load() != 1 {
 		t.Fatal("completed meeting not removed")
+	}
+	// Calendar changes require the owning tutor's explicit reviewed cancellation.
+	gateway.ambiguous.Store(false)
+	cleanup := conflicting
+	cleanup.ID = "calendar-delete-review"
+	cleanup.Start = lesson.Start.Add(4 * time.Hour)
+	cleanup.End = lesson.End.Add(4 * time.Hour)
+	insert("trials", cleanup)
+	tutor.ok("POST", "/trials/"+cleanup.ID+"/meeting", map[string]any{"version": 0}, 200)
+	if _, err = a.runJobBatch(ctx, 10); err != nil {
+		t.Fatal(err)
+	}
+	ready, err := storage.One[domain.Trial](ctx, s, "trials", bson.M{"_id": cleanup.ID})
+	if err != nil || ready.Meeting == nil || ready.Meeting.Status != "ready" {
+		t.Fatal("Google trial was not confirmed", err)
+	}
+	gateway.mu.Lock()
+	changed := gateway.events[ready.Meeting.ID]
+	changed.ETag = "externally-changed"
+	gateway.events[changed.ID] = changed
+	gateway.mu.Unlock()
+	tutor.ok("POST", "/trials/"+cleanup.ID+"/action", map[string]any{"action": "cancel"}, 200)
+	if _, err = a.runJobBatch(ctx, 10); err != nil {
+		t.Fatal(err)
+	}
+	failed, err := storage.One[domain.Trial](ctx, s, "trials", bson.M{"_id": cleanup.ID})
+	if err != nil || failed.Meeting.LastError != "google_calendar_conflict" {
+		t.Fatal("external edit was overwritten", err)
+	}
+	path := "/integrations/google/lessons/" + failed.Meeting.JobID
+	update("applications", "tutor-arjun", bson.M{"status": "suspended"})
+	tutor.ok("POST", "/integrations/google/connect", map[string]any{}, 200)
+	tutor.ok("POST", "/trials/host-conflict/meeting", map[string]any{"version": 0}, 403)
+	p.ok("GET", path+"/calendar", nil, 403)
+	old.ok("GET", path+"/calendar", nil, 404)
+	tutor.ok("POST", path+"/retry", map[string]any{}, 409)
+	review := tutor.ok("GET", path+"/calendar", nil, 200)
+	tutor.ok("POST", path+"/retry", map[string]any{"calendarETag": "stale"}, 409)
+	tutor.ok("POST", path+"/retry", map[string]any{"calendarETag": review["etag"]}, 200)
+	if _, err = a.runJobBatch(ctx, 10); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := storage.One[domain.Trial](ctx, s, "trials", bson.M{"_id": cleanup.ID})
+	if err != nil || resolved.Meeting.Status != "cancelled" || resolved.Meeting.LastError != "" || resolved.Meeting.JoinURL != "" {
+		t.Fatal("cancellation recovery retained active meeting state", err)
+	}
+	// A provider deletion followed by a lost database acknowledgement must remain recoverable.
+	update("outbox", resolved.Meeting.JobID, bson.M{"status": "failed", "lastError": "google_calendar_conflict"})
+	update("trials", cleanup.ID, bson.M{"meeting.status": "failed", "meeting.lastError": "google_calendar_conflict"})
+	missing := tutor.ok("GET", path+"/calendar", nil, 200)
+	if missing["calendarMissing"] != true {
+		t.Fatal("missing event was not surfaced for confirmation")
+	}
+	tutor.ok("POST", path+"/retry", map[string]any{}, 409)
+	tutor.ok("POST", path+"/retry", map[string]any{"calendarMissing": true}, 200)
+	resolved, err = storage.One[domain.Trial](ctx, s, "trials", bson.M{"_id": cleanup.ID})
+	if err != nil || resolved.Meeting.Status != "cancelled" || resolved.Meeting.LastError != "" {
+		t.Fatal("missing-event cleanup could not finish", err)
+	}
+	update("applications", "tutor-arjun", bson.M{"status": "approved"})
+	// Pausing approval before dispatch must expose a retryable operation, never a stuck pending meeting.
+	deferred := conflicting
+	deferred.ID = "approval-paused-before-provider"
+	deferred.Start = lesson.Start.Add(6 * time.Hour)
+	deferred.End = lesson.End.Add(6 * time.Hour)
+	insert("trials", deferred)
+	tutor.ok("POST", "/trials/"+deferred.ID+"/meeting", map[string]any{"version": 0}, 200)
+	beforeCreates := gateway.creates.Load()
+	update("applications", "tutor-arjun", bson.M{"status": "suspended"})
+	if _, err = a.runJobBatch(ctx, 10); err != nil {
+		t.Fatal(err)
+	}
+	pausedMeeting, err := storage.One[domain.Trial](ctx, s, "trials", bson.M{"_id": deferred.ID})
+	if err != nil || pausedMeeting.Meeting.Status != "failed" || gateway.creates.Load() != beforeCreates {
+		t.Fatal("paused teaching access created or stranded a meeting", err)
+	}
+	update("applications", "tutor-arjun", bson.M{"status": "approved"})
+	tutor.ok("POST", "/trials/"+deferred.ID+"/meeting", map[string]any{"version": 0}, 200)
+	if _, err = a.runJobBatch(ctx, 10); err != nil {
+		t.Fatal(err)
+	}
+	resumed, err := storage.One[domain.Trial](ctx, s, "trials", bson.M{"_id": deferred.ID})
+	if err != nil || resumed.Meeting.Status != "ready" || gateway.creates.Load() != beforeCreates+1 {
+		t.Fatal("restored approval could not resume the same meeting operation", err)
+	}
+	tutor.ok("POST", "/trials/"+deferred.ID+"/action", map[string]any{"action": "cancel"}, 200)
+	if _, err = a.runJobBatch(ctx, 10); err != nil {
+		t.Fatal(err)
 	}
 	feedback := conflicting
 	feedback.ID = "feedback-correction"

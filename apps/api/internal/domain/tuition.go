@@ -65,6 +65,7 @@ type ClassSession struct {
 	PlannedSubject string            `json:"plannedSubject,omitempty" bson:"plannedSubject,omitempty"`
 	RecordedAt     *time.Time        `json:"recordedAt,omitempty" bson:"recordedAt,omitempty"`
 	Meeting        *LessonMeeting    `json:"meeting,omitempty" bson:"meeting,omitempty"`
+	MeetingHistory []LessonMeeting   `json:"-" bson:"meetingHistory,omitempty"`
 	Progress       *ClassProgress    `json:"progress,omitempty" bson:"progress,omitempty"`
 	ID             string            `json:"id" bson:"_id"`
 	EnrollmentID   string            `json:"enrollmentId" bson:"enrollmentId"`

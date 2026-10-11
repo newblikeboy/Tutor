@@ -252,11 +252,7 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 			result.Scores = nil
 			result.Evidence = ""
 			result.Submission = &domain.ApplicationReceipt{NoticeVersion: domain.ApplicationNoticeVersion, At: a.Now(), Marketing: in.Profile.Declarations.Marketing}
-			status := "not_required"
-			if in.Profile.NeedsEligibilityReview() {
-				status = "pending"
-			}
-			result.Eligibility = &domain.EligibilityReview{Status: status}
+			result.Eligibility = nil
 		}
 		if _, err = a.Store.C("applications").ReplaceOne(ctx, bson.M{"_id": u.ID}, result, options.Replace().SetUpsert(true)); err != nil {
 			return err

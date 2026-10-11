@@ -1,3 +1,4 @@
+import { connectGoogle, conductInterview } from './helpers/google'
 import { fillApplication, fillStaffFees } from './helpers/application'
 import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
@@ -72,46 +73,29 @@ test('complete application → scoped approval → requirement → trial → rev
   const publicResponse = await tutor.request.get('/api/v1/tutors')
   expect((await publicResponse.json()).some((v: { id: string }) => v.id === 'tutor-a')).toBe(false)
   await login(mentor, 'mentor-a', true)
+  await connectGoogle(mentor)
+  await mentor.goto('/workspace?view=assessments')
   await mentor.locator('.staff-row').filter({ hasText: 'Kavya · fictional tutor' }).click()
   const application = mentor.locator('article.staff-detail')
   await application.getByRole('tab', { name: 'Review & decision', exact: true }).click()
-  await application.getByRole('checkbox', { name: 'I have no conflict of interest' }).check()
-  await application.getByRole('button', { name: 'Start review', exact: true }).click()
   await application
     .getByLabel('Interview date and time (IST)')
-    .fill(new Date(Date.now() - 60_000 + 19_800_000).toISOString().slice(0, 16))
-  await application.getByRole('button', { name: 'Create Zoom meeting', exact: true }).click()
-  await expect(application.getByRole('link', { name: 'Join Zoom meeting' })).toBeVisible()
-  for (const label of [
-    'Subject knowledge',
-    'Explanation',
-    'Misconceptions',
-    'Patience',
-    'Planning',
-    'Reliability',
-  ])
-    await application.getByLabel(label, { exact: true }).selectOption('4')
-  await application
-    .getByLabel('Assessment evidence', { exact: true })
-    .fill(
-      'Explained equivalent fractions with a number line and checked the denominator misconception.',
-    )
-  await capture(mentor, 'mentor-scorecard-en-desktop')
+    .fill(new Date(Date.now() + 120_000 + 19_800_000).toISOString().slice(0, 16))
+  await application.getByRole('button', { name: 'Schedule Google Meet', exact: true }).click()
+  await expect(application.getByRole('link', { name: 'Join Meeting' })).toBeVisible()
+  await capture(mentor, 'mentor-approval-en-desktop')
   await axe(mentor)
   await mentor.setViewportSize({ width: 390, height: 844 })
-  await capture(mentor, 'mentor-scorecard-en-mobile')
+  await capture(mentor, 'mentor-approval-en-mobile')
   await expect(mentor.locator('.language-button')).toHaveCount(0)
-  await capture(mentor, 'mentor-scorecard-en-mobile')
+  await capture(mentor, 'mentor-approval-en-mobile')
   await axe(mentor)
   await expect(mentor.locator('.language-button')).toHaveCount(0)
   await mentor.setViewportSize({ width: 1440, height: 1000 })
-  await application.getByRole('button', { name: 'Save assessment', exact: true }).click()
+  await conductInterview(mentor, 'tutor-a')
   await fillStaffFees(mentor)
   await application.getByLabel('From class').fill('8')
   await application.getByLabel('To class').fill('8')
-  await application
-    .getByLabel('Reason / feedback', { exact: true })
-    .fill('The observed explanation and learner checks support class eight online Mathematics.')
   await application.getByRole('button', { name: 'Approve tutor', exact: true }).click()
   await expect(application.getByText('Approved', { exact: true })).toBeVisible()
   await login(parent, 'parent-a')

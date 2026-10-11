@@ -3,7 +3,7 @@ package config
 import "testing"
 
 func TestExplicitPaymentSimulationConfiguration(t *testing.T) {
-	for k, v := range map[string]string{"MONGODB_URI": "mongodb://127.0.0.1", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "simulation", "MAIL_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "HTTP_ADDR": "127.0.0.1:8080", "WEB_ORIGIN": "https://example.invalid", "TRIAL_FEE_PAISE": "0", "TEST_ZOOM_ENDPOINT": "", "TEST_CLOUDINARY_ENDPOINT": "", "RAZORPAY_KEY_ID": "", "RAZORPAY_KEY_SECRET": "", "RAZORPAY_WEBHOOK_SECRET": ""} {
+	for k, v := range map[string]string{"MONGODB_URI": "mongodb://127.0.0.1", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "simulation", "MAIL_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "HTTP_ADDR": "127.0.0.1:8080", "WEB_ORIGIN": "https://example.invalid", "TRIAL_FEE_PAISE": "0", "TEST_CLOUDINARY_ENDPOINT": "", "RAZORPAY_KEY_ID": "", "RAZORPAY_KEY_SECRET": "", "RAZORPAY_WEBHOOK_SECRET": ""} {
 		t.Setenv(k, v)
 	}
 	for _, environment := range []string{"test", "development", "production"} {
@@ -23,7 +23,7 @@ func TestExplicitPaymentSimulationConfiguration(t *testing.T) {
 }
 
 func TestRecruitmentProviderConfiguration(t *testing.T) {
-	for k, v := range map[string]string{"MONGODB_URI": "mongodb://localhost", "APP_ENV": "test", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "CLAMAV_ADDRESS": "", "TRIAL_FEE_PAISE": "0", "TEST_ZOOM_ENDPOINT": ""} {
+	for k, v := range map[string]string{"MONGODB_URI": "mongodb://localhost", "APP_ENV": "test", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "CLAMAV_ADDRESS": "", "TRIAL_FEE_PAISE": "0"} {
 		t.Setenv(k, v)
 	}
 	t.Setenv("VIDEO_PROVIDER", "cloudinary")
@@ -39,7 +39,7 @@ func TestRecruitmentProviderConfiguration(t *testing.T) {
 	if _, e := Load(); e != nil {
 		t.Fatal(e)
 	}
-	t.Setenv("MEETING_PROVIDER", "zoom")
+	t.Setenv("MEETING_PROVIDER", "disabled")
 	t.Run("document-only Cloudinary requires credentials", func(t *testing.T) {
 		t.Setenv("MEETING_PROVIDER", "disabled")
 		t.Setenv("VIDEO_PROVIDER", "disabled")
@@ -52,24 +52,11 @@ func TestRecruitmentProviderConfiguration(t *testing.T) {
 			t.Fatal("document storage accepted without credentials")
 		}
 	})
-	for _, k := range []string{"ZOOM_ACCOUNT_ID", "ZOOM_CLIENT_ID", "ZOOM_CLIENT_SECRET", "ZOOM_HOST_USER_ID"} {
-		t.Setenv(k, "")
-	}
+	t.Setenv("MEETING_PROVIDER", "zoom")
 	if _, e := Load(); e == nil {
-		t.Fatal("unconfigured Zoom accepted")
+		t.Fatal("retired provider accepted")
 	}
-	for _, k := range []string{"ZOOM_ACCOUNT_ID", "ZOOM_CLIENT_ID", "ZOOM_CLIENT_SECRET", "ZOOM_HOST_USER_ID"} {
-		t.Setenv(k, "test-only")
-	}
-	t.Setenv("TEST_ZOOM_ENDPOINT", "http://127.0.0.1:7999")
-	if _, e := Load(); e != nil {
-		t.Fatal(e)
-	}
-	t.Setenv("APP_ENV", "development")
-	if _, e := Load(); e == nil {
-		t.Fatal("test provider override accepted outside tests")
-	}
-	t.Setenv("TEST_ZOOM_ENDPOINT", "")
+	t.Setenv("MEETING_PROVIDER", "disabled")
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("AUTH_PROVIDER", "disabled")
 	t.Setenv("WEB_ORIGIN", "https://example.test")
@@ -87,7 +74,6 @@ func TestProductionPasswordConfiguration(t *testing.T) {
 	t.Setenv("HTTP_ADDR", "127.0.0.1:8080")
 	t.Setenv("VIDEO_PROVIDER", "disabled")
 	t.Setenv("MEETING_PROVIDER", "disabled")
-	t.Setenv("TEST_ZOOM_ENDPOINT", "")
 	t.Setenv("TEST_CLOUDINARY_ENDPOINT", "")
 	t.Setenv("TRIAL_FEE_PAISE", "0")
 	t.Setenv("WEB_ORIGIN", "https://example.invalid")
@@ -162,7 +148,7 @@ func TestIntegrationConfigurationFailsClosed(t *testing.T) {
 }
 
 func TestCloudinaryFixtureRestrictedToTests(t *testing.T) {
-	for k, v := range map[string]string{"MONGODB_URI": "mongodb://localhost", "APP_ENV": "test", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "CLAMAV_ADDRESS": "", "TEST_ZOOM_ENDPOINT": "", "TRIAL_FEE_PAISE": "0"} {
+	for k, v := range map[string]string{"MONGODB_URI": "mongodb://localhost", "APP_ENV": "test", "AUTH_PROVIDER": "password", "PAYMENT_PROVIDER": "disabled", "MEDIA_PROVIDER": "disabled", "VIDEO_PROVIDER": "disabled", "MEETING_PROVIDER": "disabled", "CLAMAV_ADDRESS": "", "TRIAL_FEE_PAISE": "0"} {
 		t.Setenv(k, v)
 	}
 	for _, endpoint := range []string{"https://cloudinary.example", "http://localhost:7998", "http://127.0.0.1:7998/path", "http://127.0.0.1:7998?key=x", "http://user:password@127.0.0.1:7998"} {

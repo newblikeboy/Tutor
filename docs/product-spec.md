@@ -1,4 +1,9 @@
 # CODEX MASTER BUILD PROMPT
+
+> User meeting-provider override (2026-10-11, latest): remove Zoom integration completely and use Google Meet for tutor interviews and online teaching lessons. Preserve historical meeting metadata/audits, existing OAuth credentials/callback, immutable agreements and all assignment/scope/payment/session gates. Tutors host through their own encrypted Google authorization; Calendar jobs are durable, join access is checked and conditional cancellation supports explicit conflict recovery. No legacy Zoom jobs or join controls execute. See `docs/google-lessons.md` and `docs/google-interviews.md`.
+
+> User tutor decision clarification (2026-10-11, latest): the assigned mentor needs explicit **Approve tutor** and **Reject application** buttons. Keep approval prerequisites; rejection needs applicant-visible feedback and cancels any scheduled Zoom appointment transactionally through the durable worker. Admins cannot approve or reject applications. This restores rejection in the simplified three-section workflow.
+> User tutor-approval override (2026-10-11, latest): after automatic assignment on submission, only the assigned active mentor arranges the Zoom interview, finalizes fees and approves subject/class/teaching-mode scope. Remove conflict confirmation, six-score assessment/evidence, separate employment clearance, internal notes, approval reasons and additional mentor selection from this workflow. Admins can route pending applications and manage existing account access but cannot make new academic approvals. Keep confirmed-provider meeting/time gates, requested scopes, immutable agreements, sessions/CSRF, versions and retained history. See `staff-operations.md`.
 > User signup override (2026-10-10, latest): public parent/tutor signup requires email OTP verification before account creation. Sending a code creates only a pending challenge/outbox job. A valid, matching, unexpired single-use code completes account creation and sign-in atomically; SMTP must be configured. Guardian verification and tutor approval remain separate. See `email.md`.
 > User temporary payment override (2026-10-10, latest): explicitly configured `PAYMENT_PROVIDER=simulation` is authorised for testing regular bookings without Razorpay keys, including with production HTTPS/password settings. Go persists simulated captures in MongoDB and confirms eligible held classes; UI, retained records and emails label test bookings. Simulation does not create real collections, tutor earnings, refunds or paid invoices. Retain scope/ownership/CSRF/reservation checks and the independent verified Razorpay path. Missing keys never implicitly enable simulation. See `payments.md`.
 > User email override (2026-10-10, latest): SMTP email verification, password recovery and parent/tutor email-code login are authorised alongside existing passwords. Staff login stays password-only. Brand all utility emails GoCoaching; trial/regular-booking updates go to both participants, with confirmed-class reminders 24 hours and 1 hour beforehand. Google Workspace sender/login is support@gocoaching.in. Email control does not establish guardian verification or tutor approval; regular confirmation still requires verified payment. See `email.md`.
@@ -12,6 +17,8 @@
 > User staff-auth override (2026-09-25): the operator explicitly selected email/password-only login for provisioned staff, overriding the earlier mandatory staff MFA requirement. Public signup remains parent/tutor only; preserve least-privilege role/assignment checks, rate limits, Secure sessions, CSRF and sample-account rejection. Guardian and payment boundaries remain unchanged.
 > User deployment override (2026-09-25): production email/password signup/login is enabled for non-sample parents and tutors when explicitly configured. This supersedes the blanket production-auth restriction for these roles only. Preserve HTTPS/Secure sessions, Origin/CSRF, rate limits, tutor approval, staff MFA, guardian-verification and payment boundaries. See `production-auth.md`.
 > User media override (2026-09-25): direct browser uploads to authenticated Cloudinary for images, PDFs and videos; MongoDB stores the provider URL and ownership/file metadata only. Cloudinary delivery handles viewing and MP4 streaming. Remove the local ClamAV requirement for this flow, retain scoped authorisation, and never label unscanned files as scanned. This overrides the earlier mandatory-quarantine language for Cloudinary.
+
+> User Google interview request (2026-10-11, latest): connect each mentor's own Google account, create and synchronize Meet interviews using Calendar, and record explicit conducted confirmation with four ratings and a recommendation before new Google-based approval. Preserve assigned-mentor-only academic decisions, existing fees/scope/version/session/CSRF gates and historical Zoom records. Zoom teaching lessons remain independently configured. This requested manual assessment supersedes the earlier no-scorecard override for Google interviews only. No live Google meetings or production deployment during implementation. See `google-interviews.md`.
 
 ## Trusted tutor platform for Purnea | Go + React + MongoDB Atlas
 
@@ -160,7 +167,7 @@ Implement these as working, connected workflows:
 Implement:
 - Application with education, experience, intended subjects/classes, languages, mode, service areas, availability, eligibility declarations, and relevant documents.
 - Introduction/sample explanation upload with no requirement to film real children.
-- Assessment scheduling, stage tracking, evaluator feedback, improvement tasks, and reassessment request.
+- Mentor-run Zoom interview scheduling, stage tracking, saved fees and subject/class/teaching-mode approval. Retain historical feedback and improvement records.
 - Approved scope management; material profile/scope changes require review before becoming public.
 - Precise approval badges generated from real records, never self-awarded.
 - Recurring availability, exceptions/leave, home-tuition travel buffers, capacity limits, and pauses in accepting students.
@@ -177,9 +184,10 @@ Tutors cannot browse all children, export parent leads, self-approve, view unrel
 Implement least-privilege roles for academic assessors/mentors, support, finance, and administrators; do not make every employee a superadmin.
 
 Academic workflows:
-- Assign appropriately scoped assessors and record conflicts; nobody assesses or approves themselves.
-- Structured scorecards for subject knowledge, explanation, identifying misconceptions, patience, planning, and reliability.
-- Assessment decisions, reasons, evidence references, approved scope, review dates, and reassessment.
+- Automatically assign an active mentor to submitted applications; admins may route pending applications to active mentors. Nobody approves themselves.
+- Only the assigned mentor arranges the Zoom interview, finalizes fees and approves requested subject/class/teaching-mode scope. No separate scorecard, conflict confirmation, employment clearance, internal note, approval reason or additional mentor selector.
+- Show explicit Approve tutor and Reject application buttons for pending applications. Rejection records applicant-visible feedback and releases/cancels the scheduled interview; admin approval/rejection remains denied.
+- Preserve historical decisions/evidence, approved scopes, review dates and new-interview requirements for expired approval.
 - Initial learner assessment and versioned learning plans.
 - Mentor assignment, progress review, improvement actions, and overdue-review queues.
 - Human review of concerns; no automatic tutor-quality conclusions from one score or complaint.
@@ -214,7 +222,7 @@ Provide versioned consent/privacy records and operator-review checklists for chi
 Model state transitions explicitly on the server. Document allowed actors, prerequisites, side effects, and audit events.
 
 Tutor application example:
-draft → submitted → under_review → assessment_scheduled → assessed → approved / improvement_required / declined.
+draft → submitted (assigned mentor) → assessment_scheduled (confirmed Zoom) → approved (saved fees and scoped mentor decision). Historical under_review/assessed/improvement_required/declined records remain readable; cancellation/no-show returns to under_review for rescheduling. Existing approved scopes can be updated by the assigned mentor; expired approvals require reopening and a new Zoom interview.
 Published tutor status and individual approval scopes must separately support pause, expiry, suspension, and revocation.
 
 Trial/booking:

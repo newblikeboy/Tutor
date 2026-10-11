@@ -1,11 +1,46 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"net/http"
+	"net/http/cookiejar"
+	"net/http/httptest"
 	"testing"
 	"time"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/storage"
 )
+
+// Confirm the test provider event, then explicitly submit a test assessment only after its start.
+func finishTestInterview(t *testing.T, a *App, id string) {
+	t.Helper()
+	ctx := context.Background()
+	v, err := storage.One[domain.Application](ctx, a.Store, "applications", bson.M{"_id": id})
+	if err != nil {
+		t.Fatal(err)
+	}
+	j, err := storage.One[job](ctx, a.Store, "outbox", bson.M{"_id": v.Interview.JobID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = a.processGoogleInterview(ctx, j); err != nil {
+		t.Fatal(err)
+	}
+	v, err = storage.One[domain.Application](ctx, a.Store, "applications", bson.M{"_id": id})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Interview.Status == "scheduled" && !a.Now().Before(v.Interview.Start) {
+		server := httptest.NewServer(a.Routes())
+		defer server.Close()
+		jar, _ := cookiejar.New(nil)
+		client := &testClient{t: t, http: &http.Client{Jar: jar, Timeout: 30 * time.Second}, base: server.URL}
+		client.login(v.AssessorID)
+		client.decide(id, map[string]any{"action": "interview_assessment", "assessment": map[string]any{"scores": []int{4, 4, 4, 4}, "recommendation": "approve", "comments": "Explicit fictional interview observations recorded in this test.", "conducted": true}}, 200)
+	}
+}
 
 func (tc *testClient) setTestFees(id string, amount int64) {
 	tc.t.Helper()

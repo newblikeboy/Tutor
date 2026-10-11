@@ -91,7 +91,6 @@ test('weekly books six classes and monthly books twenty-four across calendar per
       minClass: 6,
       maxClass: 10,
       modes: ['home'],
-      mentorId: 'mentor-a',
       reason: 'Explicit assessed scope for isolated fictional schedule regression.',
     })
     const first = new Date(Date.now() + 7 * 86400000)

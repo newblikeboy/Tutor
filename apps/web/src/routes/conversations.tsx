@@ -146,7 +146,11 @@ export function ActivityUpdates() {
             q.data.items.map((n) => (
               <article className="tu-panel" key={n.id}>
                 <div className="tu-card-top">
-                  <h2>{t(n.kind === 'case_update' ? 'cases.case_update' : `tuition.${n.kind}`)}</h2>
+                  <h2>
+                    {n.kind.startsWith('interview_')
+                      ? 'Tutor interview updated'
+                      : t(n.kind === 'case_update' ? 'cases.case_update' : `tuition.${n.kind}`)}
+                  </h2>
                   {!n.read && <Badge>{t('tuition.unread')}</Badge>}
                 </div>
                 <p>{indiaDate(n.createdAt, i18n.language)}</p>
@@ -154,22 +158,26 @@ export function ActivityUpdates() {
                   <Link
                     className="btn secondary"
                     to={
-                      n.kind === 'case_update'
-                        ? `/cases/${n.targetId}`
-                        : n.kind === 'trial_requested'
-                          ? '/workspace?view=sessions&queue=requested'
-                          : `/tuition/${n.targetId}${n.kind === 'booking_confirmed' ? '' : '?tab=messages'}`
+                      n.kind.startsWith('interview_')
+                        ? '/apply'
+                        : n.kind === 'case_update'
+                          ? `/cases/${n.targetId}`
+                          : n.kind === 'trial_requested'
+                            ? '/workspace?view=sessions&queue=requested'
+                            : `/tuition/${n.targetId}${n.kind === 'booking_confirmed' ? '' : '?tab=messages'}`
                     }
                   >
-                    {n.kind === 'booking_confirmed'
-                      ? 'Open booking'
-                      : n.kind === 'trial_requested'
-                        ? 'Open trial requests'
-                        : t(
-                            n.kind === 'case_update'
-                              ? 'cases.openUpdate'
-                              : 'tuition.openConversation',
-                          )}
+                    {n.kind.startsWith('interview_')
+                      ? 'View interview'
+                      : n.kind === 'booking_confirmed'
+                        ? 'Open booking'
+                        : n.kind === 'trial_requested'
+                          ? 'Open trial requests'
+                          : t(
+                              n.kind === 'case_update'
+                                ? 'cases.openUpdate'
+                                : 'tuition.openConversation',
+                            )}
                   </Link>
                   {!n.read && (
                     <Button variant="text" busy={m.isPending} onClick={() => m.mutate(n.id)}>

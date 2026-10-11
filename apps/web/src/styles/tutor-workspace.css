@@ -1,22 +1,48 @@
 .tutor-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 .tutor-summary a {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--paper);
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 14px;
+  padding: 22px 24px;
+  border: 1px solid var(--teaching-line);
+  border-radius: 20px;
+  background: #fffefa;
   color: var(--navy);
   text-decoration: none;
-  font-size: 0.85rem;
+  font-size: 13px;
+}
+.tutor-summary a:hover {
+  background: var(--teaching-soft);
+}
+.tutor-summary a > svg:first-child {
+  grid-row: 1 / 3;
+  color: var(--teal);
+}
+.tutor-summary a > svg:last-child {
+  position: absolute;
+  top: 22px;
+  right: 18px;
+  color: var(--teal);
+}
+.tutor-summary span {
+  grid-column: 2;
+  color: var(--teaching-muted);
+  line-height: 1.5;
 }
 .tutor-summary strong {
-  font-size: 1.65rem;
+  font-size: 30px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.tutor-home {
+  display: grid;
+  gap: 24px;
 }
 .tutor-learners {
   display: grid;
@@ -55,12 +81,23 @@
   max-width: 100%;
 }
 @media (max-width: 600px) {
-  .tutor-summary {
-    gap: 8px;
-  }
   .tutor-summary a {
-    padding: 13px 10px;
-    font-size: 0.78rem;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px 12px;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .tutor-summary a > svg:first-child {
+    grid-row: auto;
+  }
+  .tutor-summary a > svg:last-child {
+    display: none;
+  }
+  .tutor-summary span {
+    grid-column: 1;
+  }
+  .tutor-summary strong {
+    font-size: 26px;
   }
   .tutor-day .teacher-section-heading {
     flex-direction: column;

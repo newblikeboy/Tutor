@@ -85,7 +85,7 @@ test('staff groups related queues and loads only the selected overview and netwo
   await capture(page, 'followups-en-mobile')
 })
 
-test('applicant tabs defer files and history, preserve unfinished review forms and survive reload', async ({
+test('applicant tabs defer files and history, keep admin review read-only and survive reload', async ({
   page,
 }) => {
   await login(page)
@@ -103,18 +103,20 @@ test('applicant tabs defer files and history, preserve unfinished review forms a
   ).toHaveLength(0)
   await capture(page, 'application-en-desktop')
   await page.getByRole('tab', { name: 'Review & decision', exact: true }).click()
-  await page
-    .locator('summary')
-    .filter({ hasText: /^Internal note$/ })
-    .click()
-  const note = page.getByLabel('Internal note', { exact: true })
-  await note.fill('Unfinished review input stays here when changing tabs.')
+  await expect(page.getByRole('heading', { name: '1. Interview', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '2. Fees', exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: '3. Subjects & teaching modes', exact: true }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Approve tutor', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Reject application', exact: true })).toHaveCount(0)
+  await expect(page.getByLabel('Internal note', { exact: true })).toHaveCount(0)
   await page.getByRole('tab', { name: 'History', exact: true }).click()
   await expect(page.locator('.staff-history')).toBeVisible()
   expect(paths.filter((p) => p === '/api/v1/staff/events')).toHaveLength(1)
   expect(paths.filter((p) => p.endsWith('/files'))).toHaveLength(0)
   await page.getByRole('tab', { name: 'Review & decision', exact: true }).click()
-  await expect(note).toHaveValue('Unfinished review input stays here when changing tabs.')
+  await expect(page.getByRole('heading', { name: 'Account operations', exact: true })).toBeVisible()
   await capture(page, 'review-en-desktop')
   await page.getByRole('tab', { name: 'Documents', exact: true }).click()
   await expect.poll(() => paths.filter((p) => p.endsWith('/files')).length).toBe(1)
@@ -167,14 +169,13 @@ test('staff payment tables load separately and finance keeps its own navigation'
   await capture(page, 'payments-en-mobile')
 })
 
-test('mentor interview links stay inside assessments', async ({ page }) => {
+test('mentor interview links stay inside tutor applications', async ({ page }) => {
   await login(page, 'mentor')
   await page.goto('/workspace?view=interviews')
   const sidebar = page.locator('.desk-sidebar')
-  await expect(sidebar.getByRole('link', { name: 'Assessments', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  )
+  await expect(
+    sidebar.getByRole('link', { name: 'Tutor applications', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
   await expect(page.getByRole('tab', { name: 'Interviews', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',

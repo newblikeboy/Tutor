@@ -1,8 +1,10 @@
 import '../locales/parent'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { ArrowRight, BookOpen, CalendarDays, Sprout, Users } from 'lucide-react'
 import type { Dashboard } from '../lib/api'
-import { workspaceLink, type WorkspaceView } from '../lib/workspace'
+import { initials, workspaceLink, type WorkspaceView } from '../lib/workspace'
+import { LearningMotif } from '../components/learning-motif'
 import { Field, LinkButton } from '../components/ui'
 import { TabBar, TabPanel } from '../components/workspace-tabs'
 import { TrialCard } from '../components/trial-card'
@@ -16,10 +18,17 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
     data.learners.find((item) => item.id === params.get('learner')) ?? data.learners[0]
   if (!learner)
     return (
-      <section className="parent-welcome">
-        <h2>{t('parent.welcome')}</h2>
-        <p>Add a learner to find tutors and book classes.</p>
-        <LinkButton to="/match?new=1&profile=1">{t('parent.add')}</LinkButton>
+      <section className="parent-welcome customer-hero">
+        <div className="customer-hero-copy">
+          <span className="customer-eyebrow">
+            <Sprout size={17} aria-hidden="true" />
+            Your family's next chapter
+          </span>
+          <h2>{t('parent.welcome')}</h2>
+          <p>Add your child's profile once, then explore tutors and follow their learning here.</p>
+          <LinkButton to="/match?new=1&profile=1">{t('parent.add')}</LinkButton>
+        </div>
+        <LearningMotif />
       </section>
     )
   const trials = data.trials.filter((trial) => trial.learnerId === learner.id)
@@ -40,6 +49,9 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
   return (
     <div className="parent-content">
       <section className="parent-home-learner">
+        <span className="parent-learner-avatar" aria-hidden="true">
+          {initials(learner.name)}
+        </span>
         <Field label={t('parent.learner')}>
           <select
             value={learner.id}
@@ -64,18 +76,71 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
       </section>
       {view === 'overview' && (
         <>
-          <section className="parent-next">
-            <h2>Find a tutor for {learner.name}</h2>
-            <LinkButton to={`/match?learner=${encodeURIComponent(learner.id)}`}>
-              {t('parent.start')}
-            </LinkButton>
+          <section className="parent-next customer-hero">
+            <div className="customer-hero-copy">
+              <span className="customer-eyebrow">
+                <Sprout size={17} aria-hidden="true" />
+                Room to learn. Space to grow.
+              </span>
+              <h2>Find a tutor for {learner.name}</h2>
+              <p>Choose the subjects and teaching mode that fit your child's day.</p>
+              <LinkButton to={`/match?learner=${encodeURIComponent(learner.id)}`}>
+                {t('parent.start')}
+              </LinkButton>
+            </div>
+            <LearningMotif />
           </section>
-          {upcoming[0] && (
-            <section className="parent-next-trial">
-              <h2>{t('parent.nextTrial')}</h2>
-              <TrialCard trial={upcoming[0]} role="parent" />
+          <nav className="parent-home-paths" aria-label="Your learning essentials">
+            <Link to={workspaceLink('learners', learner.id)}>
+              <span className="customer-path-icon">
+                <Sprout size={23} aria-hidden="true" />
+              </span>
+              <span>
+                <strong>Learning progress</strong>
+                <small>Reports, subjects and tutor feedback</small>
+              </span>
+              <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+            <Link to="/tuition">
+              <span className="customer-path-icon">
+                <BookOpen size={23} aria-hidden="true" />
+              </span>
+              <span>
+                <strong>Regular classes</strong>
+                <small>Bookings and class schedules</small>
+              </span>
+              <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+            <Link to={workspaceLink('sessions', learner.id)}>
+              <span className="customer-path-icon">
+                <CalendarDays size={23} aria-hidden="true" />
+              </span>
+              <span>
+                <strong>Trial lessons</strong>
+                <small>Meet a tutor and view trial feedback</small>
+              </span>
+              <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+          </nav>
+          <div className="parent-home-details">
+            {upcoming[0] && (
+              <section className="parent-next-trial">
+                <h2>{t('parent.nextTrial')}</h2>
+                <TrialCard trial={upcoming[0]} role="parent" />
+              </section>
+            )}
+            <section className="parent-learning-note">
+              <span className="customer-path-icon">
+                <Users size={23} aria-hidden="true" />
+              </span>
+              <h2>A place for every learner</h2>
+              <p>Switch learners above to keep each child's classes and progress together.</p>
+              <Link className="text-link" to="/match?new=1&profile=1">
+                {t('parent.add')}
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
             </section>
-          )}
+          </div>
           {!!completed.length && (
             <Link
               className="text-link"

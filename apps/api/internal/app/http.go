@@ -17,14 +17,15 @@ import (
 	"time"
 	"tutorplatform/internal/config"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/googlecalendar"
 	"tutorplatform/internal/mailer"
 	"tutorplatform/internal/media"
-	"tutorplatform/internal/meetings"
 	"tutorplatform/internal/payments"
 	"tutorplatform/internal/storage"
 )
 
 type App struct {
+	Google        *googlecalendar.Client
 	Store         *storage.Store
 	Config        config.Config
 	Now           func() time.Time
@@ -33,7 +34,6 @@ type App struct {
 	Files         media.Store
 	Videos        media.Store
 	DirectFiles   media.DirectStore
-	Meetings      meetings.Gateway
 	Mail          mailer.Sender
 	EmailCodeWake chan struct{}
 	Scanner       media.Scanner
@@ -43,15 +43,18 @@ type App struct {
 func New(s *storage.Store, c config.Config) *App {
 	a := &App{Store: s, Config: c, Now: func() time.Time { return time.Now().UTC() }, PasswordSlots: make(chan struct{}, 4), EmailCodeWake: make(chan struct{}, 1)}
 	a.FileSlots = make(chan struct{}, 2)
+	if c.InterviewProvider == "google" || c.MeetingProvider == "google" {
+		a.Google, _ = googlecalendar.New(c.GoogleOAuthClientID, c.GoogleOAuthClientSecret, c.GoogleOAuthRedirectURI, c.GoogleTokenKey)
+		if a.Google != nil && c.Env == "test" && c.TestGoogleURL != "" {
+			a.Google.AuthURL = c.TestGoogleURL + "/authorize"
+			a.Google.Base = c.TestGoogleURL + "/calendar/v3"
+			a.Google.TokenURL = c.TestGoogleURL + "/token"
+			a.Google.UserURL = c.TestGoogleURL + "/userinfo"
+			a.Google.RevokeURL = c.TestGoogleURL + "/revoke"
+		}
+	}
 	if c.MailProvider == "smtp" {
 		a.Mail = &mailer.SMTP{Host: c.SMTPHost, Port: c.SMTPPort, Security: c.SMTPSecurity, User: c.SMTPUser, Password: c.SMTPPassword, From: c.SMTPFrom}
-	}
-	if c.MeetingProvider == "zoom" {
-		provider := meetings.New(c.ZoomAccountID, c.ZoomClientID, c.ZoomSecret, c.ZoomHostID)
-		if c.Env == "test" && c.TestZoomURL != "" {
-			provider.UseTestEndpoint(c.TestZoomURL)
-		}
-		a.Meetings = provider
 	}
 	if c.PaymentProvider == "razorpay" {
 		a.Payments = payments.New(c.RazorpayKeyID, c.RazorpaySecret)
@@ -64,6 +67,10 @@ func (a *App) json(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 func (a *App) error(w http.ResponseWriter, r *http.Request, e error) {
+	var googleError *googlecalendar.Error
+	if errors.As(e, &googleError) {
+		e = domain.Fail(503, googleError.Code, "Google Calendar could not confirm this operation. Check your connection and interview status.")
+	}
 	status := 500
 	code := "internal"
 	message := "Something went wrong. Please retry."
@@ -146,7 +153,14 @@ func (a *App) Routes() http.Handler {
 		} else if a.Payments != nil {
 			provider = "razorpay_sandbox"
 		}
-		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password", "emailEnabled": a.Mail != nil, "trialFeePaise": 0, "payments": provider, "timezone": "Asia/Kolkata", "uploadsEnabled": a.Files != nil, "videoUploadsEnabled": a.Videos != nil, "videoProvider": a.Config.VideoProvider, "mediaProvider": a.Config.MediaProvider, "meetingsEnabled": a.Meetings != nil, "scannerConfigured": a.Scanner != nil})
+		interviewProvider := a.Config.InterviewProvider
+		if interviewProvider == "" {
+			interviewProvider = a.Config.MeetingProvider
+		}
+		if interviewProvider == "" {
+			interviewProvider = "disabled"
+		}
+		a.json(w, 200, map[string]any{"appName": a.Config.Name, "development": a.Config.Env != "production", "authEnabled": a.Config.AuthProvider == "password", "emailEnabled": a.Mail != nil, "trialFeePaise": 0, "payments": provider, "timezone": "Asia/Kolkata", "uploadsEnabled": a.Files != nil, "videoUploadsEnabled": a.Videos != nil, "videoProvider": a.Config.VideoProvider, "mediaProvider": a.Config.MediaProvider, "meetingsEnabled": a.Google != nil && a.Config.MeetingProvider == "google", "scannerConfigured": a.Scanner != nil, "interviewsEnabled": a.Google != nil && a.Config.InterviewProvider != "disabled", "interviewProvider": interviewProvider})
 	})
 	r.Get("/api/v1/tutors", a.tutors)
 	r.Post("/api/v1/webhooks/razorpay", a.razorpayWebhook)
@@ -175,6 +189,16 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/account/password", a.changePassword)
 		r.Get("/api/v1/dashboard", a.dashboard)
 		r.Get("/api/v1/staff/overview", a.staffOverview)
+		r.Post("/api/v1/integrations/google/connect", a.googleConnect)
+		r.Get("/api/v1/integrations/google", a.googleStatus)
+		r.Post("/api/v1/integrations/google/disconnect", a.googleDisconnect)
+		r.Post("/api/v1/integrations/google/revoke/retry", a.retryGoogleRevocation)
+		r.Get("/api/v1/integrations/google/lessons", a.googleLessonRecovery)
+		r.Get("/api/v1/integrations/google/lessons/{id}/calendar", a.reviewGoogleLesson)
+		r.Post("/api/v1/integrations/google/lessons/{id}/retry", a.retryGoogleLesson)
+		r.Get("/api/integrations/google/callback", a.googleCallback)
+		r.Get("/api/v1/staff/applications/{id}/meeting/calendar", a.reviewGoogleCalendar)
+		r.Get("/api/v1/applications/{id}/interview/join", a.joinInterview)
 		r.Get("/api/v1/staff/applications", a.staffApplications)
 		r.Get("/api/v1/staff/applications/{id}", a.staffApplicationDetail)
 		r.Get("/api/v1/staff/members", a.staffMembers)

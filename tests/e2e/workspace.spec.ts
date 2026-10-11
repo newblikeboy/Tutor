@@ -1,5 +1,5 @@
 import { verifiedSignup } from './signup-fixture'
-﻿import { test, expect } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -16,7 +16,7 @@ async function signIn(page: Page, baseURL: string, identity: string) {
 for (const scenario of [
   { role: 'parent', identity: 'parent-b', views: ['Learners', 'Trial lessons'] },
   { role: 'tutor', identity: 'tutor-meera', views: ['Trial lessons', 'My application'] },
-  { role: 'mentor', identity: 'mentor-a', views: ['Assessments', 'Lesson reviews'] },
+  { role: 'mentor', identity: 'mentor-a', views: ['Tutor applications', 'Lesson reviews'] },
   { role: 'admin', identity: 'admin-a', views: ['Tutor network', 'Decision history'] },
 ]) {
   test(`${scenario.role} workspace has usable private navigation and English responsive views`, async ({

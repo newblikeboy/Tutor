@@ -20,7 +20,14 @@ export function progressContract(schemas, route, paths) {
   schemas.ClassAction.description =
     'Present recording requires progress; tests are optional. Progress corrections close seven days after recording, and planning is limited to booked, approved subjects.'
   schemas.Notification.properties.readAt = date
-  schemas.LessonMeeting = obj({ status: { type: 'string', enum: ['pending', 'ready', 'failed'] } })
+  schemas.LessonMeeting = obj(
+    {
+      status: { type: 'string', enum: ['pending', 'ready', 'failed', 'cancelled', 'retired'] },
+      provider: { type: 'string' },
+      lastError: string,
+    },
+    ['status'],
+  )
   schemas.ClassSession.properties.plannedSubject = string
   schemas.ClassSession.properties.recordedAt = date
   schemas.ClassSession.properties.meeting = ref('LessonMeeting')

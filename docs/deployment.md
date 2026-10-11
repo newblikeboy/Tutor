@@ -1,5 +1,7 @@
 # GitHub and DigitalOcean deployment (no Docker)
 
+Google interview deployment adds private `INTERVIEW_PROVIDER=google`, existing `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI` and persistent `GOOGLE_TOKEN_KEY`. Apply the additive `--google-only` migration before activation; the reviewed existing-droplet script includes it. Preserve HTTPS, password sessions, `/api/` proxying and disabled API access logs. A deployed production callback cannot consume a local-origin session. See [Google setup, callback and manual verification](google-interviews.md); no production deployment or live Google meeting has been authorized/executed for this implementation.
+
 This is a reviewed **target configuration**, not an executed deployment. The user selected GitHub source and a DigitalOcean droplet. Go is the only runtime API; Nginx serves the compiled React frontend. MongoDB remains Atlas. No container runtime, Node API, or MongoDB service belongs on the production droplet.
 
 ## Before deployment
@@ -58,7 +60,7 @@ Replace the example domain/certificate paths in `infra/nginx.conf`. Obtain a val
 
 The Go process also runs the persisted job worker. Multiple instances can contend for jobs using MongoDB leases; no Node worker or extra application API is needed. Application startup does not run migrations automatically. Resolve the reported Atlas collection limit before installing this extension, then run the reviewed migration explicitly. The private development environment has not been changed and the latest extension has only been verified on the isolated local replica set.
 
-For the selected Cloudinary deployment, set `MEDIA_PROVIDER=cloudinary`, `VIDEO_PROVIDER=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in `/etc/tutor/api.env`. Set `MEETING_PROVIDER=zoom` with the four Zoom settings in `.env.example`. Do not configure/install ClamAV for Cloudinary: browser uploads go directly to Cloudinary and Go verifies provider metadata before saving ready references. Remove `CLAMAV_ADDRESS` from this deployment's environment. Existing production authentication/payment restrictions remain independent.
+For the selected Cloudinary deployment, set `MEDIA_PROVIDER=cloudinary`, `VIDEO_PROVIDER=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in `/etc/tutor/api.env`. Set `MEETING_PROVIDER=google` and `INTERVIEW_PROVIDER=google` with the private Google OAuth settings in `.env.example`; see [Google setup](google-interviews.md). Zoom provider settings are removed. Do not configure/install ClamAV for Cloudinary: browser uploads go directly to Cloudinary and Go verifies provider metadata before saving ready references. Remove `CLAMAV_ADDRESS` from this deployment's environment. Existing production authentication/payment restrictions remain independent.
 
 Use the updated Nginx CSP: browser uploads require `connect-src https://api.cloudinary.com`; image/video delivery allows the exact Cloudinary API and media domains. No wildcard sources are required. Documents and videos remain authenticated assets, with five-minute signed viewing/download URLs issued after access checks. Do not copy their delivery URLs into public pages or logs. See [private-files.md](private-files.md) for the upload/confirmation flow and account delivery checks.
 

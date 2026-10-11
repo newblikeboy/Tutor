@@ -688,13 +688,27 @@ function StepFields({
               {c('area')} {i + 1}
             </legend>
             <div className="form-grid">
-              <Select name={`teachingAreas.${i}.subject`} options={["All Subjects", ...teachingSubjects]} />
+              <Select
+                name={`teachingAreas.${i}.subject`}
+                options={['All Subjects', ...teachingSubjects]}
+              />
               <div className="form-grid">
-                <Input name={`teachingAreas.${i}.minClass`} type="number" min={1} max={12} />
-                <Input name={`teachingAreas.${i}.maxClass`} type="number" min={1} max={12} />
+                <Input
+                  name={`teachingAreas.${i}.minClass`}
+                  type="number"
+                  min={1}
+                  max={a.subject === 'All Subjects' ? 5 : 12}
+                />
+                <Input
+                  name={`teachingAreas.${i}.maxClass`}
+                  type="number"
+                  min={1}
+                  max={a.subject === 'All Subjects' ? 5 : 12}
+                />
               </div>
             </div>
             <div className="af-teaching-options">
+              {a.subject === 'All Subjects' && <p className="af-note">{c('allSubjectsLimit')}</p>}
               <Checks name={`teachingAreas.${i}.boards`} options={['CBSE', 'BSEB', 'ICSE']} />
               <Checks name={`teachingAreas.${i}.languages`} options={['Hindi', 'English']} />
               <Checks name={`teachingAreas.${i}.modes`} options={['home', 'online']} />
@@ -990,6 +1004,8 @@ function ApplicationForm({
           for (const field of ['boards', 'languages', 'modes'] as const)
             if (!a[field].length) missing.push(`teachingAreas.${i}.${field}`)
           if (a.minClass > a.maxClass) missing.push(`teachingAreas.${i}.maxClass`)
+          if (a.subject === 'All Subjects' && (a.minClass > 5 || a.maxClass > 5))
+            missing.push(`teachingAreas.${i}.maxClass`)
         })
       }
       if (step === 3) {
@@ -1056,6 +1072,17 @@ function ApplicationForm({
             )}
           </section>
           <InterviewCard application={app} />
+          {app.interviewAssessment && (
+            <section className="panel">
+              <h2>Interview feedback</h2>
+              <p>{app.interviewAssessment.comments}</p>
+              <p>
+                {app.interviewAssessment.recommendation === 'reinterview'
+                  ? 'Your mentor recommends another interview.'
+                  : 'Assessment submitted. Your mentor will confirm the application decision.'}
+              </p>
+            </section>
+          )}
           <ApplicationScope application={app} />
           {app.fees && (
             <section className="panel">

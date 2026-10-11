@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/binary"
-	"errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"io"
 	"net/http"
@@ -16,31 +15,8 @@ import (
 	"time"
 	"tutorplatform/internal/config"
 	"tutorplatform/internal/domain"
-	"tutorplatform/internal/meetings"
 	"tutorplatform/internal/storage"
 )
-
-// Provider doubles are limited to tests; normal runtime always uses the HTTPS adapters.
-type recruitmentMeetings struct {
-	creates, updates, deletes int
-	ambiguous, findAvailable  bool
-}
-
-func (g *recruitmentMeetings) Create(context.Context, string, time.Time, time.Time, ...string) (meetings.Meeting, error) {
-	g.creates++
-	if g.ambiguous {
-		return meetings.Meeting{}, errors.New("test lost response")
-	}
-	return meetings.Meeting{ID: "12345678901", JoinURL: "https://zoom.us/j/12345678901?pwd=fixture"}, nil
-}
-func (g *recruitmentMeetings) Update(context.Context, string, time.Time, time.Time) (meetings.Meeting, error) {
-	g.updates++
-	return meetings.Meeting{ID: "12345678901", JoinURL: "https://zoom.us/j/12345678901?pwd=fixture"}, nil
-}
-func (g *recruitmentMeetings) Delete(context.Context, string) error { g.deletes++; return nil }
-func (g *recruitmentMeetings) Find(context.Context, string) (meetings.Meeting, bool, error) {
-	return meetings.Meeting{ID: "12345678901", JoinURL: "https://zoom.us/j/12345678901?pwd=fixture"}, g.findAvailable, nil
-}
 
 type recruitmentVideo struct{ data []byte }
 
@@ -79,10 +55,9 @@ func TestMongoRecruitmentProviders(t *testing.T) {
 		t.Fatal(e)
 	}
 	now := time.Now().UTC().Truncate(time.Minute)
-	a := New(s, config.Config{Env: "test", AuthProvider: "password", Origin: "http://test.local", VideoProvider: "cloudinary", ZoomHostID: "fixture-host"})
+	a := New(s, config.Config{Env: "test", AuthProvider: "password", Origin: "http://test.local", VideoProvider: "cloudinary"})
 	a.Now = func() time.Time { return now }
-	gateway := &recruitmentMeetings{}
-	a.Meetings = gateway
+	gateway := installGoogleFixture(t, a, "mentor-a", "mentor-b")
 	a.Videos = &recruitmentVideo{}
 	server := httptest.NewServer(a.Routes())
 	defer server.Close()
@@ -162,16 +137,15 @@ func TestMongoRecruitmentProviders(t *testing.T) {
 			t.Fatalf("submitted file changed: %d", status)
 		}
 	})
-	t.Run("Zoom creation is queued and cannot approve a pending meeting", func(t *testing.T) {
-		admin.decide("tutor-a", map[string]any{"action": "review", "conflictClear": true}, 200)
+	t.Run("Google Meet creation is queued and cannot approve a pending meeting", func(t *testing.T) {
 		in := map[string]any{"action": "schedule", "interview": domain.Interview{Start: now.Add(time.Hour), End: now.Add(90 * time.Minute), Timezone: "Asia/Kolkata"}}
-		admin.decide("tutor-a", in, 200)
+		mentor.decide("tutor-a", in, 200)
 		v := current()
-		if v.Interview.SyncStatus != "pending" || v.Interview.JoinURL != "" || gateway.creates != 0 {
+		if v.Interview.SyncStatus != "pending" || v.Interview.JoinURL != "" || gateway.creates.Load() != 0 {
 			t.Fatal("meeting fabricated before provider confirmation")
 		}
-		admin.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "reason": "Cannot approve before the final assessment.", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a"}, 409)
-		// Another reviewer sharing the same configured Zoom host cannot overlap.
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "reason": "Cannot approve before the final assessment.", "minClass": 6, "maxClass": 10}, 409)
+		// Another reviewer sharing the same configured Google Meet host cannot overlap.
 		other := domain.Application{ID: "other-applicant", Name: "Fictional other applicant", Status: "under_review", AssessorID: "mentor-a", ConflictClear: true, Sample: true}
 		if _, e = s.C("users").InsertOne(ctx, domain.User{ID: other.ID, Name: other.Name, Email: "other-applicant@example.test", Role: "tutor", Sample: true}); e != nil {
 			t.Fatal(e)
@@ -181,48 +155,48 @@ func TestMongoRecruitmentProviders(t *testing.T) {
 		}
 		mentor.decide(other.ID, in, 409)
 		j := jobFor()
-		if e = a.processMeeting(ctx, j); e != nil {
+		if e = a.processGoogleInterview(ctx, j); e != nil {
 			t.Fatal(e)
 		}
-		if e = a.processMeeting(ctx, j); e != nil {
+		if e = a.processGoogleInterview(ctx, j); e != nil {
 			t.Fatal(e)
 		}
 		v = current()
-		if gateway.creates != 1 || v.Interview.SyncStatus != "ready" || v.Interview.JoinURL == "" {
+		if gateway.creates.Load() != 1 || v.Interview.SyncStatus != "ready" || v.Interview.JoinURL == "" {
 			t.Fatal("creation not persisted/idempotent")
 		}
 		_, own, raw := tutor.call("GET", "/application", nil, nil)
 		if own["application"] == nil || bytesContainPrivateMeeting(raw) {
-			t.Fatal("private Zoom metadata leaked")
+			t.Fatal("private Google Meet metadata leaked")
 		}
 	})
-	t.Run("reschedule and cancellation update Zoom outside the transaction", func(t *testing.T) {
-		admin.decide("tutor-a", map[string]any{"action": "reschedule", "reason": "Applicant requested a different interview time.", "interview": domain.Interview{Start: now.Add(2 * time.Hour), End: now.Add(150 * time.Minute), Timezone: "Asia/Kolkata"}}, 200)
-		if e = a.processMeeting(ctx, jobFor()); e != nil {
+	t.Run("reschedule and cancellation update Google Meet outside the transaction", func(t *testing.T) {
+		mentor.decide("tutor-a", map[string]any{"action": "reschedule", "reason": "Applicant requested a different interview time.", "interview": domain.Interview{Start: now.Add(2 * time.Hour), End: now.Add(150 * time.Minute), Timezone: "Asia/Kolkata"}}, 200)
+		if e = a.processGoogleInterview(ctx, jobFor()); e != nil {
 			t.Fatal(e)
 		}
-		if gateway.updates != 1 || gateway.creates != 1 {
+		if gateway.updates.Load() != 1 || gateway.creates.Load() != 1 {
 			t.Fatal("reschedule recreated meeting")
 		}
-		admin.decide("tutor-a", map[string]any{"action": "cancel_interview", "reason": "Applicant requested cancellation for this date."}, 200)
-		if e = a.processMeeting(ctx, jobFor()); e != nil {
+		mentor.decide("tutor-a", map[string]any{"action": "cancel_interview", "reason": "Applicant requested cancellation for this date."}, 200)
+		if e = a.processGoogleInterview(ctx, jobFor()); e != nil {
 			t.Fatal(e)
 		}
-		if gateway.deletes != 1 || current().Interview.JoinURL != "" {
+		if gateway.deletes.Load() != 1 || current().Interview.JoinURL != "" {
 			t.Fatal("cancellation did not remove meeting access")
 		}
 	})
 	t.Run("lost create response reconciles without another create", func(t *testing.T) {
-		gateway.ambiguous = true
-		admin.decide("tutor-a", map[string]any{"action": "schedule", "interview": domain.Interview{Start: now.Add(3 * time.Hour), End: now.Add(210 * time.Minute), Timezone: "Asia/Kolkata"}}, 200)
+		gateway.ambiguous.Store(true)
+		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": domain.Interview{Start: now.Add(3 * time.Hour), End: now.Add(210 * time.Minute), Timezone: "Asia/Kolkata"}}, 200)
 		j := jobFor()
-		if a.processMeeting(ctx, j) == nil {
+		if a.processGoogleInterview(ctx, j) == nil {
 			t.Fatal("lost response reported success")
 		}
-		if a.processMeeting(ctx, j) == nil {
+		if a.processGoogleInterview(ctx, j) == nil {
 			t.Fatal("unconfirmed meeting reported success")
 		}
-		if gateway.creates != 2 {
+		if gateway.creates.Load() != 2 {
 			t.Fatal("ambiguous create was repeated")
 		}
 		if _, e = s.C("outbox").UpdateOne(ctx, bson.M{"_id": j.ID}, bson.M{"$set": bson.M{"status": "failed"}}); e != nil {
@@ -232,26 +206,26 @@ func TestMongoRecruitmentProviders(t *testing.T) {
 			t.Fatal(e)
 		}
 		version := current().Version
-		mentor.ok("POST", "/staff/applications/tutor-a/meeting/retry", map[string]any{"version": version}, 403)
+		admin.ok("POST", "/staff/applications/tutor-a/meeting/retry", map[string]any{"version": version}, 403)
 		parent.ok("POST", "/staff/applications/tutor-a/meeting/retry", map[string]any{"version": version}, 403)
-		admin.ok("POST", "/staff/applications/tutor-a/meeting/retry", map[string]any{"version": version - 1}, 409)
-		admin.ok("POST", "/staff/applications/tutor-a/meeting/retry", map[string]any{"version": version}, 200)
-		if !jobFor().ZoomCreateAttempted {
-			t.Fatal("retry lost ambiguous creation marker")
+		mentor.ok("POST", "/staff/applications/tutor-a/meeting/retry", map[string]any{"version": version - 1}, 409)
+		mentor.ok("POST", "/staff/applications/tutor-a/meeting/retry", map[string]any{"version": version}, 200)
+		if jobFor().Payload["eventId"] == "" {
+			t.Fatal("retry lost deterministic event identity")
 		}
-		gateway.findAvailable = true
-		if e = a.processMeeting(ctx, j); e != nil {
+		gateway.findAvailable.Store(true)
+		if e = a.processGoogleInterview(ctx, j); e != nil {
 			t.Fatal(e)
 		}
-		if gateway.creates != 2 || current().Interview.SyncStatus != "ready" {
+		if gateway.creates.Load() != 2 || current().Interview.SyncStatus != "ready" {
 			t.Fatal("reconciliation failed")
 		}
 	})
 	t.Run("approval opens teaching access and expiry closes it", func(t *testing.T) {
 		now = now.Add(4 * time.Hour)
-		admin.decide("tutor-a", map[string]any{"action": "assess", "scores": []int{4, 4, 4, 4, 4, 4}, "evidence": "Fictional assessment met the subject and teaching criteria."}, 200)
-		admin.setTestFees("tutor-a", 0)
-		admin.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "reason": "Final interview and academic assessment passed.", "minClass": 6, "maxClass": 10, "mentorId": "mentor-a"}, 200)
+		mentor.decide("tutor-a", map[string]any{"action": "interview_assessment", "assessment": map[string]any{"scores": []int{4, 4, 4, 4}, "recommendation": "approve", "comments": "Actual fictional interview observations for the test.", "conducted": true}}, 200)
+		mentor.setTestFees("tutor-a", 0)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "reason": "Final interview and academic assessment passed.", "minClass": 6, "maxClass": 10}, 200)
 		tutor.ok("GET", "/enrollments", nil, 200)
 		if _, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-a"}, bson.M{"$set": bson.M{"scope.expiresAt": now.Add(-time.Minute)}}); e != nil {
 			t.Fatal(e)
@@ -261,6 +235,20 @@ func TestMongoRecruitmentProviders(t *testing.T) {
 		if len(d["trials"].([]any)) != 0 {
 			t.Fatal("restricted dashboard exposed teaching records")
 		}
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "minClass": 6, "maxClass": 10}, 409)
+		admin.decide("tutor-a", map[string]any{"action": "reopen", "reason": "Expired approval requires a fresh mentor interview."}, 200)
+		if v := current(); v.Status != "submitted" || v.AssessorID != "mentor-a" || v.Fees != nil {
+			t.Fatal("reopening did not return the application to a mentor with fees pending")
+		}
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "minClass": 6, "maxClass": 10}, 409)
+		gateway.ambiguous.Store(false)
+		mentor.decide("tutor-a", map[string]any{"action": "schedule", "interview": domain.Interview{Start: now.Add(time.Minute), End: now.Add(31 * time.Minute), Timezone: "Asia/Kolkata"}}, 200)
+		now = now.Add(2 * time.Minute)
+		finishTestInterview(t, a, "tutor-a")
+		mentor.setTestFees("tutor-a", 0)
+		mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "modes": []string{"online"}, "minClass": 6, "maxClass": 10}, 200)
+		tutor.login("tutor-a")
+		tutor.ok("GET", "/enrollments", nil, 200)
 	})
 }
 func bytesContainPrivateMeeting(b []byte) bool {

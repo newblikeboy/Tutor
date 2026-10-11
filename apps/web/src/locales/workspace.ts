@@ -4,6 +4,30 @@ const workspaceEN = {
     brandLabel: 'THE LEARNING SPACE',
     workspaceLabel: 'YOUR WORKSPACE',
     navigation: 'Workspace navigation',
+    mentorLabel: 'MENTOR WORKSPACE',
+    mentorGroups: {
+      approval: 'Tutor approval',
+      learners: 'Learner support',
+      account: 'Account & support',
+    },
+    tutorLabel: 'TUTOR WORKSPACE',
+    adminLabel: 'ADMIN WORKSPACE',
+    adminGroups: {
+      teaching: 'Teaching network',
+      business: 'Business',
+      administration: 'Administration',
+    },
+    tutorViewIntro: {
+      overview: 'Your lessons, learners and next steps.',
+      learners: 'Prepare for lessons and follow your learners’ progress.',
+      sessions: 'Manage trial requests and share your teaching feedback.',
+    },
+    mentorNav: {
+      overview: 'Overview',
+      assessments: 'Tutor applications',
+      interviews: 'Tutor applications',
+      reviews: 'Lesson reviews',
+    },
     roles: {
       parent: 'Family space',
       tutor: 'Teaching space',
@@ -113,7 +137,8 @@ const workspaceEN = {
     queueEmptyBody:
       'Try another name or status. Your filters only search the records available to you.',
     clearFilters: 'Clear filters',
-    assessmentIntro: 'Review assigned applications and record evidence for each decision.',
+    assessmentIntro:
+      'Arrange interviews, finalize fees and approve teaching scope for your assigned applicants.',
     reviewsIntro: 'Review lesson evidence and share useful next steps with the family.',
     tutorsIntro: 'Review approval scopes and manage eligibility for new bookings.',
     auditIntro: 'A traceable record of decisions made in the platform.',
