@@ -1,5 +1,9 @@
 # Progress
 
+## 2026-10-12: Intentional documentation and screenshot cleanup
+
+The operator confirmed that the local deletion of `docs/acceptance-matrix.md` and 999 tracked files under `docs/visual-qa/` was intentional. This checkpoint records those removals for the requested Tutor repository push. Historical screenshots and acceptance evidence referenced below are retained in Git history; application source and runtime configuration are unchanged. Validation is limited to Git diff checks and remote commit verification because this cleanup changes documentation and screenshots only.
+
 ## 2026-10-11: Zoom removal and Google Meet teaching lessons
 
 The operator explicitly removed Zoom and selected Google Meet for teaching lessons too. Zoom credentials/configuration, gateway, worker dispatch, fixture server and active join/management controls are removed. Google now provisions mentor interviews, regular online classes and confirmed online trials. Historical meeting metadata/audits remain; replacement lessons archive retired metadata. Old external invitations require separate provider management and are never silently converted.
