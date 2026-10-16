@@ -1,0 +1,175 @@
+.tutor-public-profile-page {
+  color: var(--ink);
+}
+.desk-shell .tutor-public-profile-page.account-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+.tutor-public-profile-page.account-page :is(.account-security, .account-profile-layout) {
+  max-width: none;
+}
+.desk-shell .tutor-public-profile-page.account-page > .workspace-tabs {
+  margin-bottom: 18px;
+  gap: 6px;
+}
+.tutor-public-profile-page > .workspace-tabs [role='tab'] {
+  flex: 1 1 0;
+  white-space: nowrap;
+  text-align: center;
+}
+.account-page #my-profile-panel-signins > * + * {
+  margin-top: 24px;
+}
+.tutor-profile-editor-intro {
+  margin-bottom: 16px;
+  color: #52635c;
+  font-size: 14px;
+}
+.profile-preview-note {
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  background: #edf2e5;
+  border: 1px solid #d6ded1;
+  border-radius: 12px;
+}
+.profile-preview-note p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #52635c;
+}
+.profile-workspace-preview {
+  padding: 0;
+}
+.profile-workspace-preview #teacher-profile-title {
+  font-size: clamp(26px, 3vw, 40px);
+  margin: 10px 0;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.tutor-public-profile-page > .account-help {
+  margin-top: 28px;
+}
+.tutor-profile-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+.tutor-profile-heading h1 {
+  margin: 4px 0 8px;
+  font-size: 30px;
+  letter-spacing: -0.8px;
+}
+.tutor-profile-heading p {
+  color: #52635c;
+  font-size: 14px;
+  margin: 0;
+}
+.tutor-profile-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+}
+.tutor-profile-editor,
+.tutor-profile-approved {
+  padding: 20px;
+  border: 1px solid #d6ded1;
+  border-radius: 16px;
+  background: #fff;
+  min-width: 0;
+}
+.tutor-profile-editor h2,
+.tutor-profile-approved h2 {
+  font-size: 19px;
+  margin: 0 0 16px;
+}
+.tutor-profile-approved {
+  align-self: start;
+}
+.tutor-profile-editor textarea {
+  resize: vertical;
+}
+.tutor-public-profile-page .tutor-profile-editor .field {
+  margin-bottom: 16px;
+}
+.profile-video-publishing {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #d6ded1;
+}
+.profile-video-publishing p {
+  font-size: 13px;
+  color: #52635c;
+}
+.profile-editor-photo {
+  width: 120px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.profile-media-upload {
+  padding: 16px;
+  background: #f8faf4;
+  border-radius: 10px;
+  margin: 12px 0 20px;
+}
+.tutor-profile-record {
+  margin-top: 24px;
+  padding: 20px 24px;
+  border: 1px solid var(--teaching-line);
+  border-radius: 16px;
+  background: var(--teaching-surface);
+}
+.tutor-profile-record > summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+}
+.tutor-profile-record > h2 {
+  font-size: 20px;
+  margin: 20px 0 8px;
+}
+.tutor-profile-record > p,
+.profile-record-feedback p {
+  color: var(--teaching-muted);
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.tutor-profile-record > .workspace-tabs {
+  margin-top: 20px;
+}
+.profile-record-feedback {
+  margin-top: 20px;
+}
+.profile-record-feedback h3 {
+  font-size: 16px;
+}
+@media (max-width: 900px) {
+  .tutor-profile-editor-layout {
+    grid-template-columns: 1fr;
+  }
+  .tutor-profile-heading {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 760px) {
+  .tutor-public-profile-page > .workspace-tabs [role='tab'] {
+    flex: 0 0 auto;
+    min-height: 46px;
+    padding: 11px 16px;
+    font-size: 13px;
+  }
+}
+@media (max-width: 500px) {
+  .tutor-profile-editor,
+  .tutor-profile-approved,
+  .tutor-profile-record {
+    padding: 16px;
+  }
+}

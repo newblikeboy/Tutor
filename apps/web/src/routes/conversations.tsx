@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { MessageCircle } from 'lucide-react'
+import { Bell, MessageCircle } from 'lucide-react'
 import { api, send, indiaDate, queryClient, type Schema } from '../lib/api'
 import {
   Alert,
@@ -17,6 +17,9 @@ import {
 } from '../components/ui'
 import '../styles/tuition.css'
 import { useActivePanel } from '../components/workspace-tabs'
+import { useAuth } from '../lib/session'
+import { activityNotification } from '../lib/notifications'
+import '../styles/notifications.css'
 export function Conversation({ enrollment }: { enrollment: Schema['Enrollment'] }) {
   const active = useActivePanel()
   const { t, i18n } = useTranslation()
@@ -118,6 +121,7 @@ export function Conversation({ enrollment }: { enrollment: Schema['Enrollment'] 
   )
 }
 export function ActivityUpdates() {
+  const role = useAuth().data!.user.role
   const { t, i18n } = useTranslation(),
     [cursor, setCursor] = useState('')
   const q = useQuery({
@@ -132,7 +136,11 @@ export function ActivityUpdates() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   })
   return (
-    <div className="tu-page activity-updates">
+    <div className="activity-updates">
+      <header className="activity-heading">
+        <h2>Activity notifications</h2>
+        <p>Your bookings, trials and support updates.</p>
+      </header>
       <MutationError error={m.error} />
       {q.isPending ? (
         <Loading />
@@ -143,50 +151,31 @@ export function ActivityUpdates() {
           {!q.data.items.length ? (
             <Empty headingLevel={2} title={t('tuition.noNotifications')} />
           ) : (
-            q.data.items.map((n) => (
-              <article className="tu-panel" key={n.id}>
-                <div className="tu-card-top">
-                  <h2>
-                    {n.kind.startsWith('interview_')
-                      ? 'Tutor interview updated'
-                      : t(n.kind === 'case_update' ? 'cases.case_update' : `tuition.${n.kind}`)}
-                  </h2>
-                  {!n.read && <Badge>{t('tuition.unread')}</Badge>}
-                </div>
-                <p>{indiaDate(n.createdAt, i18n.language)}</p>
-                <div className="tu-actions">
-                  <Link
-                    className="btn secondary"
-                    to={
-                      n.kind.startsWith('interview_')
-                        ? '/apply'
-                        : n.kind === 'case_update'
-                          ? `/cases/${n.targetId}`
-                          : n.kind === 'trial_requested'
-                            ? '/workspace?view=sessions&queue=requested'
-                            : `/tuition/${n.targetId}${n.kind === 'booking_confirmed' ? '' : '?tab=messages'}`
-                    }
-                  >
-                    {n.kind.startsWith('interview_')
-                      ? 'View interview'
-                      : n.kind === 'booking_confirmed'
-                        ? 'Open booking'
-                        : n.kind === 'trial_requested'
-                          ? 'Open trial requests'
-                          : t(
-                              n.kind === 'case_update'
-                                ? 'cases.openUpdate'
-                                : 'tuition.openConversation',
-                            )}
-                  </Link>
-                  {!n.read && (
-                    <Button variant="text" busy={m.isPending} onClick={() => m.mutate(n.id)}>
-                      {t('tuition.read')}
-                    </Button>
-                  )}
-                </div>
-              </article>
-            ))
+            q.data.items.map((n) => {
+              const details = activityNotification(n, role, t)
+              return (
+                <article className="activity-row" key={n.id} data-unread={!n.read}>
+                  <span className="activity-row-icon">
+                    <Bell size={21} aria-hidden="true" />
+                  </span>
+                  <div className="activity-row-copy">
+                    <h3>{details.title}</h3>
+                    <time dateTime={n.createdAt}>{indiaDate(n.createdAt, i18n.language)}</time>
+                    {!n.read && <span className="activity-unread-label">Unread</span>}
+                  </div>
+                  <div className="tu-actions">
+                    <Link className="btn secondary" to={details.href}>
+                      {details.action}
+                    </Link>
+                    {!n.read && (
+                      <Button variant="text" busy={m.isPending} onClick={() => m.mutate(n.id)}>
+                        {t('tuition.read')}
+                      </Button>
+                    )}
+                  </div>
+                </article>
+              )
+            })
           )}
           <div className="tu-actions">
             {cursor && (

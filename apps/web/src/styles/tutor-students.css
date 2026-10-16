@@ -1,0 +1,143 @@
+.student-roster {
+  min-width: 0;
+  border: 1px solid var(--teaching-line);
+  border-radius: 16px;
+  background: var(--teaching-surface);
+  overflow: hidden;
+}
+.student-roster-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--teaching-line);
+}
+.student-roster-heading p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--teaching-muted);
+}
+.student-roster-heading p:first-child {
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 16px;
+}
+.student-table-scroll {
+  overflow-x: auto;
+}
+.student-table {
+  width: 100%;
+  min-width: 800px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+.student-table thead {
+  background: var(--teaching-soft);
+}
+.student-table :is(th, td) {
+  padding: 14px 16px;
+  vertical-align: top;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.student-table thead th {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.student-table tbody tr + tr {
+  border-top: 1px solid var(--teaching-line);
+}
+.student-table tbody tr:is(:hover, :focus-within) {
+  background: #f7f9f3;
+}
+.student-table tbody th {
+  min-width: 170px;
+  font-weight: 400;
+}
+.student-report-link {
+  display: grid;
+  min-height: 44px;
+  gap: 5px;
+  color: var(--navy);
+  text-decoration: none;
+}
+.student-report-link strong {
+  font-size: 15px;
+}
+.student-report-link span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 600;
+}
+.student-report-link:hover strong {
+  text-decoration: underline;
+}
+.student-table .student-table-secondary {
+  margin: 5px 0 0;
+  color: var(--teaching-muted);
+  font-size: 12px;
+}
+.student-table .badge {
+  white-space: nowrap;
+}
+.student-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  width: fit-content;
+  color: var(--teal);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.student-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 600;
+}
+.student-table-help {
+  display: none;
+}
+.student-distance {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.student-distance-note {
+  margin: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--teaching-line);
+  color: var(--teaching-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 1200px) {
+  .student-table-help {
+    display: block;
+    margin: 0;
+    padding: 12px 20px;
+    color: var(--teaching-muted);
+    font-size: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .student-roster-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+  }
+  .student-table :is(th, td) {
+    padding: 12px 14px;
+  }
+}

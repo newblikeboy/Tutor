@@ -136,10 +136,25 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 			return d, err
 		}
 		d.Title = map[string]string{"signup": "Verify your email to create your account", "verify": "Verify your email address", "login": "Your sign-in code", "reset": "Reset your password"}[c.Purpose]
+		if c.Purpose == "booking_sign" {
+			en, err := storage.One[domain.Enrollment](ctx, a.Store, "enrollments", bson.M{"_id": c.EnrollmentID, "tutorId": u.ID, "status": "pending_tutor_acceptance", "version": c.EnrollmentVersion, "tutorAgreement.documentHash": c.DocumentHash})
+			if err != nil {
+				if err == mongo.ErrNoDocuments {
+					return d, emailSkip("agreement_changed")
+				}
+				return d, err
+			}
+			d.Title = "Sign your tutor booking agreement"
+			d.Intro = "Use this code to sign the agreement you reviewed in your GoCoaching account. It expires in 10 minutes."
+			d.Details = []mailer.Detail{{Label: "Booking reference", Value: en.ID}, {Label: "Agreement version", Value: strconv.Itoa(en.TutorAgreement.Version)}, {Label: "Teaching mode", Value: en.Agreement.Mode}}
+		}
 		if d.Title == "" {
 			return d, emailSkip("invalid_purpose")
 		}
 		d.Intro = map[string]string{"signup": "Enter this code on the GoCoaching signup page. Your account will be created only after your email is verified. This code expires in 10 minutes.", "verify": "Use this code to confirm this email address belongs to you.", "login": "Use this code to sign in to your GoCoaching account.", "reset": "Use this code on the password recovery page to choose a new password."}[c.Purpose]
+		if c.Purpose == "booking_sign" {
+			d.Intro = "Use this code to sign the booking agreement you reviewed in your account. It expires in 10 minutes and cannot sign a different booking."
+		}
 		d.Notice = "If you did not request this code, ignore this email. GoCoaching support will never ask you to share a code or password."
 		return d, nil
 	case "password_changed":
@@ -221,7 +236,7 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 		if u.ID != en.OwnerID && u.ID != en.TutorID {
 			return d, emailSkip("assignment")
 		}
-		if p["tutorId"] != "" && p["tutorId"] != en.TutorID {
+		if p["tutorId"] != "" && p["tutorId"] != en.TutorID && !(p["event"] == "class_completed" && u.ID == en.OwnerID) {
 			return d, emailSkip("assignment")
 		}
 		if p["targetKind"] == "class" {
@@ -266,6 +281,12 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 		subjects = strings.Join(agreementSubjects(en.Agreement), ", ")
 		mode = en.Agreement.Mode
 		tutor = en.TutorName
+		if p["targetKind"] == "class" && s.TutorID != en.TutorID {
+			tutor, err = a.recordedClassTutor(ctx, en, s)
+			if err != nil {
+				return d, err
+			}
+		}
 		d.URL = a.Config.Origin + "/tuition/" + url.PathEscape(en.ID)
 		if p["targetKind"] == "class" {
 			d.URL += "?class=" + url.QueryEscape(s.ID)
@@ -306,6 +327,15 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 	case "booking_confirmed":
 		d.Title = "Regular classes confirmed"
 		d.Intro = "Payment has been verified and the regular booking is confirmed. Your agreed class schedule is ready to view."
+	case "booking_awaiting_tutor":
+		d.Title = "Booking awaiting tutor acceptance"
+		d.Intro = "Payment is recorded and the class times are reserved. The tutor must review and sign the teaching agreement before lessons can begin."
+		if u.Role == "tutor" {
+			d.Action = "Review and accept booking"
+		}
+	case "booking_accepted":
+		d.Title = "Tutor accepted your booking"
+		d.Intro = "The tutor signed the teaching agreement and accepted the booking. Your class schedule is ready."
 	case "booking_paused":
 		d.Title = "Regular classes paused"
 		d.Intro = "This tuition arrangement is paused. Check the reason and next steps in your account."
@@ -318,6 +348,11 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 	case "class_rescheduled":
 		d.Title = "Class time updated"
 		d.Intro = "The new class time has been accepted. Use the updated date and time below."
+	case "class_completed":
+		d.Title = "Your child's class has been completed"
+		d.Intro = "The tutor marked the class shown below as completed. If you have a question or believe it was marked complete by mistake, open the class and report your concern."
+		d.Action = "View class or report a concern"
+		d.URL += "&report=1"
 	case "class_change_proposed":
 		d.Title = "A new class time was proposed"
 		d.Intro = "A schedule change needs your review. The current class time remains in place until the change is accepted."

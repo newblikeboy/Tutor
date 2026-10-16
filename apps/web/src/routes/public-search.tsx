@@ -344,7 +344,7 @@ export function Search() {
           ) : results.length ? (
             <div className="search-cards">
               {results.map((tutor) => (
-                <TutorCard key={tutor.id} tutor={tutor} />
+                <TutorCard key={tutor.id} tutor={tutor} context={params} />
               ))}
             </div>
           ) : (

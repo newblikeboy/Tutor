@@ -36,7 +36,7 @@ test('private application evidence persists in quarantine and never grants appro
   ).toBe(200)
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto('/apply')
-  const photoInput = page.getByLabel('Passport-size photo (optional)', { exact: true })
+  const photoInput = page.getByLabel('Passport-size photo (required)', { exact: true })
   const photo = page.locator('.af-attachment').filter({ has: photoInput })
   await expect(photoInput).toHaveAttribute('accept', 'image/jpeg,image/png')
   await photoInput.setInputFiles({
@@ -78,7 +78,7 @@ test('private application evidence persists in quarantine and never grants appro
   })
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(page.locator('.language-button')).toHaveCount(0)
-  await expect(page.getByLabel('Passport-size photo (optional)', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Passport-size photo (required)', { exact: true })).toBeVisible()
   await page.evaluate(() =>
     window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }),
   )
@@ -105,8 +105,8 @@ test('private application evidence persists in quarantine and never grants appro
   await expect(attachment.getByRole('status')).toContainText('File saved privately')
   const education = page
     .locator('.af-attachment')
-    .filter({ has: page.getByLabel('Educational documents (optional)', { exact: true }) })
-  await page.getByLabel('Educational documents (optional)', { exact: true }).setInputFiles([
+    .filter({ has: page.getByLabel('Higher qualification certificates (optional)', { exact: true }) })
+  await page.getByLabel('Higher qualification certificates (optional)', { exact: true }).setInputFiles([
     {
       name: 'sample-degree.pdf',
       mimeType: 'application/pdf',
@@ -123,7 +123,7 @@ test('private application evidence persists in quarantine and never grants appro
     .poll(
       async () =>
         (await (await page.request.get('/api/v1/application')).json()).application.profile.education
-          .educationFileIds.length,
+          .higherQualificationFileIds.length,
     )
     .toBe(2)
   await expect(page.getByRole('button', { name: 'Save draft', exact: true })).toBeEnabled()
@@ -140,7 +140,7 @@ test('private application evidence persists in quarantine and never grants appro
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(page.locator('.language-button')).toHaveCount(0)
   await page
-    .getByLabel('Educational documents (optional)', { exact: true })
+    .getByLabel('Higher qualification certificates (optional)', { exact: true })
     .scrollIntoViewIfNeeded()
   await page.screenshot({
     path: 'docs/visual-qa/english-only/application-compact/uploads/education-en-mobile.png',
@@ -210,7 +210,7 @@ test('private application evidence persists in quarantine and never grants appro
   ).toBe(200)
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto(`/workspace?view=applications&application=${auth.user.id}`)
-  await expect(page.getByText('Passport-size photo (optional)', { exact: true })).toBeVisible()
+  await expect(page.getByText('Passport-size photo (required)', { exact: true })).toBeVisible()
   await page.getByRole('tab', { name: 'Documents', exact: true }).click()
   for (const name of [
     'sample-teaching-evidence.pdf',

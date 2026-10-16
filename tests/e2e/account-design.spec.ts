@@ -11,6 +11,34 @@ async function capture(page: Page, name: string) {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.evaluate(() => document.fonts.ready)
+    if (new URL(page.url()).pathname === '/tutor-profile') {
+      const space = await page
+        .locator('.desk-main')
+        .evaluate(
+          (node) =>
+            node.clientWidth -
+            parseFloat(getComputedStyle(node).paddingLeft) -
+            parseFloat(getComputedStyle(node).paddingRight),
+        )
+      expect(
+        (await page.locator('.tutor-public-profile-page').boundingBox())!.width,
+      ).toBeGreaterThanOrEqual(space - 2)
+      const strip = page.getByRole('tablist', { name: 'My profile', exact: true })
+      const selected = strip.locator('[aria-selected="true"]')
+      await expect
+        .poll(async () => {
+          const bar = await strip.boundingBox()
+          const tab = await selected.boundingBox()
+          return !!bar && !!tab && tab.x >= bar.x && tab.x + tab.width <= bar.x + bar.width
+        })
+        .toBe(true)
+      if (width === 390) {
+        const rows = await strip
+          .getByRole('tab')
+          .evaluateAll((tabs) => tabs.map((tab) => Math.round(tab.getBoundingClientRect().top)))
+        expect(new Set(rows).size).toBe(1)
+      }
+    }
     await page.screenshot({ path: `${output}/${name}-${width}.png`, fullPage: true })
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -18,7 +46,7 @@ async function capture(page: Page, name: string) {
   await page.setViewportSize({ width: 1440, height: 1000 })
 }
 
-test('Account redesign preserves settings, tab drafts, retries and role boundaries', async ({
+test('Tutor profile preserves layout, settings, tab drafts and retries', async ({
   page,
   browser,
 }) => {
@@ -33,22 +61,57 @@ test('Account redesign preserves settings, tab drafts, retries and role boundari
       })
     ).status(),
   ).toBe(200)
+  await page.goto('/tutor-profile')
+  await expect(page.getByLabel('Public introduction', { exact: true })).toBeVisible()
+  await capture(page, 'public-profile-layout')
+  await page.setViewportSize({ width: 1920, height: 1080 })
+  const available = await page
+    .locator('.desk-main')
+    .evaluate(
+      (node) =>
+        node.clientWidth -
+        parseFloat(getComputedStyle(node).paddingLeft) -
+        parseFloat(getComputedStyle(node).paddingRight),
+    )
+  expect(
+    (await page.locator('.tutor-public-profile-page').boundingBox())!.width,
+  ).toBeGreaterThanOrEqual(available - 2)
+  await page.screenshot({ path: `${output}/public-profile-wide-1920.png`, fullPage: true })
+  await page.setViewportSize({ width: 390, height: 1000 })
+  await page.goto('/tutor-profile?section=preview')
+  await expect(page.getByText('What parents see', { exact: true })).toBeVisible()
+  await page.reload()
+  await capture(page, 'profile-preview-layout')
+  await page.setViewportSize({ width: 390, height: 1000 })
+  const preview = page.getByRole('tab', { name: 'Preview', exact: true })
+  await preview.focus()
+  await page.keyboard.press('Home')
+  await expect(page.getByRole('tab', { name: 'Public profile', exact: true })).toBeFocused()
+  await expect(preview).toHaveAttribute('aria-selected', 'true')
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL('/tutor-profile?section=profile')
+  await expect(page.getByLabel('Public introduction', { exact: true })).toBeVisible()
+  await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto('/account')
-  await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible()
+  await expect(page).toHaveURL('/tutor-profile?section=account')
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'My profile', exact: true }),
+  ).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Account', exact: true })).toHaveCount(0)
   await expect(page.getByRole('tab', { name: 'Emails', exact: true })).toHaveCount(0)
   await expect(page.getByLabel('Sign-in email', { exact: true })).toHaveAttribute('readonly', '')
   await expect(page.locator('.account-reminder-status')).toBeVisible()
   await capture(page, 'tutor-profile')
   const name = page.getByLabel('Your name', { exact: true })
   await name.fill('Arjun account settings')
-  const profile = page.getByRole('tab', { name: 'Profile', exact: true })
+  const profile = page.getByRole('tab', { name: 'Account & email', exact: true })
   await profile.focus()
   await page.keyboard.press('ArrowRight')
   const secretTab = page.getByRole('tab', { name: 'Password', exact: true })
   await expect(secretTab).toBeFocused()
   await expect(profile).toHaveAttribute('aria-selected', 'true')
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/tab=password/)
+  await expect(page).toHaveURL(/section=password/)
   await page.getByLabel('Current password', { exact: true }).fill(password)
   await page.getByLabel('New password', { exact: true }).fill('Account review passphrase 846!')
   await page.getByLabel('Confirm new password', { exact: true }).fill('Different passphrase 846!')
@@ -89,7 +152,7 @@ test('Account redesign preserves settings, tab drafts, retries and role boundari
         })
       ).status(),
     ).toBe(200)
-    await page.getByRole('tab', { name: 'Sign-ins', exact: true }).click()
+    await page.getByRole('tab', { name: 'Sign-ins & Google', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Other sign-in', exact: true })).toBeVisible()
     await capture(page, 'sign-ins')
     await page.getByRole('button', { name: 'Sign out this session', exact: true }).click()
@@ -126,8 +189,23 @@ test('Account redesign preserves settings, tab drafts, retries and role boundari
     document.documentElement.style.zoom = ''
   })
   await expect(page.locator('.account-help a')).toHaveAttribute('href', '/cases')
+  await page.goto('/account?tab=password')
+  await expect(page).toHaveURL('/tutor-profile?section=password')
+  await page.goto('/account?tab=signins')
+  await expect(page).toHaveURL('/tutor-profile?section=signins')
+  await page.goto('/')
+  await expect(page).toHaveURL('/workspace')
+  await expect(page.locator('.site-header')).toHaveCount(0)
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
-  for (const role of ['parent', 'mentor', 'admin']) {
+  await expect(page).toHaveURL('/')
+  await expect(page.locator('.site-header')).toBeVisible()
+  expect(errors).toEqual([])
+})
+
+for (const role of ['parent', 'mentor', 'admin']) {
+  test(`${role} Account preserves settings layout and role boundaries`, async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
     expect(
       (
         await page.request.post('/api/v1/auth/login', {
@@ -152,7 +230,12 @@ test('Account redesign preserves settings, tab drafts, retries and role boundari
     } else {
       expect((await page.request.get('/api/v1/admin/email-deliveries')).status()).toBe(403)
     }
+    await page.goto('/')
+    await expect(page).toHaveURL('/workspace')
+    await expect(page.locator('.site-header')).toHaveCount(0)
     await page.getByRole('button', { name: 'Sign out', exact: true }).click()
-  }
-  expect(errors).toEqual([])
-})
+    await expect(page).toHaveURL('/')
+    await expect(page.locator('.site-header')).toBeVisible()
+    expect(errors).toEqual([])
+  })
+}

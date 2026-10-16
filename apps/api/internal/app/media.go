@@ -65,12 +65,28 @@ func (a *App) fileStore(f domain.PrivateFile) media.Store {
 	return a.Files
 }
 func mediaTarget(r *http.Request) (string, string) {
+	if strings.HasPrefix(r.URL.Path, "/api/v1/tutor-profile/files") {
+		return "public_profile", user(r).ID
+	}
 	if strings.Contains(r.URL.Path, "/applications/") {
 		return "application", chi.URLParam(r, "id")
 	}
 	return "enrollment", chi.URLParam(r, "id")
 }
 func (a *App) fileAccess(ctx context.Context, u domain.User, kind, id string, write bool) error {
+	if kind == "public_profile" {
+		if u.ID != id {
+			return mongo.ErrNoDocuments
+		}
+		v, e := a.ownApprovedTutor(ctx, u)
+		if e != nil {
+			return e
+		}
+		if write {
+			_, e = a.Store.C("applications").UpdateOne(ctx, bson.M{"_id": id, "version": v.Version}, bson.M{"$inc": bson.M{"version": 1}})
+		}
+		return e
+	}
 	if kind == "enrollment" {
 		v, e := a.tuitionAccess(ctx, u, id)
 		if e != nil {
@@ -168,7 +184,7 @@ func (a *App) uploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name, contentType, e := media.Validate(in.Name, data)
-	if kind == "application" {
+	if kind == "application" || kind == "public_profile" {
 		name, contentType, e = media.ValidateApplication(in.Name, data)
 	}
 	if e != nil {
@@ -180,8 +196,12 @@ func (a *App) uploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	checksum := digest(string(data))
+	if kind == "public_profile" && !enum(contentType, "image/jpeg", "image/png", "video/mp4") {
+		a.error(w, r, domain.Fail(422, "profile_media", "Choose a JPG, PNG or MP4 for your public profile."))
+		return
+	}
 	provider := a.Config.MediaProvider
-	if kind == "application" && contentType == "video/mp4" {
+	if (kind == "application" || kind == "public_profile") && contentType == "video/mp4" {
 		if a.Videos == nil {
 			a.error(w, r, domain.Fail(503, "video_unconfigured", "Video upload is not configured."))
 			return

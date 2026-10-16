@@ -6,7 +6,13 @@ export function feeLabel(plan: Pick<Schema['FeePlan'], 'mode' | 'period'>) {
   return plan.mode === 'online' ? 'onlineHour' : plan.period === 'week' ? 'homeWeek' : 'homeMonth'
 }
 
-export function TutorFees({ plans = [] }: { plans?: Schema['FeePlan'][] }) {
+export function TutorFees({
+  plans = [],
+  subjectCount = 1,
+}: {
+  plans?: Schema['FeePlan'][]
+  subjectCount?: number
+}) {
   const { t, i18n } = useTranslation()
   if (!plans.length) return <p className="tutor-fee-pending">{t('tutorFees.pending')}</p>
   const money = (amount: number) =>
@@ -21,7 +27,13 @@ export function TutorFees({ plans = [] }: { plans?: Schema['FeePlan'][] }) {
         <div key={`${plan.mode}:${plan.period}`}>
           <dt>{t(`tutorFees.${feeLabel(plan)}`)}</dt>
           <dd>
-            <strong>{money(plan.amountPaise)}</strong> <span>{t(`tutorFees.${plan.period}`)}</span>
+            <strong>{money(plan.amountPaise * subjectCount)}</strong>{' '}
+            <span>{t(`tutorFees.${plan.period}`)}</span>
+            {subjectCount > 1 && (
+              <small>
+                {money(plan.amountPaise)} × {subjectCount} selected subjects
+              </small>
+            )}
             {plan.mode === 'home' && (
               <small>
                 {t('tutorFees.includes', { count: plan.classes, minutes: plan.minutes })}

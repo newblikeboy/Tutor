@@ -79,7 +79,9 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 	if !validLocationPoint(b.Location) {
 		errors["about.location"] = "location"
 	}
-	text("about.photoFileId", b.PhotoFileID, 0, 100)
+	text("about.photoFileId", b.PhotoFileID, 1, 100)
+	text("about.aadhaarFrontFileId", b.AadhaarFrontFileID, 1, 100)
+	text("about.aadhaarBackFileId", b.AadhaarBackFileID, 1, 100)
 	choices("about.communicationLanguages", b.CommunicationLanguages, true, "Hindi", "English")
 	e := p.Education
 	text("education.qualification", e.Qualification, 2, 120)
@@ -116,6 +118,26 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 	choice("education.occupation", e.Occupation, true, "independent_tutor", "student", "employed_teacher", "other_employment", "not_employed", "other")
 	choice("education.outsideWork", e.OutsideWork, true, "none", "permission_required", "restricted", "unsure")
 	text("education.resumeFileId", e.ResumeFileID, 0, 100)
+	text("education.class10FileId", e.Class10FileID, 1, 100)
+	text("education.class12FileId", e.Class12FileID, 1, 100)
+	if len(e.HigherQualificationFileIDs) > 6 {
+		errors["education.higherQualificationFileIds"] = "limit"
+	}
+	for _, id := range e.HigherQualificationFileIDs {
+		if id == "" || len(id) > 100 {
+			errors["education.higherQualificationFileIds"] = "file"
+		}
+	}
+	unique := map[string]bool{}
+	for _, link := range applicationEvidenceLinks(p) {
+		if link.id == "" {
+			continue
+		}
+		if unique[link.id] {
+			errors[link.field] = "duplicate_file"
+		}
+		unique[link.id] = true
+	}
 	if len(e.EducationFileIDs) > 6 {
 		errors["education.educationFileIds"] = "limit"
 	}

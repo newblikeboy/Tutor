@@ -79,9 +79,10 @@ test('admin business settings persist and finance/tutor/parent access stays sepa
   await page.goto('/billing')
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 })
-    await expect(page.getByRole('heading', { name: 'Your earnings', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Earnings & payouts', exact: true })).toBeVisible()
+    await page.getByRole('tab', { name: 'Payout history', exact: true }).click()
     await expect(
-      page.getByRole('heading', { name: 'No payout batches yet', exact: true }),
+      page.getByRole('heading', { name: 'No payouts yet', exact: true }),
     ).toBeVisible()
     await capture(page, `tutor-${width}`)
   }

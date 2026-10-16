@@ -23,6 +23,13 @@ export function applicationContract(schemas, route) {
     description:
       'Optional private WhatsApp contact number. Indian mobile number, optionally prefixed with +91.',
   }
+  for (const key of ['aadhaarFrontFileId', 'aadhaarBackFileId'])
+    schemas.ApplicantAbout.properties[key] = {
+      type: 'string',
+      maxLength: 100,
+      description:
+        'Private self-attested Aadhaar image. Required on new submission; older saved profiles may omit it.',
+    }
   schemas.ApplicantEducation = obj({
     ...strings(
       'qualification specialisation institution pursuing programme currentInstitution currentStage expectedCompletion additional summary occupation outsideWork resumeFileId',
@@ -39,6 +46,18 @@ export function applicationContract(schemas, route) {
     maxLength: 240,
     description:
       'Selected education subjects, separated by commas. Existing authored specialisation text is retained.',
+  }
+  for (const key of ['class10FileId', 'class12FileId'])
+    schemas.ApplicantEducation.properties[key] = {
+      type: 'string',
+      maxLength: 100,
+      description: 'Required certificate file on new submission. Older saved profiles may omit it.',
+    }
+  schemas.ApplicantEducation.properties.higherQualificationFileIds = {
+    ...array(s),
+    type: ['array', 'null'],
+    maxItems: 6,
+    uniqueItems: true,
   }
   schemas.RequestedTeachingArea = obj({
     ...strings('id subject priorExperience'),

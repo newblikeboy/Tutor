@@ -18,8 +18,8 @@ const workspaceEN = {
       administration: 'Administration',
     },
     tutorViewIntro: {
-      overview: 'Your lessons, learners and next steps.',
-      learners: 'Prepare for lessons and follow your learners’ progress.',
+      overview: 'Your lessons, students and next steps.',
+      learners: 'See your students and open their individual progress reports.',
       sessions: 'Manage trial requests and share your teaching feedback.',
     },
     mentorNav: {

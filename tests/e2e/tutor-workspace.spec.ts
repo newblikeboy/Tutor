@@ -3,6 +3,7 @@ import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { readFile, mkdir } from 'node:fs/promises'
 import { createRequire } from 'node:module'
+import { applicationProfile } from './helpers/application'
 const { MongoClient } = createRequire(import.meta.url)('mongodb') as typeof import('mongodb')
 const origin = 'http://127.0.0.1:5174'
 const password = 'E2E-only learning passphrase 426!'
@@ -24,11 +25,34 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Goo
     const db = mongo.db(runtime.databaseName)
     const id = crypto.randomUUID(),
       learner = `${id}-learner`,
+      trialStudent = `${id}-trial-student`,
       en = `${id}-current`,
       archive = `${id}-archive`
     const now = new Date(),
       soon = new Date(now.getTime() + 5 * 60000),
       tomorrow = new Date(now.getTime() + 86400000)
+    const savedLocation = (latitude: number, name: string) => ({
+      address: `${name}, fictional address`,
+      locality: name,
+      city: 'Purnea',
+      district: 'Purnea',
+      state: 'Bihar',
+      country: 'India',
+      postalCode: '854301',
+      latitude,
+      longitude: 87.45,
+      accuracyMeters: 20,
+      source: 'browser',
+    })
+    const tutorProfile = applicationProfile('Arjun sample')
+    tutorProfile.about.location = savedLocation(25.75, 'Original teaching base')
+    await db.collection('preferences').updateOne(
+      { _id: 'parent-a' },
+      {
+        $set: { language: 'en', version: 0, location: savedLocation(25.76, 'Student household') },
+      },
+      { upsert: true },
+    )
     const progress = {
       subject: 'Mathematics',
       topics: [
@@ -70,6 +94,7 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Goo
       { _id: 'tutor-arjun' },
       {
         $set: {
+          profile: tutorProfile,
           'scope.subjects': ['Mathematics', 'Science'],
           'scope.minClass': 6,
           'scope.maxClass': 10,
@@ -96,6 +121,39 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Goo
       language: 'English',
       kind: 'adult_self',
       version: 1,
+    })
+    await db.collection('learners').insertOne({
+      _id: trialStudent,
+      ownerId: 'parent-b',
+      name: 'Trial student sample',
+      class: 7,
+      board: 'CBSE',
+      language: 'English',
+      kind: 'adult_self',
+      version: 1,
+    })
+    await db.collection('trials').insertOne({
+      _id: `${id}-requested`,
+      ownerId: 'parent-b',
+      learnerId: trialStudent,
+      tutorId: 'tutor-arjun',
+      mentorId: 'mentor-a',
+      learnerName: 'Trial student sample',
+      subject: 'Mathematics',
+      subjects: ['Mathematics'],
+      class: 7,
+      mode: 'online',
+      start: tomorrow,
+      end: new Date(tomorrow.getTime() + 3600000),
+      status: 'requested',
+      notes: '',
+      nextSteps: '',
+      review: '',
+      version: 1,
+      feePaise: 0,
+      termsVersion: 'test',
+      terms: 'Fictional requested trial fixture',
+      createdAt: now,
     })
     for (const [e, status, count] of [
       [en, 'active', 2],
@@ -200,6 +258,21 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Goo
     const inspect = async (p: Page, name: string) => {
       await p.evaluate(() => document.fonts.ready)
       await expect(p.locator('.loading-state')).toHaveCount(0)
+      if ((p.viewportSize()?.width ?? 0) <= 760) {
+        for (const strip of await p.locator('.workspace-tabs-scrollable:visible').all()) {
+          const rows = await strip
+            .getByRole('tab')
+            .evaluateAll((tabs) => tabs.map((tab) => Math.round(tab.getBoundingClientRect().top)))
+          expect(new Set(rows).size).toBe(1)
+          await expect
+            .poll(async () => {
+              const bar = await strip.boundingBox()
+              const tab = await strip.locator('[aria-selected="true"]').boundingBox()
+              return !!bar && !!tab && tab.x >= bar.x && tab.x + tab.width <= bar.x + bar.width
+            })
+            .toBe(true)
+        }
+      }
       const accessibility = new AxeBuilder({ page: p })
       if (name.includes('history')) {
         // Inspect the repeated history component once; retain the full 127-record assertion.
@@ -228,32 +301,166 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Goo
     await expect(page.getByText('Regular class · Mathematics, Science')).toBeVisible()
     await expect(
       page.getByRole('heading', { name: 'Confirmed bookings', exact: true }),
-    ).toBeVisible()
+    ).toHaveCount(0)
     await capture('home')
     await page.goto('/workspace?view=sessions&queue=completed')
+    await expect(
+      page.getByRole('table', { name: 'Tutor trial lessons', exact: true }),
+    ).toBeVisible()
+    await expect(page.locator('.student-table tbody tr')).toHaveCount(1)
+    await expect(
+      page.getByRole('columnheader', { name: 'Feedback status', exact: true }),
+    ).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: 'Distance', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('cell', { name: 'Submitted', exact: true })).toBeVisible()
+    await capture('trial-table')
+    await page.getByRole('link', { name: /Tutor workflow learner View trial/ }).click()
+    await expect(page).toHaveURL(new RegExp(`queue=completed&trial=${id}-completed`))
     await expect(
       page.getByText('Tutor recommends practice with everyday fractions.', { exact: true }),
     ).toBeVisible()
     await expect(page.getByText('Awaiting academic review', { exact: true })).toHaveCount(0)
     await capture('trial-feedback')
-    await page.getByRole('button', { name: 'Correct trial feedback', exact: true }).click()
+    await page.getByRole('button', { name: 'Edit Feedback', exact: true }).click()
+    await expect(page.getByLabel('What the student worked on', { exact: true })).toBeFocused()
     await page
-      .getByLabel('Trial feedback', { exact: true })
+      .getByRole('textbox', { name: 'Trial feedback', exact: true })
+      .fill('Unsaved trial feedback edit.')
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Edit Feedback', exact: true })).toBeFocused()
+    await expect(page.getByText('Unsaved trial feedback edit.', { exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Edit Feedback', exact: true }).click()
+    await expect(page.getByRole('textbox', { name: 'Trial feedback', exact: true })).toHaveValue(
+      'Tutor recommends practice with everyday fractions.',
+    )
+    await capture('trial-feedback-edit')
+    await page
+      .getByRole('textbox', { name: 'Trial feedback', exact: true })
       .fill('Tutor corrected the trial feedback with a concrete practice recommendation.')
     const correction = page.waitForResponse(
       (r) => r.url().endsWith(`/trials/${id}-completed/action`) && r.request().method() === 'POST',
     )
-    await page.getByRole('button', { name: 'Save feedback correction', exact: true }).click()
+    await page.getByRole('button', { name: 'Save Feedback', exact: true }).click()
     expect((await correction).status()).toBe(200)
-    await page.goto(`/workspace?view=learners&learner=${learner}`)
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(
+      page.getByText(
+        'Tutor corrected the trial feedback with a concrete practice recommendation.',
+        { exact: true },
+      ),
+    ).toBeVisible()
+    await page.getByRole('link', { name: 'Back to Trial lessons', exact: true }).click()
+    await expect(page).toHaveURL('/workspace?view=sessions&queue=completed')
+    await page.goto('/workspace?view=sessions&queue=requested')
+    await page.getByRole('link', { name: /Trial student sample View trial/ }).click()
+    await expect(
+      page.getByRole('button', { name: 'Accept & confirm time', exact: true }),
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Decline', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Cancel trial', exact: true })).toBeVisible()
+    await capture('trial-request-detail')
+    await page.goto('/workspace?view=sessions&queue=requested&trial=unassigned-trial')
+    await expect(page.getByText('This trial is not available.', { exact: true })).toBeVisible()
+    await expect(page.locator('.record-card')).toHaveCount(0)
+    await page.goto('/workspace?view=learners')
+    await expect(page.getByRole('table')).toBeVisible()
+    await expect(page.locator('.student-table tbody tr')).toHaveCount(2)
+    const studentRow = page.getByRole('row').filter({ hasText: 'Tutor workflow learner' })
+    await expect(studentRow).toContainText('Class 8')
+    await expect(studentRow).toContainText('Mathematics, Science')
+    await expect(studentRow).toContainText('Active')
+    await expect(studentRow).toContainText('1.1 km')
+    await expect(page.getByRole('row').filter({ hasText: 'Trial student sample' })).toContainText(
+      'Student location not set',
+    )
+    await expect(page.locator('.child-report')).toHaveCount(0)
+    await capture('student-table')
+    await page.context().grantPermissions(['geolocation'], { origin })
+    await page.context().setGeolocation({ latitude: 25.7, longitude: 87.45 })
+    await page.route('**/api/v1/location/reverse?**', (route) =>
+      route.fulfill({
+        status: 200,
+        json: {
+          ...savedLocation(25.7, 'New teaching base'),
+          location: 'New teaching base, Purnea',
+          primary: 'New teaching base',
+          secondary: 'Purnea',
+        },
+      }),
+    )
+    await page.getByRole('button', { name: 'Your teaching location', exact: true }).click()
+    await expect(page.getByRole('dialog', { name: 'Tutor location', exact: true })).toBeVisible()
+    await capture('tutor-location-dialog')
+    const updatedLocation = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/v1/account') && response.request().method() === 'PUT',
+    )
+    await page.getByRole('button', { name: 'Update to my current location', exact: true }).click()
+    expect((await updatedLocation).status()).toBe(200)
+    await expect(
+      page.getByText('Tutor location saved. Student distances are updated.', { exact: true }),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(studentRow).toContainText('6.7 km')
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(studentRow).toContainText('6.7 km')
+    const storedAccount = await (await page.request.get('/api/v1/account')).json()
+    expect(storedAccount.preferences.location.latitude).toBe(25.7)
+    const storedApplication = await db.collection('applications').findOne({ _id: 'tutor-arjun' })
+    expect(storedApplication!.profile.about.location.latitude).toBe(25.75)
+    expect(storedApplication!.teachingLocation.latitude).toBe(25.7)
+    await capture('student-distances-updated')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page
+      .locator('.student-table-scroll')
+      .evaluate((element) => (element.scrollLeft = element.scrollWidth))
+    await inspect(page, 'student-distance-mobile-scrolled')
+    await page.locator('.student-table-scroll').evaluate((element) => (element.scrollLeft = 0))
+    await page.unroute('**/api/v1/location/reverse?**')
+    await page.getByRole('link', { name: /Trial student sample View student/ }).click()
+    await expect(page).toHaveURL(new RegExp(`learner=${trialStudent}`))
+    await expect(page.getByRole('heading', { name: 'No regular-class progress yet' })).toBeVisible()
+    await expect(page.locator('.child-report')).toHaveCount(0)
+    await page.getByRole('link', { name: 'Back to My students', exact: true }).click()
+    await studentRow.getByRole('link').click()
+    await expect(page).toHaveURL(new RegExp(`learner=${learner}`))
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Student progress report', exact: true }),
+    ).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Teaching brief', exact: true })).toBeVisible()
     await expect(page.getByText('Class 8 · CBSE · Teaching language: English')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Edit profile', exact: true })).toHaveCount(0)
     await capture('learner-overview')
     await page.getByRole('tab', { name: 'Class history', exact: true }).click()
     await expect(page.locator('#child-report-panel-history .child-report-lesson')).toHaveCount(127)
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page).toHaveURL(new RegExp(`learner=${learner}.*reportTab=history`))
+    await expect(page.locator('#child-report-panel-history .child-report-lesson')).toHaveCount(127)
     await capture('learner-history')
-    await page.goto(`/tuition/${en}?class=${en}-future`)
+    await page.goto('/workspace?view=learners&learner=unassigned-student')
+    await expect(
+      page.getByText('This student is no longer in your current assignments.', { exact: true }),
+    ).toBeVisible()
+    await expect(page.locator('.child-report')).toHaveCount(0)
+    await page.getByRole('link', { name: 'Back to My students', exact: true }).click()
+    await expect(page).toHaveURL('/workspace?view=learners')
+    await expect(page.getByRole('table')).toBeVisible()
+    await page.goto('/tuition')
+    await expect(
+      page.getByRole('table', { name: 'Current regular class bookings', exact: true }),
+    ).toBeVisible()
+    await expect(page.locator('.student-table tbody tr')).toHaveCount(1)
+    await capture('regular-booking-table')
+    await page.getByRole('link', { name: /Tutor workflow learner View booking/ }).click()
+    await expect(
+      page.getByRole('table', { name: 'Classes in this booking', exact: true }),
+    ).toBeVisible()
+    await expect(page.locator('.student-table tbody tr')).toHaveCount(2)
+    for (const label of ['Learning plan', 'Messages', 'Files', 'Schedule & fees', 'Change tutor']) {
+      await expect(page.getByRole('tab', { name: label, exact: true })).toBeVisible()
+    }
+    await capture('regular-class-table')
+    await page.locator(`a[href*="class=${en}-future"]`).click()
     const future = page.locator(`#class-${en}-future`)
     await future.getByRole('button', { name: 'Plan subject', exact: true }).click()
     await future.getByLabel('Lesson subject', { exact: true }).selectOption('Science')
@@ -264,6 +471,22 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Goo
     await future.getByRole('button', { name: 'Confirm', exact: true }).click()
     expect((await planned).status()).toBe(200)
     await expect(future.getByText('Science', { exact: true }).first()).toBeVisible()
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.locator('.tu-session')).toHaveCount(1)
+    await expect(
+      page.getByRole('button', { name: 'Record attendance or detailed progress', exact: true }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Propose a new time', exact: true }),
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Cancel this class', exact: true })).toBeVisible()
+    await page.getByRole('link', { name: 'Back to class list', exact: true }).click()
+    await expect(page.locator('.student-table tbody tr')).toHaveCount(2)
+    await page.goto(`/tuition/${en}?class=unassigned-class`)
+    await expect(
+      page.getByText('This class is not available in this booking.', { exact: true }),
+    ).toBeVisible()
+    await expect(page.locator('.tu-session')).toHaveCount(0)
     await page.goto('/workspace?view=home')
     await capture('google-disconnected')
     await connectGoogle(page, 'tutor')
@@ -279,10 +502,15 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Goo
     ).toMatch(/^https:\/\/meet\.google\.com\//)
     await capture('google-lesson-ready')
     await page.goto('/tuition?history=1')
-    await expect(page.locator('.tu-enrollment')).toHaveCount(1)
-    await page.locator('.tu-enrollment').getByRole('link').click()
-    await expect(page.locator('.tu-session')).toHaveCount(125)
+    await expect(
+      page.getByRole('table', { name: 'Past regular class bookings', exact: true }),
+    ).toBeVisible()
+    await expect(page.locator('.student-table tbody tr')).toHaveCount(1)
+    await capture('regular-history-table')
+    await page.getByRole('link', { name: /Tutor workflow learner View booking/ }).click()
+    await expect(page.locator('.student-table tbody tr')).toHaveCount(125)
     await expect(page.getByRole('tab', { name: 'Files', exact: true })).toHaveCount(0)
+    await page.locator(`a[href*="class=${archive}-124"]`).click()
     const latest = page.locator(`#class-${archive}-124`)
     await latest.getByRole('button', { name: 'Update learning progress', exact: true }).click()
     await latest
@@ -293,6 +521,8 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Goo
     )
     await latest.getByRole('button', { name: 'Save progress', exact: true }).click()
     expect((await saved).status()).toBe(200)
+    await page.locator('.tu-back').click()
+    await expect(page).toHaveURL('/tuition?history=1')
     await page.goto('/availability')
     await expect(page.locator('.tutor-fees')).toContainText('24')
     await capture('staff-fees')

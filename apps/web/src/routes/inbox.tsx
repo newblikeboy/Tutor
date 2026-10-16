@@ -10,7 +10,11 @@ import { Alert, Badge, Button, Field, Loading, LoadError, MutationError } from '
 import { ActivityUpdates } from './conversations'
 import '../styles/inbox.css'
 
-const refreshInbox = () => queryClient.invalidateQueries({ queryKey: ['inbox'] })
+const refreshInbox = () =>
+  Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['inbox'] }),
+    queryClient.invalidateQueries({ queryKey: ['notifications', 'status'] }),
+  ])
 const url = (folder: string, id = '', cursor = '') =>
   `/notifications?${new URLSearchParams({ folder, ...(id ? { id } : {}), ...(cursor ? { cursor } : {}) })}`
 const date = (value: string) => indiaDate(value, 'en')
@@ -73,14 +77,14 @@ function Updates({ user }: { user: User }) {
   const id = params.get('id') ?? ''
   const compose = params.get('compose') === '1' && ['admin', 'tutor'].includes(user.role)
   const status = useQuery({
-    queryKey: ['inbox', 'status', user.id],
+    queryKey: ['notifications', 'status', user.id],
     enabled: allowed,
-    queryFn: ({ signal }) => api<Schema['InboxStatus']>('/inbox/status', { signal }),
+    queryFn: ({ signal }) => api<Schema['NotificationStatus']>('/notifications/status', { signal }),
     refetchInterval: 15000,
   })
   if (!allowed)
     return (
-      <div className="tu-page">
+      <div className="tu-page notifications-page">
         <header className="tu-heading">
           <h1>{t('inbox.title')}</h1>
         </header>
@@ -99,8 +103,8 @@ function Updates({ user }: { user: User }) {
             >
               <InboxIcon size={18} aria-hidden="true" />
               {t('inbox.received')}
-              {!!status.data?.unreadCount && (
-                <span className="inbox-count">{status.data.unreadCount}</span>
+              {!!status.data?.updatesUnreadCount && (
+                <span className="inbox-count">{status.data.updatesUnreadCount}</span>
               )}
             </Link>
           )}
@@ -118,6 +122,9 @@ function Updates({ user }: { user: User }) {
             aria-current={!compose && folder === 'activity' ? 'page' : undefined}
           >
             {t('inbox.activity')}
+            {!!status.data?.activityUnreadCount && (
+              <span className="inbox-count">{status.data.activityUnreadCount}</span>
+            )}
           </Link>
         </nav>
         {user.role !== 'parent' && (

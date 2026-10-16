@@ -1,5 +1,5 @@
 /* Account settings share one layout across roles; other task views stay scoped. */
-.desk-shell .tu-page.account-page {
+.desk-shell .account-page {
   --account-line: #dce3d9;
   --account-muted: #53665c;
   --account-soft: #edf2e5;

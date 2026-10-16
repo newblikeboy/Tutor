@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process'
 import { readFile, mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { createRequire } from 'node:module'
 const env = { ...process.env }
 try {
   for (const line of (await readFile('.env', 'utf8')).split(/\r?\n/)) {
@@ -85,6 +86,34 @@ if (process.env.E2E_CLOUDINARY === '1')
   start(process.execPath, [resolve('scripts/cloudinary-test-server.mjs')], resolve('.'))
 await run('go', ['run', './cmd/migrate'], resolve('apps/api'))
 await run('go', ['run', './cmd/seed'], resolve('apps/api'))
+// Explicit fictional agreement fixtures belong only to this generated test database.
+// Normal application seeding never publishes operating agreements.
+if (!/^tutor_e2e_\d+$/.test(env.MONGODB_DATABASE)) throw new Error('Invalid isolated database')
+const { MongoClient } = createRequire(import.meta.url)('mongodb')
+const fixtureClient = new MongoClient(env.MONGODB_URI)
+try {
+  await fixtureClient.connect()
+  for (const mode of ['online', 'home']) {
+    const content = {
+      title: `Fictional ${mode} agreement — test only`,
+      body: 'Fictional test terms: teach the saved subjects and record actual lessons. These are not published operating policies.',
+      privacy: 'Fictional test policy: keep student and household information private.',
+      education: 'Fictional test policy: follow the agreed subjects and teaching schedule.',
+    }
+    await fixtureClient
+      .db(env.MONGODB_DATABASE)
+      .collection('teaching_agreements')
+      .insertOne({
+        _id: mode,
+        mode,
+        version: 1,
+        draft: content,
+        published: { ...content, mode, version: 1, publishedAt: new Date() },
+      })
+  }
+} finally {
+  await fixtureClient.close()
+}
 const binary = resolve(`.local/e2e-api${process.platform === 'win32' ? '.exe' : ''}`)
 await run('go', ['build', '-o', binary, './cmd/api'], resolve('apps/api'))
 start(binary, [], resolve('.'))

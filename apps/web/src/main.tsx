@@ -1,6 +1,14 @@
 import React, { lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Link,
+  Navigate,
+  NavLink,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom'
 import { QueryClientProvider, useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ArrowUpRight, Menu } from 'lucide-react'
@@ -12,7 +20,7 @@ import '@fontsource/manrope/latin-700.css'
 import './styles/index.css'
 import { queryClient, send, setCSRF } from './lib/api'
 import { useAuth, useConfig } from './lib/session'
-import { Button, Loading, Modal, MutationError } from './components/ui'
+import { Button, Loading, LoadError, Modal, MutationError } from './components/ui'
 import { BrandMark } from './components/brand-mark'
 const Home = lazy(() => import('./routes/public-home').then((m) => ({ default: m.Home })))
 const Info = lazy(() => import('./routes/public-info').then((m) => ({ default: m.Info })))
@@ -28,6 +36,7 @@ const WorkspaceShell = lazy(() => import('./components/workspace-shell'))
 const Workspace = lazy(() => import('./routes/workspace'))
 const Match = lazy(() => import('./routes/match'))
 const Apply = lazy(() => import('./routes/apply'))
+const TutorProfile = lazy(() => import('./routes/tutor-profile'))
 const Tuition = lazy(() => import('./routes/tuition'))
 const Billing = lazy(() => import('./routes/billing'))
 const Notifications = lazy(() => import('./routes/conversations'))
@@ -54,6 +63,7 @@ function SiteRoutes() {
       <Route path="/workspace" element={<Workspace />} />
       <Route path="/match" element={<Match />} />
       <Route path="/apply" element={<Apply />} />
+      <Route path="/tutor-profile" element={<TutorProfile />} />
       <Route path="/tuition" element={<Tuition />} />
       <Route path="/tuition/:id" element={<Tuition />} />
       <Route path="/billing" element={<Billing />} />
@@ -108,10 +118,31 @@ function Layout() {
       </Suspense>
     )
   }
+  // Resolve the session before choosing between the public site and private workspace.
+  if (publicLanding && auth.isPending)
+    return (
+      <div className="container section">
+        <Loading />
+      </div>
+    )
+  if (publicLanding && auth.isError)
+    return (
+      <div className="container section">
+        <LoadError retry={() => void auth.refetch()} />
+      </div>
+    )
+  if (auth.data && location.pathname === '/') return <Navigate to="/workspace" replace />
   if (
-    ['/workspace', '/match', '/apply', '/tuition', '/availability', '/account'].includes(
-      location.pathname.replace(/\/+$/, ''),
-    ) ||
+    (auth.data && (location.pathname === '/tutors' || location.pathname.startsWith('/tutors/'))) ||
+    [
+      '/workspace',
+      '/match',
+      '/apply',
+      '/tutor-profile',
+      '/tuition',
+      '/availability',
+      '/account',
+    ].includes(location.pathname.replace(/\/+$/, '')) ||
     location.pathname.startsWith('/tuition/') ||
     location.pathname === '/billing' ||
     location.pathname === '/notifications' ||

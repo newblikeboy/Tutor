@@ -35,6 +35,7 @@ import {
   MutationError,
 } from '../components/ui'
 import '../styles/tuition.css'
+import '../styles/teacher.css'
 import { Checkout } from './billing'
 import { Conversation } from './conversations'
 import { PrivateFiles } from './files'
@@ -42,7 +43,11 @@ import { feeLabel, TutorFees } from '../components/tutor-fees'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
 import { LessonMeeting } from '../components/lesson-meeting'
 import { teachingSubjects } from '../lib/subjects'
+import { TutorBookingsTable } from '../components/tutor-bookings'
+import { TutorClassTable, TutorClassBack } from '../components/tutor-class-table'
 import { ClassProgressFields, classProgressFromForm } from '../components/class-progress-fields'
+import { BookingAgreement } from '../components/booking-agreement'
+import { CompleteClass, ReportClassCompletion } from '../components/class-completion'
 
 type Agreement = Schema['Agreement']
 type Detail = Schema['TuitionDetail']
@@ -144,6 +149,8 @@ function AvailabilityForm({
     mutationFn: (body: Schema['AvailabilityInput']) => send('/availability', body, 'PUT'),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['availability'] })
+      await queryClient.invalidateQueries({ queryKey: ['tutor-profile'] })
+      await queryClient.invalidateQueries({ queryKey: ['trial-times'] })
       onSaved()
     },
   })
@@ -364,16 +371,7 @@ function TuitionList() {
     ) ?? []
   return (
     <div className="tu-page">
-      <Heading
-        title={t(auth.data?.user.role === 'parent' ? 'parent.classes' : 'tuition.title')}
-        action={
-          auth.data?.user.role === 'tutor' ? (
-            <LinkButton to="/availability" secondary>
-              {t('tuition.availability')}
-            </LinkButton>
-          ) : undefined
-        }
-      />
+      <Heading title={t(auth.data?.user.role === 'parent' ? 'parent.classes' : 'tuition.title')} />
       {auth.data?.user.role === 'parent' && <NewAgreement />}
       {tutor && (
         <nav className="teacher-filters" aria-label="Booking history">
@@ -381,7 +379,7 @@ function TuitionList() {
             Current bookings
           </Link>
           <Link to="/tuition?history=1" aria-current={archive ? 'page' : undefined}>
-            Package history
+            Past bookings
           </Link>
         </nav>
       )}
@@ -417,6 +415,8 @@ function TuitionList() {
                 auth.data?.user.role === 'parent' ? 'tuition.noneBody' : 'tuition.noAssignedBody',
               )}
             />
+          ) : tutor ? (
+            <TutorBookingsTable bookings={bookings} archive={archive} cursor={cursor} />
           ) : (
             <div className="tu-card-grid">
               {bookings.map((enrollment) => (
@@ -429,11 +429,7 @@ function TuitionList() {
                     {enrollment.paymentSimulated && <Badge tone="amber">Test booking</Badge>}
                   </div>
                   <h2>{enrollment.learnerName}</h2>
-                  <p>
-                    {auth.data?.user.role === 'tutor'
-                      ? `Class ${enrollment.class}`
-                      : t('tuition.withTutor', { name: enrollment.tutorName })}
-                  </p>
+                  <p>{t('tuition.withTutor', { name: enrollment.tutorName })}</p>
                   <p>
                     {(enrollment.agreement.subjects ?? [enrollment.agreement.subject]).join(', ')} ·{' '}
                     {enrollment.agreement.mode === 'home' ? 'Home Tuition' : 'Online'}
@@ -1115,14 +1111,14 @@ function AgreementCard({ agreement }: { agreement: Agreement }) {
         </div>
       </div>
       <p>
-        <strong>{(agreement.subjects ?? [agreement.subject]).join(', ')}</strong> ?{' '}
+        <strong>{(agreement.subjects ?? [agreement.subject]).join(', ')}</strong> ·{' '}
         {agreement.mode === 'home' ? 'Home Tuition' : 'Online'} · {agreement.minutes} minutes per
         class
       </p>
       {agreement.packageFeePaise != null && (
         <p>
           {agreement.mode === 'online' ? 'Staff hourly price' : 'Staff package price'}:{' '}
-          {money(agreement.packageFeePaise, i18n.language)} ?{' '}
+          {money(agreement.packageFeePaise, i18n.language)} ×{' '}
           {agreement.subjects?.includes('All Subjects') ? 1 : (agreement.subjects?.length ?? 1)}{' '}
           subject package(s)
         </p>
@@ -1184,9 +1180,22 @@ function TuitionDetail({ id }: { id: string }) {
     e = d.enrollment,
     role = auth.data!.user.role
   const archivedTutor = role === 'tutor' && ['completed', 'cancelled'].includes(e.status)
-  const tabs = archivedTutor
-    ? ['classes', 'plan', 'agreement']
-    : ['classes', 'plan', 'messages', 'files', 'agreement', 'handover']
+  const showPaymentSuccess =
+    role === 'parent' && ['active', 'pending_tutor_acceptance'].includes(e.status)
+  const listParams = new URLSearchParams()
+  if (role === 'tutor' && (params.get('history') === '1' || archivedTutor))
+    listParams.set('history', '1')
+  if (role === 'tutor' && params.get('listCursor'))
+    listParams.set('cursor', params.get('listCursor')!)
+  const backToList = `/tuition${listParams.size ? `?${listParams}` : ''}`
+  const selectedClassID = role === 'tutor' ? params.get('class') : null
+  const selectedClass = d.sessions.find((lesson) => lesson.id === selectedClassID)
+  const tabs =
+    e.status === 'pending_tutor_acceptance'
+      ? ['classes', 'agreement']
+      : archivedTutor
+        ? ['classes', 'plan', 'agreement']
+        : ['classes', 'plan', 'messages', 'files', 'agreement', 'handover']
   const tab = tabs.includes(params.get('tab') ?? '') ? params.get('tab')! : 'classes'
   if (role === 'parent' && ['awaiting_payment', 'expired'].includes(e.status)) {
     const expired = e.status === 'expired' || !e.holdUntil || new Date(e.holdUntil).getTime() <= now
@@ -1214,7 +1223,7 @@ function TuitionDetail({ id }: { id: string }) {
   }
   return (
     <div className="tu-page">
-      <Link to="/tuition" className="tu-back">
+      <Link to={backToList} className="tu-back">
         <ArrowLeft size={16} />
         {t('tuition.back')}
       </Link>
@@ -1224,10 +1233,8 @@ function TuitionDetail({ id }: { id: string }) {
         action={<TuitionStatus status={e.status} />}
       />
       {e.paymentSimulated && (
-        <Alert kind={role === 'parent' && e.status === 'active' ? 'success' : 'info'}>
-          {role === 'parent' && e.status === 'active'
-            ? t('billing.simulationSuccess')
-            : t('billing.simulationRecord')}
+        <Alert kind={showPaymentSuccess ? 'success' : 'info'}>
+          {showPaymentSuccess ? t('billing.simulationSuccess') : t('billing.simulationRecord')}
         </Alert>
       )}
       <div className="tu-overview">
@@ -1253,14 +1260,34 @@ function TuitionDetail({ id }: { id: string }) {
           )}
         </section>
       )}
+      {e.status === 'pending_tutor_acceptance' && (
+        <section className="tu-panel tu-stack">
+          <h2>Awaiting tutor acceptance</h2>
+          <p>
+            {role === 'tutor'
+              ? 'Review and sign this booking’s teaching agreement before accepting. Teaching controls unlock after acceptance.'
+              : 'Your payment is recorded and the class times are reserved. Your tutor needs to sign the teaching agreement and accept this booking.'}
+          </p>
+          {role === 'tutor' && tab !== 'agreement' && (
+            <Button onClick={() => setParams({ ...Object.fromEntries(params), tab: 'agreement' })}>
+              Review agreement and accept
+            </Button>
+          )}
+        </section>
+      )}
       {role === 'parent' && e.status === 'active' && e.paymentIntentId && !e.paymentSimulated && (
         <Alert kind="success">{t('tuition.bookingConfirmed')}</Alert>
       )}
       <TabBar
         id="tuition"
+        scrollable={role === 'tutor'}
         label={t('tuition.title')}
         value={tab}
-        options={tabs.map((value) => ({ value, label: t(`tuition.${value}`) }))}
+        options={tabs.map((value) => ({
+          value,
+          label:
+            value === 'agreement' && e.tutorAgreement ? 'Agreement & fees' : t(`tuition.${value}`),
+        }))}
         onChange={(value) => {
           const next = new URLSearchParams(params)
           next.set('tab', value)
@@ -1268,22 +1295,42 @@ function TuitionDetail({ id }: { id: string }) {
         }}
       />
       <TabPanel id="tuition" value="classes" active={tab === 'classes'} preserve>
-        <div className="tu-session-list">
-          {[...d.sessions]
-            .sort((a, b) => a.start.localeCompare(b.start))
-            .map((session) => (
-              <ClassCard
-                key={`${session.id}:${session.version}`}
-                session={session}
-                enrollment={e}
-              />
-            ))}
-        </div>
+        {role === 'tutor' ? (
+          selectedClassID ? (
+            <div className="tu-session-list">
+              <TutorClassBack />
+              {selectedClass ? (
+                <ClassCard
+                  key={`${selectedClass.id}:${selectedClass.version}`}
+                  session={selectedClass}
+                  enrollment={e}
+                />
+              ) : (
+                <Alert kind="error">This class is not available in this booking.</Alert>
+              )}
+            </div>
+          ) : (
+            <TutorClassTable sessions={d.sessions} />
+          )
+        ) : (
+          <div className="tu-session-list">
+            {[...d.sessions]
+              .sort((a, b) => a.start.localeCompare(b.start))
+              .map((session) => (
+                <ClassCard
+                  key={`${session.id}:${session.version}`}
+                  session={session}
+                  enrollment={e}
+                />
+              ))}
+          </div>
+        )}
       </TabPanel>
       <TabPanel id="tuition" value="plan" active={tab === 'plan'} preserve>
         <Plans detail={d} />
       </TabPanel>
       <TabPanel id="tuition" value="agreement" active={tab === 'agreement'} preserve>
+        {e.tutorAgreement && <BookingAgreement enrollment={e} />}
         <div className="tu-stack">
           {[...d.agreements]
             .sort((a, b) => b.version - a.version)
@@ -1312,7 +1359,13 @@ function TuitionDetail({ id }: { id: string }) {
       </TabPanel>
       {tab === 'agreement' &&
         ['parent', 'tutor'].includes(role) &&
-        ['active', 'paused', 'pending_agreement', 'awaiting_payment'].includes(e.status) && (
+        [
+          'active',
+          'paused',
+          'pending_agreement',
+          'awaiting_payment',
+          'pending_tutor_acceptance',
+        ].includes(e.status) && (
           <section className="tu-panel tu-controls">
             {e.status === 'active' && (
               <EnrollmentAction enrollment={e} action="pause" label="pause" />
@@ -1519,11 +1572,17 @@ function ClassCard({
             </Button>
           )}
           {role === 'tutor' && enrollment.status === 'active' && s.status === 'scheduled' && (
+            <CompleteClass session={s} enrollment={enrollment} />
+          )}
+          {role === 'parent' && ['completed', 'reviewed'].includes(s.status) && (
+            <ReportClassCompletion session={s} enrollment={enrollment} />
+          )}
+          {role === 'tutor' && enrollment.status === 'active' && s.status === 'scheduled' && (
             <Button
               variant="secondary"
               onClick={() => setAction(action === 'record' ? '' : 'record')}
             >
-              {t('tuition.record')}
+              Record attendance or detailed progress
             </Button>
           )}
           {role === 'mentor' &&

@@ -42,7 +42,7 @@ jobs:
         working-directory: apps/api
       - run: npm run e2e
       - name: Verify direct Cloudinary protocol with isolated local fixture
-        run: npm run e2e -- tests/e2e/cloudinary-files.spec.ts
+        run: npm run e2e -- tests/e2e/cloudinary-files.spec.ts tests/e2e/application-kyc.spec.ts tests/e2e/application-education.spec.ts tests/e2e/upload-performance.spec.ts
         env:
           E2E_CLOUDINARY: '1'
       - uses: actions/upload-artifact@v7.0.1

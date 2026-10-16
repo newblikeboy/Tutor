@@ -1,0 +1,313 @@
+.tutor-earnings {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.tutor-earnings > .workspace-tabs {
+  margin-bottom: 0;
+}
+.tutor-earnings .student-table {
+  min-width: 680px;
+  table-layout: fixed;
+}
+.tutor-earnings .student-table tbody th {
+  min-width: 0;
+}
+.tutor-earnings .student-table .badge {
+  white-space: normal;
+}
+.te-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.te-heading h1 {
+  font-size: clamp(26px, 2.5vw, 34px);
+  letter-spacing: -1px;
+  margin: 0;
+}
+.te-heading p {
+  font-size: 14px;
+  color: var(--teaching-muted);
+  margin: 8px 0 0;
+}
+.te-heading > a {
+  flex-shrink: 0;
+  gap: 8px;
+}
+.te-policy {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 16px;
+}
+.te-share,
+.te-cycle {
+  display: flex;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 16px;
+}
+.te-share {
+  background: var(--navy);
+  color: #fff;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.te-share > svg {
+  color: #dce8cd;
+}
+.te-share > div p {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #dce8cd;
+}
+.te-share strong {
+  font-size: 42px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+.te-share strong span {
+  font-size: 23px;
+  margin-left: 3px;
+}
+.te-share > p {
+  flex: 1 1 180px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #f1f5ec;
+}
+.te-cycle {
+  border: 1px solid var(--teaching-line);
+  background: var(--teaching-soft);
+}
+.te-cycle > svg {
+  flex-shrink: 0;
+  color: var(--teal);
+}
+.te-cycle h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+.te-cycle p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 8px;
+}
+.te-cycle span {
+  font-size: 12px;
+  color: var(--teaching-muted);
+  line-height: 1.7;
+}
+.te-record-view {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.te-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.te-section-heading h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.te-section-heading span {
+  font-size: 12px;
+  color: var(--teaching-muted);
+}
+.te-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+.te-metrics > div {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--teaching-line);
+  background: var(--teaching-surface);
+}
+.te-metrics dt {
+  font-size: 13px;
+  font-weight: 600;
+}
+.te-metrics dt span {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--teaching-muted);
+  margin-top: 5px;
+}
+.te-metrics dd {
+  margin: 14px 0 0;
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.te-amount {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.te-empty {
+  border: 1px solid var(--teaching-line);
+  background: var(--teaching-surface);
+  border-radius: 16px;
+}
+.te-pagination {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.te-help {
+  border: 1px solid var(--teaching-line);
+  border-radius: 12px;
+  background: #fffefa;
+  padding: 16px 20px;
+}
+.te-help summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 28px;
+  align-content: center;
+}
+.te-help p {
+  font-size: 13px;
+  color: var(--teaching-muted);
+  line-height: 1.85;
+  margin: 12px 0 0;
+}
+.te-detail {
+  background: var(--teaching-surface);
+  border: 1px solid var(--teaching-line);
+  border-radius: 16px;
+  padding: 24px;
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.te-detail-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.te-detail-heading h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.te-detail-heading strong {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.te-detail > p {
+  font-size: 14px;
+  color: var(--teaching-muted);
+  line-height: 1.8;
+  margin: 0;
+}
+.te-detail > .badge {
+  justify-self: start;
+}
+.te-detail h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.te-record-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+  margin: 0;
+}
+.te-record-facts dt,
+.te-allocation dt {
+  font-size: 12px;
+  color: var(--teaching-muted);
+}
+.te-record-facts dd {
+  margin: 7px 0 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.te-allocation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--teaching-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.te-allocation > div {
+  padding: 16px;
+  border-bottom: 1px solid var(--teaching-line);
+}
+.te-allocation > div:nth-child(2) {
+  background: var(--teaching-soft);
+}
+.te-allocation dd {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.te-reference,
+.te-references {
+  overflow-wrap: anywhere;
+}
+.te-reference {
+  max-width: 260px;
+}
+.te-review-reason {
+  min-width: 260px;
+  max-width: 600px;
+  white-space: pre-wrap;
+}
+.te-references {
+  font-size: 13px;
+  line-height: 1.8;
+  padding-left: 20px;
+}
+@media (max-width: 760px) {
+  .te-policy {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .te-heading {
+    flex-wrap: wrap;
+  }
+  .te-share,
+  .te-cycle {
+    padding: 16px;
+  }
+  .te-metrics {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .te-metrics > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+  }
+  .te-metrics dd {
+    margin: 0;
+    font-size: 22px;
+  }
+  .te-record-facts,
+  .te-allocation {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .te-detail {
+    padding: 20px;
+  }
+}

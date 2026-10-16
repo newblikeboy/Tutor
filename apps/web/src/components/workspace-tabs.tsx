@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import '../styles/workspace-tabs.css'
 
 const ActivePanel = createContext(true)
@@ -10,15 +18,46 @@ export function TabBar({
   value,
   options,
   onChange,
+  scrollable = false,
 }: {
   id: string
   label: string
   value: string
   options: { value: string; label: string }[]
   onChange: (value: string) => void
+  scrollable?: boolean
 }) {
+  const strip = useRef<HTMLDivElement>(null)
+  const reveal = useCallback(
+    (button: HTMLButtonElement) => {
+      const container = strip.current
+      if (!scrollable || !container) return
+      const bounds = container.getBoundingClientRect()
+      const tab = button.getBoundingClientRect()
+      if (tab.left < bounds.left + 6) container.scrollLeft += tab.left - bounds.left - 6
+      else if (tab.right > bounds.right - 6) container.scrollLeft += tab.right - bounds.right + 6
+    },
+    [scrollable],
+  )
+  useEffect(() => {
+    const container = strip.current
+    if (!scrollable || !container) return
+    const selected = () => {
+      const button = container.querySelector<HTMLButtonElement>('[aria-selected="true"]')
+      if (button) reveal(button)
+    }
+    selected()
+    const observer = new ResizeObserver(selected)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [scrollable, value, reveal])
   return (
-    <div className="workspace-tabs" role="tablist" aria-label={label}>
+    <div
+      ref={strip}
+      className={`workspace-tabs${scrollable ? ' workspace-tabs-scrollable' : ''}`}
+      role="tablist"
+      aria-label={label}
+    >
       {options.map((option) => (
         <button
           key={option.value}
@@ -29,6 +68,7 @@ export function TabBar({
           aria-selected={value === option.value}
           tabIndex={value === option.value ? 0 : -1}
           onClick={() => onChange(option.value)}
+          onFocus={(event) => reveal(event.currentTarget)}
           onKeyDown={(event) => {
             if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
             event.preventDefault()

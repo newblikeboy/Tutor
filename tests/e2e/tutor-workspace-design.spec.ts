@@ -1,9 +1,10 @@
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
+import { connectGoogle } from './helpers/google'
 
 const origin = 'http://127.0.0.1:5174'
-const captureRoot = 'docs/visual-qa/customer-workspaces/tutor'
+const captureRoot = '.local/tutor-home-simplified'
 async function capture(page: Page, name: string) {
   await mkdir(captureRoot, { recursive: true })
   for (const [size, width] of [
@@ -25,10 +26,10 @@ async function capture(page: Page, name: string) {
   await page.setViewportSize({ width: 1440, height: 1000 })
 }
 
-test('tutor dashboard preserves teaching dates, API recovery and private mobile navigation', async ({
+test('tutor home prioritises Google connection, API recovery and private mobile navigation', async ({
   page,
 }) => {
-  test.setTimeout(90_000)
+  test.setTimeout(180_000)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   const login = await page.request.post('/api/v1/auth/login', {
@@ -38,23 +39,53 @@ test('tutor dashboard preserves teaching dates, API recovery and private mobile 
   expect(login.status()).toBe(200)
   await page.goto('/workspace')
   await expect(page.getByRole('heading', { name: 'Your teaching day.', exact: true })).toBeVisible()
-  await expect(page.locator('.tutor-summary a')).toHaveCount(3)
+  await expect(page.locator('.tutor-summary a')).toHaveCount(2)
+  await expect(
+    page.getByRole('heading', { name: 'Google Calendar & Meet', exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', {
+      name: /Teaching schedule|Follow-up tasks|Approved teaching scope|Interview|Confirmed bookings/,
+    }),
+  ).toHaveCount(0)
+  await expect(page.getByText('You’re approved', { exact: true })).toHaveCount(0)
+  const googlePanel = page.locator('.tutor-home > .google-connection')
+  expect(
+    await googlePanel.evaluate((element) => element === element.parentElement?.firstElementChild),
+  ).toBe(true)
   await capture(page, 'home')
+  await connectGoogle(page, 'tutor')
+  await page.goto('/workspace')
+  await expect(
+    page.getByRole('heading', { name: 'Google Account Connected', exact: true }),
+  ).toBeVisible()
+  await expect(googlePanel.getByRole('button', { name: 'Disconnect', exact: true })).toBeVisible()
+  await capture(page, 'home-connected')
   await page
-    .locator('.desk-page-actions')
+    .locator('.desk-sidebar')
     .getByRole('link', { name: 'Teaching hours', exact: true })
     .click()
   await expect(page).toHaveURL('/availability')
   await expect(
     page.getByRole('heading', { name: 'Teaching hours', level: 1, exact: true }),
   ).toBeVisible()
+  await capture(page, 'teaching-hours')
+  for (const [path, heading, name] of [
+    ['/workspace?view=learners', 'My students', 'students-empty'],
+    ['/workspace?view=sessions', 'Trial lessons', 'trials-empty'],
+    ['/tuition', 'Regular classes', 'classes-empty'],
+    ['/billing', 'Earnings & payouts', 'earnings'],
+    ['/tutor-profile', 'My profile', 'profile'],
+    ['/notifications', 'Updates', 'updates'],
+    ['/cases', 'Help & support', 'help'],
+  ] as const) {
+    await page.goto(path)
+    await expect(page.getByRole('heading', { level: 1, name: heading, exact: true })).toBeVisible()
+    await expect(page.locator('.desk-main .loading-state')).toHaveCount(0)
+    await capture(page, name)
+  }
   await page.goto('/workspace')
-  await page.getByLabel('Teaching date', { exact: true }).fill('2099-01-01')
-  await expect(page).toHaveURL(/date=2099-01-01/)
-  await page.reload()
-  await expect(page.getByLabel('Teaching date', { exact: true })).toHaveValue('2099-01-01')
-  await expect(page.getByText('No lessons on this date.', { exact: true })).toBeVisible()
-  await capture(page, 'empty-date')
+  await expect(page.getByLabel('Teaching date', { exact: true })).toHaveCount(0)
   await page.route('**/api/v1/tutor/workspace', (route) =>
     route.fulfill({ status: 503, json: { code: 'unavailable', message: 'Test API outage' } }),
   )
@@ -87,14 +118,14 @@ test('tutor dashboard preserves teaching dates, API recovery and private mobile 
   await expect(drawer).toHaveCount(0)
   await expect(menu).toBeFocused()
   await menu.click()
-  await drawer.getByRole('link', { name: 'My learners', exact: true }).click()
+  await drawer.getByRole('link', { name: 'My students', exact: true }).click()
   await expect(page).toHaveURL(/view=learners/)
   await expect(drawer).toHaveCount(0)
   await expect(
-    page.getByRole('heading', { level: 1, name: 'My learners', exact: true }),
+    page.getByRole('heading', { level: 1, name: 'My students', exact: true }),
   ).toBeVisible()
   const everyday = page.getByRole('navigation', { name: 'Everyday navigation', exact: true })
-  await expect(everyday.getByRole('link', { name: 'My learners', exact: true })).toHaveAttribute(
+  await expect(everyday.getByRole('link', { name: 'My students', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   )
@@ -104,6 +135,21 @@ test('tutor dashboard preserves teaching dates, API recovery and private mobile 
     'aria-current',
     'page',
   )
+  await page.goto('/workspace?view=sessions&queue=declined')
+  await expect(everyday.getByRole('link', { name: 'Classes', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
+  const trialFilters = page.getByRole('navigation', { name: 'Filter trial lessons', exact: true })
+  const selectedFilter = trialFilters.locator('[aria-current="page"]')
+  await expect
+    .poll(async () => {
+      const bar = await trialFilters.boundingBox()
+      const link = await selectedFilter.boundingBox()
+      return !!bar && !!link && link.x >= bar.x && link.x + link.width <= bar.x + bar.width
+    })
+    .toBe(true)
+  await expect(trialFilters).toContainText('Declined')
   await everyday.getByRole('link', { name: 'Home', exact: true }).click()
   await expect(page).toHaveURL('/workspace')
   await expect(everyday.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute(

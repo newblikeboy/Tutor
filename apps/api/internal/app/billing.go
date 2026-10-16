@@ -332,7 +332,11 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 			return domain.Fail(409, "hold_expired", "The reserved classes are no longer available. Choose new dates before making a test payment.")
 		}
 		if usable {
-			if e = a.notifyActivity(ctx, enrollment.TutorID, "booking_confirmed", enrollment.ID); e != nil {
+			bookingStatus, event := "active", "booking_confirmed"
+			if enrollment.TutorAgreement != nil {
+				bookingStatus, event = "pending_tutor_acceptance", "booking_awaiting_tutor"
+			}
+			if e = a.notifyActivity(ctx, enrollment.TutorID, event, enrollment.ID); e != nil {
 				return e
 			}
 			if !p.Simulated {
@@ -340,12 +344,12 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 					return e
 				}
 			}
-			if _, e = a.Store.C("enrollments").UpdateOne(ctx, bson.M{"_id": enrollment.ID}, bson.M{"$set": bson.M{"status": "active", "holdUntil": nil, "paymentSimulated": p.Simulated}}); e != nil {
+			if _, e = a.Store.C("enrollments").UpdateOne(ctx, bson.M{"_id": enrollment.ID}, bson.M{"$set": bson.M{"status": bookingStatus, "holdUntil": nil, "paymentSimulated": p.Simulated}}); e != nil {
 				return e
 			}
-			enrollment.Status = "active"
+			enrollment.Status = bookingStatus
 			enrollment.PaymentSimulated = p.Simulated
-			if e = a.queueEnrollmentEmail(ctx, enrollment, "booking_confirmed"); e != nil {
+			if e = a.queueEnrollmentEmail(ctx, enrollment, event); e != nil {
 				return e
 			}
 		} else {

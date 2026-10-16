@@ -15,7 +15,24 @@ const applicationEN = {
     fileError:
       'Choose a valid PDF, JPG or PNG up to 3 MiB, or a demonstration MP4 up to 25 MiB. Only saved files belonging to your application can be attached.',
     attached: 'Attached privately',
-    photoFileId: 'Passport-size photo (optional)',
+    photoFileId: 'Passport-size photo (required)',
+    kycTitle: 'KYC documents',
+    kycHint:
+      'Upload your photo and both sides of a self-attested Aadhaar copy. Sign each copy before photographing it. Your photo may appear on your approved public profile. Aadhaar copies stay private to you and authorised reviewers; uploads do not verify identity or approve your application.',
+    aadhaarFrontFileId: 'Signed Aadhaar — front (required)',
+    aadhaarBackFileId: 'Signed Aadhaar — back (required)',
+    aadhaarHint:
+      'JPG or PNG · up to 3 MiB each. Keep all details and your signature clear and readable.',
+    documentRequired: 'Upload and save this required document.',
+    certificatesHint:
+      'Upload your Class 10 and Class 12 certificates separately. Higher qualification certificates and a resume are optional. All documents are private.',
+    legacyDocumentsHint:
+      'Your earlier uploads are retained. Select the required certificates in their named fields above.',
+    legacyDocument: 'View previously uploaded document {{number}}',
+    viewDocument: 'View document {{number}}',
+    class10FileId: 'Class 10 certificate (required)',
+    class12FileId: 'Class 12 certificate (required)',
+    higherQualificationFileIds: 'Higher qualification certificates (optional)',
     photoHint: 'JPG or PNG · up to 3 MiB. Large profile photos are resized for faster upload.',
     photoError: 'Choose a JPG or PNG up to 3 MiB.',
     title: 'Tutor application',
@@ -34,7 +51,7 @@ const applicationEN = {
     answerHint: '{{min}}–{{max}} characters',
     qualificationsTitle: 'Qualifications',
     experienceTitle: 'Teaching experience & work',
-    documentsTitle: 'Supporting documents (optional)',
+    documentsTitle: 'Education certificates & resume',
     travelFeesHint:
       'This radius is used for parent home-tuition matching. Staff will confirm all fees during the interview.',
     saved: 'Draft saved',
@@ -100,8 +117,8 @@ const applicationEN = {
     occupation: 'Current occupation',
     outsideWork: 'Does your job restrict private tutoring?',
     resume: 'Resume (optional)',
-    educationFileIds: 'Educational documents (optional)',
-    educationDocumentsHint: 'Degree, marksheets or certificates · up to 6 files',
+    educationFileIds: 'Previously uploaded education documents',
+    educationDocumentsHint: 'Higher qualification certificates · up to 6 files',
     uploadUnavailable: 'Uploads are currently unavailable.',
     independent_tutor: 'Independent tutor',
     student: 'Student',
@@ -177,7 +194,7 @@ const applicationEN = {
     screenSharing: 'Can you share your screen?',
     digitalWriting: 'Can you write digitally?',
     introduction: 'Introduce yourself as a tutor',
-    scenario: 'A learner does not understand. What do you do next?',
+    scenario: 'A student does not understand. What do you do next?',
     understanding: 'How do you check understanding?',
     demonstration: 'How would you like to give your demo?',
     live: 'Live demonstration with staff',
@@ -203,9 +220,9 @@ const applicationEN = {
     marketing: 'Send me optional opportunities and updates.',
     notices: 'Conduct & application data notice (draft)',
     noticeConduct:
-      'Respect learners and families, protect their privacy, use approved communication channels, and report safeguarding concerns to staff. Do not record children in your demonstration.',
+      'Respect students and families, protect their privacy, use approved communication channels, and report safeguarding concerns to staff. Do not record children in your demonstration.',
     noticeData:
-      'Your application and private attachments are used by authorised staff to assess eligibility, arrange assessments and decide teaching scope. Only an approved public profile is published. Retention and deletion terms are awaiting release review; this notice does not promise automatic deletion.',
+      'Your application, photo, self-attested Aadhaar copies and education certificates are used by authorised staff for identity-document review, eligibility assessment and teaching-scope decisions. Aadhaar and education documents remain private. Uploading documents does not establish verified identity or academic approval. Only an approved public profile is published. Retention and deletion terms are awaiting release review; this notice does not promise automatic deletion.',
     submitted: 'Application received',
     submittedBody:
       'Your assigned mentor will arrange an interview, finalize fees and approve your subjects and teaching modes.',

@@ -15,7 +15,14 @@ import {
 import { api, indiaDate, queryClient, send } from '../lib/api'
 import type { Dashboard, Learner, Schema, Tutor } from '../lib/api'
 import { useAuth, useDashboard } from '../lib/session'
-import { allTutors, approvedTutorSubjects, tutorHasMode, tutorModeLabel } from '../lib/tutors'
+import {
+  allTutors,
+  approvedTutorSubjects,
+  tutorHasMode,
+  tutorModeLabel,
+  tutorProfileLink,
+  tutorExperience,
+} from '../lib/tutors'
 import { workspaceLink } from '../lib/workspace'
 import { ParentLocationControl } from '../components/parent-location-control'
 import { TutorFees } from '../components/tutor-fees'
@@ -237,6 +244,7 @@ function TrialRequest({
   selectedTutor: string
 }) {
   const { t, i18n } = useTranslation()
+  const [profileContext] = useSearchParams()
   const account = useQuery({
     queryKey: ['account'],
     queryFn: ({ signal }) => api<Schema['Account']>('/account', { signal }),
@@ -302,6 +310,17 @@ function TrialRequest({
   if (account.isPending || tutors.isPending) return <Loading />
   if (account.isError) return <LoadError retry={() => void account.refetch()} />
   if (tutors.isError) return <LoadError retry={() => void tutors.refetch()} />
+  if (request.isSuccess)
+    return (
+      <section className="panel form-stack">
+        <Alert kind="success">Trial requested — waiting for tutor acceptance</Alert>
+        <p>
+          Your request for {learner.name} is saved. The tutor will confirm or decline the requested
+          time.
+        </p>
+        <LinkButton to={workspaceLink('sessions', learner.id)}>View trial request</LinkButton>
+      </section>
+    )
   const learnerLanguage = learner.language
   const suitable = tutors.data.filter(
     (v) =>
@@ -318,20 +337,21 @@ function TrialRequest({
           .join(' ')
           .toLocaleLowerCase()
           .includes(text)
-      const matchesLanguage = !language || tutor.language === language
+      const matchesLanguage = !language || tutor.teachingLanguages.includes(language)
       const matchesMode = !mode || tutorHasMode(tutor, mode)
       return matchesSearch && matchesLanguage && matchesMode
     })
     .sort((a, b) => {
       if (sort === 'distance') return compareTutorDistance(a, b) || a.name.localeCompare(b.name)
-      if (sort === 'experience') return b.experience - a.experience || a.name.localeCompare(b.name)
+      if (sort === 'experience')
+        return b.experienceMonths - a.experienceMonths || a.name.localeCompare(b.name)
       if (sort === 'review') return a.scope.expiresAt.localeCompare(b.scope.expiresAt)
-      const aLanguage = learnerLanguage && a.language === learnerLanguage ? 1 : 0
-      const bLanguage = learnerLanguage && b.language === learnerLanguage ? 1 : 0
+      const aLanguage = learnerLanguage && a.teachingLanguages.includes(learnerLanguage) ? 1 : 0
+      const bLanguage = learnerLanguage && b.teachingLanguages.includes(learnerLanguage) ? 1 : 0
       return (
         bLanguage - aLanguage ||
         compareTutorDistance(a, b) ||
-        b.experience - a.experience ||
+        b.experienceMonths - a.experienceMonths ||
         a.name.localeCompare(b.name)
       )
     })
@@ -419,11 +439,8 @@ function TrialRequest({
                 {visibleTutors.map((tutor) => {
                   const isSelected = tutor.id === tutorId
                   const tutorMode = tutorModeLabel(tutor.scope, t)
-                  const tutorLanguage = t(tutor.language === 'Hindi' ? 'hindi' : 'english')
-                  const experience =
-                    tutor.experience > 0
-                      ? t('teacherProofExperienceValue', { count: tutor.experience })
-                      : t('teacherExperienceNew')
+                  const tutorLanguage = tutor.teachingLanguages.join(' · ') || 'Not added'
+                  const experience = tutorExperience(tutor)
                   const distance =
                     tutor.distanceKm != null
                       ? t('teacherDistanceAway', { distance: tutor.distanceKm.toFixed(1) })
@@ -490,14 +507,24 @@ function TrialRequest({
                           </span>
                           <span className="parent-tutor-card-aside">
                             <span className="parent-tutor-price">
-                              <TutorFees plans={tutor.feePlans} />
+                              <TutorFees
+                                plans={tutor.feePlans.filter((plan) => plan.mode === bookingMode)}
+                                subjectCount={learner.class > 5 ? bookingSubjects.length : 1}
+                              />
                             </span>
                           </span>
                         </span>
                       </label>
                       <Link
                         className="text-link parent-tutor-profile-link"
-                        to={`/tutors/${tutor.id}`}
+                        to={tutorProfileLink(
+                          tutor.id,
+                          new URLSearchParams([
+                            ...Array.from(profileContext).filter(([key]) => key !== 'class'),
+                            ['class', String(learner.class)],
+                          ]),
+                          'match',
+                        )}
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -505,6 +532,7 @@ function TrialRequest({
                       </Link>
                       <TutorTrialActions
                         tutor={tutor}
+                        mode={bookingMode}
                         selected={isSelected}
                         start={start}
                         terms={terms}
@@ -547,6 +575,7 @@ function TutorPhoto({ tutor }: { tutor: Tutor }) {
 
 function TutorTrialActions({
   tutor,
+  mode,
   selected,
   start,
   terms,
@@ -557,6 +586,7 @@ function TutorTrialActions({
   onTermsChange,
 }: {
   tutor: Tutor
+  mode: string
   selected: boolean
   start: string
   terms: boolean
@@ -569,11 +599,13 @@ function TutorTrialActions({
   const { t, i18n } = useTranslation()
   const [pickedDate, setPickedDate] = useState('')
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()))
-  const availability = useQuery({
-    queryKey: ['availability', tutor.id, 'trial'],
+  const times = useQuery({
+    queryKey: ['trial-times', tutor.id, mode],
     queryFn: ({ signal }) =>
-      api<Schema['Availability']>(`/tutors/${tutor.id}/availability`, { signal }),
+      api<Schema['PublicTrialTimes']>(`/tutors/${tutor.id}/trial-times?mode=${mode}`, { signal }),
     enabled: selected,
+    refetchInterval: selected ? 30000 : false,
+    refetchOnWindowFocus: true,
   })
   if (!selected) {
     return (
@@ -584,28 +616,44 @@ function TutorTrialActions({
       </div>
     )
   }
-  if (availability.isPending) {
+  if (times.isPending) {
     return (
       <div className="parent-tutor-actions">
         <Loading />
       </div>
     )
   }
-  if (availability.isError) {
+  if (times.isError) {
     return (
       <div className="parent-tutor-actions">
-        <LoadError retry={() => void availability.refetch()} />
+        <LoadError retry={() => void times.refetch()} />
       </div>
     )
   }
   const selectedDate = pickedDate || start.slice(0, 10)
-  const slots = selectedDate ? trialSlotsForDate(availability.data, selectedDate) : []
+  const availableTimes = times.data.slots.map((slot) => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date(slot.start))
+    const part = (type: string) => parts.find((item) => item.type === type)!.value
+    return {
+      date: `${part('year')}-${part('month')}-${part('day')}`,
+      label: `${part('hour')}:${part('minute')}`,
+      minute: Number(part('hour')) * 60 + Number(part('minute')),
+      start: slot.start,
+    }
+  })
+  const slots = availableTimes.filter((slot) => slot.date === selectedDate)
   const selectedMinute =
     selectedDate && start.startsWith(`${selectedDate}T`) ? timeToMinute(start.slice(11, 16)) : -1
   const selectedStillAvailable =
-    !!selectedDate &&
-    selectedMinute >= 0 &&
-    slotAvailable(availability.data, selectedDate, selectedMinute)
+    !!selectedDate && selectedMinute >= 0 && slots.some((slot) => slot.minute === selectedMinute)
   const calendarWeeks = trialCalendarWeeks(calendarMonth)
   const todayMonth = startOfMonth(new Date())
   const latest = new Date()
@@ -624,7 +672,7 @@ function TutorTrialActions({
           <p className="eyebrow">{t('availabilityCalendar')}</p>
           <p className="hint">{t('availabilityCalendarHint')}</p>
         </div>
-        {availability.data.paused || !availability.data.windows.length ? (
+        {!times.data.slots.length ? (
           <Alert>{t('tuition.noAvailabilityBody')}</Alert>
         ) : (
           <>
@@ -661,7 +709,8 @@ function TutorTrialActions({
                   const value = dateInputValue(date)
                   const inMonth = date.getMonth() === calendarMonth.getMonth()
                   const inRange = trialDateInRange(value)
-                  const available = inMonth && inRange && hasTrialSlot(availability.data, value)
+                  const available =
+                    inMonth && inRange && availableTimes.some((slot) => slot.date === value)
                   const unavailable = inMonth && inRange && !available
                   return (
                     <button
@@ -695,11 +744,10 @@ function TutorTrialActions({
                     <button
                       type="button"
                       key={slot.minute}
-                      className={`trial-time ${slot.available ? 'available' : 'unavailable'} ${
+                      className={`trial-time available ${
                         selectedMinute === slot.minute ? 'selected' : ''
                       }`}
-                      disabled={!slot.available}
-                      onClick={() => onStartChange(`${selectedDate}T${slot.label}`)}
+                      onClick={() => onStartChange(`${selectedDate}T${slot.label}+05:30`)}
                     >
                       {formatTrialTime(slot.label, i18n.language)}
                     </button>
@@ -728,24 +776,6 @@ function TutorTrialActions({
       </Button>
     </div>
   )
-}
-
-function trialSlotsForDate(availability: Schema['Availability'], date: string) {
-  const starts = new Set<number>()
-  for (let minute = 6 * 60; minute <= 21 * 60; minute += 30) starts.add(minute)
-  for (const window of availability.windows) {
-    if (window.day !== weekdayForDate(date)) continue
-    const first = Math.ceil(window.startMinute / 30) * 30
-    const last = window.endMinute - 60
-    for (let minute = first; minute <= last; minute += 30) starts.add(minute)
-  }
-  return Array.from(starts)
-    .sort((a, b) => a - b)
-    .map((minute) => ({
-      minute,
-      label: minuteLabel(minute),
-      available: slotAvailable(availability, date, minute),
-    }))
 }
 
 function startOfMonth(value: Date) {
@@ -779,28 +809,6 @@ function trialDateInRange(value: string) {
   return date >= today && date <= latest
 }
 
-function hasTrialSlot(availability: Schema['Availability'], date: string) {
-  return trialSlotsForDate(availability, date).some((slot) => slot.available)
-}
-
-function slotAvailable(availability: Schema['Availability'], date: string, minute: number) {
-  if (availability.paused || availability.leaveDates.includes(date)) return false
-  const start = localDateTime(date, minute)
-  const end = localDateTime(date, minute + 60)
-  const now = new Date()
-  const latest = new Date(now)
-  latest.setMonth(latest.getMonth() + 1)
-  if (!start || !end || start <= new Date(now.getTime() + 5 * 60 * 1000) || start > latest) {
-    return false
-  }
-  return availability.windows.some(
-    (window) =>
-      window.day === weekdayForDate(date) &&
-      minute >= window.startMinute &&
-      minute + 60 <= window.endMinute,
-  )
-}
-
 function dateInputValue(value: Date) {
   return [
     value.getFullYear(),
@@ -809,21 +817,9 @@ function dateInputValue(value: Date) {
   ].join('-')
 }
 
-function weekdayForDate(value: string) {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Date(year, month - 1, day).getDay()
-}
-
 function localDateTime(date: string, minute: number) {
   const [year, month, day] = date.split('-').map(Number)
   return new Date(year, month - 1, day, Math.floor(minute / 60), minute % 60)
-}
-
-function minuteLabel(minute: number) {
-  return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(
-    2,
-    '0',
-  )}`
 }
 
 function timeToMinute(value: string) {

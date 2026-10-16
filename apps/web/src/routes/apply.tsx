@@ -44,7 +44,6 @@ import { ApplicationScope, ApplicationSummary } from '../components/application-
 import { CurrentLocationButton, type StoredLocation } from '../components/location-search'
 import { PrivateFiles } from './files'
 import '../styles/application.css'
-import { useClock } from '../lib/clock'
 import { TabBar, TabPanel } from '../components/workspace-tabs'
 import { useSearchParams } from 'react-router-dom'
 
@@ -253,22 +252,32 @@ function Attachment({
   label,
   ensureDraft,
 }: {
-  name: 'about.photoFileId' | 'education.resumeFileId' | 'education.educationFileIds'
+  name:
+    | 'about.photoFileId'
+    | 'about.aadhaarFrontFileId'
+    | 'about.aadhaarBackFileId'
+    | 'education.resumeFileId'
+    | 'education.class10FileId'
+    | 'education.class12FileId'
+    | 'education.higherQualificationFileIds'
   label: string
   ensureDraft: (force?: boolean) => Promise<Application>
 }) {
   const c = useCopy(),
     config = useConfig(),
     auth = useAuth(),
-    { setValue, getValues } = useFormContext<ApplicationProfile>()
+    { setValue, getValues, getFieldState, formState, clearErrors } =
+      useFormContext<ApplicationProfile>()
   const activity = useContext(UploadActivity)
   const { t } = useTranslation()
   const selected = useWatch<ApplicationProfile, typeof name>({ name })
-  const multiple = name === 'education.educationFileIds'
+  const multiple = name === 'education.higherQualificationFileIds'
+  const identity = name === 'about.aadhaarFrontFileId' || name === 'about.aadhaarBackFileId'
+  const requiredUpload = !multiple && name !== 'education.resumeFileId'
+  const error = getFieldState(name, formState).error
   const photo = name === 'about.photoFileId'
-  const acceptedTypes = photo
-    ? ['image/jpeg', 'image/png']
-    : ['image/jpeg', 'image/png', 'application/pdf']
+  const acceptedTypes =
+    photo || identity ? ['image/jpeg', 'image/png'] : ['image/jpeg', 'image/png', 'application/pdf']
   const selectedIds = Array.isArray(selected) ? selected : selected ? [selected] : []
   const [pending, setPending] = useState<
     { file: File; key: string; savedId?: string; prepared?: File }[]
@@ -290,7 +299,7 @@ function Attachment({
     onMutate: () => activity(true),
     onSettled: () => activity(false),
     mutationFn: async (id: string) => {
-      if (name === 'education.educationFileIds') {
+      if (name === 'education.higherQualificationFileIds') {
         setValue(
           name,
           selectedIds.filter((value) => value !== id),
@@ -318,7 +327,11 @@ function Attachment({
             !acceptedTypes.includes(file.type) || file.size === 0 || file.size > 3 * 1024 * 1024,
         )
       )
-        throw new APIError(422, photo ? 'application_photo' : 'file_type', 'Invalid file')
+        throw new APIError(
+          422,
+          photo || identity ? 'application_photo' : 'file_type',
+          'Invalid file',
+        )
       if (overLimit) throw new Error(c('educationDocumentsHint'))
       await ensureDraft()
       for (const item of pending) {
@@ -347,7 +360,7 @@ function Attachment({
               items: [saved, ...current.items.filter((entry) => entry.id !== saved.id)],
             },
         )
-        if (name === 'education.educationFileIds') {
+        if (name === 'education.higherQualificationFileIds') {
           setPending((items) =>
             items.map((item) => (item.key === uploadKey ? { ...item, savedId: saved.id } : item)),
           )
@@ -355,6 +368,7 @@ function Attachment({
             shouldDirty: true,
           })
         } else setValue(name, saved.id, { shouldDirty: true })
+        clearErrors(name)
         setProgress({ stage: 'saving' })
         await ensureDraft(true)
         setPending((items) => items.filter((item) => item.key !== uploadKey))
@@ -372,13 +386,19 @@ function Attachment({
     <div className="af-attachment">
       <Field
         label={c(label)}
-        hint={[multiple ? c('educationDocumentsHint') : '', c(photo ? 'photoHint' : 'docHint')]
+        error={error ? c('documentRequired') : undefined}
+        hint={[
+          multiple ? c('educationDocumentsHint') : '',
+          c(identity ? 'aadhaarHint' : photo ? 'photoHint' : 'docHint'),
+        ]
           .filter(Boolean)
           .join(' · ')}
       >
         <input
           ref={input}
           type="file"
+          aria-required={requiredUpload}
+          aria-invalid={!!error}
           multiple={multiple}
           accept={acceptedTypes.join(',')}
           onChange={(e) => {
@@ -582,7 +602,23 @@ function StepFields({
           </div>
         </fieldset>
         <Checks name="about.communicationLanguages" options={['Hindi', 'English']} />
-        <Attachment name="about.photoFileId" label="photoFileId" ensureDraft={ensureDraft} />
+        <section className="af-kyc" aria-labelledby="application-kyc-heading">
+          <h3 id="application-kyc-heading">{c('kycTitle')}</h3>
+          <p className="hint">{c('kycHint')}</p>
+          <Attachment name="about.photoFileId" label="photoFileId" ensureDraft={ensureDraft} />
+          <div className="af-document-grid">
+            <Attachment
+              name="about.aadhaarFrontFileId"
+              label="aadhaarFrontFileId"
+              ensureDraft={ensureDraft}
+            />
+            <Attachment
+              name="about.aadhaarBackFileId"
+              label="aadhaarBackFileId"
+              ensureDraft={ensureDraft}
+            />
+          </div>
+        </section>
       </>
     )
   if (step === 1)
@@ -668,14 +704,44 @@ function StepFields({
           />
         </div>
         <h3 className="af-group-title">{c('documentsTitle')}</h3>
+        <p className="hint">{c('certificatesHint')}</p>
         <div className="af-document-grid">
+          <Attachment
+            name="education.class10FileId"
+            label="class10FileId"
+            ensureDraft={ensureDraft}
+          />
+          <Attachment
+            name="education.class12FileId"
+            label="class12FileId"
+            ensureDraft={ensureDraft}
+          />
           <Attachment name="education.resumeFileId" label="resume" ensureDraft={ensureDraft} />
           <Attachment
-            name="education.educationFileIds"
-            label="educationFileIds"
+            name="education.higherQualificationFileIds"
+            label="higherQualificationFileIds"
             ensureDraft={ensureDraft}
           />
         </div>
+        {!!p.education.educationFileIds?.length && (
+          <div>
+            <h3 className="af-group-title">{c('educationFileIds')}</h3>
+            <p className="hint">{c('legacyDocumentsHint')}</p>
+            <ul>
+              {p.education.educationFileIds.map((id, i) => (
+                <li key={id}>
+                  <a
+                    href={`/api/v1/files/${encodeURIComponent(id)}/view`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {c('legacyDocument', { number: i + 1 })}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </>
     )
   if (step === 2)
@@ -925,7 +991,6 @@ function ApplicationForm({
   const applicationTab = ['application', 'documents'].includes(params.get('tab') ?? '')
     ? params.get('tab')!
     : 'status'
-  const now = useClock()
   const [uploading, setUploading] = useState(false)
   const form = useForm<ApplicationProfile>({
     defaultValues: applicationDefaults(initial, name, notice),
@@ -992,6 +1057,14 @@ function ApplicationForm({
     if (validate) {
       const p = form.getValues(),
         missing: Path[] = []
+      if (step === 0) {
+        for (const field of ['photoFileId', 'aadhaarFrontFileId', 'aadhaarBackFileId'] as const)
+          if (!p.about[field]) missing.push(`about.${field}`)
+      }
+      if (step === 1) {
+        for (const field of ['class10FileId', 'class12FileId'] as const)
+          if (!p.education[field]) missing.push(`education.${field}`)
+      }
       if (step === 0 && !p.about.location) missing.push('about.location')
       if (step === 0 && !p.about.communicationLanguages.length)
         missing.push('about.communicationLanguages')
@@ -1067,9 +1140,6 @@ function ApplicationForm({
             <h2>{c(app.status === 'submitted' ? 'submitted' : 'title')}</h2>
             {app.status === 'submitted' && <p>{c('submittedBody')}</p>}
             {app.reason && <p>{app.reason}</p>}
-            {app.status === 'approved' && Date.parse(app.scope.expiresAt) > now && (
-              <LinkButton to="/workspace">{t('viewWorkspace')}</LinkButton>
-            )}
           </section>
           <InterviewCard application={app} />
           {app.interviewAssessment && (

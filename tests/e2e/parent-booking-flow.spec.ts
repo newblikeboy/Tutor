@@ -2,6 +2,7 @@ import { verifiedSignup } from './signup-fixture'
 import { test, expect, type Page, type APIRequestContext } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
+import { connectGoogle } from './helpers/google'
 
 const origin = 'http://127.0.0.1:5174'
 const password = 'E2E-only learning passphrase 426!'
@@ -77,6 +78,9 @@ test('parent finder, direct tutor feedback and payment booking follow the learne
       })
     }
     await login(tutorContext.request, 'tutor-meera')
+    const tutorSetup = await tutorContext.newPage()
+    await connectGoogle(tutorSetup, 'tutor')
+    await tutorSetup.close()
     const availability = await (await tutorContext.request.get('/api/v1/availability')).json()
     await write(
       tutorContext.request,
@@ -147,7 +151,7 @@ test('parent finder, direct tutor feedback and payment booking follow the learne
       await capture(page, `finder-results-${width}`)
     }
     const card = page.getByRole('article').filter({ hasText: 'Meera' })
-    await card.getByRole('button', { name: 'Book trial', exact: true }).click()
+    await card.getByRole('button', { name: 'Request a trial', exact: true }).click()
     await card.locator('.trial-date.available').first().click()
     await card.locator('.parent-trial-times button:enabled').first().click()
     await card.getByRole('checkbox').check()
@@ -156,7 +160,7 @@ test('parent finder, direct tutor feedback and payment booking follow the learne
         new URL(response.url()).pathname === '/api/v1/trials' &&
         response.request().method() === 'POST',
     )
-    await card.getByRole('button', { name: 'Book trial', exact: true }).last().click()
+    await card.getByRole('button', { name: 'Request a trial', exact: true }).last().click()
     const trial = await (await booked).json()
     expect(trial.subjects).toEqual(['Mathematics', 'Science'])
     expect(trial.requirementId).toBe('')

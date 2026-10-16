@@ -1,5 +1,7 @@
 import '../locales/experience'
-import { useState } from 'react'
+import '../styles/trial-feedback.css'
+import { useId, useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { indiaDate, queryClient, send, type Trial } from '../lib/api'
@@ -10,14 +12,19 @@ import { Alert, Badge, Button, Field, LinkButton, MutationError, Status } from '
 export function TrialCard({
   trial: v,
   role,
+  headingLevel = 3,
 }: {
   trial: Trial
   role: 'parent' | 'tutor' | 'mentor'
+  headingLevel?: 2 | 3
 }) {
   const { t, i18n } = useTranslation()
+  const Heading = headingLevel === 2 ? 'h2' : 'h3'
+  const ContentHeading = headingLevel === 2 ? 'h3' : 'h4'
   const config = useConfig()
   const now = useClock()
   const [editing, setEditing] = useState(false)
+  const feedbackID = useId()
   const correctionOpen = now <= Date.parse(v.completedAt ?? v.end) + 7 * 86400000
   const [notes, setNotes] = useState(v.notes)
   const [nextSteps, setNextSteps] = useState(v.nextSteps)
@@ -34,6 +41,67 @@ export function TrialCard({
       ])
     },
   })
+  const feedbackForm = (
+    <form
+      className="record-form"
+      onSubmit={(e) => {
+        e.preventDefault()
+        mutation.mutate(editing ? 'feedback' : 'complete')
+      }}
+    >
+      {!editing && config.data?.development && <Alert>{t('simulation')}</Alert>}
+      <Field label={editing ? 'What the student worked on' : t('lessonNotes')}>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          autoFocus={editing}
+          required
+          minLength={10}
+          maxLength={2000}
+        />
+      </Field>
+      <Field label={editing ? 'Practice & next steps' : t('nextSteps')}>
+        <textarea
+          value={nextSteps}
+          onChange={(e) => setNextSteps(e.target.value)}
+          required
+          minLength={10}
+          maxLength={1200}
+        />
+      </Field>
+      <Field label="Trial feedback">
+        <textarea
+          value={review}
+          onChange={(event) => setReview(event.target.value)}
+          required
+          minLength={10}
+          maxLength={2000}
+        />
+      </Field>
+      <div className="button-row">
+        <Button type="submit" busy={mutation.isPending}>
+          {editing ? 'Save Feedback' : t('completeLesson')}
+        </Button>
+        {editing && (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={mutation.isPending}
+            onClick={() => {
+              setNotes(v.notes)
+              setNextSteps(v.nextSteps)
+              setReview(v.review)
+              mutation.reset()
+              setEditing(false)
+              requestAnimationFrame(() => document.getElementById(`${feedbackID}-edit`)?.focus())
+            }}
+          >
+            Cancel
+          </Button>
+        )}
+      </div>
+    </form>
+  )
   return (
     <article
       data-role={role}
@@ -41,9 +109,10 @@ export function TrialCard({
     >
       <div className="record-header">
         <div>
-          <h3>
-            {v.learnerName || t('learner')} · {(v.subjects ?? [v.subject]).join(', ')}
-          </h3>
+          <Heading>
+            {v.learnerName || t(role === 'tutor' ? 'student' : 'learner')} ·{' '}
+            {(v.subjects ?? [v.subject]).join(', ')}
+          </Heading>
           <p>{indiaDate(v.start, i18n.language)}</p>
         </div>
         <>
@@ -78,67 +147,69 @@ export function TrialCard({
             </Button>
           </div>
         )}
-        {role === 'tutor' && ['completed', 'reviewed'].includes(v.status) && correctionOpen && (
-          <Button variant="text" onClick={() => setEditing(!editing)}>
-            Correct trial feedback
-          </Button>
+        {role === 'tutor' && v.status === 'confirmed' && feedbackForm}
+        {role === 'tutor' && ['completed', 'reviewed'].includes(v.status) && (
+          <section className="trial-feedback" aria-labelledby={`${feedbackID}-heading`}>
+            <div className="trial-feedback-header">
+              <div>
+                <ContentHeading id={`${feedbackID}-heading`}>Trial feedback</ContentHeading>
+                <p>Your observations and next teaching steps.</p>
+              </div>
+              {correctionOpen && (
+                <Button
+                  id={`${feedbackID}-edit`}
+                  variant="secondary"
+                  disabled={editing || mutation.isPending}
+                  aria-expanded={editing}
+                  aria-controls={feedbackID}
+                  onClick={() => setEditing(true)}
+                >
+                  <Pencil size={16} aria-hidden="true" />
+                  Edit Feedback
+                </Button>
+              )}
+            </div>
+            <div id={feedbackID}>
+              {editing ? (
+                feedbackForm
+              ) : (
+                <dl className="trial-feedback-grid">
+                  <div className="trial-feedback-summary">
+                    <dt>Feedback</dt>
+                    <dd>{v.review?.trim() ? v.review : 'No feedback recorded.'}</dd>
+                  </div>
+                  <div>
+                    <dt>What the student worked on</dt>
+                    <dd>{v.notes?.trim() ? v.notes : 'No observations recorded.'}</dd>
+                  </div>
+                  <div>
+                    <dt>Practice & next steps</dt>
+                    <dd>{v.nextSteps?.trim() ? v.nextSteps : 'No next steps recorded.'}</dd>
+                  </div>
+                </dl>
+              )}
+            </div>
+          </section>
         )}
-        {role === 'tutor' && (v.status === 'confirmed' || editing) && (
-          <form
-            className="record-form"
-            onSubmit={(e) => {
-              e.preventDefault()
-              mutation.mutate(editing ? 'feedback' : 'complete')
-            }}
-          >
-            {!editing && config.data?.development && <Alert>{t('simulation')}</Alert>}
-            <Field label={t('lessonNotes')}>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                required
-                minLength={10}
-                maxLength={2000}
-              />
-            </Field>
-            <Field label={t('nextSteps')}>
-              <textarea
-                value={nextSteps}
-                onChange={(e) => setNextSteps(e.target.value)}
-                required
-                minLength={10}
-                maxLength={1200}
-              />
-            </Field>
-            <Field label="Trial feedback">
-              <textarea
-                value={review}
-                onChange={(event) => setReview(event.target.value)}
-                required
-                minLength={10}
-                maxLength={2000}
-              />
-            </Field>
-            <Button type="submit" busy={mutation.isPending}>
-              {editing ? 'Save feedback correction' : t('completeLesson')}
-            </Button>
-          </form>
-        )}
-        {['completed', 'reviewed'].includes(v.status) && (
+        {role !== 'tutor' && ['completed', 'reviewed'].includes(v.status) && (
           <>
             <div>
-              <h4>{t(role === 'parent' ? 'experience.lesson' : 'lesson')}</h4>
+              <ContentHeading>
+                {t(role === 'parent' ? 'experience.lesson' : 'lesson')}
+              </ContentHeading>
               <p>{v.notes}</p>
             </div>
             <div>
-              <h4>{t(role === 'parent' ? 'experience.practice' : 'practiceNext')}</h4>
+              <ContentHeading>
+                {t(role === 'parent' ? 'experience.practice' : 'practiceNext')}
+              </ContentHeading>
               <p>{v.nextSteps}</p>
             </div>
           </>
         )}
-        {['completed', 'reviewed'].includes(v.status) && (
+        {role !== 'tutor' && ['completed', 'reviewed'].includes(v.status) && (
           <div>
-            <h4>{t('parent.completed')}</h4>
+            <ContentHeading>{t('parent.completed')}</ContentHeading>
             <p>{v.review}</p>
           </div>
         )}

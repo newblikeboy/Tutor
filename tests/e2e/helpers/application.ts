@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 import { emptyApplication } from '../../../apps/web/src/lib/application'
-export const noticeVersion = 'application-2026-09-23-v1-draft'
+export const noticeVersion = 'application-2026-10-17-v2-draft'
 export async function fillStaffFees(page: Page) {
   const form = page.getByRole('form', { name: 'Tutor fees', exact: true })
   await expect(form.getByRole('button', { name: 'Save fees' })).toBeEnabled()

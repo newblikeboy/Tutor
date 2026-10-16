@@ -113,7 +113,7 @@ export function tuitionContract(schemas, route) {
     }),
     EnrollmentAction: input(
       {
-        action: { type: 'string', enum: ['accept', 'pause', 'resume', 'cancel'] },
+        action: { type: 'string', enum: ['accept', 'accept_booking', 'pause', 'resume', 'cancel'] },
         version: integer,
         reason: str,
       },
@@ -141,7 +141,7 @@ export function tuitionContract(schemas, route) {
       {
         action: {
           type: 'string',
-          enum: ['propose', 'accept_change', 'cancel', 'record', 'resolve_attendance'],
+          enum: ['propose', 'accept_change', 'cancel', 'record', 'complete', 'resolve_attendance'],
         },
         version: integer,
         start: date,
@@ -150,6 +150,7 @@ export function tuitionContract(schemas, route) {
         homework: str,
         attendance: str,
         developmentRecord: bool,
+        homeworkGiven: bool,
       },
       ['action', 'version'],
     ),
@@ -213,6 +214,69 @@ export function tuitionContract(schemas, route) {
       delivered: integer,
     }),
   })
+  const content = { title: str, body: str, privacy: str, education: str }
+  schemas.TeachingAgreementContent = obj(content)
+  schemas.TeachingAgreementVersion = obj({
+    ...content,
+    mode: str,
+    version: integer,
+    publishedAt: date,
+  })
+  schemas.TeachingAgreementDraft = obj({
+    mode: str,
+    version: integer,
+    draft: ref('TeachingAgreementContent'),
+    published: nullable('TeachingAgreementVersion'),
+  })
+  schemas.TeachingAgreementPage = obj({ items: array('TeachingAgreementDraft') })
+  schemas.TeachingAgreementInput = obj({
+    version: integer,
+    action: { type: 'string', enum: ['save', 'publish'] },
+    content: ref('TeachingAgreementContent'),
+  })
+  schemas.TutorBookingSignature = obj({
+    tutorId: str,
+    name: str,
+    email: str,
+    documentHash: str,
+    signedAt: date,
+  })
+  schemas.TutorBookingAgreement = obj({
+    ...content,
+    mode: str,
+    version: integer,
+    publishedAt: date,
+    documentHash: str,
+    signature: nullable('TutorBookingSignature'),
+  })
+  schemas.Enrollment.properties.tutorAgreement = ref('TutorBookingAgreement')
+  schemas.ClassSession.properties.homeworkGiven = bool
+  schemas.BookingSigningInput = obj({
+    version: integer,
+    documentHash: str,
+    accepted: { const: true },
+  })
+  schemas.BookingSignatureInput = obj({
+    version: integer,
+    documentHash: str,
+    accepted: { const: true },
+    challengeId: str,
+    code: { type: 'string', pattern: '^[0-9]{6}$' },
+  })
+  schemas.ClassCompletionReport = obj({
+    version: integer,
+    reason: { type: 'string', minLength: 10, maxLength: 2000 },
+  })
+  route('/admin/teaching-agreements', 'get', 'TeachingAgreementPage')
+  route(
+    '/admin/teaching-agreements/{mode}',
+    'put',
+    'TeachingAgreementDraft',
+    'TeachingAgreementInput',
+  )
+  route('/enrollments/{id}/signing-code', 'post', 'EmailChallenge', 'BookingSigningInput')
+  route('/enrollments/{id}/signature', 'post', 'OK', 'BookingSignatureInput')
+  route('/classes/{id}/report', 'post', 'ServiceCase', 'ClassCompletionReport')
   schemas.Agreement.properties.subjects = {
     type: 'array',
     items: {

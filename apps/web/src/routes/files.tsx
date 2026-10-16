@@ -18,7 +18,7 @@ import {
 } from '../components/ui'
 import '../styles/tuition.css'
 import { useActivePanel } from '../components/workspace-tabs'
-function FileVideo({ file }: { file: Schema['PrivateFile'] }) {
+export function FileVideo({ file }: { file: Schema['PrivateFile'] }) {
   const { t } = useTranslation()
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)

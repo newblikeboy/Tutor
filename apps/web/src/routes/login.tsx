@@ -56,7 +56,8 @@ export default function Login() {
   const [recovered, setRecovered] = useState(false)
   const initialRole =
     params.get('role') === 'tutor' ||
-    (!params.has('role') && /^\/(apply|availability)(\?|$)/.test(params.get('return') ?? ''))
+    (!params.has('role') &&
+      /^\/(apply|availability|tutor-profile)(\?|$)/.test(params.get('return') ?? ''))
       ? 'tutor'
       : 'parent'
   const signedInRole = auth.data?.user.role
@@ -89,7 +90,7 @@ export default function Login() {
   const rawReturn = params.get('return')
   const returnPath =
     rawReturn &&
-    /^\/(workspace|apply|match|availability|notifications|account|tuition(?:\/[a-zA-Z0-9_-]+)?|billing(?:\/[a-zA-Z0-9_-]+)?|cases(?:\/[a-zA-Z0-9_-]+)?)(\?|$)/.test(
+    /^\/(workspace|apply|tutor-profile|match|availability|notifications|account|tuition(?:\/[a-zA-Z0-9_-]+)?|billing(?:\/[a-zA-Z0-9_-]+)?|cases(?:\/[a-zA-Z0-9_-]+)?)(\?|$)/.test(
       rawReturn,
     )
       ? rawReturn

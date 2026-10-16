@@ -25,7 +25,12 @@ test('an unapproved tutor can continue their application without teaching access
   await expect(page.getByRole('textbox', { name: 'Full name', exact: true })).toHaveValue(
     'Fictional pending tutor',
   )
-  await expect(page.getByRole('link', { name: 'My learners', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'My students', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'My profile', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'My application', exact: true })).toBeVisible()
+  await page.goto('/tutor-profile')
+  await expect(page).toHaveURL(/\/apply/)
+  expect((await page.request.get('/api/v1/tutor-profile')).ok()).toBe(false)
   await expect(
     page.getByRole('navigation', { name: 'Everyday navigation', exact: true }),
   ).toHaveCount(0)

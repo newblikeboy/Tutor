@@ -143,7 +143,7 @@ test('complete application → scoped approval → requirement → trial → rev
     has: tutor.getByRole('heading', { name: 'Aarohi · sample · Mathematics', exact: true }),
   })
   await teachingTrial.getByRole('button', { name: 'Accept & confirm time' }).click()
-  await expect(tutor.locator('.teacher-next')).toContainText('Aarohi · sample')
+  await expect(tutor.locator('.tutor-home .customer-hero')).toContainText('Aarohi · sample')
   await capture(tutor, 'polish/teacher-populated-en-desktop')
   await tutor.setViewportSize({ width: 390, height: 844 })
   await capture(tutor, 'polish/teacher-populated-en-mobile')

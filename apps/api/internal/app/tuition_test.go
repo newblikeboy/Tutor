@@ -114,6 +114,7 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 	}
 	cfg := config.Config{Env: "test", AuthProvider: "password", Origin: "http://test.local"}
 	a := New(s, cfg)
+	seedTestTeachingAgreements(t, a)
 	cfg.RazorpaySecret = "tuition-test-capture"
 	a.Config.RazorpaySecret = cfg.RazorpaySecret
 	gateway := &paymentTestGateway{orders: map[string]payments.Order{}, payments: map[string]payments.Payment{}, refunds: map[string]payments.Refund{}}
@@ -125,7 +126,10 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer s2.Client.Disconnect(ctx)
-	srv2 := httptest.NewServer(New(s2, cfg).Routes())
+	secondApp := New(s2, cfg)
+	secondApp.Mail = &testEmailSender{}
+	secondApp.Config.MailTokenKey = a.Config.MailTokenKey
+	srv2 := httptest.NewServer(secondApp.Routes())
 	defer srv2.Close()
 	client := func(id, base string) *testClient {
 		jar, _ := cookiejar.New(nil)
@@ -182,6 +186,7 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 		paymentID := "pay_" + token()[:20]
 		gateway.payments[paymentID] = payments.Payment{ID: paymentID, OrderID: order, Amount: v.Agreement.TotalPaise, Currency: "INR", Status: "captured", Captured: true}
 		p.ok("POST", "/billing/"+intent["id"].(string)+"/verify", map[string]any{"paymentId": paymentID, "signature": signed(cfg.RazorpaySecret, []byte(order+"|"+paymentID))}, 200)
+		acceptTestBooking(t, a, tutor, v.ID)
 	}
 	v := create(p, schedule, "tuition-first-request")
 	t.Run("six and twenty-four class packages multiply subjects and can span calendar periods", func(t *testing.T) {

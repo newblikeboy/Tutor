@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const ApplicationNoticeVersion = "application-2026-09-23-v1-draft"
+const ApplicationNoticeVersion = "application-2026-10-17-v2-draft"
 
 // Requested teaching areas are private application data, never teaching permissions.
 type TutorApplication struct {
@@ -42,28 +42,33 @@ type ApplicantAbout struct {
 	PIN                    string         `json:"pin" bson:"pin"`
 	Location               *LocationPoint `json:"location" bson:"location,omitempty"`
 	PhotoFileID            string         `json:"photoFileId" bson:"photoFileId"`
+	AadhaarFrontFileID     string         `json:"aadhaarFrontFileId" bson:"aadhaarFrontFileId,omitempty"`
+	AadhaarBackFileID      string         `json:"aadhaarBackFileId" bson:"aadhaarBackFileId,omitempty"`
 	CommunicationLanguages []string       `json:"communicationLanguages" bson:"communicationLanguages"`
 }
 type ApplicantEducation struct {
-	Qualification      string   `json:"qualification" bson:"qualification"`
-	Specialisation     string   `json:"specialisation" bson:"specialisation"`
-	Institution        string   `json:"institution" bson:"institution"`
-	CompletionYear     int      `json:"completionYear" bson:"completionYear"`
-	Pursuing           string   `json:"pursuing" bson:"pursuing"`
-	Programme          string   `json:"programme" bson:"programme"`
-	CurrentInstitution string   `json:"currentInstitution" bson:"currentInstitution"`
-	CurrentStage       string   `json:"currentStage" bson:"currentStage"`
-	ExpectedCompletion string   `json:"expectedCompletion" bson:"expectedCompletion"`
-	Additional         string   `json:"additional" bson:"additional"`
-	NewToTutoring      bool     `json:"newToTutoring" bson:"newToTutoring"`
-	ExperienceYears    int      `json:"experienceYears" bson:"experienceYears"`
-	ExperienceMonths   int      `json:"experienceMonths" bson:"experienceMonths"`
-	Settings           []string `json:"settings" bson:"settings"`
-	Summary            string   `json:"summary" bson:"summary"`
-	Occupation         string   `json:"occupation" bson:"occupation"`
-	OutsideWork        string   `json:"outsideWork" bson:"outsideWork"`
-	ResumeFileID       string   `json:"resumeFileId" bson:"resumeFileId"`
-	EducationFileIDs   []string `json:"educationFileIds" bson:"educationFileIds"`
+	Qualification              string   `json:"qualification" bson:"qualification"`
+	Specialisation             string   `json:"specialisation" bson:"specialisation"`
+	Institution                string   `json:"institution" bson:"institution"`
+	CompletionYear             int      `json:"completionYear" bson:"completionYear"`
+	Pursuing                   string   `json:"pursuing" bson:"pursuing"`
+	Programme                  string   `json:"programme" bson:"programme"`
+	CurrentInstitution         string   `json:"currentInstitution" bson:"currentInstitution"`
+	CurrentStage               string   `json:"currentStage" bson:"currentStage"`
+	ExpectedCompletion         string   `json:"expectedCompletion" bson:"expectedCompletion"`
+	Additional                 string   `json:"additional" bson:"additional"`
+	NewToTutoring              bool     `json:"newToTutoring" bson:"newToTutoring"`
+	ExperienceYears            int      `json:"experienceYears" bson:"experienceYears"`
+	ExperienceMonths           int      `json:"experienceMonths" bson:"experienceMonths"`
+	Settings                   []string `json:"settings" bson:"settings"`
+	Summary                    string   `json:"summary" bson:"summary"`
+	Occupation                 string   `json:"occupation" bson:"occupation"`
+	OutsideWork                string   `json:"outsideWork" bson:"outsideWork"`
+	ResumeFileID               string   `json:"resumeFileId" bson:"resumeFileId"`
+	Class10FileID              string   `json:"class10FileId" bson:"class10FileId,omitempty"`
+	Class12FileID              string   `json:"class12FileId" bson:"class12FileId,omitempty"`
+	HigherQualificationFileIDs []string `json:"higherQualificationFileIds" bson:"higherQualificationFileIds"`
+	EducationFileIDs           []string `json:"educationFileIds" bson:"educationFileIds"`
 }
 type RequestedTeachingArea struct {
 	ID              string   `json:"id" bson:"id"`

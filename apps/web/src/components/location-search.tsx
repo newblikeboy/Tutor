@@ -136,10 +136,12 @@ export function CurrentLocationButton({
   onLocationChange,
   children,
   className = 'location-current-btn',
+  disabled = false,
 }: {
   onLocationChange: (location: StoredLocation) => void
   children?: ReactNode
   className?: string
+  disabled?: boolean
 }) {
   const { t } = useTranslation()
   const { status, busy, detect } = useCurrentLocation((location) => {
@@ -148,7 +150,7 @@ export function CurrentLocationButton({
   })
   return (
     <div className="location-current-action">
-      <button className={className} type="button" onClick={detect} disabled={busy}>
+      <button className={className} type="button" onClick={detect} disabled={busy || disabled}>
         <LocateFixed size={16} aria-hidden="true" />
         {children ?? (busy ? t('locationDetecting') : t('locationUseCurrent'))}
       </button>

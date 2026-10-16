@@ -317,8 +317,10 @@ func TestMongoTutorWorkspace(t *testing.T) {
 	}
 	update("enrollments", currentHome.ID, bson.M{"status": "completed"})
 	read = tutor.ok("GET", "/tutor/workspace", nil, 200)
-	if len(read["briefs"].([]any)) != 0 {
-		t.Fatal("completed package exposed current home address")
+	for _, raw := range read["briefs"].([]any) {
+		if raw.(map[string]any)["location"] != nil {
+			t.Fatal("completed package exposed current home address")
+		}
 	}
 	if err = a.notifyActivity(ctx, en.TutorID, "booking_confirmed", en.ID); err != nil {
 		t.Fatal(err)

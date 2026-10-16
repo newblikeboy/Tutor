@@ -21,20 +21,15 @@ const fields: [keyof Amounts, string][] = [
   ['revenuePaise', 'Platform revenue before costs'],
   ['contributionPaise', 'Platform balance after listed costs'],
 ]
-function AmountGrid({ amounts, tutor = false }: { amounts: Amounts; tutor?: boolean }) {
+function AmountGrid({ amounts }: { amounts: Amounts }) {
   return (
     <dl className="finance-metrics">
-      {fields
-        .filter(
-          ([key]) =>
-            !tutor || !['gatewayCostPaise', 'revenuePaise', 'contributionPaise'].includes(key),
-        )
-        .map(([key, label]) => (
-          <div key={key}>
-            <dt>{label}</dt>
-            <dd>{money(amounts[key])}</dd>
-          </div>
-        ))}
+      {fields.map(([key, label]) => (
+        <div key={key}>
+          <dt>{label}</dt>
+          <dd>{money(amounts[key])}</dd>
+        </div>
+      ))}
     </dl>
   )
 }
@@ -189,28 +184,6 @@ export function FinanceOverview() {
     </div>
   )
 }
-export function TutorEarnings() {
-  return (
-    <div className="tu-stack">
-      <section className="tu-panel">
-        <h1>Your earnings</h1>
-        <p>
-          You receive 75% of each class fee in your bank account. Applicable withholding is covered
-          within the platform’s 25% allocation.
-        </p>
-        <p>
-          Recorded completed classes are due on Wednesday after the finance review week.
-          Future classes, unresolved refunds and disputed attendance remain on hold.
-        </p>
-      </section>
-      <BookingAllocations tutor />
-      <EarningHolds tutor />
-      <Earnings tutor />
-      <Payouts tutor />
-    </div>
-  )
-}
-
 function Pager({
   cursor,
   next,
@@ -235,7 +208,7 @@ function Pager({
     </div>
   )
 }
-function BookingAllocations({ tutor = false }: { tutor?: boolean }) {
+function BookingAllocations() {
   const [cursor, setCursor] = useState('')
   const q = useQuery({
     queryKey: ['finance', 'bookings', cursor],
@@ -262,7 +235,7 @@ function BookingAllocations({ tutor = false }: { tutor?: boolean }) {
           {q.data.items.map((v) => (
             <article className="tu-panel tu-stack" key={v.id}>
               <div>
-                <h3>{tutor ? 'Paid booking' : v.tutorName}</h3>
+                <h3>{v.tutorName}</h3>
                 <p className="finance-reference">Booking {v.enrollmentId}</p>
                 <p>
                   {v.status === 'tax_review'
@@ -286,11 +259,9 @@ function BookingAllocations({ tutor = false }: { tutor?: boolean }) {
                   </div>
                 </dl>
               ) : (
-                <AmountGrid amounts={v.amounts} tutor={tutor} />
+                <AmountGrid amounts={v.amounts} />
               )}
-              {!tutor && v.status === 'tax_review' && (
-                <TaxReview id={v.id} gross={v.amounts.grossPaise} />
-              )}
+              {v.status === 'tax_review' && <TaxReview id={v.id} gross={v.amounts.grossPaise} />}
             </article>
           ))}
           <Pager cursor={cursor} next={q.data.nextCursor} setCursor={setCursor} />
@@ -372,7 +343,7 @@ function TaxReview({
     </details>
   )
 }
-function EarningHolds({ tutor = false }: { tutor?: boolean }) {
+function EarningHolds() {
   const [cursor, setCursor] = useState('')
   const q = useQuery({
     queryKey: ['finance', 'holds', cursor],
@@ -396,21 +367,20 @@ function EarningHolds({ tutor = false }: { tutor?: boolean }) {
         <article className="tu-panel tu-stack" key={v.id}>
           <p className="finance-reference">Class {v.id}</p>
           <p>{v.reason}</p>
-          {!tutor &&
-            (v.kind === 'replacement_tax' ? (
-              <TaxReview id={v.id} gross={v.grossPaise} classReview />
-            ) : (
-              <Button variant="secondary" busy={m.isPending} onClick={() => m.mutate(v.intentId)}>
-                Recheck completed classes
-              </Button>
-            ))}
+          {v.kind === 'replacement_tax' ? (
+            <TaxReview id={v.id} gross={v.grossPaise} classReview />
+          ) : (
+            <Button variant="secondary" busy={m.isPending} onClick={() => m.mutate(v.intentId)}>
+              Recheck completed classes
+            </Button>
+          )}
         </article>
       ))}
       <Pager cursor={cursor} next={q.data.nextCursor} setCursor={setCursor} />
     </section>
   )
 }
-function Earnings({ tutor = false }: { tutor?: boolean }) {
+function Earnings() {
   const [cursor, setCursor] = useState('')
   const q = useQuery({
     queryKey: ['finance', 'earnings', cursor],
@@ -449,10 +419,10 @@ function Earnings({ tutor = false }: { tutor?: boolean }) {
               <article className="tu-panel" key={v.id}>
                 <h3>{money(v.amounts.tutorNetPaise)}</h3>
                 <p className="finance-reference">Class {v.id}</p>
-                {!tutor && <p className="finance-reference">Tutor {v.tutorId}</p>}
+                <p className="finance-reference">Tutor {v.tutorId}</p>
                 <p>Due {indiaDate(v.dueAt, 'en')}</p>
                 <p>{v.batchId ? 'Included in a payout batch' : 'Awaiting weekly payout'}</p>
-                {!tutor && !v.batchId && (
+                {!v.batchId && (
                   <Button
                     variant="secondary"
                     busy={m.isPending}
@@ -470,7 +440,7 @@ function Earnings({ tutor = false }: { tutor?: boolean }) {
     </section>
   )
 }
-function Payouts({ tutor = false }: { tutor?: boolean }) {
+function Payouts() {
   const [cursor, setCursor] = useState('')
   const q = useQuery({
     queryKey: ['finance', 'payouts', cursor],
@@ -495,7 +465,7 @@ function Payouts({ tutor = false }: { tutor?: boolean }) {
             />
           )}
           {q.data.items.map((v) => (
-            <PayoutCard key={`${v.id}:${v.status}`} batch={v} tutor={tutor} />
+            <PayoutCard key={`${v.id}:${v.status}`} batch={v} />
           ))}
           <Pager cursor={cursor} next={q.data.nextCursor} setCursor={setCursor} />
         </>
@@ -503,7 +473,7 @@ function Payouts({ tutor = false }: { tutor?: boolean }) {
     </section>
   )
 }
-function PayoutCard({ batch: v, tutor }: { batch: Schema['PayoutBatch']; tutor: boolean }) {
+function PayoutCard({ batch: v }: { batch: Schema['PayoutBatch'] }) {
   const auth = useAuth()
   const m = useMutation({
     mutationFn: (body: Schema['PayoutAction']) => send(`/finance/payouts/${v.id}/action`, body),
@@ -523,7 +493,7 @@ function PayoutCard({ batch: v, tutor }: { batch: Schema['PayoutBatch']; tutor: 
       </p>
       <p className="finance-reference">Batch {v.id}</p>
       {v.reference && <p>Bank reference: {v.reference}</p>}
-      {!tutor && v.status === 'prepared' && (
+      {v.status === 'prepared' && (
         <form
           className="tu-stack"
           onSubmit={(event) => {
@@ -549,7 +519,7 @@ function PayoutCard({ batch: v, tutor }: { batch: Schema['PayoutBatch']; tutor: 
           <Button busy={m.isPending}>Record bank transfer</Button>
         </form>
       )}
-      {!tutor && v.status === 'verification_pending' && v.recordedBy !== auth.data?.user.id && (
+      {v.status === 'verification_pending' && v.recordedBy !== auth.data?.user.id && (
         <Button
           busy={m.isPending}
           onClick={() =>

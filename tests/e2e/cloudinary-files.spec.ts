@@ -64,7 +64,7 @@ test('direct Cloudinary uploads persist references and privately deliver images 
     ctx.fillRect(0, 0, 90, 110)
     return canvas.toDataURL('image/png').split(',')[1]
   })
-  const input = page.getByLabel('Passport-size photo (optional)', { exact: true })
+  const input = page.getByLabel('Passport-size photo (required)', { exact: true })
   const photo = page.locator('.af-attachment').filter({ has: input })
   await input.setInputFiles({
     name: 'sample-photo.png',

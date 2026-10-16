@@ -1,36 +1,9 @@
 import i18n from 'i18next'
 const casesEN = {
   cases: {
-    title: 'Support & requests',
-    intro: 'A clear place to ask for help, follow a request and keep the response on record.',
-    new: 'Start a request',
-    kind: 'What can we help with?',
-    subject: 'A short title',
-    body: 'Tell us what happened',
-    send: 'Save request',
-    draft: 'Request inbox',
-    draftBody:
-      'Requests are saved for review by the support team. For immediate danger or medical emergencies, contact local emergency services.',
+    title: 'Support tickets',
     privacy:
       'Privacy requests need a reviewed response. Saving a request does not erase data or claim a legal decision.',
-    restricted: 'Restricted request',
-    restrictedBody:
-      'Only minimal queue information is visible. An eligible operator must take responsibility before opening the details. Safeguarding requests are excluded from ordinary support access.',
-    claim: 'Take responsibility',
-    open: 'Open request',
-    none: 'No requests in your queue.',
-    noneBody: 'Your saved requests or eligible operator assignments will appear here.',
-    back: 'All requests',
-    reply: 'Add a response',
-    message: 'Response or decision evidence',
-    saveReply: 'Save response',
-    resolve: 'Resolve with evidence',
-    waiting: 'Ask for more information',
-    reopen: 'Reopen request',
-    history: 'Responses',
-    noMessages: 'No responses recorded yet.',
-    resolution: 'Request status',
-    ownerNote: 'Replies are visible to the requester and assigned operator.',
     kinds: {
       support: 'General support',
       matching: 'Help finding a suitable tutor',
@@ -38,12 +11,6 @@ const casesEN = {
       privacy_correction: 'Privacy · correction request',
       privacy_deletion: 'Privacy · deletion request',
       safeguarding: 'Restricted safeguarding concern',
-    },
-    status: {
-      open: 'Open',
-      assigned: 'Operator assigned',
-      waiting_family: 'Waiting for requester',
-      resolved: 'Resolved',
     },
     case_update: 'Your support request has an update',
     openUpdate: 'Open request update',

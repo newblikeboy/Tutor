@@ -27,6 +27,8 @@ type TutorWorkspace struct {
 }
 
 type TutorLearnerBrief struct {
-	LearnerID string         `json:"learnerId"`
-	Location  *LocationPoint `json:"location,omitempty"`
+	LearnerID           string         `json:"learnerId"`
+	Location            *LocationPoint `json:"location,omitempty"`
+	DistanceKM          *float64       `json:"distanceKm,omitempty"`
+	DistanceUnavailable string         `json:"distanceUnavailable,omitempty"`
 }

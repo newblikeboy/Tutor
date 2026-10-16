@@ -1,79 +1,4 @@
-/* Tutor teaching workspace and trial filters. */
-.teacher-overview {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(265px, 0.46fr);
-  gap: 24px;
-  align-items: start;
-}
-.teacher-primary,
-.teacher-secondary {
-  display: grid;
-  gap: 24px;
-}
-.teacher-panel-title,
-.teacher-section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.teacher-panel-title > svg {
-  color: #4d7150;
-  flex-shrink: 0;
-}
-.teacher-section-heading {
-  margin-bottom: 17px;
-}
-.teacher-section-heading h2,
-.teacher-application h2 {
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.5;
-  letter-spacing: -0.3px;
-}
-.teacher-section-heading a {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #315b4e;
-}
-.teacher-application {
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
-  background: var(--desk-surface);
-  box-shadow: var(--desk-elevation);
-}
-.teacher-application .badge {
-  margin-top: 24px;
-}
-.teacher-application h3 {
-  font-size: 22px;
-  font-weight: 600;
-  margin-top: 17px;
-  overflow-wrap: anywhere;
-}
-.teacher-application p {
-  font-size: 13px;
-  line-height: 1.8;
-  margin-top: 8px;
-}
-.teacher-panel-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 48px;
-  padding-top: 16px;
-  margin-top: 22px;
-  border-top: 1px solid var(--border);
-  font-size: 13px;
-  font-weight: 700;
-  color: #315b4e;
-}
+/* Tutor trial filters. */
 .teacher-filters {
   display: flex;
   flex-wrap: wrap;
@@ -100,31 +25,7 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-@media (max-width: 1150px) {
-  .teacher-overview {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .teacher-secondary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-  }
-}
 @media (max-width: 760px) {
-  .desk-content[data-role='tutor'] .desk-page-heading {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-  }
-  .desk-content[data-role='tutor'] .desk-page-actions {
-    margin-top: 0;
-  }
-  .teacher-secondary {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-  }
-  .teacher-application {
-    padding: 22px;
-  }
   .teacher-filters {
     gap: 7px;
   }

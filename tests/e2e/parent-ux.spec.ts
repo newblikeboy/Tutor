@@ -1,12 +1,13 @@
 import { verifiedSignup } from './signup-fixture'
-import { test, expect, request, type Page } from '@playwright/test'
+import { test, expect, request, type Page, type Browser } from '@playwright/test'
+import { connectGoogle } from './helpers/google'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
 import type { Dashboard } from '../../apps/web/src/lib/api'
 
 const password = 'E2E-only learning passphrase 426!'
 const origin = 'http://127.0.0.1:5174'
-async function prepareTrialTutor() {
+async function prepareTrialTutor(browser: Browser) {
   // Other scheduling scenarios change this fixture's hours. Set this test's
   // preconditions through Go so its trial time does not depend on suite order.
   const tutor = await request.newContext({ baseURL: origin })
@@ -21,10 +22,8 @@ async function prepareTrialTutor() {
     const saved = await tutor.put('/api/v1/availability', {
       headers: { Origin: origin, 'X-CSRF-Token': auth.csrf },
       data: {
-        ...availability,
-        feePaise: 0,
-        feePlan: null,
-        feeVersion: 0,
+        version: availability.version,
+        timezone: availability.timezone,
         windows: Array.from({ length: 7 }, (_, day) => ({ day, startMinute: 0, endMinute: 1440 })),
         leaveDates: [],
         bufferMinutes: 0,
@@ -33,6 +32,18 @@ async function prepareTrialTutor() {
       },
     })
     expect(saved.status()).toBe(200)
+    const context = await browser.newContext({ baseURL: origin })
+    try {
+      const teacher = await context.newPage()
+      const response = await teacher.request.post('/api/v1/auth/login', {
+        headers: { Origin: origin },
+        data: { email: 'tutor-meera@example.test', password },
+      })
+      expect(response.status()).toBe(200)
+      await connectGoogle(teacher, 'tutor')
+    } finally {
+      await context.close()
+    }
   } finally {
     await tutor.dispose()
   }
@@ -75,7 +86,7 @@ test('parent sees tutor feedback immediately and can continue to regular classes
   browser,
 }) => {
   test.setTimeout(180_000)
-  await prepareTrialTutor()
+  await prepareTrialTutor(browser)
   const headers = await family(page)
   const post = async (path: string, data: unknown) => {
     const response = await page.request.post(`/api/v1${path}`, {
@@ -114,14 +125,16 @@ test('parent sees tutor feedback immediately and can continue to regular classes
       ).ok(),
     ).toBe(true)
     await teacher.goto('/workspace?view=sessions&queue=requested')
+    await teacher.getByRole('link', { name: new RegExp(`${learner.name} View trial`) }).click()
     const record = teacher.getByRole('article').filter({ hasText: learner.name })
     await record.getByRole('button', { name: 'Accept & confirm time' }).click()
     await expect
       .poll(async () => (await dashboard(page)).trials.find((item) => item.id === trial.id)?.status)
       .toBe('confirmed')
     await teacher.goto('/workspace?view=sessions&queue=confirmed')
+    await teacher.getByRole('link', { name: new RegExp(`${learner.name} View trial`) }).click()
     await record
-      .getByLabel('What did the learner work through?')
+      .getByLabel('What did the student work through?')
       .fill('Compared equivalent fractions with a number line.')
     await record
       .getByLabel('Practice and next teaching steps')

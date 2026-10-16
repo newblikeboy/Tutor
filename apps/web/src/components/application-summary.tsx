@@ -20,7 +20,7 @@ export function ApplicationSummary({
   const value = (key: string, v: unknown): string => {
     if (typeof v === 'boolean') return c(v ? 'yes' : 'no')
     if (key.endsWith('FileId')) return v ? c('attached') : ''
-    if (key === 'educationFileIds')
+    if (key.endsWith('FileIds'))
       return Array.isArray(v) && v.length ? `${v.length} · ${c('attached')}` : ''
     if (key === 'demoAreaId' || key === 'areaId') {
       const a = p.teachingAreas.find((a) => a.id === v)
@@ -57,7 +57,34 @@ export function ApplicationSummary({
                         : k,
               )}
             </dt>
-            <dd>{rendered}</dd>
+            <dd>
+              {k.endsWith('FileId') && typeof v === 'string' && v ? (
+                <a
+                  href={`/api/v1/files/${encodeURIComponent(v)}/view`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`View ${c(k === 'resumeFileId' ? 'resume' : k)}`}
+                >
+                  {rendered} · View
+                </a>
+              ) : k.endsWith('FileIds') && Array.isArray(v) ? (
+                <ul>
+                  {v.map((id, index) => (
+                    <li key={id}>
+                      <a
+                        href={`/api/v1/files/${encodeURIComponent(String(id))}/view`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {t('applicationForm.viewDocument', { number: index + 1 })}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                rendered
+              )}
+            </dd>
           </div>
         ) : null
       })

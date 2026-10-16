@@ -44,3 +44,53 @@ export function tutorModeLabel(scope: TutorScope, t: (key: string) => string) {
   )
   return labels.join(' + ')
 }
+
+const contextKeys = [
+  'learner',
+  'class',
+  'mode',
+  'subject',
+  'language',
+  'radiusKm',
+  'latitude',
+  'longitude',
+  'locality',
+  'time',
+]
+export function tutorProfileLink(
+  id: string,
+  context = new URLSearchParams(),
+  source: 'match' | 'search' = 'search',
+) {
+  const next = new URLSearchParams({ source })
+  for (const key of contextKeys) for (const value of context.getAll(key)) next.append(key, value)
+  if (source === 'match') next.set('tutor', id)
+  return `/tutors/${encodeURIComponent(id)}?${next}`
+}
+export function tutorBookingLink(tutor: Tutor, context: URLSearchParams, mode: string) {
+  const next = new URLSearchParams({ tutor: tutor.id, mode, searched: '1' })
+  for (const key of contextKeys.filter((key) => key !== 'mode'))
+    for (const value of context.getAll(key)) next.append(key, value)
+  if (!next.has('subject') && approvedTutorSubjects(tutor.scope).length === 1)
+    next.append('subject', approvedTutorSubjects(tutor.scope)[0])
+  return `/match?${next}`
+}
+export function tutorReturnLink(context: URLSearchParams) {
+  const next = new URLSearchParams({ searched: '1' })
+  for (const key of contextKeys) for (const value of context.getAll(key)) next.append(key, value)
+  if (context.get('source') === 'match' && context.has('tutor'))
+    next.set('tutor', context.get('tutor')!)
+  return `${context.get('source') === 'match' ? '/match' : '/tutors'}?${next}`
+}
+export function tutorExperience(tutor: Tutor) {
+  const months = tutor.experienceMonths
+  if (!months) return 'Experience not added'
+  const years = Math.floor(months / 12),
+    remaining = months % 12
+  return [
+    years ? `${years} ${years === 1 ? 'year' : 'years'}` : '',
+    remaining ? `${remaining} ${remaining === 1 ? 'month' : 'months'}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}

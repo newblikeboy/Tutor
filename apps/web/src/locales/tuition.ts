@@ -85,7 +85,7 @@ const tuitionEN = {
     acceptAgreement: 'Accept & book classes',
     finishBooking: 'Complete your booking',
     checkoutBody:
-      'Pay to confirm your classes. Your booking is confirmed automatically after payment is verified.',
+      'Complete payment to reserve these classes. New bookings then await the tutor’s signed acceptance.',
     resumeCheckout: 'Continue to payment',
     selectedClasses: 'Selected classes',
     selectedSchedule: 'Selected dates and times',
@@ -158,6 +158,7 @@ const tuitionEN = {
     noHistory: 'No tutor change has been requested.',
     status: {
       pending_agreement: 'Awaiting tutor agreement',
+      pending_tutor_acceptance: 'Awaiting tutor acceptance',
       awaiting_payment: 'Awaiting payment',
       active: 'Active tuition',
       paused: 'Paused',

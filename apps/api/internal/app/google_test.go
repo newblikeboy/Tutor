@@ -253,6 +253,7 @@ func TestMongoGoogleInterviewLifecycle(t *testing.T) {
 	scope = googlecalendar.EventsScope + " " + googlecalendar.EmailScope
 	mu.Unlock()
 	profile := completeApplication("Fictional Google applicant", now)
+	installApplicationEvidence(t, s, "tutor-a", &profile)
 	for i := range profile.TeachingAreas {
 		profile.TeachingAreas[i].Modes = []string{"online"}
 	}

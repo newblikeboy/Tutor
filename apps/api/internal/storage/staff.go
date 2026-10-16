@@ -25,12 +25,14 @@ func (s *Store) MigrateStaff(ctx context.Context) error {
 		}
 	}
 	validator := bson.M{"$jsonSchema": bson.M{"bsonType": "object", "required": []string{"_id", "status", "scope", "sample"}, "properties": bson.M{
-		"interview":     bson.M{"bsonType": "object", "required": []string{"start", "end", "timezone", "joinUrl", "status"}, "properties": bson.M{"start": bson.M{"bsonType": "date"}, "end": bson.M{"bsonType": "date"}, "timezone": bson.M{"bsonType": "string"}, "joinUrl": bson.M{"bsonType": "string", "maxLength": 1000}, "status": bson.M{"enum": []string{"scheduled", "completed", "cancelled", "no_show"}}}},
-		"conflictClear": bson.M{"bsonType": "bool"},
-		"formVersion":   bson.M{"bsonType": []string{"int", "long"}, "minimum": 0},
-		"formStep":      bson.M{"bsonType": []string{"int", "long"}, "minimum": 0, "maximum": 6},
-		"profile":       applicationProfileSchema(),
-		"attachments":   bson.M{"bsonType": "array", "maxItems": 20, "items": bson.M{"bsonType": "object", "required": []string{"_id", "targetKind", "targetId", "uploaderId", "objectKey", "checksum", "status", "size", "createdAt"}}},
+		"interview":        bson.M{"bsonType": "object", "required": []string{"start", "end", "timezone", "joinUrl", "status"}, "properties": bson.M{"start": bson.M{"bsonType": "date"}, "end": bson.M{"bsonType": "date"}, "timezone": bson.M{"bsonType": "string"}, "joinUrl": bson.M{"bsonType": "string", "maxLength": 1000}, "status": bson.M{"enum": []string{"scheduled", "completed", "cancelled", "no_show"}}}},
+		"conflictClear":    bson.M{"bsonType": "bool"},
+		"formVersion":      bson.M{"bsonType": []string{"int", "long"}, "minimum": 0},
+		"formStep":         bson.M{"bsonType": []string{"int", "long"}, "minimum": 0, "maximum": 6},
+		"profile":          applicationProfileSchema(),
+		"teachingLocation": bson.M{"bsonType": "object", "required": []string{"latitude", "longitude"}, "properties": bson.M{"latitude": bson.M{"bsonType": "double", "minimum": -90, "maximum": 90}, "longitude": bson.M{"bsonType": "double", "minimum": -180, "maximum": 180}}},
+		"publicProfile":    bson.M{"bsonType": "object", "required": []string{"introduction", "photoFileId", "introVideoFileId", "publishVideo", "version", "updatedAt"}, "properties": bson.M{"introduction": bson.M{"bsonType": "string", "minLength": 40, "maxLength": 1200}, "photoFileId": bson.M{"bsonType": "string", "maxLength": 100}, "introVideoFileId": bson.M{"bsonType": "string", "maxLength": 100}, "publishVideo": bson.M{"bsonType": "bool"}, "version": bson.M{"bsonType": []string{"int", "long"}, "minimum": 1}, "updatedAt": bson.M{"bsonType": "date"}}},
+		"attachments":      bson.M{"bsonType": "array", "maxItems": 20, "items": bson.M{"bsonType": "object", "required": []string{"_id", "targetKind", "targetId", "uploaderId", "objectKey", "checksum", "status", "size", "createdAt"}}},
 	}}}
 	if e = s.DB.RunCommand(ctx, bson.D{{Key: "collMod", Value: "applications"}, {Key: "validator", Value: validator}, {Key: "validationLevel", Value: "strict"}}).Err(); e != nil {
 		return e

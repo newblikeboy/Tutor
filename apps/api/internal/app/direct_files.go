@@ -35,13 +35,17 @@ func (a *App) createUploadIntent(w http.ResponseWriter, r *http.Request) {
 	if !a.decode(w, r, &in) {
 		return
 	}
-	name, resource, format, e := media.UploadMetadata(in.Name, in.ContentType, in.Size, kind == "application")
+	name, resource, format, e := media.UploadMetadata(in.Name, in.ContentType, in.Size, kind == "application" || kind == "public_profile")
 	if e != nil {
 		a.error(w, r, domain.Fail(422, "application_file", "Choose a JPG, PNG or PDF up to 3 MiB, or an application MP4 up to 25 MiB."))
 		return
 	}
 	if resource == "video" && a.Config.VideoProvider != "cloudinary" || resource != "video" && a.Config.MediaProvider != "cloudinary" {
 		a.error(w, r, domain.Fail(503, "storage_unconfigured", "Cloudinary uploads are not configured for this file type."))
+		return
+	}
+	if kind == "public_profile" && !enum(in.ContentType, "image/jpeg", "image/png", "video/mp4") {
+		a.error(w, r, domain.Fail(422, "profile_media", "Choose a JPG, PNG or MP4 for your public profile."))
 		return
 	}
 	id, object := a.chronologicalID(), token()

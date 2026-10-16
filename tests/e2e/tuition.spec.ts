@@ -1,4 +1,5 @@
 import { verifiedSignup } from './signup-fixture'
+import { acceptFixtureBooking } from './helpers/booking-signing'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir } from 'node:fs/promises'
@@ -173,7 +174,8 @@ test('staff fee changes require renewed consent before payment and tutors only e
       parent.on('request', (request) => {
         if (request.url().includes('razorpay.com')) razorpayRequests++
       })
-      const success = 'Test payment successful. Your booking is confirmed. No money was charged.'
+      const success =
+        'Test payment successful. No money was charged. View the booking for its current status.'
       const enrollmentId = new URL(parent.url()).pathname.split('/').pop()!
       await parent
         .getByRole('button', { name: 'Pay & confirm booking (test)', exact: true })
@@ -200,7 +202,7 @@ test('staff fee changes require renewed consent before payment and tutors only e
       const savedBooking = await (
         await parent.request.get(`/api/v1/enrollments/${enrollmentId}`)
       ).json()
-      expect(savedBooking.enrollment.status).toBe('active')
+      expect(savedBooking.enrollment.status).toBe('pending_tutor_acceptance')
       expect(savedBooking.enrollment.paymentSimulated).toBe(true)
       expect(savedBooking.sessions.every((s: { status: string }) => s.status === 'scheduled')).toBe(
         true,
@@ -215,6 +217,7 @@ test('staff fee changes require renewed consent before payment and tutors only e
       expect(payment.intent.paymentId).toMatch(/^sim_pay_/)
       expect(payment.intent.capturedAt).toBeTruthy()
       expect(payment.invoice).toBeUndefined()
+      await acceptFixtureBooking(tutor.request, enrollmentId)
       await tutor.goto(`/tuition/${enrollmentId}`)
       await expect(tutor.getByText(/Test payment only/)).toBeVisible()
       await expect(

@@ -103,7 +103,9 @@ export default function LearnerProgressReport({
     <div className="child-report">
       <header className="child-report-heading">
         <div>
-          <span className="eyebrow">{t('childProgress.title')}</span>
+          <span className="eyebrow">
+            {tutor ? 'Student progress report' : t('childProgress.title')}
+          </span>
           <h2>{learner.name}</h2>
           <p>
             {tutor
@@ -181,7 +183,8 @@ export default function LearnerProgressReport({
         <>
           <TabBar
             id="child-report"
-            label={t('childProgress.title')}
+            scrollable={tutor}
+            label={tutor ? 'Student progress report' : t('childProgress.title')}
             value={tab}
             options={tabs.map((value) => ({ value, label: t(`childProgress.${value}`) }))}
             onChange={(value) => set({ reportTab: value === 'overview' ? '' : value })}

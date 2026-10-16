@@ -56,7 +56,8 @@ func (a *App) tutorPage(ctx context.Context, filter bson.M, cursor string, locat
 		bson.M{"$match": filter},
 		bson.M{"$lookup": bson.M{"from": "availability", "localField": "_id", "foreignField": "_id", "as": "searchAvailability"}},
 		bson.M{"$match": bson.M{"searchAvailability.paused": bson.M{"$ne": true}}},
-		bson.M{"$project": bson.M{"name": 1, "scope": 1, "language": 1, "experience": 1, "assessmentAt": 1, "approach": 1, "sample": 1, "fees": 1, "profile.about.locality": 1, "profile.about.location": 1, "profile.about.photoFileId": 1, "profile.availability.home.travelKm": 1, "profile.approach.demoFileId": 1}},
+		bson.M{"$lookup": bson.M{"from": "google_connections", "localField": "_id", "foreignField": "_id", "as": "searchGoogle", "pipeline": bson.A{bson.M{"$project": bson.M{"status": 1}}}}},
+		bson.M{"$project": bson.M{"name": 1, "scope": 1, "language": 1, "experience": 1, "assessmentAt": 1, "approach": 1, "sample": 1, "fees": 1, "publicProfile": 1, "teachingLocation": 1, "profile.about.locality": 1, "profile.about.location": 1, "profile.about.photoFileId": 1, "profile.availability.home.travelKm": 1, "profile.education.qualification": 1, "profile.education.institution": 1, "profile.education.experienceYears": 1, "profile.education.experienceMonths": 1, "profile.teachingAreas": 1, "searchAvailability.windows": 1, "searchAvailability.paused": 1, "searchGoogle.status": 1}},
 	}
 	if !located {
 		if cursor != "" {
@@ -71,11 +72,25 @@ func (a *App) tutorPage(ctx context.Context, filter bson.M, cursor string, locat
 	defer cur.Close(ctx)
 	out := []domain.PublicTutor{}
 	for cur.Next(ctx) {
-		var v domain.Application
-		if err = cur.Decode(&v); err != nil {
+		var row struct {
+			domain.Application `bson:",inline"`
+			Availability       []domain.Availability `bson:"searchAvailability"`
+			Google             []struct {
+				Status string `bson:"status"`
+			} `bson:"searchGoogle"`
+		}
+		if err = cur.Decode(&row); err != nil {
 			return nil, "", err
 		}
+		v := row.Application
 		public := v.Public()
+		av := domain.Availability{}
+		if len(row.Availability) > 0 {
+			av = row.Availability[0]
+		}
+		public.TeachingHoursSet = len(av.Windows) > 0 && !av.Paused
+		online := a.Google != nil && a.Config.MeetingProvider == "google" && len(row.Google) > 0 && row.Google[0].Status == "connected"
+		public.BookingModes = bookingModes(v, av, online)
 		if located && v.Scope.HasMode("home") {
 			location, ok := tutorBaseLocation(v)
 			if !ok || public.ServiceRadiusKM <= 0 {

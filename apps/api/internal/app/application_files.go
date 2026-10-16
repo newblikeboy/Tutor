@@ -31,6 +31,15 @@ func (a *App) privateFile(ctx context.Context, id string) (domain.PrivateFile, e
 }
 func (a *App) insertPrivateFile(ctx context.Context, f domain.PrivateFile) error {
 	if f.TargetKind != "application" {
+		if f.TargetKind == "public_profile" {
+			n, e := a.Store.C("files").CountDocuments(ctx, bson.M{"targetKind": "public_profile", "targetId": f.TargetID, "status": bson.M{"$ne": "archived"}})
+			if e != nil {
+				return e
+			}
+			if n >= 20 {
+				return domain.Fail(409, "file_quota", "Public profile media allowance is reached. Contact support.")
+			}
+		}
 		_, e := a.Store.C("files").InsertOne(ctx, f)
 		return e
 	}

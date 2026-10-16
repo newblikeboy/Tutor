@@ -1,0 +1,54 @@
+.tutor-result-card {
+  align-items: start;
+}
+.tutor-result-card .tutor-card-action {
+  padding: 14px;
+}
+.tutor-result-card .tutor-card-action .tutor-fees {
+  margin-top: 0;
+  gap: 8px;
+}
+.tutor-result-card .tutor-card-kicker .badge {
+  font-size: 10px;
+}
+.tutor-result-card .tutor-approach {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@media (max-width: 700px) {
+  .tutor-result-card .tutor-card-main {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 14px;
+  }
+  .tutor-result-card .tutor-photo-symbol {
+    width: 64px;
+    height: 80px;
+    border-radius: 12px;
+  }
+  .tutor-result-card .tutor-photo-symbol span {
+    font-size: 28px;
+  }
+  .tutor-result-card .tutor-photo-symbol svg {
+    width: 27px;
+    height: 27px;
+    padding: 4px;
+  }
+  .tutor-result-card h3 {
+    font-size: 23px;
+  }
+  .tutor-result-card .tutor-highlights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .tutor-result-card .tutor-highlights span {
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+  .tutor-result-card .tutor-card-action {
+    width: 100%;
+  }
+}

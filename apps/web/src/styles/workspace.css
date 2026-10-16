@@ -227,6 +227,51 @@
   flex-shrink: 0;
   font-weight: 600;
 }
+.workspace-notification-bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  color: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fffefa;
+  text-decoration: none;
+}
+.workspace-notification-bell:hover,
+.workspace-notification-bell[aria-expanded='true'] {
+  background: #edf2e5;
+  border-color: #b6c5ad;
+}
+.workspace-notification-bell:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+.workspace-notification-count {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #315d4f;
+  border: 2px solid #fffefa;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+@media (forced-colors: active) {
+  .workspace-notification-count {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
 .desk-user strong {
   display: block;
   font-size: 12px;
@@ -450,7 +495,7 @@
   background: #fffefa;
   padding: 20px 22px;
 }
-.desk-shell .record-header h3 {
+.desk-shell .record-header :is(h2, h3) {
   font-size: 16px;
   line-height: 1.5;
   font-weight: 600;
@@ -798,7 +843,7 @@
   .desk-shell .record-content p {
     font-size: 14px;
   }
-  .desk-shell .record-header h3 {
+  .desk-shell .record-header :is(h2, h3) {
     font-size: 16px;
   }
   .desk-shell .record-form .btn,

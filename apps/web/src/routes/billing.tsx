@@ -19,7 +19,8 @@ import {
   Modal,
 } from '../components/ui'
 import '../styles/tuition.css'
-import { BusinessSettings, FinanceOverview, TutorEarnings } from './finance'
+import { BusinessSettings, FinanceOverview } from './finance'
+import TutorEarnings from './tutor-earnings'
 import { PaidInvoice, InvoiceForm } from '../components/paid-invoice'
 
 const price = (n: number, lang: string) =>

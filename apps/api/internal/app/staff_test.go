@@ -122,7 +122,7 @@ func TestMongoStaffOperations(t *testing.T) {
 		mentor.decide("reject-released-slot", map[string]any{"action": "decline", "reason": reason}, 200)
 		finishTestInterview(t, a, "reject-released-slot")
 	})
-	tutor.ok("PUT", "/application", applicationTestInput("Sample staff workflow applicant", now), 200)
+	tutor.ok("PUT", "/application", applicationTestInput(t, s, "tutor-a", "Sample staff workflow applicant", now), 200)
 	t.Run("staff boundaries and required optimistic version", func(t *testing.T) {
 		for _, tc := range []*testClient{parent, tutor, client("finance-a", server.URL), client("support-a", server.URL)} {
 			tc.ok("POST", "/applications/tutor-a/decision", map[string]any{"action": "fees", "version": 1}, 403)

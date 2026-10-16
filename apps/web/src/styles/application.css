@@ -612,6 +612,17 @@
   display: grid;
   gap: 12px;
 }
+.af-kyc {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.af-kyc h3,
+.af-kyc > p {
+  margin: 0;
+}
 .af-attachment-list.photo li {
   align-items: center;
   justify-content: start;

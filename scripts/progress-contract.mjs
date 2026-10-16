@@ -18,7 +18,7 @@ export function progressContract(schemas, route, paths) {
       'Tutor-only current or completed/cancelled package history, filtered before pagination.',
   })
   schemas.ClassAction.description =
-    'Present recording requires progress; tests are optional. Progress corrections close seven days after recording, and planning is limited to booked, approved subjects.'
+    'Mark complete records actual taught notes and explicit homework assignment; detailed attendance recording requires structured progress for present attendance. Corrections close seven days after recording. Planning is limited to booked, approved subjects.'
   schemas.Notification.properties.readAt = date
   schemas.LessonMeeting = obj(
     {
@@ -38,9 +38,18 @@ export function progressContract(schemas, route, paths) {
   schemas.ActionInput.properties.action.enum.push('feedback')
   schemas.ClassAction.properties.action.enum.push('plan_subject')
   schemas.ClassAction.properties.subject = string
-  schemas.TutorLearnerBrief = obj({ learnerId: string, location: ref('LocationPoint') }, [
-    'learnerId',
-  ])
+  schemas.TutorLearnerBrief = obj(
+    {
+      learnerId: string,
+      location: ref('LocationPoint'),
+      distanceKm: { type: 'number', minimum: 0 },
+      distanceUnavailable: {
+        type: 'string',
+        enum: ['tutor_location_missing', 'student_location_missing'],
+      },
+    },
+    ['learnerId'],
+  )
   schemas.TutorWorkspace = obj({
     briefs: array('TutorLearnerBrief'),
     learners: array('Learner'),

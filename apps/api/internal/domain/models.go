@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 type User struct {
 	ID              string     `json:"id" bson:"_id"`
@@ -51,6 +54,8 @@ func (s Scope) HasMode(mode string) bool {
 }
 
 type Application struct {
+	TeachingLocation    *LocationPoint       `json:"teachingLocation,omitempty" bson:"teachingLocation,omitempty"`
+	PublicProfile       *TutorPublicProfile  `json:"publicProfile,omitempty" bson:"publicProfile,omitempty"`
 	InterviewAssessment *InterviewAssessment `json:"interviewAssessment,omitempty" bson:"interviewAssessment,omitempty"`
 	ID                  string               `json:"id" bson:"_id"`
 	Name                string               `json:"name" bson:"name"`
@@ -80,24 +85,38 @@ type Application struct {
 	Attachments         []PrivateFile        `json:"-" bson:"attachments,omitempty"`
 }
 type PublicTutor struct {
-	FeePlans        []FeePlan `json:"feePlans"`
-	ID              string    `json:"id"`
-	Name            string    `json:"name"`
-	Approach        string    `json:"approach"`
-	Language        string    `json:"language"`
-	Experience      int       `json:"experience"`
-	Scope           Scope     `json:"scope"`
-	AssessmentAt    time.Time `json:"assessmentAt"`
-	Sample          bool      `json:"sample"`
-	PhotoURL        string    `json:"photoUrl,omitempty"`
-	IntroVideoURL   string    `json:"introVideoUrl,omitempty"`
-	PublicLocality  string    `json:"publicLocality"`
-	ServiceRadiusKM int       `json:"serviceRadiusKm"`
-	DistanceKM      *float64  `json:"distanceKm"`
+	Qualification     string    `json:"qualification"`
+	Institution       string    `json:"institution"`
+	Boards            []string  `json:"boards"`
+	TeachingLanguages []string  `json:"teachingLanguages"`
+	ExperienceMonths  int       `json:"experienceMonths"`
+	TeachingHoursSet  bool      `json:"teachingHoursSet"`
+	BookingModes      []string  `json:"bookingModes"`
+	FeePlans          []FeePlan `json:"feePlans"`
+	ID                string    `json:"id"`
+	Name              string    `json:"name"`
+	Approach          string    `json:"approach"`
+	Language          string    `json:"language"`
+	Experience        int       `json:"experience"`
+	Scope             Scope     `json:"scope"`
+	AssessmentAt      time.Time `json:"assessmentAt"`
+	Sample            bool      `json:"sample"`
+	PhotoURL          string    `json:"photoUrl,omitempty"`
+	IntroVideoURL     string    `json:"introVideoUrl,omitempty"`
+	PublicLocality    string    `json:"publicLocality"`
+	ServiceRadiusKM   int       `json:"serviceRadiusKm"`
+	DistanceKM        *float64  `json:"distanceKm"`
 }
 
 func (a Application) Public() PublicTutor {
 	out := PublicTutor{FeePlans: a.FeePlans(), ID: a.ID, Name: a.Name, Approach: a.Approach, Language: a.Language, Experience: a.Experience, Scope: a.Scope, AssessmentAt: a.AssessmentAt, Sample: a.Sample}
+	out.Boards = []string{}
+	out.TeachingLanguages = []string{}
+	out.BookingModes = []string{}
+	out.ExperienceMonths = a.Experience * 12
+	if a.Language != "" {
+		out.TeachingLanguages = append(out.TeachingLanguages, a.Language)
+	}
 	if a.Profile != nil && a.Scope.HasMode("home") {
 		out.PublicLocality = a.Profile.About.Locality
 		if a.Profile.About.Location != nil {
@@ -110,11 +129,42 @@ func (a Application) Public() PublicTutor {
 		}
 		out.ServiceRadiusKM = a.Profile.Availability.Home.TravelKM
 	}
+	if a.TeachingLocation != nil && a.Scope.HasMode("home") {
+		out.PublicLocality = a.TeachingLocation.Locality
+		if out.PublicLocality == "" {
+			out.PublicLocality = a.TeachingLocation.City
+		}
+	}
 	if a.Profile != nil {
+		out.Qualification = a.Profile.Education.Qualification
+		out.Institution = a.Profile.Education.Institution
+		out.ExperienceMonths = a.Profile.Education.ExperienceYears*12 + a.Profile.Education.ExperienceMonths
+		for _, area := range a.Profile.TeachingAreas {
+			if !slices.Contains(a.Scope.ApprovedSubjects(), area.Subject) {
+				continue
+			}
+			for _, board := range area.Boards {
+				if !slices.Contains(out.Boards, board) {
+					out.Boards = append(out.Boards, board)
+				}
+			}
+			for _, language := range area.Languages {
+				if !slices.Contains(out.TeachingLanguages, language) {
+					out.TeachingLanguages = append(out.TeachingLanguages, language)
+				}
+			}
+		}
 		if a.Profile.About.PhotoFileID != "" {
 			out.PhotoURL = "/api/v1/tutors/" + a.ID + "/photo"
 		}
-		if a.Profile.Approach.DemoFileID != "" {
+	}
+	if a.PublicProfile != nil {
+		out.Approach = a.PublicProfile.Introduction
+		out.PhotoURL = ""
+		if a.PublicProfile.PhotoFileID != "" {
+			out.PhotoURL = "/api/v1/tutors/" + a.ID + "/photo"
+		}
+		if a.PublicProfile.PublishVideo && a.PublicProfile.IntroVideoFileID != "" {
 			out.IntroVideoURL = "/api/v1/tutors/" + a.ID + "/intro-video"
 		}
 	}

@@ -87,6 +87,7 @@ func TestMongoRepositoryImprovements(t *testing.T) {
 			v.Profile.About.Location = &domain.LocationPoint{Latitude: latitude, Longitude: 87.47, Locality: "Purnea"}
 			v.Profile.Availability.Home.TravelKM = 5
 			v.Profile.Approach.DemoFileID = "demo"
+			v.PublicProfile = &domain.TutorPublicProfile{Introduction: profile.Approach.Introduction, PhotoFileID: "photo", IntroVideoFileID: "demo", PublishVideo: true, Version: 1, UpdatedAt: now}
 			rows = append(rows, v)
 			availability = append(availability, bson.M{"_id": id, "paused": i == 102, "timezone": "Asia/Kolkata", "windows": bson.A{}, "dailyCapacity": 1, "version": 1})
 		}

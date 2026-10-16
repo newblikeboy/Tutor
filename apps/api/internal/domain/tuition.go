@@ -43,25 +43,27 @@ type Agreement struct {
 	CreatedAt          time.Time   `json:"createdAt" bson:"createdAt"`
 }
 type Enrollment struct {
-	PaymentSimulated bool       `json:"paymentSimulated" bson:"paymentSimulated"`
-	PaymentIntentID  string     `json:"paymentIntentId" bson:"paymentIntentId"`
-	ID               string     `json:"id" bson:"_id"`
-	OwnerID          string     `json:"-" bson:"ownerId"`
-	TrialID          string     `json:"trialId" bson:"trialId"`
-	LearnerID        string     `json:"learnerId" bson:"learnerId"`
-	LearnerName      string     `json:"learnerName" bson:"learnerName"`
-	Class            int        `json:"class" bson:"class"`
-	TutorID          string     `json:"tutorId" bson:"tutorId"`
-	TutorName        string     `json:"tutorName" bson:"tutorName"`
-	MentorID         string     `json:"mentorId" bson:"mentorId"`
-	Status           string     `json:"status" bson:"status"`
-	Agreement        Agreement  `json:"agreement" bson:"agreement"`
-	PlanVersion      int        `json:"planVersion" bson:"planVersion"`
-	Version          int        `json:"version" bson:"version"`
-	HoldUntil        *time.Time `json:"holdUntil" bson:"holdUntil"`
-	CreatedAt        time.Time  `json:"createdAt" bson:"createdAt"`
+	TutorAgreement   *TutorBookingAgreement `json:"tutorAgreement,omitempty" bson:"tutorAgreement,omitempty"`
+	PaymentSimulated bool                   `json:"paymentSimulated" bson:"paymentSimulated"`
+	PaymentIntentID  string                 `json:"paymentIntentId" bson:"paymentIntentId"`
+	ID               string                 `json:"id" bson:"_id"`
+	OwnerID          string                 `json:"-" bson:"ownerId"`
+	TrialID          string                 `json:"trialId" bson:"trialId"`
+	LearnerID        string                 `json:"learnerId" bson:"learnerId"`
+	LearnerName      string                 `json:"learnerName" bson:"learnerName"`
+	Class            int                    `json:"class" bson:"class"`
+	TutorID          string                 `json:"tutorId" bson:"tutorId"`
+	TutorName        string                 `json:"tutorName" bson:"tutorName"`
+	MentorID         string                 `json:"mentorId" bson:"mentorId"`
+	Status           string                 `json:"status" bson:"status"`
+	Agreement        Agreement              `json:"agreement" bson:"agreement"`
+	PlanVersion      int                    `json:"planVersion" bson:"planVersion"`
+	Version          int                    `json:"version" bson:"version"`
+	HoldUntil        *time.Time             `json:"holdUntil" bson:"holdUntil"`
+	CreatedAt        time.Time              `json:"createdAt" bson:"createdAt"`
 }
 type ClassSession struct {
+	HomeworkGiven  *bool             `json:"homeworkGiven,omitempty" bson:"homeworkGiven,omitempty"`
 	PlannedSubject string            `json:"plannedSubject,omitempty" bson:"plannedSubject,omitempty"`
 	RecordedAt     *time.Time        `json:"recordedAt,omitempty" bson:"recordedAt,omitempty"`
 	Meeting        *LessonMeeting    `json:"meeting,omitempty" bson:"meeting,omitempty"`

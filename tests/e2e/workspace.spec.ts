@@ -15,7 +15,7 @@ async function signIn(page: Page, baseURL: string, identity: string) {
 }
 for (const scenario of [
   { role: 'parent', identity: 'parent-b', views: ['Learners', 'Trial lessons'] },
-  { role: 'tutor', identity: 'tutor-meera', views: ['Trial lessons', 'My application'] },
+  { role: 'tutor', identity: 'tutor-meera', views: ['Trial lessons', 'My profile'] },
   { role: 'mentor', identity: 'mentor-a', views: ['Tutor applications', 'Lesson reviews'] },
   { role: 'admin', identity: 'admin-a', views: ['Tutor network', 'Decision history'] },
 ]) {
@@ -33,24 +33,17 @@ for (const scenario of [
       await expect(page.getByRole('link', { name: 'Back to website' })).toHaveCount(0)
     }
     if (scenario.role === 'tutor') {
-      const dashboard = await (await page.request.get('/api/v1/dashboard')).json()
-      for (const [queue, label] of [
-        ['requested', 'Requests'],
-        ['confirmed', 'Confirmed trials'],
-        ['completed', 'Awaiting review'],
-      ]) {
-        await page
-          .locator('.teacher-stats')
-          .getByRole('link', { name: new RegExp(label) })
-          .click()
+      const workspace = await (await page.request.get('/api/v1/tutor/workspace')).json()
+      for (const queue of ['requested', 'confirmed', 'completed']) {
+        await page.goto(`/workspace?view=sessions&queue=${queue}`)
         await expect(page).toHaveURL(`/workspace?view=sessions&queue=${queue}`)
         await page.reload()
         await expect(page.locator('.teacher-filters a[aria-current="page"]')).toHaveAttribute(
           'href',
           `/workspace?view=sessions&queue=${queue}`,
         )
-        await expect(page.locator('.queue .record-card')).toHaveCount(
-          dashboard.trials.filter((trial: { status: string }) => trial.status === queue).length,
+        await expect(page.locator('.student-table tbody tr')).toHaveCount(
+          workspace.trials.filter((trial: { status: string }) => trial.status === queue).length,
         )
         await page.goto('/workspace')
         await page.locator('.desk-content').waitFor()

@@ -23,18 +23,21 @@ import (
 )
 
 type emailChallenge struct {
-	ID             string    `bson:"_id"`
-	Email          string    `bson:"email,omitempty"`
-	UserID         string    `bson:"userId"`
-	Purpose        string    `bson:"purpose"`
-	CodeHash       string    `bson:"codeHash"`
-	CredentialHash string    `bson:"credentialHash"`
-	ExpiresAt      time.Time `bson:"expiresAt"`
-	Attempts       int       `bson:"attempts"`
-	Consumed       bool      `bson:"consumed"`
-	GuardID        string    `bson:"guardId"`
-	CurrentID      string    `bson:"currentId"`
-	LastSentAt     time.Time `bson:"lastSentAt"`
+	EnrollmentID      string    `bson:"enrollmentId,omitempty"`
+	DocumentHash      string    `bson:"documentHash,omitempty"`
+	EnrollmentVersion int       `bson:"enrollmentVersion,omitempty"`
+	ID                string    `bson:"_id"`
+	Email             string    `bson:"email,omitempty"`
+	UserID            string    `bson:"userId"`
+	Purpose           string    `bson:"purpose"`
+	CodeHash          string    `bson:"codeHash"`
+	CredentialHash    string    `bson:"credentialHash"`
+	ExpiresAt         time.Time `bson:"expiresAt"`
+	Attempts          int       `bson:"attempts"`
+	Consumed          bool      `bson:"consumed"`
+	GuardID           string    `bson:"guardId"`
+	CurrentID         string    `bson:"currentId"`
+	LastSentAt        time.Time `bson:"lastSentAt"`
 }
 
 func (a *App) mailAvailable(w http.ResponseWriter, r *http.Request) bool {
@@ -128,7 +131,7 @@ func (a *App) requestVerification(w http.ResponseWriter, r *http.Request) {
 	}
 	a.issueEmailCode(w, r, user(r).Email, "verify", user(r).ID)
 }
-func (a *App) issueEmailCode(w http.ResponseWriter, r *http.Request, value, purpose, actor string) {
+func (a *App) issueEmailCode(w http.ResponseWriter, r *http.Request, value, purpose, actor string, booking ...bookingSigningBinding) {
 	email, valid := normalizeEmail(value)
 	if !valid {
 		a.error(w, r, domain.Fail(422, "validation", "Enter a valid email address."))
@@ -152,6 +155,11 @@ func (a *App) issueEmailCode(w http.ResponseWriter, r *http.Request, value, purp
 	}
 	expires := a.Now().Add(10 * time.Minute)
 	err = a.Store.Tx(r.Context(), func(ctx context.Context) error {
+		if len(booking) > 0 {
+			if _, err := a.signableBooking(ctx, user(r), booking[0]); err != nil {
+				return err
+			}
+		}
 		guardID := "recipient:" + digest(email+":"+purpose)
 		var guard emailChallenge
 		err := a.Store.C("email_challenges").FindOneAndUpdate(ctx, bson.M{"_id": guardID}, bson.M{"$setOnInsert": bson.M{"userId": "", "purpose": "guard", "codeHash": "", "credentialHash": "", "attempts": 0, "expiresAt": a.Now().Add(24 * time.Hour)}, "$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.Before)).Decode(&guard)
@@ -192,6 +200,11 @@ func (a *App) issueEmailCode(w http.ResponseWriter, r *http.Request, value, purp
 			return nil
 		}
 		challenge := emailChallenge{ID: id, UserID: u.ID, Purpose: purpose, CodeHash: a.emailCodeHash(id, purpose, code), CredentialHash: digest(c.Hash), ExpiresAt: expires, GuardID: guardID}
+		if len(booking) > 0 {
+			challenge.EnrollmentID = booking[0].EnrollmentID
+			challenge.DocumentHash = booking[0].DocumentHash
+			challenge.EnrollmentVersion = booking[0].Version
+		}
 		if _, err = a.Store.C("email_challenges").InsertOne(ctx, challenge); err != nil {
 			return err
 		}

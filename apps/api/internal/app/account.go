@@ -35,6 +35,19 @@ func (a *App) account(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, err)
 		return
 	}
+	if user(r).Role == "tutor" {
+		application, e := storage.One[domain.Application](r.Context(), a.Store, "applications", bson.M{"_id": user(r).ID})
+		if e != nil && e != mongo.ErrNoDocuments {
+			a.error(w, r, e)
+			return
+		}
+		if e == nil && application.Status == "approved" {
+			p.Location = application.TeachingLocation
+			if p.Location == nil && application.Profile != nil {
+				p.Location = application.Profile.About.Location
+			}
+		}
+	}
 	a.json(w, 200, map[string]any{"name": user(r).Name, "email": user(r).Email, "preferences": p, "emailVerifiedAt": user(r).EmailVerifiedAt})
 }
 func (a *App) saveAccount(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +84,23 @@ func (a *App) saveAccount(w http.ResponseWriter, r *http.Request) {
 		p.Version++
 		if _, e = a.Store.C("preferences").ReplaceOne(ctx, bson.M{"_id": p.ID}, p, options.Replace().SetUpsert(true)); e != nil {
 			return e
+		}
+		if user(r).Role == "tutor" {
+			update := bson.M{"$inc": bson.M{"version": 1}}
+			if in.Location == nil {
+				update["$unset"] = bson.M{"teachingLocation": ""}
+			} else {
+				update["$set"] = bson.M{"teachingLocation": in.Location}
+			}
+			result, er := a.Store.C("applications").UpdateOne(ctx, bson.M{"_id": user(r).ID, "status": "approved", "teachingLocation": bson.M{"$ne": in.Location}}, update)
+			if er != nil {
+				return er
+			}
+			if result.MatchedCount == 1 {
+				if _, er = a.Store.C("audit").InsertOne(ctx, bson.M{"_id": a.chronologicalID(), "actor": user(r).ID, "action": "tutor.teaching_location_updated", "target": user(r).ID, "at": a.Now(), "preferencesVersion": p.Version}); er != nil {
+					return er
+				}
+			}
 		}
 		_, e = a.Store.C("users").UpdateOne(ctx, bson.M{"_id": user(r).ID}, bson.M{"$set": bson.M{"name": in.Name}})
 		return e

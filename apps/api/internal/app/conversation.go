@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"net/http"
+	"net/url"
 	"tutorplatform/internal/domain"
 	"tutorplatform/internal/storage"
 )
@@ -96,14 +98,64 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 	}
 	a.json(w, 200, p)
 }
+func (a *App) notificationStatus(w http.ResponseWriter, r *http.Request) {
+	u := user(r)
+	activity, err := a.Store.C("notifications").CountDocuments(r.Context(), bson.M{"ownerId": u.ID, "read": bson.M{"$ne": true}})
+	if err != nil {
+		a.error(w, r, err)
+		return
+	}
+	var updates int64
+	if u.Role == "parent" || u.Role == "tutor" || u.Role == "admin" {
+		updates, err = a.Store.C("inbox_messages").CountDocuments(r.Context(), bson.M{"recipientId": u.ID, "readAt": nil})
+		if err != nil {
+			a.error(w, r, err)
+			return
+		}
+	}
+	a.json(w, 200, map[string]int64{"unreadCount": activity + updates, "activityUnreadCount": activity, "updatesUnreadCount": updates})
+}
+func (a *App) recentNotifications(w http.ResponseWriter, r *http.Request) {
+	unread := r.URL.Query().Get("unread")
+	if !enum(unread, "", "1") {
+		a.error(w, r, domain.Fail(422, "validation", "Invalid notification filter."))
+		return
+	}
+	filter := bson.M{"ownerId": user(r).ID}
+	if unread == "1" {
+		filter["read"] = bson.M{"$ne": true}
+	}
+	cur, err := a.Store.C("notifications").Find(r.Context(), filter, options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(12))
+	if err != nil {
+		a.error(w, r, err)
+		return
+	}
+	defer cur.Close(r.Context())
+	items := []domain.Notification{}
+	if err = cur.All(r.Context(), &items); err != nil {
+		a.error(w, r, err)
+		return
+	}
+	a.json(w, 200, items)
+}
 func (a *App) readNotification(w http.ResponseWriter, r *http.Request) {
-	result, e := a.Store.C("notifications").UpdateOne(r.Context(), bson.M{"_id": chi.URLParam(r, "id"), "ownerId": user(r).ID, "read": bson.M{"$ne": true}}, bson.M{"$set": bson.M{"read": true, "readAt": a.Now()}})
+	id := chi.URLParam(r, "id")
+	// Chi routes against RawPath when present; otherwise the parameter is already decoded.
+	if r.URL.RawPath != "" {
+		var err error
+		id, err = url.PathUnescape(id)
+		if err != nil {
+			a.error(w, r, domain.Fail(422, "validation", "Invalid notification ID."))
+			return
+		}
+	}
+	result, e := a.Store.C("notifications").UpdateOne(r.Context(), bson.M{"_id": id, "ownerId": user(r).ID, "read": bson.M{"$ne": true}}, bson.M{"$set": bson.M{"read": true, "readAt": a.Now()}})
 	if e != nil {
 		a.error(w, r, e)
 		return
 	}
 	if result.MatchedCount != 1 {
-		if _, err := storage.One[domain.Notification](r.Context(), a.Store, "notifications", bson.M{"_id": chi.URLParam(r, "id"), "ownerId": user(r).ID, "read": true}); err != nil {
+		if _, err := storage.One[domain.Notification](r.Context(), a.Store, "notifications", bson.M{"_id": id, "ownerId": user(r).ID, "read": true}); err != nil {
 			a.error(w, r, err)
 			return
 		}

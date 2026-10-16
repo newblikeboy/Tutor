@@ -171,7 +171,7 @@
   }
 }
 @media (max-width: 760px) {
-  .desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-main {
+  .desk-shell[data-role='parent'] .desk-main {
     padding: 24px 18px 32px;
   }
   .customer-hero {

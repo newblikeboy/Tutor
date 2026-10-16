@@ -31,12 +31,70 @@ func completeApplication(name string, now time.Time) domain.TutorApplication {
 		Declarations:  domain.ApplicantDeclarations{Accuracy: true, Conduct: true, DataUse: true, NoticeVersion: domain.ApplicationNoticeVersion},
 	}
 }
-func applicationTestInput(name string, now time.Time) map[string]any {
-	return map[string]any{"version": 0, "step": 6, "submit": true, "profile": completeApplication(name, now)}
+func completeApplicationWithEvidence(name string, now time.Time) domain.TutorApplication {
+	p := completeApplication(name, now)
+	p.About.PhotoFileID = "fixture-photo"
+	p.About.AadhaarFrontFileID = "fixture-aadhaar-front"
+	p.About.AadhaarBackFileID = "fixture-aadhaar-back"
+	p.Education.Class10FileID = "fixture-class-10"
+	p.Education.Class12FileID = "fixture-class-12"
+	return p
+}
+func installApplicationEvidence(t *testing.T, s *storage.Store, owner string, p *domain.TutorApplication) {
+	t.Helper()
+	ids := []*string{&p.About.PhotoFileID, &p.About.AadhaarFrontFileID, &p.About.AadhaarBackFileID, &p.Education.Class10FileID, &p.Education.Class12FileID}
+	for _, target := range ids {
+		*target = "fixture-evidence-" + token()[:20]
+		now := time.Now()
+		_, err := s.C("files").InsertOne(context.Background(), domain.PrivateFile{ID: *target, ObjectKey: *target, TargetKind: "application", TargetID: owner, UploaderID: owner, Name: "Fictional test document.png", ContentType: "image/png", Provider: "cloudinary", Status: "ready", Size: 100, CreatedAt: now})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+func applicationTestInput(t *testing.T, s *storage.Store, owner, name string, now time.Time) map[string]any {
+	p := completeApplication(name, now)
+	installApplicationEvidence(t, s, owner, &p)
+	return map[string]any{"version": 0, "step": 6, "submit": true, "profile": p}
+}
+func TestPublicApplicationMediaPrivacy(t *testing.T) {
+	v := domain.Application{Profile: &domain.TutorApplication{About: domain.ApplicantAbout{PhotoFileID: "portrait"}}}
+	f := domain.PrivateFile{ID: "unlinked-identity-upload", TargetKind: "application", ContentType: "image/png", Status: "ready"}
+	if publicApplicationMedia(v, f) {
+		t.Fatal("interrupted/unclassified application upload was offered publicly")
+	}
+	f.ContentType = "video/mp4"
+	if !publicApplicationMedia(v, f) {
+		t.Fatal("legacy introduction video was lost")
+	}
+	f.ContentType = "image/png"
+	f.ID = "portrait"
+	if !publicApplicationMedia(v, f) {
+		t.Fatal("existing application portrait was lost")
+	}
+	f.ApplicationPurpose = "about.aadhaarFrontFileId"
+	if publicApplicationMedia(v, f) {
+		t.Fatal("identity evidence was exposed by a portrait reference")
+	}
+	f.ApplicationPurpose = "education.class10FileId"
+	if publicApplicationMedia(v, f) {
+		t.Fatal("education evidence was exposed by a portrait reference")
+	}
+	f.ApplicationPurpose = ""
+	f.ID = "previously-selected-photo"
+	v.PublicProfile = &domain.TutorPublicProfile{PhotoFileID: f.ID}
+	if !publicApplicationMedia(v, f) {
+		t.Fatal("previously selected legacy portrait was lost")
+	}
+	f.TargetKind = "public_profile"
+	f.ID = "new-public-portrait"
+	if !publicApplicationMedia(v, f) {
+		t.Fatal("dedicated public profile media was denied")
+	}
 }
 func TestApplicationValidation(t *testing.T) {
 	now := time.Now()
-	p := completeApplication("Test applicant", now)
+	p := completeApplicationWithEvidence("Test applicant", now)
 	if errors := applicationErrors(p, true, now); len(errors) > 0 {
 		t.Fatal(errors)
 	}
@@ -44,6 +102,15 @@ func TestApplicationValidation(t *testing.T) {
 		name, key string
 		change    func(*domain.TutorApplication)
 	}{
+		{"missing photo", "about.photoFileId", func(p *domain.TutorApplication) { p.About.PhotoFileID = "" }},
+		{"missing Aadhaar front", "about.aadhaarFrontFileId", func(p *domain.TutorApplication) { p.About.AadhaarFrontFileID = "" }},
+		{"missing Aadhaar back", "about.aadhaarBackFileId", func(p *domain.TutorApplication) { p.About.AadhaarBackFileID = "" }},
+		{"missing Class 10 certificate", "education.class10FileId", func(p *domain.TutorApplication) { p.Education.Class10FileID = "" }},
+		{"missing Class 12 certificate", "education.class12FileId", func(p *domain.TutorApplication) { p.Education.Class12FileID = "" }},
+		{"duplicate required evidence", "education.class12FileId", func(p *domain.TutorApplication) { p.Education.Class12FileID = p.Education.Class10FileID }},
+		{"too many higher certificates", "education.higherQualificationFileIds", func(p *domain.TutorApplication) {
+			p.Education.HigherQualificationFileIDs = []string{"1", "2", "3", "4", "5", "6", "7"}
+		}},
 		{"oversized photo link", "about.photoFileId", func(p *domain.TutorApplication) { p.About.PhotoFileID = strings.Repeat("x", 101) }},
 		{"too many education files", "education.educationFileIds", func(p *domain.TutorApplication) {
 			p.Education.EducationFileIDs = []string{"1", "2", "3", "4", "5", "6", "7"}
@@ -68,21 +135,21 @@ func TestApplicationValidation(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			p := completeApplication("Test applicant", now)
+			p := completeApplicationWithEvidence("Test applicant", now)
 			tc.change(&p)
 			if applicationErrors(p, true, now)[tc.key] == "" {
 				t.Fatal("accepted invalid application")
 			}
 		})
 	}
-	p = completeApplication("Test applicant", now)
+	p = completeApplicationWithEvidence("Test applicant", now)
 	p.TeachingAreas[0].Subject = domain.AllSubjects
 	p.TeachingAreas[0].MinClass = 1
 	p.TeachingAreas[0].MaxClass = 5
 	if errors := applicationErrors(p, true, now); len(errors) > 0 {
 		t.Fatal(errors)
 	}
-	p = completeApplication("Test applicant", now)
+	p = completeApplicationWithEvidence("Test applicant", now)
 	p.TeachingAreas[0].Modes = []string{"online"}
 	p.Fees.Preference = "guidance"
 	normalizeApplication(&p)
@@ -105,7 +172,7 @@ func TestApplicationOnlineSetupFollowsTeachingModes(t *testing.T) {
 		{"both modes", []string{"home", "online"}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p := completeApplication("Sample applicant", now)
+			p := completeApplicationWithEvidence("Sample applicant", now)
 			p.TeachingAreas[0].Modes = tc.modes
 			p.Availability.Online = domain.OnlineTeachingRequest{}
 			normalizeApplication(&p)
@@ -124,7 +191,7 @@ func TestApplicationOnlineSetupFollowsTeachingModes(t *testing.T) {
 			}
 		})
 	}
-	p := completeApplication("Sample applicant", now)
+	p := completeApplicationWithEvidence("Sample applicant", now)
 	p.TeachingAreas[0].Modes = []string{"home"}
 	onlineArea := p.TeachingAreas[0]
 	onlineArea.ID, onlineArea.Modes = "online", []string{"online"}
@@ -154,7 +221,7 @@ func TestApplicationWhatsApp(t *testing.T) {
 		{"1234567890", "1234567890", false},
 		{"9876543210<script>", "9876543210<script>", false},
 	} {
-		p := completeApplication("Sample applicant", now)
+		p := completeApplicationWithEvidence("Sample applicant", now)
 		p.About.WhatsApp = tc.input
 		normalizeApplication(&p)
 		if p.About.WhatsApp != tc.normalized {
@@ -173,7 +240,7 @@ func TestApplicationMultipleSpecialisations(t *testing.T) {
 		"Mathematics, Science, English, Hindi, Social Science",
 		strings.Repeat("x", 120) + ", Mathematics, Science, English, Hindi, Social Science",
 	} {
-		p := completeApplication("Sample applicant", now)
+		p := completeApplicationWithEvidence("Sample applicant", now)
 		p.Education.Specialisation = value
 		normalizeApplication(&p)
 		if p.Education.Specialisation != value {
@@ -183,7 +250,7 @@ func TestApplicationMultipleSpecialisations(t *testing.T) {
 			t.Fatal(errors)
 		}
 	}
-	p := completeApplication("Sample applicant", now)
+	p := completeApplicationWithEvidence("Sample applicant", now)
 	p.Education.Specialisation = ""
 	if applicationErrors(p, false, now)["education.specialisation"] != "" {
 		t.Fatal("incomplete draft rejected")
@@ -212,7 +279,7 @@ func TestApplicationHomeLocationAndRadius(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			p := completeApplication("Test applicant", now)
+			p := completeApplicationWithEvidence("Test applicant", now)
 			tc.change(&p)
 			normalizeApplication(&p)
 			if len(p.Availability.Home.Localities) != 0 || len(p.Availability.Home.ServiceLocations) != 0 || p.Availability.Home.Charges != "" || p.Availability.Home.BufferMinutes != 0 {
@@ -288,6 +355,7 @@ func TestMongoApplicationDraftAndMentorApproval(t *testing.T) {
 	tutor, tutorB, admin, parent, mentor, mentorB := client("tutor-a"), client("tutor-b"), client("admin-a"), client("parent-a"), client("mentor-a"), client("mentor-b")
 	parent.ok("GET", "/application", nil, 403)
 	p := completeApplication("Private applicant", time.Now())
+	installApplicationEvidence(t, s, "tutor-a", &p)
 	p.Education.Occupation = "employed_teacher"
 	p.Education.OutsideWork = "permission_required"
 	p.Declarations.Accuracy = false
@@ -319,6 +387,24 @@ func TestMongoApplicationDraftAndMentorApproval(t *testing.T) {
 	in["profile"] = p
 	tutor.ok("PUT", "/application", in, 422)
 	p.Declarations.Accuracy = true
+	// Required evidence must belong to this applicant, match its field and be ready.
+	front := p.About.AadhaarFrontFileID
+	p.About.AadhaarFrontFileID = p.Education.ResumeFileID
+	in["profile"] = p
+	tutor.ok("PUT", "/application", in, 422)
+	p.About.AadhaarFrontFileID = front
+	if _, e = s.C("files").UpdateOne(ctx, bson.M{"_id": front}, bson.M{"$set": bson.M{"status": "uploading"}}); e != nil {
+		t.Fatal(e)
+	}
+	in["profile"] = p
+	tutor.ok("PUT", "/application", in, 422)
+	if _, e = s.C("files").UpdateOne(ctx, bson.M{"_id": front}, bson.M{"$set": bson.M{"status": "ready", "uploaderId": "tutor-b"}}); e != nil {
+		t.Fatal(e)
+	}
+	tutor.ok("PUT", "/application", in, 422)
+	if _, e = s.C("files").UpdateOne(ctx, bson.M{"_id": front}, bson.M{"$set": bson.M{"uploaderId": "tutor-a"}}); e != nil {
+		t.Fatal(e)
+	}
 	in["profile"] = p
 	tutor.ok("PUT", "/application", in, 200)
 	tutor.ok("PUT", "/application", in, 409)
@@ -336,6 +422,7 @@ func TestMongoApplicationDraftAndMentorApproval(t *testing.T) {
 		t.Fatal("application receipt or requested preferences incorrect")
 	}
 	p2 := completeApplication("Second private applicant", time.Now())
+	installApplicationEvidence(t, s, "tutor-b", &p2)
 	tutorB.ok("PUT", "/application", map[string]any{"version": 0, "step": 6, "profile": p2, "submit": true}, 200)
 	storedB, e := storage.One[domain.Application](ctx, s, "applications", bson.M{"_id": "tutor-b"})
 	if e != nil {
@@ -383,4 +470,9 @@ func TestMongoApplicationDraftAndMentorApproval(t *testing.T) {
 	}
 	mentor.setTestFees("tutor-a", 0)
 	mentor.decide("tutor-a", map[string]any{"action": "approve", "subjects": []string{"Mathematics"}, "mode": "online", "minClass": 6, "maxClass": 10, "reason": "Assessment met the requested subject standards."}, 200)
+	tutor.ok("PUT", "/tutor-profile", map[string]any{"version": 0, "introduction": p.Approach.Introduction, "photoFileId": p.About.AadhaarFrontFileID, "introVideoFileId": "", "publishVideo": false}, 422)
+	if _, e = s.C("applications").UpdateOne(ctx, bson.M{"_id": "tutor-a"}, bson.M{"$set": bson.M{"publicProfile": domain.TutorPublicProfile{PhotoFileID: p.About.AadhaarFrontFileID, Introduction: p.Approach.Introduction, Version: 1, UpdatedAt: a.Now()}}}); e != nil {
+		t.Fatal(e)
+	}
+	parent.ok("GET", "/tutors/tutor-a/photo", nil, 404)
 }

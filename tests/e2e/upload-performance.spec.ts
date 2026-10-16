@@ -36,7 +36,7 @@ test('photo preparation, visible stages and lost-response recovery preserve one 
     ).status(),
   ).toBe(200)
   await page.goto('/apply')
-  const input = page.getByLabel('Passport-size photo (optional)', { exact: true })
+  const input = page.getByLabel('Passport-size photo (required)', { exact: true })
   const photo = page.locator('.af-attachment').filter({ has: input })
   const image = await page.evaluate(() => {
     const canvas = document.createElement('canvas')

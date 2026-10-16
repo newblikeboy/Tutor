@@ -51,6 +51,7 @@ func TestMongoParentBookingFlow(t *testing.T) {
 	}
 	cfg := config.Config{Env: "test", AuthProvider: "password", Origin: "http://test.local", RazorpaySecret: "test-booking-secret"}
 	a := New(s, cfg)
+	seedTestTeachingAgreements(t, a)
 	a.Mail = &testEmailSender{}
 	now := time.Now()
 	a.Now = func() time.Time { return now }
@@ -59,6 +60,8 @@ func TestMongoParentBookingFlow(t *testing.T) {
 	srv := httptest.NewServer(a.Routes())
 	defer srv.Close()
 	a2 := New(s, cfg)
+	a2.Mail = &testEmailSender{}
+	a2.Config.MailTokenKey = a.Config.MailTokenKey
 	a2.Now = a.Now
 	srv2 := httptest.NewServer(a2.Routes())
 	defer srv2.Close()
@@ -180,8 +183,8 @@ func TestMongoParentBookingFlow(t *testing.T) {
 			t.Fatal("primary fee multiplied")
 		}
 	})
-	t.Run("payment capture activates without acceptance", func(t *testing.T) {
-		count, err := s.C("outbox").CountDocuments(ctx, bson.M{"kind": "email", "payload.event": "booking_confirmed", "payload.targetId": paid.ID})
+	t.Run("payment capture reserves classes until signed tutor acceptance", func(t *testing.T) {
+		count, err := s.C("outbox").CountDocuments(ctx, bson.M{"kind": "email", "payload.event": "booking_awaiting_tutor", "payload.targetId": paid.ID})
 		if err != nil || count != 0 {
 			t.Fatal("unpaid checkout sent booking confirmation")
 		}
@@ -194,16 +197,21 @@ func TestMongoParentBookingFlow(t *testing.T) {
 		payment := payments.Payment{ID: "pay_parent_booking", OrderID: order, Amount: 400000, Currency: "INR", Status: "captured", Captured: true}
 		g.payments[payment.ID] = payment
 		p.ok("POST", "/billing/"+intent["id"].(string)+"/verify", map[string]any{"paymentId": payment.ID, "signature": signed(cfg.RazorpaySecret, []byte(order+"|"+payment.ID))}, 200)
+		pending := p.ok("GET", "/enrollments/"+paid.ID, nil, 200)
+		if pending["enrollment"].(map[string]any)["status"] != "pending_tutor_acceptance" {
+			t.Fatal("payment bypassed tutor signature")
+		}
+		acceptTestBooking(t, a, tutor, paid.ID)
 		v := p.ok("GET", "/enrollments/"+paid.ID, nil, 200)
 		if v["enrollment"].(map[string]any)["status"] != "active" || v["sessions"].([]any)[0].(map[string]any)["status"] != "scheduled" {
 			t.Fatal("payment did not schedule classes")
 		}
-		count, err = s.C("outbox").CountDocuments(ctx, bson.M{"kind": "email", "payload.event": "booking_confirmed", "payload.targetId": paid.ID})
+		count, err = s.C("outbox").CountDocuments(ctx, bson.M{"kind": "email", "payload.event": "booking_awaiting_tutor", "payload.targetId": paid.ID})
 		if err != nil || count != 2 {
 			t.Fatal("verified payment did not queue parent and tutor confirmations", count, err)
 		}
 		p.ok("POST", "/billing/"+intent["id"].(string)+"/verify", map[string]any{"paymentId": payment.ID, "signature": signed(cfg.RazorpaySecret, []byte(order+"|"+payment.ID))}, 200)
-		count, err = s.C("outbox").CountDocuments(ctx, bson.M{"kind": "email", "payload.event": "booking_confirmed", "payload.targetId": paid.ID})
+		count, err = s.C("outbox").CountDocuments(ctx, bson.M{"kind": "email", "payload.event": "booking_awaiting_tutor", "payload.targetId": paid.ID})
 		if err != nil || count != 2 {
 			t.Fatal("payment retry duplicated confirmation", count, err)
 		}

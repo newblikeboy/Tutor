@@ -8,9 +8,11 @@ const billingEN = {
     sandbox: 'Razorpay test mode',
     sandboxBody: 'Test payment only. Use Razorpay test payment details.',
     simulation: 'GoCoaching test checkout',
-    simulationBody: 'No money will be charged. Complete a test payment to confirm these classes.',
+    simulationBody:
+      'No money will be charged. Complete a test payment, then check the booking status.',
     completeSimulation: 'Complete test payment',
-    simulationSuccess: 'Test payment successful. Your booking is confirmed. No money was charged.',
+    simulationSuccess:
+      'Test payment successful. No money was charged. View the booking for its current status.',
     simulatedCapture: 'Test payment captured',
     simulationRecord:
       'Test payment only. No money was charged. This record is not proof of a real payment.',
@@ -20,12 +22,12 @@ const billingEN = {
     simulationDisabled:
       'Test payments are disabled. Refresh this booking to see the current payment option.',
     disabled: 'Payment is unavailable',
-    disabledBody: 'Please try again later. Your booking will be confirmed after payment.',
+    disabledBody: 'Please try again later to complete payment.',
     pay: 'Pay & confirm booking (test)',
     checking: 'Checking the provider payment…',
-    pending: 'Payment is being verified. Your booking will update automatically once confirmed.',
-    dismissed: 'Payment was not completed. Continue to payment to confirm your booking.',
-    failedPayment: 'Payment failed. Try again to confirm your booking.',
+    pending: 'Your payment is being verified. The booking status will update automatically.',
+    dismissed: 'Payment was not completed. Continue to payment when you are ready.',
+    failedPayment: 'Payment failed. Try again to complete payment.',
     blocked: 'Razorpay checkout could not load. Check your connection and try again.',
     view: 'View payment record',
     back: 'All payment records',

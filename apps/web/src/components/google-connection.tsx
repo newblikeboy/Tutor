@@ -34,7 +34,12 @@ export function GoogleConnection() {
   })
   const disconnect = useMutation({
     mutationFn: () => send('/integrations/google/disconnect', {}),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['google'] }),
+    onSuccess: () =>
+      Promise.all(
+        ['google', 'tutor-profile', 'trial-times', 'tutors', 'tutor'].map((key) =>
+          queryClient.invalidateQueries({ queryKey: [key] }),
+        ),
+      ),
   })
   const revokeRetry = useMutation({
     mutationFn: () => send('/integrations/google/revoke/retry', {}),

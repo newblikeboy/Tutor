@@ -48,3 +48,18 @@
     font-size: 13px;
   }
 }
+@media (max-width: 760px) {
+  .workspace-tabs-scrollable {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: #a5b99a #f4f7ef;
+    scroll-padding-inline: 6px;
+    overscroll-behavior-x: contain;
+  }
+  .workspace-tabs-scrollable [role='tab'] {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}

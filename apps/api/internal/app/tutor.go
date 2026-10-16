@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"math"
 	"net/http"
 	"slices"
 	"time"
@@ -65,7 +66,7 @@ func (a *App) tuitionReadAccess(ctx context.Context, u domain.User, id string) (
 	if err := a.tutorTeachingAccess(ctx, u.ID); err != nil {
 		return domain.Enrollment{}, err
 	}
-	en, err := storage.One[domain.Enrollment](ctx, a.Store, "enrollments", bson.M{"_id": id, "tutorId": u.ID, "status": bson.M{"$in": []string{"active", "paused", "completed", "cancelled", "pending_agreement"}}})
+	en, err := storage.One[domain.Enrollment](ctx, a.Store, "enrollments", bson.M{"_id": id, "tutorId": u.ID, "status": bson.M{"$in": []string{"active", "paused", "completed", "cancelled", "pending_agreement", "pending_tutor_acceptance"}}})
 	if err != nil {
 		return en, err
 	}
@@ -90,6 +91,13 @@ func (a *App) tutorArchiveVisible(ctx context.Context, en domain.Enrollment) (bo
 	if paid > 0 {
 		return true, nil
 	}
+	captured, err := a.Store.C("payment_intents").CountDocuments(ctx, bson.M{"enrollmentId": en.ID, "state": "captured"})
+	if err != nil {
+		return false, err
+	}
+	if captured > 0 {
+		return true, nil
+	}
 	taught, err := a.Store.C("classes").CountDocuments(ctx, bson.M{"enrollmentId": en.ID, "status": bson.M{"$in": []string{"completed", "reviewed", "missed", "awaiting_review"}}})
 	return taught > 0, err
 }
@@ -105,7 +113,7 @@ func (a *App) tutorWorkspace(w http.ResponseWriter, r *http.Request) {
 	}
 	out := domain.TutorWorkspace{Briefs: []domain.TutorLearnerBrief{}, Learners: []domain.Learner{}, Enrollments: []domain.Enrollment{}, Sessions: []domain.ClassSession{}, Trials: []domain.Trial{}, Notifications: []domain.Notification{}}
 	var err error
-	out.Enrollments, err = progressRecords[domain.Enrollment](ctx, a.Store, "enrollments", bson.M{"tutorId": u.ID, "status": bson.M{"$in": []string{"active", "paused", "completed", "cancelled"}}})
+	out.Enrollments, err = progressRecords[domain.Enrollment](ctx, a.Store, "enrollments", bson.M{"tutorId": u.ID, "status": bson.M{"$in": []string{"active", "paused", "completed", "cancelled", "pending_tutor_acceptance"}}})
 	if err != nil {
 		a.error(w, r, err)
 		return
@@ -165,13 +173,39 @@ func (a *App) tutorWorkspace(w http.ResponseWriter, r *http.Request) {
 			homeOwners[trial.LearnerID] = trial.OwnerID
 		}
 	}
-	for learner, owner := range homeOwners {
-		p, er := storage.One[accountPreferences](ctx, a.Store, "preferences", bson.M{"_id": owner})
-		if er != nil && er != mongo.ErrNoDocuments {
-			a.error(w, r, er)
-			return
+	ownerIDs := []string{}
+	for _, student := range out.Learners {
+		if !slices.Contains(ownerIDs, student.OwnerID) {
+			ownerIDs = append(ownerIDs, student.OwnerID)
 		}
-		out.Briefs = append(out.Briefs, domain.TutorLearnerBrief{LearnerID: learner, Location: p.Location})
+	}
+	preferences, err := progressRecords[accountPreferences](ctx, a.Store, "preferences", bson.M{"_id": bson.M{"$in": ownerIDs}})
+	if err != nil {
+		a.error(w, r, err)
+		return
+	}
+	byOwner := map[string]accountPreferences{}
+	for _, p := range preferences {
+		byOwner[p.ID] = p
+	}
+	base, baseSet := tutorBaseLocation(approval)
+	for _, student := range out.Learners {
+		p := byOwner[student.OwnerID]
+		brief := domain.TutorLearnerBrief{LearnerID: student.ID}
+		if owner, allowed := homeOwners[student.ID]; allowed && owner == student.OwnerID {
+			brief.Location = p.Location
+		}
+		home, homeSet := usableCoordinates(p.Location)
+		switch {
+		case !baseSet:
+			brief.DistanceUnavailable = "tutor_location_missing"
+		case !homeSet:
+			brief.DistanceUnavailable = "student_location_missing"
+		default:
+			distance := math.Round(haversineKM(base.Latitude, base.Longitude, home.Latitude, home.Longitude)*10) / 10
+			brief.DistanceKM = &distance
+		}
+		out.Briefs = append(out.Briefs, brief)
 	}
 	out.Notifications, err = progressRecords[domain.Notification](ctx, a.Store, "notifications", bson.M{"ownerId": u.ID, "kind": "booking_confirmed", "read": false, "targetId": bson.M{"$in": ids}})
 	if err != nil {

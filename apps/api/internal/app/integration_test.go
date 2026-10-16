@@ -224,7 +224,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		}
 	})
 	t.Run("registration and application never approve", func(t *testing.T) {
-		tutor.ok("PUT", "/application", applicationTestInput("Fictional assessed tutor", time.Now()), 200)
+		tutor.ok("PUT", "/application", applicationTestInput(t, s, "tutor-a", "Fictional assessed tutor", time.Now()), 200)
 		_, _, raw := parent.call("GET", "/tutors", nil, nil)
 		if bytes.Contains(raw, []byte("tutor-a\"")) {
 			t.Fatal("unapproved tutor published")

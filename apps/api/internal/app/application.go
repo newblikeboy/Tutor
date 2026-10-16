@@ -38,6 +38,9 @@ func normalizeApplication(p *domain.TutorApplication) {
 	if p.Education.EducationFileIDs == nil {
 		p.Education.EducationFileIDs = []string{}
 	}
+	if p.Education.HigherQualificationFileIDs == nil {
+		p.Education.HigherQualificationFileIDs = []string{}
+	}
 	if p.Approach.AssessmentSlots == nil {
 		p.Approach.AssessmentSlots = []domain.ApplicationSlot{}
 	}
@@ -193,29 +196,8 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 		if old.FormVersion != *in.Version {
 			return domain.Fail(409, "stale", "This draft changed in another window. Reload before saving.")
 		}
-		{
-			links := []struct{ id, kind string }{{in.Profile.About.PhotoFileID, "photo"}, {in.Profile.Education.ResumeFileID, "document"}, {in.Profile.Approach.WorksheetFileID, "document"}, {in.Profile.Approach.DemoFileID, "video"}}
-			for _, id := range in.Profile.Education.EducationFileIDs {
-				links = append(links, struct{ id, kind string }{id, "document"})
-			}
-			for _, linked := range links {
-				if linked.id == "" {
-					continue
-				}
-				f, er := a.privateFile(ctx, linked.id)
-				if er != nil {
-					if er != mongo.ErrNoDocuments {
-						return er
-					}
-					return domain.Fail(422, "application_file", "Choose a saved, permitted application file.")
-				}
-				if f.TargetKind != "application" || f.TargetID != u.ID || f.UploaderID != u.ID || !enum(f.Status, "quarantined", "clean", "ready") || (linked.kind == "video") != (f.ContentType == "video/mp4") {
-					return domain.Fail(422, "application_file", "Choose the correct file type for this application field.")
-				}
-				if linked.kind == "photo" && !enum(f.ContentType, "image/jpeg", "image/png") {
-					return domain.Fail(422, "application_photo", "Choose a JPG or PNG passport-size photo.")
-				}
-			}
+		if err = a.bindApplicationEvidence(ctx, &old, u.ID, *in.Profile, in.Submit); err != nil {
+			return err
 		}
 		result = old
 		result.ID = u.ID

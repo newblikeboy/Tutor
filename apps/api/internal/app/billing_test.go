@@ -103,6 +103,7 @@ func TestMongoBillingLifecycle(t *testing.T) {
 	}
 	cfg := config.Config{Env: "test", AuthProvider: "password", Origin: "http://test.local", RazorpaySecret: "test-checkout-secret", RazorpayWebhookSecret: "test-webhook-secret"}
 	a := New(s, cfg)
+	seedTestTeachingAgreements(t, a)
 	g := &paymentTestGateway{orders: map[string]payments.Order{}, payments: map[string]payments.Payment{}, refunds: map[string]payments.Refund{}}
 	srv := httptest.NewServer(a.Routes())
 	defer srv.Close()
@@ -199,9 +200,10 @@ func TestMongoBillingLifecycle(t *testing.T) {
 			}
 		}
 		stored, _ := storage.One[domain.Enrollment](ctx, s, "enrollments", bson.M{"_id": v.ID})
-		if stored.Status != "active" || stored.HoldUntil != nil {
+		if stored.Status != "pending_tutor_acceptance" || stored.HoldUntil != nil {
 			t.Fatal("capture did not promote held schedule")
 		}
+		acceptTestBooking(t, a, tutor, v.ID)
 		body := []byte(`{"event":"payment.captured","payload":{"payment":{"entity":{"id":"pay_unitcapture"}}}}`)
 		for i := 0; i < 2; i++ {
 			req, _ := http.NewRequest("POST", srv.URL+"/api/v1/webhooks/razorpay", strings.NewReader(string(body)))
@@ -399,9 +401,10 @@ func TestMongoBillingLifecycle(t *testing.T) {
 			t.Fatal("test capture was not persisted", err)
 		}
 		paid, err := storage.One[domain.Enrollment](ctx, s, "enrollments", bson.M{"_id": v.ID})
-		if err != nil || paid.Status != "active" || !paid.PaymentSimulated || paid.HoldUntil != nil {
+		if err != nil || paid.Status != "pending_tutor_acceptance" || !paid.PaymentSimulated || paid.HoldUntil != nil {
 			t.Fatal("test booking not activated", err)
 		}
+		acceptTestBooking(t, a, tutor, v.ID)
 		classes, err := storage.Many[domain.ClassSession](ctx, s, "classes", bson.M{"enrollmentId": v.ID, "status": "scheduled"})
 		if err != nil || len(classes) != v.Agreement.SessionCount {
 			t.Fatal("test classes not scheduled", err)
@@ -434,7 +437,7 @@ func TestMongoBillingLifecycle(t *testing.T) {
 				t.Fatal("simulation created real financial records", collection, err)
 			}
 		}
-		n, err := s.C("notifications").CountDocuments(ctx, bson.M{"kind": "booking_confirmed", "targetId": v.ID})
+		n, err := s.C("notifications").CountDocuments(ctx, bson.M{"kind": "booking_awaiting_tutor", "targetId": v.ID})
 		if err != nil || n != 1 {
 			t.Fatal("duplicate booking notification", err)
 		}

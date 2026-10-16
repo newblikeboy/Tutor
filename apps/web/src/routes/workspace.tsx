@@ -4,7 +4,7 @@ import '../locales/tuition'
 import { lazy } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { RefreshCw, BookOpen, Plus, CalendarDays } from 'lucide-react'
+import { RefreshCw, BookOpen, Plus } from 'lucide-react'
 import { APIError, queryClient } from '../lib/api'
 const Parent = lazy(() => import('./parent'))
 import { TrialCard } from '../components/trial-card'
@@ -61,8 +61,12 @@ function WorkspaceData() {
               ? d.user.role === 'tutor' && view === 'overview'
                 ? t('desk.tutorTitle')
                 : d.user.role === 'tutor' && view === 'learners'
-                  ? 'My learners'
-                  : t(`parent.nav.${view}`)
+                  ? params.get('learner')
+                    ? 'Student progress report'
+                    : 'My students'
+                  : d.user.role === 'tutor' && view === 'sessions' && params.get('trial')
+                    ? 'Trial details'
+                    : t(`parent.nav.${view}`)
               : view === 'overview'
                 ? t(`desk.${d.user.role}Title`)
                 : t(`desk.nav.${view}`)}
@@ -75,12 +79,6 @@ function WorkspaceData() {
           )}
         </div>
         <div className="desk-page-actions">
-          {d.user.role === 'tutor' && view === 'overview' && (
-            <LinkButton to="/availability" secondary>
-              <CalendarDays size={17} aria-hidden="true" />
-              {t('tuition.availability')}
-            </LinkButton>
-          )}
           <Button
             variant="secondary"
             aria-label={t('desk.refresh')}
@@ -108,7 +106,7 @@ function WorkspaceData() {
       {d.user.role === 'parent' ? (
         <Parent data={d} view={view} />
       ) : d.user.role === 'tutor' ? (
-        <TutorWorkspace data={d} view={view} />
+        <TutorWorkspace view={view} />
       ) : d.user.role === 'mentor' ? (
         <MentorWorkspace data={d} />
       ) : d.user.role === 'admin' ? (

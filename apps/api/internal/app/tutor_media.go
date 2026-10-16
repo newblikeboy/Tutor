@@ -35,13 +35,16 @@ func (a *App) tutorMedia(w http.ResponseWriter, r *http.Request, kind string) {
 		a.error(w, r, e)
 		return
 	}
-	if v.Profile == nil {
-		a.error(w, r, domain.Fail(404, "not_found", "Tutor media unavailable."))
-		return
+	id := ""
+	if kind == "photo" && v.Profile != nil {
+		id = v.Profile.About.PhotoFileID
 	}
-	id := v.Profile.About.PhotoFileID
-	if kind == "video" {
-		id = v.Profile.Approach.DemoFileID
+	if v.PublicProfile != nil {
+		if kind == "photo" {
+			id = v.PublicProfile.PhotoFileID
+		} else if v.PublicProfile.PublishVideo {
+			id = v.PublicProfile.IntroVideoFileID
+		}
 	}
 	if id == "" {
 		a.error(w, r, domain.Fail(404, "not_found", "Tutor media unavailable."))
@@ -52,7 +55,11 @@ func (a *App) tutorMedia(w http.ResponseWriter, r *http.Request, kind string) {
 		a.error(w, r, e)
 		return
 	}
-	if f.TargetKind != "application" || f.TargetID != v.ID || f.Status == "archived" {
+	if !publicApplicationMedia(v, f) {
+		a.error(w, r, domain.Fail(404, "not_found", "Tutor media unavailable."))
+		return
+	}
+	if !enum(f.TargetKind, "application", "public_profile") || f.TargetID != v.ID || f.UploaderID != v.ID || f.Status == "archived" {
 		a.error(w, r, domain.Fail(404, "not_found", "Tutor media unavailable."))
 		return
 	}

@@ -23,6 +23,11 @@ export function mediaContract(schemas, route, paths) {
     createdAt: date,
   })
   schemas.PrivateFile.properties.scannedAt = date
+  schemas.PrivateFile.properties.applicationPurpose = {
+    type: 'string',
+    description:
+      'Permanent application document field binding. Identity and education evidence cannot be published as tutor media.',
+  }
   schemas.DirectFileInput = obj({
     name: { type: 'string', maxLength: 180 },
     contentType: s,

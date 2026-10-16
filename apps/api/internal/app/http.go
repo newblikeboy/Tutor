@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -92,6 +93,17 @@ func (a *App) error(w http.ResponseWriter, r *http.Request, e error) {
 	}
 	a.json(w, status, map[string]any{"code": code, "message": message, "fieldErrors": map[string]string{}, "requestId": middleware.GetReqID(r.Context())})
 }
+func decodedRouteID(r *http.Request) (string, error) {
+	id := chi.URLParam(r, "id")
+	if r.URL.RawPath != "" {
+		var err error
+		id, err = url.PathUnescape(id)
+		if err != nil {
+			return "", domain.Fail(422, "validation", "Invalid record ID.")
+		}
+	}
+	return id, nil
+}
 func (a *App) decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	limit := int64(16 * 1024)
 	if r.URL.Path == "/api/v1/inbox" {
@@ -99,6 +111,9 @@ func (a *App) decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	}
 	if strings.HasSuffix(r.URL.Path, "/plans") || r.URL.Path == "/api/v1/application" {
 		limit = 64 * 1024
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/v1/admin/teaching-agreements/") {
+		limit = 256 * 1024
 	}
 	if strings.HasPrefix(r.URL.Path, "/api/v1/classes/") && strings.HasSuffix(r.URL.Path, "/action") {
 		limit = 64 * 1024
@@ -168,6 +183,7 @@ func (a *App) Routes() http.Handler {
 	r.Get("/api/v1/tutors/{id}/photo", a.tutorPhoto)
 	r.Get("/api/v1/tutors/{id}/intro-video", a.tutorIntroVideo)
 	r.Get("/api/v1/tutors/{id}/availability", a.availability)
+	r.Get("/api/v1/tutors/{id}/trial-times", a.tutorTrialTimes)
 	r.Get("/api/v1/location/reverse", a.reverseLocation)
 	r.Post("/api/v1/auth/signup", a.signup)
 	r.Post("/api/v1/auth/login", a.login)
@@ -209,11 +225,17 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/staff/followups/{id}/resolve", a.resolveTutorFollowup)
 		r.Get("/api/v1/staff/academic", a.mentorAcademicReport)
 		r.Get("/api/v1/admin/founder", a.founderReport)
+		r.Get("/api/v1/admin/teaching-agreements", a.teachingAgreements)
+		r.Put("/api/v1/admin/teaching-agreements/{mode}", a.saveTeachingAgreement)
 		r.Get("/api/v1/admin/email-deliveries", a.emailDeliveries)
 		r.Post("/api/v1/admin/email-deliveries/{id}/retry", a.retryEmail)
 		r.Get("/api/v1/admin/families", a.adminFamilies)
 		r.Put("/api/v1/application", a.application)
 		r.Get("/api/v1/application", a.ownApplication)
+		r.Get("/api/v1/tutor-profile", a.ownTutorProfile)
+		r.Put("/api/v1/tutor-profile", a.saveTutorProfile)
+		r.Post("/api/v1/tutor-profile/files", a.uploadFile)
+		r.Post("/api/v1/tutor-profile/files/upload-intent", a.createUploadIntent)
 		r.Post("/api/v1/applications/{id}/decision", a.decision)
 		r.Post("/api/v1/staff/applications/{id}/meeting/retry", a.retryMeeting)
 		r.Post("/api/v1/consents", a.consent)
@@ -237,7 +259,10 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/enrollments", a.createEnrollment)
 		r.Get("/api/v1/enrollments/{id}", a.tuitionDetail)
 		r.Post("/api/v1/enrollments/{id}/action", a.enrollmentAction)
+		r.Post("/api/v1/enrollments/{id}/signing-code", a.requestBookingSigningCode)
+		r.Post("/api/v1/enrollments/{id}/signature", a.signBookingAgreement)
 		r.Post("/api/v1/classes/{id}/action", a.classAction)
+		r.Post("/api/v1/classes/{id}/report", a.reportCompletedClass)
 		r.Post("/api/v1/{kind:classes|trials}/{id}/meeting", a.prepareLessonMeeting)
 		r.Get("/api/v1/{kind:classes|trials}/{id}/meeting/join", a.joinLessonMeeting)
 		r.Post("/api/v1/enrollments/{id}/plans", a.savePlan)
@@ -270,6 +295,8 @@ func (a *App) Routes() http.Handler {
 		r.Get("/api/v1/enrollments/{id}/messages", a.messages)
 		r.Post("/api/v1/enrollments/{id}/messages", a.sendMessage)
 		r.Get("/api/v1/notifications", a.notifications)
+		r.Get("/api/v1/notifications/status", a.notificationStatus)
+		r.Get("/api/v1/notifications/recent", a.recentNotifications)
 		r.Get("/api/v1/inbox/status", a.inboxStatus)
 		r.Get("/api/v1/inbox/recipients", a.inboxRecipients)
 		r.Get("/api/v1/inbox", a.inboxList)
@@ -318,7 +345,13 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 		f["$and"] = []bson.M{{"$or": []bson.M{{"scope.subject": bson.M{"$in": subjects}}, {"scope.subjects": bson.M{"$in": subjects}}}}}
 	}
 	if v := r.URL.Query().Get("language"); v != "" {
-		f["language"] = v
+		if !enum(v, "English", "Hindi") {
+			a.error(w, r, domain.Fail(422, "validation", "Choose a supported teaching language."))
+			return
+		}
+		areas := bson.M{"$filter": bson.M{"input": bson.M{"$ifNull": bson.A{"$profile.teachingAreas", bson.A{}}}, "as": "area", "cond": bson.M{"$or": bson.A{bson.M{"$eq": bson.A{"$$area.subject", "$scope.subject"}}, bson.M{"$in": bson.A{"$$area.subject", bson.M{"$ifNull": bson.A{"$scope.subjects", bson.A{}}}}}}}}}
+		languages := bson.M{"$reduce": bson.M{"input": areas, "initialValue": bson.A{"$language"}, "in": bson.M{"$concatArrays": bson.A{"$$value", bson.M{"$ifNull": bson.A{"$$this.languages", bson.A{}}}}}}}
+		f["$expr"] = bson.M{"$in": bson.A{v, languages}}
 	}
 	if v := r.URL.Query().Get("mode"); enum(v, "home", "online") {
 		f["$or"] = []bson.M{{"scope.mode": v}, {"scope.modes": v}}
@@ -369,11 +402,21 @@ func optionalCoordinate(r *http.Request, key string, min, max float64) (float64,
 }
 
 func tutorBaseLocation(v domain.Application) (domain.LocationPoint, bool) {
+	if v.TeachingLocation != nil {
+		return usableCoordinates(v.TeachingLocation)
+	}
 	if v.Profile == nil || v.Profile.About.Location == nil {
 		return domain.LocationPoint{}, false
 	}
-	location := *v.Profile.About.Location
-	if location.Latitude < -90 || location.Latitude > 90 || location.Longitude < -180 || location.Longitude > 180 || location.Latitude == 0 && location.Longitude == 0 {
+	return usableCoordinates(v.Profile.About.Location)
+}
+
+func usableCoordinates(point *domain.LocationPoint) (domain.LocationPoint, bool) {
+	if point == nil {
+		return domain.LocationPoint{}, false
+	}
+	location := *point
+	if math.IsNaN(location.Latitude) || math.IsNaN(location.Longitude) || math.IsInf(location.Latitude, 0) || math.IsInf(location.Longitude, 0) || location.Latitude < -90 || location.Latitude > 90 || location.Longitude < -180 || location.Longitude > 180 || location.Latitude == 0 && location.Longitude == 0 {
 		return domain.LocationPoint{}, false
 	}
 	return location, true
@@ -399,5 +442,10 @@ func (a *App) tutor(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
-	a.json(w, 200, v.Public())
+	public, e := a.publicTutor(r.Context(), v)
+	if e != nil {
+		a.error(w, r, e)
+		return
+	}
+	a.json(w, 200, public)
 }

@@ -435,9 +435,16 @@ test('child progress spans tutors and packages, filters by learner and records t
     await tutorPage.goto(`/tuition/${current._id}`)
     const scheduled = tutorPage
       .locator('.tu-session')
-      .filter({ has: tutorPage.getByRole('button', { name: 'Record lesson', exact: true }) })
+      .filter({
+        has: tutorPage.getByRole('button', {
+          name: 'Record attendance or detailed progress',
+          exact: true,
+        }),
+      })
       .first()
-    await scheduled.getByRole('button', { name: 'Record lesson', exact: true }).click()
+    await scheduled
+      .getByRole('button', { name: 'Record attendance or detailed progress', exact: true })
+      .click()
     await scheduled
       .getByLabel('Lesson notes', { exact: true })
       .fill('Recorded a new lesson using fraction word problems.')

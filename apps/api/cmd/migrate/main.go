@@ -19,9 +19,10 @@ func main() {
 	financeOnly := flag.Bool("finance-only", false, "Apply additive finance collections, validation and indexes only")
 	emailOnly := flag.Bool("email-only", false, "Apply additive email challenge collection, scheduling and delivery queue indexes only")
 	googleOnly := flag.Bool("google-only", false, "Apply additive Google interview authorization collections and indexes only")
+	teachingOnly := flag.Bool("teaching-agreements-only", false, "Apply additive tutor teaching agreement storage only")
 	flag.Parse()
 	scopes := 0
-	for _, selected := range []bool{*financeOnly, *inboxOnly, *staffOnly, *applicationOnly, *emailOnly, *googleOnly} {
+	for _, selected := range []bool{*financeOnly, *inboxOnly, *staffOnly, *applicationOnly, *emailOnly, *googleOnly, *teachingOnly} {
 		if selected {
 			scopes++
 		}
@@ -43,7 +44,9 @@ func main() {
 		log.Fatal("Database connection failed; check private configuration")
 	}
 	defer s.Client.Disconnect(ctx)
-	if *googleOnly {
+	if *teachingOnly {
+		e = s.MigrateTeachingAgreements(ctx)
+	} else if *googleOnly {
 		e = s.MigrateGoogle(ctx)
 	} else if *emailOnly {
 		e = s.MigrateEmail(ctx)

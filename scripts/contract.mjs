@@ -12,6 +12,7 @@ import { staffContract } from './staff-contract.mjs'
 import { applicationContract } from './application-contract.mjs'
 import { feesContract } from './fees-contract.mjs'
 import { progressContract } from './progress-contract.mjs'
+import { tutorProfileContract } from './tutor-profile-contract.mjs'
 const str = { type: 'string' },
   num = { type: 'integer' },
   real = { type: 'number' },
@@ -477,9 +478,21 @@ route('/location/reverse', 'get', 'ReverseLocation', null, true)
 route('/trials', 'post', 'Trial', 'TrialInput')
 route('/trials/{id}/action', 'post', 'OK', 'ActionInput')
 tuitionContract(schemas, route)
+schemas.NotificationStatus = obj({
+  unreadCount: { ...num, minimum: 0 },
+  activityUnreadCount: { ...num, minimum: 0 },
+  updatesUnreadCount: { ...num, minimum: 0 },
+})
+route('/notifications/status', 'get', 'NotificationStatus')
+route('/notifications/recent', 'get', 'Notification', undefined, false, true)
+paths['/notifications/recent'].get.parameters.push({
+  name: 'unread',
+  in: 'query',
+  schema: { type: 'string', enum: ['1'] },
+})
 billingContract(schemas, route)
 financeContract(schemas, route)
-casesContract(schemas, route)
+casesContract(schemas, route, paths)
 accountContract(schemas, route)
 emailContract(schemas, route, paths)
 mediaContract(schemas, route, paths)
@@ -488,6 +501,7 @@ applicationContract(schemas, route)
 feesContract(schemas, route)
 progressContract(schemas, route, paths)
 inboxContract(schemas, route, paths)
+tutorProfileContract(schemas, route, paths)
 paths['/webhooks/razorpay'] = {
   post: {
     operationId: 'razorpayWebhook',

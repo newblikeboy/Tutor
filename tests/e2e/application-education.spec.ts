@@ -99,7 +99,7 @@ test('education documents preview, upload and persist JPG and PDF originals', as
     await page.reload()
     await expect(resume.locator('.af-attachment-list')).toContainText(fixture.name)
   }
-  const qualificationInput = page.getByLabel('Educational documents (optional)', { exact: true })
+  const qualificationInput = page.getByLabel('Higher qualification certificates (optional)', { exact: true })
   const qualification = page.locator('.af-attachment').filter({ has: qualificationInput })
   const qualifications = fixtures.map((f) => ({
     ...f,
@@ -126,7 +126,7 @@ test('education documents preview, upload and persist JPG and PDF originals', as
     )
     .toBe(1600)
   const stored = (await (await page.request.get('/api/v1/application')).json()).application
-  expect(stored.profile.education.educationFileIds).toHaveLength(2)
+  expect(stored.profile.education.higherQualificationFileIds).toHaveLength(2)
   expect(stored.profile.education.resumeFileId).toBeTruthy()
   let intents = 0
   page.on('request', (r) => {

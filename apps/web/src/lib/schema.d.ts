@@ -399,6 +399,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/teaching-agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /admin/teaching-agreements */
+        get: operations["get__admin_teaching_agreements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/teaching-agreements/{mode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** PUT /admin/teaching-agreements/{mode} */
+        put: operations["put__admin_teaching_agreements__mode_"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enrollments/{id}/signing-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /enrollments/{id}/signing-code */
+        post: operations["post__enrollments__id__signing_code"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enrollments/{id}/signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /enrollments/{id}/signature */
+        post: operations["post__enrollments__id__signature"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classes/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /classes/{id}/report */
+        post: operations["post__classes__id__report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/availability": {
         parameters: {
             query?: never;
@@ -617,6 +702,40 @@ export interface paths {
         put?: never;
         /** POST /handovers/{id}/action */
         post: operations["post__handovers__id__action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /notifications/status */
+        get: operations["get__notifications_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /notifications/recent */
+        get: operations["get__notifications_recent"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1754,6 +1873,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tutor-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /tutor-profile */
+        get: operations["get__tutor_profile"];
+        /** PUT /tutor-profile */
+        put: operations["put__tutor_profile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tutor-profile/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /tutor-profile/files */
+        post: operations["post__tutor_profile_files"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tutor-profile/files/upload-intent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /tutor-profile/files/upload-intent */
+        post: operations["post__tutor_profile_files_upload_intent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tutors/{id}/trial-times": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /tutors/{id}/trial-times */
+        get: operations["get__tutors__id__trial_times"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/razorpay": {
         parameters: {
             query?: never;
@@ -2403,6 +2591,13 @@ export interface components {
             serviceRadiusKm: number;
             distanceKm: number | null;
             feePlans: components["schemas"]["FeePlan"][];
+            qualification: string;
+            institution: string;
+            boards: string[];
+            teachingLanguages: string[];
+            experienceMonths: number;
+            teachingHoursSet: boolean;
+            bookingModes: ("online" | "home")[];
         };
         Application: {
             id: string;
@@ -2432,6 +2627,8 @@ export interface components {
             submission: components["schemas"]["ApplicationReceipt"] | null;
             eligibility: components["schemas"]["EligibilityReview"] | null;
             fees: components["schemas"]["TutorFees"] | null;
+            teachingLocation?: components["schemas"]["LocationPoint"];
+            publicProfile?: components["schemas"]["TutorPublicProfile"];
             interviewAssessment?: components["schemas"]["InterviewAssessment"];
         };
         Learner: {
@@ -2767,6 +2964,7 @@ export interface components {
             holdUntil: string | null;
             /** Format: date-time */
             createdAt: string;
+            tutorAgreement?: components["schemas"]["TutorBookingAgreement"];
         };
         EnrollmentPage: {
             items: components["schemas"]["Enrollment"][];
@@ -2785,7 +2983,7 @@ export interface components {
         };
         EnrollmentAction: {
             /** @enum {string} */
-            action: "accept" | "pause" | "resume" | "cancel";
+            action: "accept" | "accept_booking" | "pause" | "resume" | "cancel";
             version: number;
             reason?: string;
         };
@@ -2813,16 +3011,17 @@ export interface components {
             reason: string;
             version: number;
             proposal: components["schemas"]["ScheduleProposal"] | null;
+            homeworkGiven?: boolean;
             plannedSubject?: string;
             /** Format: date-time */
             recordedAt?: string;
             meeting?: components["schemas"]["LessonMeeting"];
             progress?: components["schemas"]["ClassProgress"];
         };
-        /** @description Present recording requires progress; tests are optional. Progress corrections close seven days after recording, and planning is limited to booked, approved subjects. */
+        /** @description Mark complete records actual taught notes and explicit homework assignment; detailed attendance recording requires structured progress for present attendance. Corrections close seven days after recording. Planning is limited to booked, approved subjects. */
         ClassAction: {
             /** @enum {string} */
-            action: "propose" | "accept_change" | "cancel" | "record" | "resolve_attendance" | "plan_subject" | "progress";
+            action: "propose" | "accept_change" | "cancel" | "record" | "complete" | "resolve_attendance" | "plan_subject" | "progress";
             version: number;
             /** Format: date-time */
             start?: string;
@@ -2831,6 +3030,7 @@ export interface components {
             homework?: string;
             attendance?: string;
             developmentRecord?: boolean;
+            homeworkGiven?: boolean;
             subject?: string;
             progress?: components["schemas"]["ClassProgressInput"];
         };
@@ -2901,6 +3101,80 @@ export interface components {
             handovers: components["schemas"]["Handover"][];
             remaining: number;
             delivered: number;
+        };
+        TeachingAgreementContent: {
+            title: string;
+            body: string;
+            privacy: string;
+            education: string;
+        };
+        TeachingAgreementVersion: {
+            title: string;
+            body: string;
+            privacy: string;
+            education: string;
+            mode: string;
+            version: number;
+            /** Format: date-time */
+            publishedAt: string;
+        };
+        TeachingAgreementDraft: {
+            mode: string;
+            version: number;
+            draft: components["schemas"]["TeachingAgreementContent"];
+            published: components["schemas"]["TeachingAgreementVersion"] | null;
+        };
+        TeachingAgreementPage: {
+            items: components["schemas"]["TeachingAgreementDraft"][];
+        };
+        TeachingAgreementInput: {
+            version: number;
+            /** @enum {string} */
+            action: "save" | "publish";
+            content: components["schemas"]["TeachingAgreementContent"];
+        };
+        TutorBookingSignature: {
+            tutorId: string;
+            name: string;
+            email: string;
+            documentHash: string;
+            /** Format: date-time */
+            signedAt: string;
+        };
+        TutorBookingAgreement: {
+            title: string;
+            body: string;
+            privacy: string;
+            education: string;
+            mode: string;
+            version: number;
+            /** Format: date-time */
+            publishedAt: string;
+            documentHash: string;
+            signature: components["schemas"]["TutorBookingSignature"] | null;
+        };
+        BookingSigningInput: {
+            version: number;
+            documentHash: string;
+            /** @constant */
+            accepted: true;
+        };
+        BookingSignatureInput: {
+            version: number;
+            documentHash: string;
+            /** @constant */
+            accepted: true;
+            challengeId: string;
+            code: string;
+        };
+        ClassCompletionReport: {
+            version: number;
+            reason: string;
+        };
+        NotificationStatus: {
+            unreadCount: number;
+            activityUnreadCount: number;
+            updatesUnreadCount: number;
         };
         PaymentIntent: {
             provider: string;
@@ -3157,6 +3431,8 @@ export interface components {
             restricted: boolean;
             canReply: boolean;
             canManage: boolean;
+            canClaim: boolean;
+            canReopen: boolean;
         };
         CaseInput: {
             /** @enum {string} */
@@ -3178,6 +3454,9 @@ export interface components {
             body: string;
             /** Format: date-time */
             createdAt: string;
+            fromRequester: boolean;
+            /** @enum {string} */
+            action?: "reply" | "resolve" | "waiting_family" | "reopen";
         };
         CaseMessagePage: {
             items: components["schemas"]["CaseMessage"][];
@@ -3186,6 +3465,12 @@ export interface components {
         CasePage: {
             items: components["schemas"]["ServiceCase"][];
             nextCursor: string;
+            counts: {
+                all: number;
+                active: number;
+                waiting_family: number;
+                resolved: number;
+            };
         };
         CaseDetail: {
             case: components["schemas"]["ServiceCase"];
@@ -3286,6 +3571,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             scannedAt?: string;
+            /** @description Permanent application document field binding. Identity and education evidence cannot be published as tutor media. */
+            applicationPurpose?: string;
             provider?: string;
         };
         DirectFileInput: {
@@ -3524,6 +3811,10 @@ export interface components {
             communicationLanguages: string[];
             /** @description Optional private WhatsApp contact number. Indian mobile number, optionally prefixed with +91. */
             whatsapp?: string;
+            /** @description Private self-attested Aadhaar image. Required on new submission; older saved profiles may omit it. */
+            aadhaarFrontFileId?: string;
+            /** @description Private self-attested Aadhaar image. Required on new submission; older saved profiles may omit it. */
+            aadhaarBackFileId?: string;
         };
         ApplicantEducation: {
             qualification: string;
@@ -3546,6 +3837,11 @@ export interface components {
             experienceMonths: number;
             settings: string[];
             educationFileIds: string[] | null;
+            /** @description Required certificate file on new submission. Older saved profiles may omit it. */
+            class10FileId?: string;
+            /** @description Required certificate file on new submission. Older saved profiles may omit it. */
+            class12FileId?: string;
+            higherQualificationFileIds?: string[] | null;
         };
         RequestedTeachingArea: {
             id: string;
@@ -3677,6 +3973,9 @@ export interface components {
         TutorLearnerBrief: {
             learnerId: string;
             location?: components["schemas"]["LocationPoint"];
+            distanceKm?: number;
+            /** @enum {string} */
+            distanceUnavailable?: "tutor_location_missing" | "student_location_missing";
         };
         TutorWorkspace: {
             briefs: components["schemas"]["TutorLearnerBrief"][];
@@ -3736,6 +4035,7 @@ export interface components {
             reason: string;
             version: number;
             proposal: components["schemas"]["ScheduleProposal"] | null;
+            homeworkGiven?: boolean;
             plannedSubject?: string;
             /** Format: date-time */
             recordedAt?: string;
@@ -3848,6 +4148,39 @@ export interface components {
         InboxReadInput: Record<string, never>;
         InboxStatus: {
             unreadCount: number;
+        };
+        TutorPublicProfile: {
+            introduction: string;
+            photoFileId: string;
+            introVideoFileId: string;
+            publishVideo: boolean;
+            version: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        OwnTutorProfile: {
+            profile: components["schemas"]["TutorPublicProfile"];
+            tutor: components["schemas"]["PublicTutor"];
+            files: components["schemas"]["PrivateFile"][];
+        };
+        TutorProfileInput: {
+            version: number;
+            introduction: string;
+            photoFileId: string;
+            introVideoFileId: string;
+            publishVideo: boolean;
+        };
+        PublicTrialTime: {
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+        };
+        PublicTrialTimes: {
+            /** @enum {string} */
+            mode: "online" | "home";
+            timezone: string;
+            slots: components["schemas"]["PublicTrialTime"][];
         };
         InterviewAssessment: {
             scores: number[];
@@ -4820,6 +5153,185 @@ export interface operations {
             };
         };
     };
+    get__admin_teaching_agreements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingAgreementPage"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    put__admin_teaching_agreements__mode_: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeachingAgreementInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingAgreementDraft"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__enrollments__id__signing_code: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingSigningInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailChallenge"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__enrollments__id__signature: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingSignatureInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__classes__id__report: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassCompletionReport"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceCase"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     get__availability: {
         parameters: {
             query?: never;
@@ -5364,6 +5876,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__notifications_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationStatus"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__notifications_recent: {
+        parameters: {
+            query?: {
+                unread?: "1";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notification"][];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
@@ -6178,6 +6750,9 @@ export interface operations {
         parameters: {
             query?: {
                 cursor?: string;
+                status?: "all" | "active" | "waiting_family" | "resolved";
+                kind?: "support" | "matching" | "privacy_access" | "privacy_correction" | "privacy_deletion" | "safeguarding";
+                q?: string;
             };
             header?: never;
             path?: never;
@@ -7935,6 +8510,178 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OK"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__tutor_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnTutorProfile"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    put__tutor_profile: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TutorProfileInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnTutorProfile"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__tutor_profile_files: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationFileInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateFile"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    post__tutor_profile_files_upload_intent: {
+        parameters: {
+            query?: never;
+            header: {
+                Origin: string;
+                "X-CSRF-Token": string;
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectFileInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectUpload"];
+                };
+            };
+            /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get__tutors__id__trial_times: {
+        parameters: {
+            query: {
+                mode: "online" | "home";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicTrialTimes"];
                 };
             };
             /** @description Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable. */

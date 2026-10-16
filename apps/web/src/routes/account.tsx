@@ -16,31 +16,32 @@ import { useAuth } from '../lib/session'
 import { EmailDeliveries } from '../components/email-deliveries'
 import { EmailSettings } from '../components/email-settings'
 import { GoogleConnection } from '../components/google-connection'
+import { TeachingAgreementBuilder } from '../components/teaching-agreement-builder'
 import '../styles/tuition.css'
 import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
 import '../styles/account.css'
 export default function Account() {
   const { t } = useTranslation()
-  const [saved, setSaved] = useState(false)
   const auth = useAuth()
   const tabs =
     auth.data?.user.role === 'admin'
-      ? ['profile', 'password', 'signins', 'mail']
+      ? ['profile', 'password', 'signins', 'mail', 'agreements']
       : ['profile', 'password', 'signins']
   const [params, setParams] = useSearchParams()
   const tab = tabs.includes(params.get('tab') ?? '') ? params.get('tab')! : 'profile'
-  const q = useQuery({
-    queryKey: ['account'],
-    queryFn: ({ signal }) => api<Schema['Account']>('/account', { signal }),
-  })
   return (
     <div className="tu-page account-page">
       <header className="account-heading">
-        <h1>{t('account.title')}</h1>
-        <p>{t('account.intro')}</p>
+        <h1>{tab === 'agreements' ? 'Agreement Builder' : t('account.title')}</h1>
+        <p>
+          {tab === 'agreements'
+            ? 'Manage the agreements tutors sign before accepting a new booking.'
+            : t('account.intro')}
+        </p>
       </header>
       <TabBar
         id="account"
+        scrollable={auth.data?.user.role === 'admin'}
         label={t('account.title')}
         value={tab}
         options={tabs.map((value) => ({
@@ -48,7 +49,9 @@ export default function Account() {
           label:
             value === 'mail'
               ? 'Emails'
-              : t(`experience.${value === 'signins' ? 'signIns' : value}`),
+              : value === 'agreements'
+                ? 'Agreement Builder'
+                : t(`experience.${value === 'signins' ? 'signIns' : value}`),
         }))}
         onChange={(value) => {
           const next = new URLSearchParams(params)
@@ -57,45 +60,76 @@ export default function Account() {
         }}
       />
       <TabPanel id="account" value="profile" active={tab === 'profile'} preserve>
-        {saved && <Alert kind="success">{t('account.saved')}</Alert>}
-        {q.isPending ? (
-          <Loading />
-        ) : q.isError ? (
-          <LoadError retry={() => void q.refetch()} />
-        ) : (
-          <div className="account-profile-layout">
-            <Details
-              key={q.data.preferences.version}
-              data={q.data}
-              onSaved={() => setSaved(true)}
-            />
-            <EmailSettings data={q.data} />
-          </div>
-        )}
+        <AccountDetails />
       </TabPanel>
       <TabPanel id="account" value="password" active={tab === 'password'} preserve>
         <PasswordChange />
       </TabPanel>
       <TabPanel id="account" value="signins" active={tab === 'signins'}>
-        <Sessions />
-        {auth.data?.user.role === 'tutor' && <GoogleConnection />}
+        <AccountSignIns />
       </TabPanel>
       {auth.data?.user.role === 'admin' && (
         <TabPanel id="account" value="mail" active={tab === 'mail'}>
           <EmailDeliveries />
         </TabPanel>
       )}
-      <footer className="account-help">
-        <CircleHelp size={20} aria-hidden="true" />
-        <Link className="text-link" to="/cases">
-          {t('account.recovery')}
-          <ArrowRight size={16} aria-hidden="true" />
-        </Link>
-      </footer>
+      {auth.data?.user.role === 'admin' && (
+        <TabPanel id="account" value="agreements" active={tab === 'agreements'}>
+          <TeachingAgreementBuilder />
+        </TabPanel>
+      )}
+      <AccountHelp />
     </div>
   )
 }
+export function AccountDetails() {
+  const { t } = useTranslation()
+  const [saved, setSaved] = useState(false)
+  const active = useActivePanel()
+  const q = useQuery({
+    queryKey: ['account'],
+    queryFn: ({ signal }) => api<Schema['Account']>('/account', { signal }),
+    enabled: active,
+  })
+  return (
+    <>
+      {saved && <Alert kind="success">{t('account.saved')}</Alert>}
+      {q.isPending ? (
+        <Loading />
+      ) : q.isError ? (
+        <LoadError retry={() => void q.refetch()} />
+      ) : (
+        <div className="account-profile-layout">
+          <Details key={q.data.preferences.version} data={q.data} onSaved={() => setSaved(true)} />
+          <EmailSettings data={q.data} />
+        </div>
+      )}
+    </>
+  )
+}
+export function AccountSignIns() {
+  const auth = useAuth()
+  return (
+    <>
+      <Sessions />
+      {auth.data?.user.role === 'tutor' && <GoogleConnection />}
+    </>
+  )
+}
+export function AccountHelp() {
+  const { t } = useTranslation()
+  return (
+    <footer className="account-help">
+      <CircleHelp size={20} aria-hidden="true" />
+      <Link className="text-link" to="/cases">
+        {t('account.recovery')}
+        <ArrowRight size={16} aria-hidden="true" />
+      </Link>
+    </footer>
+  )
+}
 function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => void }) {
+  const tutor = useAuth().data?.user.role === 'tutor'
   const { t } = useTranslation(),
     [name, setName] = useState(data.name)
   const [location, setLocation] = useState<StoredLocation | null>(data.preferences.location ?? null)
@@ -120,6 +154,10 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
         queryClient.invalidateQueries({ queryKey: ['email-preferences'] }),
         queryClient.invalidateQueries({ queryKey: ['me'] }),
         queryClient.invalidateQueries({ queryKey: ['tutors'] }),
+        queryClient.invalidateQueries({ queryKey: ['tutor-workspace'] }),
+        queryClient.invalidateQueries({ queryKey: ['tutor-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['tutor'] }),
+        queryClient.invalidateQueries({ queryKey: ['application'] }),
       ])
     },
   })
@@ -158,8 +196,12 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
           <div className="account-location-title">
             <MapPin size={18} aria-hidden="true" />
             <div>
-              <h3>{t('account.location')}</h3>
-              <p>{t('account.locationBody')}</p>
+              <h3>{tutor ? 'Tutor location' : t('account.location')}</h3>
+              <p>
+                {tutor
+                  ? 'Used for student distances and new Home Tuition matches.'
+                  : t('account.locationBody')}
+              </p>
             </div>
           </div>
           {location && !changingLocation ? (
@@ -181,13 +223,21 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
             </div>
           ) : (
             <>
-              {!location && <p className="hint">{t('account.locationEmpty')}</p>}
+              {!location && (
+                <p className="hint">
+                  {tutor ? 'No tutor location saved yet.' : t('account.locationEmpty')}
+                </p>
+              )}
               <CurrentLocationButton onLocationChange={saveDetectedLocation}>
                 {t(location ? 'account.useCurrentLocationAgain' : 'account.useCurrentLocation')}
               </CurrentLocationButton>
             </>
           )}
-          {save.isSuccess && <p className="hint success-text">{t('account.locationSaved')}</p>}
+          {save.isSuccess && (
+            <p className="hint success-text">
+              {tutor ? 'Tutor location saved.' : t('account.locationSaved')}
+            </p>
+          )}
         </div>
         <MutationError error={save.error} />
         <Button busy={save.isPending}>{t('account.save')}</Button>
@@ -195,7 +245,7 @@ function Details({ data, onSaved }: { data: Schema['Account']; onSaved: () => vo
     </section>
   )
 }
-function PasswordChange() {
+export function PasswordChange() {
   const { t } = useTranslation(),
     [current, setCurrent] = useState(''),
     [next, setNext] = useState(''),
