@@ -1,4 +1,4 @@
-import '../locales/experience'
+import { SubjectNames } from './subject-name'
 import '../styles/trial-feedback.css'
 import { useId, useState } from 'react'
 import { Pencil } from 'lucide-react'
@@ -111,7 +111,7 @@ export function TrialCard({
         <div>
           <Heading>
             {v.learnerName || t(role === 'tutor' ? 'student' : 'learner')} ·{' '}
-            {(v.subjects ?? [v.subject]).join(', ')}
+            <SubjectNames values={v.subjects ?? [v.subject]} />
           </Heading>
           <p>{indiaDate(v.start, i18n.language)}</p>
         </div>
@@ -148,14 +148,18 @@ export function TrialCard({
           </div>
         )}
         {role === 'tutor' && v.status === 'confirmed' && feedbackForm}
-        {role === 'tutor' && ['completed', 'reviewed'].includes(v.status) && (
+        {['parent', 'tutor'].includes(role) && ['completed', 'reviewed'].includes(v.status) && (
           <section className="trial-feedback" aria-labelledby={`${feedbackID}-heading`}>
             <div className="trial-feedback-header">
               <div>
                 <ContentHeading id={`${feedbackID}-heading`}>Trial feedback</ContentHeading>
-                <p>Your observations and next teaching steps.</p>
+                <p>
+                  {role === 'parent'
+                    ? "Your tutor's observations and recommended next steps."
+                    : 'Your observations and next teaching steps.'}
+                </p>
               </div>
-              {correctionOpen && (
+              {role === 'tutor' && correctionOpen && (
                 <Button
                   id={`${feedbackID}-edit`}
                   variant="secondary"
@@ -191,23 +195,19 @@ export function TrialCard({
             </div>
           </section>
         )}
-        {role !== 'tutor' && ['completed', 'reviewed'].includes(v.status) && (
+        {role === 'mentor' && ['completed', 'reviewed'].includes(v.status) && (
           <>
             <div>
-              <ContentHeading>
-                {t(role === 'parent' ? 'experience.lesson' : 'lesson')}
-              </ContentHeading>
+              <ContentHeading>{t('lesson')}</ContentHeading>
               <p>{v.notes}</p>
             </div>
             <div>
-              <ContentHeading>
-                {t(role === 'parent' ? 'experience.practice' : 'practiceNext')}
-              </ContentHeading>
+              <ContentHeading>{t('practiceNext')}</ContentHeading>
               <p>{v.nextSteps}</p>
             </div>
           </>
         )}
-        {role !== 'tutor' && ['completed', 'reviewed'].includes(v.status) && (
+        {role === 'mentor' && ['completed', 'reviewed'].includes(v.status) && (
           <div>
             <ContentHeading>{t('parent.completed')}</ContentHeading>
             <p>{v.review}</p>

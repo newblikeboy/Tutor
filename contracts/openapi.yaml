@@ -5047,6 +5047,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "unlinked",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "Only shared files outside messages; unsent message drafts are excluded."
           }
         ]
       },
@@ -5463,6 +5474,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "learner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required for parent study-resource access. Must be the owned, consented student with an active eligible subscription."
           }
         ]
       }
@@ -5586,6 +5605,14 @@
               ]
             },
             "description": "Request a signed 640px WebP preview for images. Omit to view the original. Documents and videos retain their original delivery."
+          },
+          {
+            "name": "learner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required for parent study-resource access. Must be the owned, consented student with an active eligible subscription."
           }
         ]
       }
@@ -7365,6 +7392,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "learner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required for parent study-resource access. Must be the owned, consented student with an active eligible subscription."
           }
         ]
       }
@@ -7874,6 +7909,934 @@
           }
         }
       }
+    },
+    "/study": {
+      "get": {
+        "operationId": "get_study",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "learner",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attemptCursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyLibrary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/materials/{id}": {
+      "get": {
+        "operationId": "get_study_materials__id_",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "learner",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyMaterial"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/study/materials/{id}/attempts": {
+      "post": {
+        "operationId": "post_study_materials__id__attempts",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyAttempt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyQuizInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/learners/{id}/study-payment": {
+      "post": {
+        "operationId": "post_learners__id__study_payment",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Checkout"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyPaymentInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/study-materials": {
+      "get": {
+        "operationId": "get_admin_study_materials",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyMaterialPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_admin_study_materials",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyMaterial"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyMaterialInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/study-materials/{id}": {
+      "get": {
+        "operationId": "get_admin_study_materials__id_",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyMaterial"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_admin_study_materials__id_",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyMaterial"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyMaterialInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/study-materials/{id}/files/upload-intent": {
+      "post": {
+        "operationId": "post_admin_study_materials__id__files_upload_intent",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectUpload"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectFileInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subjects": {
+      "get": {
+        "operationId": "get_subjects",
+        "summary": "Shared subject catalog; only admins change names, order or active state",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectCatalog"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Permission, validation, conflict or catalog error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/subjects": {
+      "post": {
+        "operationId": "post_admin_subjects",
+        "summary": "Shared subject catalog; only admins change names, order or active state",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Permission, validation, conflict or catalog error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/subjects/{id}": {
+      "put": {
+        "operationId": "put_admin_subjects__id_",
+        "summary": "Shared subject catalog; only admins change names, order or active state",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Immutable subject reference; display-name edits never rewrite records."
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Permission, validation, conflict or catalog error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tutor-changes": {
+      "get": {
+        "operationId": "adminTutorChanges",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorChangePage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tutor-changes/{id}": {
+      "get": {
+        "operationId": "adminTutorChange",
+        "summary": "Student study subscription and admin-managed materials; ownership, consent and entitlement checked on the server",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorChangePage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Authentication, permission, validation, payment or version error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/enrollments/{id}/messages/files/upload-intent": {
+      "post": {
+        "operationId": "post__enrollments__id__files_upload_intent",
+        "summary": "POST /enrollments/{id}/files/upload-intent",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectUpload"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectFileInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/enrollments/{id}/messages/files": {
+      "post": {
+        "operationId": "post__enrollments__id__files",
+        "summary": "POST /enrollments/{id}/files",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateFile"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error. 401 login, 403 permission/CSRF, 404 unavailable, 409 conflict, 422 validation, 429 limit, 503 provider/DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileInput"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7943,17 +8906,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "All Subjects",
-                "Mathematics",
-                "Science",
-                "English",
-                "Hindi",
-                "Social Science"
-              ]
+              "minLength": 2,
+              "maxLength": 80
             },
             "minItems": 1,
-            "maxItems": 6,
+            "maxItems": 20,
             "uniqueItems": true
           },
           "minClass": {
@@ -8544,17 +9501,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "All Subjects",
-                "Mathematics",
-                "Science",
-                "English",
-                "Hindi",
-                "Social Science"
-              ]
+              "minLength": 2,
+              "maxLength": 80
             },
             "minItems": 1,
-            "maxItems": 6,
+            "maxItems": 20,
             "uniqueItems": true
           },
           "mode": {
@@ -9026,17 +9977,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "All Subjects",
-                "Mathematics",
-                "Science",
-                "English",
-                "Hindi",
-                "Social Science"
-              ]
+              "minLength": 2,
+              "maxLength": 80
             },
             "minItems": 1,
-            "maxItems": 6,
+            "maxItems": 20,
             "uniqueItems": true
           },
           "minClass": {
@@ -9324,6 +10269,11 @@
                 "type": "null"
               }
             ]
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Optional explicit master subject. Subjectless callback requests never assume a teaching subject."
           }
         }
       },
@@ -9346,17 +10296,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "All Subjects",
-                "Mathematics",
-                "Science",
-                "English",
-                "Hindi",
-                "Social Science"
-              ]
+              "minLength": 2,
+              "maxLength": 80
             },
             "minItems": 1,
-            "maxItems": 6,
+            "maxItems": 20,
             "uniqueItems": true
           },
           "mode": {
@@ -9456,20 +10400,34 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageAttachment"
+            },
+            "maxItems": 3
           }
         }
       },
       "MessageInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "body"
-        ],
         "properties": {
           "body": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 3000
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 3,
+            "uniqueItems": true
           }
-        }
+        },
+        "required": []
       },
       "MessagePage": {
         "type": "object",
@@ -9755,17 +10713,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "All Subjects",
-                "Mathematics",
-                "Science",
-                "English",
-                "Hindi",
-                "Social Science"
-              ]
+              "minLength": 2,
+              "maxLength": 80
             },
             "minItems": 1,
-            "maxItems": 6,
+            "maxItems": 20,
             "uniqueItems": true
           },
           "packageFeePaise": {
@@ -9899,17 +10851,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "All Subjects",
-                "Mathematics",
-                "Science",
-                "English",
-                "Hindi",
-                "Social Science"
-              ]
+              "minLength": 2,
+              "maxLength": 80
             },
             "minItems": 1,
-            "maxItems": 6,
+            "maxItems": 20,
             "uniqueItems": true
           },
           "schedule": {
@@ -9945,7 +10891,6 @@
             "enum": [
               "accept",
               "accept_booking",
-              "pause",
               "resume",
               "cancel"
             ]
@@ -10295,22 +11240,20 @@
       "HandoverInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "tutorId",
-          "reason",
-          "consent"
-        ],
         "properties": {
-          "tutorId": {
-            "type": "string"
-          },
           "reason": {
-            "type": "string"
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
           },
           "consent": {
             "const": true
           }
-        }
+        },
+        "required": [
+          "reason",
+          "consent"
+        ]
       },
       "HandoverAction": {
         "type": "object",
@@ -10323,12 +11266,16 @@
             "type": "string",
             "enum": [
               "prepare",
+              "reject",
               "cancel",
               "decline",
               "accept"
             ]
           },
           "nextSteps": {
+            "type": "string"
+          },
+          "tutorId": {
             "type": "string"
           }
         }
@@ -10763,6 +11710,16 @@
             "type": "integer"
           },
           "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "learnerId": {
+            "type": "string"
+          },
+          "accessUntil": {
             "type": "string",
             "format": "date-time"
           }
@@ -14395,17 +15352,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "All Subjects",
-                "Mathematics",
-                "Science",
-                "English",
-                "Hindi",
-                "Social Science"
-              ]
+              "minLength": 2,
+              "maxLength": 80
             },
             "minItems": 1,
-            "maxItems": 6,
+            "maxItems": 20,
             "uniqueItems": true
           },
           "mode": {
@@ -15102,6 +16053,539 @@
         },
         "required": [
           "items"
+        ]
+      },
+      "StudyQuestion": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "prompt",
+          "options"
+        ],
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "maxItems": 6
+          },
+          "correctOption": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5,
+            "description": "Admin-only answer key. Never included in parent responses."
+          }
+        }
+      },
+      "StudyMaterial": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "description",
+          "kind",
+          "class",
+          "board",
+          "subject",
+          "status",
+          "version",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "unit_test",
+              "mid_term",
+              "monthly_test",
+              "quiz",
+              "notes"
+            ]
+          },
+          "class": {
+            "type": "integer"
+          },
+          "board": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyQuestion"
+            }
+          },
+          "version": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "StudyMaterialInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "description",
+          "kind",
+          "class",
+          "board",
+          "subject",
+          "status",
+          "fileId",
+          "questions",
+          "expectedVersion"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "unit_test",
+              "mid_term",
+              "monthly_test",
+              "quiz",
+              "notes"
+            ]
+          },
+          "class": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "board": {
+            "type": "string",
+            "enum": [
+              "All",
+              "CBSE",
+              "BSEB",
+              "ICSE"
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyQuestion"
+            }
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "StudyAccess": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "learnerId",
+          "startsAt",
+          "expiresAt",
+          "simulated",
+          "version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "learnerId": {
+            "type": "string"
+          },
+          "intentId": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "simulated": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      },
+      "StudyAttempt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "learnerId",
+          "materialId",
+          "title",
+          "materialVersion",
+          "score",
+          "total",
+          "answers",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "learnerId": {
+            "type": "string"
+          },
+          "materialId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "materialVersion": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "StudyMaterialPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyMaterial"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "StudyAttemptPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyAttempt"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "StudyLibrary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "student",
+          "subscription",
+          "active",
+          "pricePaise",
+          "materials",
+          "attempts",
+          "pendingPayment"
+        ],
+        "properties": {
+          "student": {
+            "$ref": "#/components/schemas/Learner"
+          },
+          "subscription": {
+            "$ref": "#/components/schemas/StudyAccess"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "pricePaise": {
+            "type": "integer",
+            "const": 9900
+          },
+          "materials": {
+            "$ref": "#/components/schemas/StudyMaterialPage"
+          },
+          "attempts": {
+            "$ref": "#/components/schemas/StudyAttemptPage"
+          },
+          "pendingPayment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentIntent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "StudyQuizInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "learnerId",
+          "version",
+          "answers"
+        ],
+        "properties": {
+          "learnerId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5
+            },
+            "minItems": 1,
+            "maxItems": 50
+          }
+        }
+      },
+      "StudyPaymentInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {}
+      },
+      "Subject": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "active",
+          "sortOrder",
+          "system",
+          "version",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "system": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SubjectCatalog": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subject"
+            },
+            "maxItems": 200
+          }
+        }
+      },
+      "SubjectInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "active",
+          "sortOrder",
+          "expectedVersion"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "MessageAttachment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "contentType",
+          "size"
+        ]
+      },
+      "TutorChangeReview": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/Handover"
+          },
+          "learnerName": {
+            "type": "string"
+          },
+          "tutorName": {
+            "type": "string"
+          },
+          "class": {
+            "type": "integer"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "type": "string"
+          },
+          "bookingStatus": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request",
+          "learnerName",
+          "tutorName",
+          "class",
+          "subjects",
+          "mode",
+          "bookingStatus"
+        ]
+      },
+      "TutorChangePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorChangeReview"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
         ]
       }
     }

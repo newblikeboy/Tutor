@@ -1,0 +1,28 @@
+/* Shared scales. Colour aliases resolve again at each existing brand scope. */
+:root {
+  --gc-space-1: 4px;
+  --gc-space-2: 8px;
+  --gc-space-3: 12px;
+  --gc-space-4: 16px;
+  --gc-space-5: 20px;
+  --gc-space-6: 24px;
+  --gc-radius-control: 8px;
+  --gc-radius-panel: 12px;
+  --gc-radius-card: 16px;
+  --gc-control-min: 44px;
+  --gc-text-meta: 0.75rem;
+  --gc-text-control: 0.875rem;
+  --gc-sage-soft: #f2f5ed;
+  --gc-selected-line: #b9cba0;
+  --gc-error: #a42626;
+}
+:root,
+.desk-shell,
+.desk-drawer,
+.desk-gate {
+  --gc-ink: var(--navy);
+  --gc-muted: var(--muted);
+  --gc-line: var(--border);
+  --gc-surface: var(--surface);
+  --gc-accent: var(--teal);
+}

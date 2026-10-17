@@ -45,6 +45,14 @@ export function Home() {
                 {t('landing.apply')} <ArrowUpRight size={18} aria-hidden="true" />
               </Link>
             </div>
+            <nav className="home-mode-entry" aria-label="Explore teaching modes">
+              <Link to="/tutors?searched=1&mode=online">
+                Explore online tutors <ArrowRight size={15} aria-hidden="true" />
+              </Link>
+              <Link to="/tutors?searched=1&mode=home">
+                Explore home tutors <ArrowRight size={15} aria-hidden="true" />
+              </Link>
+            </nav>
           </div>
           <div className="home-hero-visual">
             <figure className="home-hero-figure">
@@ -60,6 +68,7 @@ export function Home() {
                   alt={t('landing.imageAlt')}
                 />
               </div>
+              <figcaption className="home-image-label">AI-generated learning scene</figcaption>
             </figure>
           </div>
         </section>

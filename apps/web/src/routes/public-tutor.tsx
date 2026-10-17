@@ -1,3 +1,4 @@
+import { SubjectNames } from '../components/subject-name'
 import '../styles/home.css'
 import '../styles/public-profile.css'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
@@ -15,6 +16,7 @@ import { TutorFees } from '../components/tutor-fees'
 import { Button, Field, LinkButton, LoadError, Loading } from '../components/ui'
 import { TutorPhotoSymbol } from '../components/tutor-card'
 import { useAuth } from '../lib/session'
+import { useSubjects } from '../lib/subjects'
 
 export function TutorDetail() {
   const { id } = useParams()
@@ -41,6 +43,7 @@ export function TutorDetail() {
 }
 
 export function TutorProfileView({ tutor, preview = false }: { tutor: Tutor; preview?: boolean }) {
+  const catalog = useSubjects()
   const [params, setParams] = useSearchParams()
   const modes = approvedTutorModes(tutor.scope)
   const mode = modes.find((item) => item === params.get('mode')) ?? modes[0]
@@ -50,6 +53,9 @@ export function TutorProfileView({ tutor, preview = false }: { tutor: Tutor; pre
     Number.isInteger(classValue) && classValue >= 1 && classValue <= 12 ? classValue : 0
   const requestedSubjects = params.getAll('subject')
   const fits =
+    catalog.isSuccess &&
+    subjects.some(catalog.isActive) &&
+    requestedSubjects.every(catalog.isActive) &&
     (!requestedClass ||
       (requestedClass >= tutor.scope.minClass && requestedClass <= tutor.scope.maxClass)) &&
     requestedSubjects.every((subject) => subjects.includes(subject))
@@ -86,7 +92,8 @@ export function TutorProfileView({ tutor, preview = false }: { tutor: Tutor; pre
                 <h1 id="teacher-profile-title">{tutor.name}</h1>
               )}
               <p className="profile-speciality">
-                {subjects.join(' & ')} · Classes {tutor.scope.minClass}–{tutor.scope.maxClass}
+                <SubjectNames values={subjects} separator=" & " /> · Classes {tutor.scope.minClass}–
+                {tutor.scope.maxClass}
               </p>
             </div>
           </div>
@@ -109,7 +116,7 @@ export function TutorProfileView({ tutor, preview = false }: { tutor: Tutor; pre
           {requestedClass > 0 && (
             <p className={fits ? 'profile-context-fit' : 'profile-context-mismatch'}>
               {fits
-                ? `Approved for your selected Class ${requestedClass}${requestedSubjects.length ? ' and ' + requestedSubjects.join(', ') : ''}.`
+                ? `Approved for your selected Class ${requestedClass}${requestedSubjects.length ? ' and ' + requestedSubjects.map(catalog.label).join(', ') : ''}.`
                 : 'Your selected class or subjects are outside this tutor’s approved scope. Return to your tutor choices to find a suitable tutor.'}
             </p>
           )}
@@ -190,7 +197,8 @@ export function TutorProfileView({ tutor, preview = false }: { tutor: Tutor; pre
               Approved teaching scope
             </h2>
             <p>
-              {subjects.join(', ')} · Classes {tutor.scope.minClass}–{tutor.scope.maxClass} ·{' '}
+              <SubjectNames values={subjects} /> · Classes {tutor.scope.minClass}–
+              {tutor.scope.maxClass} ·{' '}
               {modes.map((value) => (value === 'home' ? 'Home Tuition' : 'Online')).join(' / ')}
             </p>
             {Date.parse(tutor.assessmentAt) > 0 && (
@@ -259,12 +267,6 @@ function ProfileBooking({
             ))}
           </select>
         </Field>
-        <TutorFees plans={plans} subjectCount={subjectCount} />
-        <p className="profile-disclosure">
-          Regular tuition prices shown. For Classes 6–12, the package price is multiplied by the
-          number of selected subjects. Home packages contain 6 or 24 classes, scheduled on the
-          tutor’s teaching days.
-        </p>
         <div className="profile-trial-availability" aria-live="polite">
           {times.isPending ? (
             <p>Checking trial times…</p>
@@ -292,6 +294,17 @@ function ProfileBooking({
             </>
           )}
         </div>
+        <section className="profile-fee-summary" aria-labelledby="regular-fee-title">
+          <h3 id="regular-fee-title">Regular tuition fees</h3>
+          <TutorFees plans={plans} subjectCount={subjectCount} />
+          <details className="profile-price-help">
+            <summary>How package prices work</summary>
+            <p>
+              For Classes 6–12, the package price is multiplied by your selected subject count. Home
+              packages contain 6 or 24 classes, scheduled on the tutor’s teaching days.
+            </p>
+          </details>
+        </section>
         {action}
         <p className="profile-disclosure">
           Choose your learner and time next. Your tutor confirms the trial request. Availability is

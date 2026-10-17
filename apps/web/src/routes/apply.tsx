@@ -3,7 +3,7 @@ import '../locales/experience'
 import '../locales/files'
 import { prepareProfilePhoto, uploadFile, type UploadProgress } from '../lib/uploads'
 import { LocalFilePreview, UploadFeedback } from '../components/upload-feedback'
-import { teachingSubjects } from '../lib/subjects'
+import { useSubjects } from '../lib/subjects'
 import { SubjectSelect } from '../components/subject-select'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
@@ -509,6 +509,8 @@ function StepFields({
   const c = useCopy(),
     { register, setValue, getFieldState, formState, clearErrors } =
       useFormContext<ApplicationProfile>()
+  const catalog = useSubjects()
+  const teachingSubjects = catalog.teachingSubjects
   const p = useWatch<ApplicationProfile>() as ApplicationProfile
   const [changingLocation, setChangingLocation] = useState(false)
   const specialisations = [
@@ -756,7 +758,14 @@ function StepFields({
             <div className="form-grid">
               <Select
                 name={`teachingAreas.${i}.subject`}
-                options={['All Subjects', ...teachingSubjects]}
+                options={[...new Set([...catalog.allSubjects, a.subject].filter(Boolean))].map(
+                  (id) => ({
+                    value: id,
+                    label:
+                      catalog.label(id) +
+                      (catalog.isSuccess && !catalog.isActive(id) ? ' · Inactive' : ''),
+                  }),
+                )}
               />
               <div className="form-grid">
                 <Input

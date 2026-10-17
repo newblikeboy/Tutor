@@ -123,15 +123,18 @@ func (a *App) draft(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, domain.Fail(422, "validation", "Check the selected location."))
 		return
 	}
-	if in.LearnerID != "" {
-		if _, e := storage.One[domain.Learner](r.Context(), a.Store, "learners", bson.M{"_id": in.LearnerID, "ownerId": user(r).ID}); e != nil {
-			a.error(w, r, e)
-			return
-		}
-	}
 	in.ID = user(r).ID
-	if _, e := a.Store.C("drafts").ReplaceOne(r.Context(), bson.M{"_id": in.ID}, in, options.Replace().SetUpsert(true)); e != nil {
-		a.error(w, r, e)
+	err := a.Store.Tx(r.Context(), func(ctx context.Context) error {
+		if in.LearnerID != "" {
+			if _, e := a.referenceLearner(ctx, user(r).ID, in.LearnerID); e != nil {
+				return e
+			}
+		}
+		_, e := a.Store.C("drafts").ReplaceOne(ctx, bson.M{"_id": in.ID}, in, options.Replace().SetUpsert(true))
+		return e
+	})
+	if err != nil {
+		a.error(w, r, err)
 		return
 	}
 	a.json(w, 200, in)
@@ -142,6 +145,7 @@ func (a *App) requirement(w http.ResponseWriter, r *http.Request) {
 	}
 	var in struct {
 		LearnerID string                `json:"learnerId"`
+		Subject   string                `json:"subject"`
 		Goal      string                `json:"goal"`
 		Locality  string                `json:"locality"`
 		Location  *domain.LocationPoint `json:"location"`
@@ -156,10 +160,15 @@ func (a *App) requirement(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, domain.Fail(422, "validation", "Add a learning goal and locality."))
 		return
 	}
-	v := domain.Requirement{ID: token(), OwnerID: user(r).ID, LearnerID: in.LearnerID, Subject: "Mathematics", Goal: in.Goal, Locality: in.Locality, Location: in.Location, Status: "submitted", CreatedAt: a.Now()}
+	v := domain.Requirement{ID: token(), OwnerID: user(r).ID, LearnerID: in.LearnerID, Subject: in.Subject, Goal: in.Goal, Locality: in.Locality, Location: in.Location, Status: "submitted", CreatedAt: a.Now()}
 	e := a.Store.Tx(r.Context(), func(ctx context.Context) error {
-		if _, er := storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": in.LearnerID, "ownerId": user(r).ID}); er != nil {
+		if _, er := a.referenceLearner(ctx, user(r).ID, in.LearnerID); er != nil {
 			return er
+		}
+		if in.Subject != "" {
+			if er := a.activeSubject(ctx, in.Subject, true); er != nil {
+				return er
+			}
 		}
 		if _, er := a.Store.C("requirements").InsertOne(ctx, v); er != nil {
 			return er

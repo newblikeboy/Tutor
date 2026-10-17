@@ -1,6 +1,8 @@
+import { SubjectNames } from '../components/subject-name'
+import { useSubjects } from '../lib/subjects'
 import '../locales/parent'
 import '../locales/tuition'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -28,7 +30,6 @@ import { ParentLocationControl } from '../components/parent-location-control'
 import { TutorFees } from '../components/tutor-fees'
 import { LearnerProfile } from '../components/learner-profile'
 import { SubjectSelect } from '../components/subject-select'
-import { teachingSubjects } from '../lib/subjects'
 import {
   Alert,
   Button,
@@ -79,9 +80,7 @@ function ParentTutorFinder({ data }: { data: Dashboard }) {
   const learner = data.learners.find((item) => item.id === learnerId)
   const [mode, setMode] = useState(params.get('mode') === 'home' ? 'home' : 'online')
   const [subjects, setSubjects] = useState<string[]>(() =>
-    learner && learner.class <= 5
-      ? ['All Subjects']
-      : params.getAll('subject').filter((subject) => teachingSubjects.includes(subject)),
+    learner && learner.class <= 5 ? ['All Subjects'] : params.getAll('subject').filter(Boolean),
   )
   const [radius, setRadius] = useState(Number(params.get('radiusKm') ?? 5))
   const [selection, setSelection] = useState<{
@@ -244,6 +243,7 @@ function TrialRequest({
   selectedTutor: string
 }) {
   const { t, i18n } = useTranslation()
+  const subjectCatalog = useSubjects()
   const [profileContext] = useSearchParams()
   const account = useQuery({
     queryKey: ['account'],
@@ -280,6 +280,15 @@ function TrialRequest({
   const mode = bookingMode
   const [sort, setSort] = useState('recommended')
   const key = useRef(crypto.randomUUID())
+  const selectedSummary = useRef<HTMLDivElement>(null)
+  const tutorSearch = useRef<HTMLInputElement>(null)
+  const previousSelection = useRef('')
+  useEffect(() => {
+    if (!tutors.isSuccess) return
+    if (tutorId) selectedSummary.current?.focus()
+    else if (previousSelection.current) tutorSearch.current?.focus()
+    previousSelection.current = tutorId
+  }, [tutorId, tutors.isSuccess])
   const request = useMutation({
     mutationFn: () =>
       send<Schema['Trial']>(
@@ -333,7 +342,11 @@ function TrialRequest({
       const text = search.trim().toLocaleLowerCase()
       const matchesSearch =
         !text ||
-        [tutor.name, tutor.approach, tutor.scope.subject]
+        [
+          tutor.name,
+          tutor.approach,
+          ...approvedTutorSubjects(tutor.scope).map(subjectCatalog.label),
+        ]
           .join(' ')
           .toLocaleLowerCase()
           .includes(text)
@@ -375,7 +388,7 @@ function TrialRequest({
     >
       <h2>{t('requestTrial')}</h2>
       <p className="fine-print">
-        {learner.name} · {bookingSubjects.join(', ')}
+        {learner.name} · <SubjectNames values={bookingSubjects} />
       </p>
       {suitable.length === 0 ? (
         <Alert>{t('noTutorsBody')}</Alert>
@@ -388,55 +401,77 @@ function TrialRequest({
               </div>
               <span>
                 <ShieldCheck size={17} aria-hidden="true" />
-                {t('parentTutorChooserCount', { count: visibleTutors.length })}
+                {t('parentTutorChooserCount', { count: selected ? 1 : visibleTutors.length })}
               </span>
             </div>
-            <div className="parent-tutor-filters" aria-label={t('parentTutorFilters')}>
-              <div className="parent-tutor-search">
-                <Search size={16} aria-hidden="true" />
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder={t('parentTutorSearch')}
-                  aria-label={t('parentTutorSearch')}
-                />
-              </div>
-              <label>
-                <span>{t('preferredLanguage')}</span>
-                <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-                  <option value="">{t('allLanguages')}</option>
-                  <option value="Hindi">{t('hindi')}</option>
-                  <option value="English">{t('english')}</option>
-                </select>
-              </label>
-              <label>
-                <span>{t('parentTutorSort')}</span>
-                <select value={sort} onChange={(event) => setSort(event.target.value)}>
-                  <option value="recommended">{t('parentTutorSortRecommended')}</option>
-                  <option value="distance">{t('parentTutorSortDistance')}</option>
-                  <option value="experience">{t('parentTutorSortExperience')}</option>
-                  <option value="review">{t('parentTutorSortReview')}</option>
-                </select>
-              </label>
-              <button
-                type="button"
-                className="parent-tutor-reset"
-                onClick={() => {
-                  setSearch('')
-                  setLanguage('')
-                  setSort('recommended')
-                }}
+            {selected && (
+              <div
+                className="trial-selected-summary"
+                ref={selectedSummary}
+                tabIndex={-1}
+                role="group"
+                aria-label="Selected tutor"
               >
-                <SlidersHorizontal size={15} aria-hidden="true" />
-                {t('reset')}
-              </button>
-            </div>
-            {visibleTutors.length === 0 ? (
+                <div>
+                  <strong>{selected.name}</strong>
+                  <p>
+                    Trial for {learner.name} · <SubjectNames values={bookingSubjects} />
+                  </p>
+                </div>
+                <Button type="button" variant="secondary" onClick={() => chooseTutor('')}>
+                  Compare other tutors
+                </Button>
+              </div>
+            )}
+            {!selected && (
+              <div className="parent-tutor-filters" aria-label={t('parentTutorFilters')}>
+                <div className="parent-tutor-search">
+                  <Search size={16} aria-hidden="true" />
+                  <input
+                    ref={tutorSearch}
+                    type="search"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder={t('parentTutorSearch')}
+                    aria-label={t('parentTutorSearch')}
+                  />
+                </div>
+                <label>
+                  <span>{t('preferredLanguage')}</span>
+                  <select value={language} onChange={(event) => setLanguage(event.target.value)}>
+                    <option value="">{t('allLanguages')}</option>
+                    <option value="Hindi">{t('hindi')}</option>
+                    <option value="English">{t('english')}</option>
+                  </select>
+                </label>
+                <label>
+                  <span>{t('parentTutorSort')}</span>
+                  <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                    <option value="recommended">{t('parentTutorSortRecommended')}</option>
+                    <option value="distance">{t('parentTutorSortDistance')}</option>
+                    <option value="experience">{t('parentTutorSortExperience')}</option>
+                    <option value="review">{t('parentTutorSortReview')}</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="parent-tutor-reset"
+                  onClick={() => {
+                    setSearch('')
+                    setLanguage('')
+                    setSort('recommended')
+                  }}
+                >
+                  <SlidersHorizontal size={15} aria-hidden="true" />
+                  {t('reset')}
+                </button>
+              </div>
+            )}
+            {!selected && visibleTutors.length === 0 ? (
               <Alert>{t('parentTutorNoFilterResults')}</Alert>
             ) : (
               <div className="parent-tutor-grid" role="radiogroup" aria-label={t('selectTutor')}>
-                {visibleTutors.map((tutor) => {
+                {(selected ? [selected] : visibleTutors).map((tutor) => {
                   const isSelected = tutor.id === tutorId
                   const tutorMode = tutorModeLabel(tutor.scope, t)
                   const tutorLanguage = tutor.teachingLanguages.join(' · ') || 'Not added'
@@ -474,8 +509,8 @@ function TrialRequest({
                                 <small>{tutor.sample ? t('sampleProfile') : t('scoped')}</small>
                                 <strong>{tutor.name}</strong>
                                 <em>
-                                  {approvedTutorSubjects(tutor.scope).join(', ')} - {t('classes')}{' '}
-                                  {tutor.scope.minClass}-{tutor.scope.maxClass}
+                                  <SubjectNames values={approvedTutorSubjects(tutor.scope)} /> -{' '}
+                                  {t('classes')} {tutor.scope.minClass}-{tutor.scope.maxClass}
                                 </em>
                               </span>
                             </span>

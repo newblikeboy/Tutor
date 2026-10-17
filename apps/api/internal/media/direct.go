@@ -32,7 +32,7 @@ type UploadGrant struct {
 type DirectStore interface {
 	Grant(string, string, string, time.Time) UploadGrant
 	Verify(context.Context, string, string) (Asset, error)
-	Delivery(string, string, string, bool, bool, time.Time) string
+	Delivery(string, string, string, bool, bool, time.Time, time.Time) string
 	Delete(context.Context, string, string, time.Time) error
 }
 type CloudinaryDirect struct {
@@ -108,8 +108,11 @@ func (c *CloudinaryDirect) Delete(ctx context.Context, id, resource string, now 
 	return nil
 }
 
-func (c *CloudinaryDirect) Delivery(id, resource, format string, attachment, preview bool, now time.Time) string {
-	p := url.Values{"public_id": {id}, "type": {"authenticated"}, "timestamp": {strconv.FormatInt(now.Unix(), 10)}, "expires_at": {strconv.FormatInt(now.Add(5*time.Minute).Unix(), 10)}, "attachment": {strconv.FormatBool(attachment)}}
+func (c *CloudinaryDirect) Delivery(id, resource, format string, attachment, preview bool, now, expires time.Time) string {
+	if limit := now.Add(5 * time.Minute); expires.After(limit) {
+		expires = limit
+	}
+	p := url.Values{"public_id": {id}, "type": {"authenticated"}, "timestamp": {strconv.FormatInt(now.Unix(), 10)}, "expires_at": {strconv.FormatInt(expires.Unix(), 10)}, "attachment": {strconv.FormatBool(attachment)}}
 	if format != "" {
 		p.Set("format", format)
 	}

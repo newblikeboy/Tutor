@@ -32,7 +32,13 @@ export default function Account() {
   return (
     <div className="tu-page account-page">
       <header className="account-heading">
-        <h1>{tab === 'agreements' ? 'Agreement Builder' : t('account.title')}</h1>
+        <h1>
+          {tab === 'agreements'
+            ? 'Agreement Builder'
+            : auth.data?.user.role === 'parent'
+              ? t('parent.account')
+              : t('account.title')}
+        </h1>
         <p>
           {tab === 'agreements'
             ? 'Manage the agreements tutors sign before accepting a new booking.'
@@ -41,7 +47,7 @@ export default function Account() {
       </header>
       <TabBar
         id="account"
-        scrollable={auth.data?.user.role === 'admin'}
+        scrollable
         label={t('account.title')}
         value={tab}
         options={tabs.map((value) => ({

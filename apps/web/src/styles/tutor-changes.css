@@ -1,0 +1,22 @@
+.tutor-change-page .tu-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.tutor-change-page .tu-heading p {
+  margin-top: 8px;
+}
+.tutor-change-page .student-table td > span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.tutor-change-page > .field {
+  max-width: 360px;
+}
+@media (max-width: 600px) {
+  .tutor-change-page .tu-heading > svg {
+    display: none;
+  }
+}

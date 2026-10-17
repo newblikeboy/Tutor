@@ -1,0 +1,691 @@
+{
+  "title": "Privacy Policy",
+  "introduction": [
+    {
+      "type": "paragraph",
+      "text": "**GoCoaching**"
+    },
+    {
+      "type": "paragraph",
+      "text": "**Operated by:** GoCoaching Learning Solution LLP\n**Website:** https://gocoaching.in\n**Effective Date:** \n**Last Updated:** "
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "title": "1. Introduction",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Welcome to GoCoaching."
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching is an educational technology platform operated by **GoCoaching Learning Solution LLP** (\"GoCoaching\", \"Company\", \"we\", \"us\", or \"our\")."
+        },
+        {
+          "type": "paragraph",
+          "text": "We provide a digital platform that enables parents and eligible students to discover, evaluate, communicate with, and book independent tutors and educational service providers for home tuition and online learning."
+        },
+        {
+          "type": "paragraph",
+          "text": "We may also provide educational resources, quizzes, assessments, notes, test papers, class scheduling, attendance records, academic progress reporting, and related digital learning services."
+        },
+        {
+          "type": "paragraph",
+          "text": "We respect the privacy of our users and are committed to handling personal information responsibly, transparently, and securely."
+        },
+        {
+          "type": "paragraph",
+          "text": "This Privacy Policy explains what personal information we collect, how we use it, when we share it, how we protect it, and the choices and rights available to users."
+        },
+        {
+          "type": "paragraph",
+          "text": "By using GoCoaching, you acknowledge this Privacy Policy. Where applicable law requires consent for processing personal data, we will obtain appropriate consent separately."
+        }
+      ]
+    },
+    {
+      "id": "scope-of-this-policy",
+      "title": "2. Scope of This Policy",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "This Privacy Policy applies to individuals using GoCoaching, including:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Parents and legal guardians.",
+            "Adult students.",
+            "Children whose accounts or educational profiles are managed by their parents or legal guardians.",
+            "Independent tutors and teachers.",
+            "Mentors and educational assessors.",
+            "Visitors to our website.",
+            "Other authorized platform users."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "This Policy applies to personal information collected through our website, application, registration forms, booking systems, communications, and related services."
+        }
+      ]
+    },
+    {
+      "id": "information-we-collect",
+      "title": "3. Information We Collect",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Depending on how you use GoCoaching, we may collect the following categories of information."
+        },
+        {
+          "type": "heading",
+          "text": "3.1 Personal and Contact Information"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Full name.",
+            "Email address.",
+            "Mobile number.",
+            "Account identification details.",
+            "Profile photograph, where provided.",
+            "City, locality, and relevant address information.",
+            "Account preferences and communication settings."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "3.2 Parent and Student Information"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Parent or guardian contact information.",
+            "Student name and educational profile.",
+            "Class, grade, subject, and academic requirements.",
+            "Preferred tuition format.",
+            "Preferred learning schedule.",
+            "Relevant tuition location.",
+            "Booking and attendance information.",
+            "Academic progress and assessment records.",
+            "Feedback and support requests."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "We aim to collect only information reasonably necessary to provide the requested educational services."
+        },
+        {
+          "type": "heading",
+          "text": "3.3 Tutor Information"
+        },
+        {
+          "type": "paragraph",
+          "text": "Tutors may provide:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Name and contact information.",
+            "Educational qualifications.",
+            "Professional experience.",
+            "Subjects and classes taught.",
+            "Teaching preferences and availability.",
+            "Service locations.",
+            "Qualifications or verification documents, where required.",
+            "Assessment, approval, and training records.",
+            "Banking or payment information required for authorized settlements.",
+            "Booking, attendance, and student progress records."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Certain tutor profile details may be visible to parents and students to facilitate informed selection."
+        },
+        {
+          "type": "paragraph",
+          "text": "Sensitive identification and financial information will not be made publicly visible merely because a tutor registers."
+        },
+        {
+          "type": "heading",
+          "text": "3.4 Booking and Transaction Information"
+        },
+        {
+          "type": "paragraph",
+          "text": "We may process:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Booking details and service selections.",
+            "Tuition schedules.",
+            "Service charges and payment amounts.",
+            "Payment confirmations and transaction references.",
+            "Refund and cancellation records.",
+            "Tutor settlement and payout records."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Payments may be processed through third-party payment service providers."
+        },
+        {
+          "type": "paragraph",
+          "text": "We do not intend to store complete payment card numbers or card security codes on GoCoaching servers. The actual handling of payment credentials depends on the integrated payment provider and its implementation."
+        },
+        {
+          "type": "heading",
+          "text": "3.5 Technical and Usage Information"
+        },
+        {
+          "type": "paragraph",
+          "text": "When users access our services, we may collect technical information including:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "IP address.",
+            "Device type and browser information.",
+            "Operating system.",
+            "Login and session information.",
+            "Application errors and security logs.",
+            "Pages visited and relevant platform interactions.",
+            "Cookies and similar technologies used for authentication, security, preferences, and functionality."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Where non-essential analytics or advertising technologies require consent, we will obtain it as required by applicable law."
+        }
+      ]
+    },
+    {
+      "id": "google-sign-in-and-google-api-data",
+      "title": "4. Google Sign-In and Google API Data",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may allow eligible users to register or sign in through their Google Account."
+        },
+        {
+          "type": "paragraph",
+          "text": "When a user chooses Google Sign-In, GoCoaching may receive basic account information authorized by the user, such as:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Google Account identifier.",
+            "Name.",
+            "Email address.",
+            "Profile picture, where permitted."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "We use this information to:"
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            "Authenticate the user.",
+            "Create or link the user's GoCoaching account.",
+            "Maintain account security.",
+            "Identify the correct user account.",
+            "Provide authorized platform functionality."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Additional Google Integrations"
+        },
+        {
+          "type": "paragraph",
+          "text": "Certain users, including authorized mentors, may be offered features that connect Google services, such as Google Calendar or Google Meet, to facilitate educational meetings."
+        },
+        {
+          "type": "paragraph",
+          "text": "Such integrations, if enabled, will operate only with the permissions required for the feature and according to the consent presented to the user."
+        },
+        {
+          "type": "paragraph",
+          "text": "Any additional Google data access, including requested scopes, purposes, storage, sharing, and revocation procedures, must be specifically disclosed before those integrations are activated."
+        },
+        {
+          "type": "heading",
+          "text": "Google User Data Protection"
+        },
+        {
+          "type": "paragraph",
+          "text": "Information obtained through Google APIs will be used only for purposes disclosed to users and permitted by applicable Google API policies."
+        },
+        {
+          "type": "paragraph",
+          "text": "We do not sell Google user data."
+        },
+        {
+          "type": "paragraph",
+          "text": "We do not use Google user data for unauthorized advertising, profiling, or unrelated commercial purposes."
+        },
+        {
+          "type": "paragraph",
+          "text": "Google data will not be shared with third parties except where necessary to provide an authorized feature, with appropriate user consent, or as otherwise permitted by applicable Google API policies and law."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users may revoke an application's Google Account permissions through their Google Account settings."
+        },
+        {
+          "type": "paragraph",
+          "text": "Revoking Google access may affect features that depend on the relevant integration."
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching's use and transfer of information received from Google APIs will adhere to the Google API Services User Data Policy, including its Limited Use requirements."
+        }
+      ]
+    },
+    {
+      "id": "how-we-use-personal-information",
+      "title": "5. How We Use Personal Information",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "We process personal information for purposes including:"
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            "Creating and managing user accounts.",
+            "Authenticating users and protecting accounts.",
+            "Helping parents and students discover suitable tutors.",
+            "Facilitating tutor registration, review, and approval.",
+            "Enabling booking, scheduling, and educational coordination.",
+            "Supporting authorized payment transactions and settlements.",
+            "Maintaining attendance and academic progress records.",
+            "Delivering quizzes, notes, tests, and other educational resources.",
+            "Providing customer support and resolving complaints.",
+            "Investigating reported misconduct and safeguarding concerns.",
+            "Detecting fraudulent, abusive, or unauthorized activity.",
+            "Meeting applicable legal, tax, accounting, and regulatory requirements.",
+            "Maintaining and improving the reliability and usability of our services."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "We will not use personal information for unrelated purposes without an appropriate legal basis or required consent."
+        }
+      ]
+    },
+    {
+      "id": "information-sharing",
+      "title": "6. Information Sharing",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "We may share limited personal information with:"
+        },
+        {
+          "type": "heading",
+          "text": "Independent Tutors"
+        },
+        {
+          "type": "paragraph",
+          "text": "Relevant student and parent information may be shared with a selected or booked tutor to deliver the requested educational service."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tutors must use such information only for authorized educational and booking purposes."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tutors must not disclose confidential parent or student information or use it for unrelated solicitation."
+        },
+        {
+          "type": "heading",
+          "text": "Parents and Students"
+        },
+        {
+          "type": "paragraph",
+          "text": "Relevant tutor profile information may be displayed to support informed tutor selection and booking."
+        },
+        {
+          "type": "heading",
+          "text": "Technology Service Providers"
+        },
+        {
+          "type": "paragraph",
+          "text": "We may use authorized providers for:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Cloud hosting and data storage.",
+            "Authentication.",
+            "Email and communication services.",
+            "Video conferencing.",
+            "Payment processing.",
+            "Security and technical operations."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Such providers should receive only the information reasonably necessary to provide their services."
+        },
+        {
+          "type": "heading",
+          "text": "Legal and Regulatory Authorities"
+        },
+        {
+          "type": "paragraph",
+          "text": "We may disclose information where required under applicable law, a valid legal process, or for the protection of users' lawful rights and safety."
+        },
+        {
+          "type": "paragraph",
+          "text": "**We do not sell personal information to data brokers.**"
+        }
+      ]
+    },
+    {
+      "id": "childrens-privacy-and-safety",
+      "title": "7. Children's Privacy and Safety",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "GoCoaching provides services related to the education of children."
+        },
+        {
+          "type": "paragraph",
+          "text": "We recognize that children's personal information requires special care."
+        },
+        {
+          "type": "paragraph",
+          "text": "Where a student is below 18 years of age:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Account creation and booking should be undertaken or authorized by a parent or lawful guardian.",
+            "We will obtain verifiable parental or guardian consent where required by applicable law.",
+            "We aim to collect only information necessary for educational services.",
+            "Children's personal information must not be used for unauthorized targeted advertising or behavioral monitoring.",
+            "Tutors must respect the privacy, safety, and dignity of students.",
+            "Personal information should not be disclosed outside authorized educational arrangements."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Parents or lawful guardians may contact us regarding access, correction, or deletion of their child's personal information, subject to applicable legal requirements."
+        }
+      ]
+    },
+    {
+      "id": "attendance-and-academic-progress-records",
+      "title": "8. Attendance and Academic Progress Records",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may facilitate the recording of:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Scheduled classes.",
+            "Attendance.",
+            "Completed sessions.",
+            "Academic observations.",
+            "Assignments and assessments.",
+            "Student progress reports."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "These records are intended to support educational service delivery, quality management, and authorized payment processes."
+        },
+        {
+          "type": "paragraph",
+          "text": "Access will be restricted according to the user's role and legitimate involvement in the educational service."
+        }
+      ]
+    },
+    {
+      "id": "data-security",
+      "title": "9. Data Security",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "We take reasonable technical and organizational measures designed to protect personal information."
+        },
+        {
+          "type": "paragraph",
+          "text": "These may include:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Secure transmission of information.",
+            "Authentication and access controls.",
+            "Role-based access permissions.",
+            "Logging and security monitoring.",
+            "Restricted administrative access.",
+            "Data backup and recovery procedures.",
+            "Appropriate controls for third-party service providers."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "No online system can guarantee absolute security."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users must also safeguard their credentials and promptly report suspected unauthorized access."
+        }
+      ]
+    },
+    {
+      "id": "data-retention",
+      "title": "10. Data Retention",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "We retain personal information only for as long as necessary for legitimate service purposes, applicable legal obligations, dispute resolution, security, and authorized recordkeeping."
+        },
+        {
+          "type": "paragraph",
+          "text": "Different categories of information may have different retention periods."
+        },
+        {
+          "type": "paragraph",
+          "text": "For example, account information, booking records, payment records, academic progress information, and complaint records may require different retention arrangements."
+        },
+        {
+          "type": "paragraph",
+          "text": "When information is no longer required, we will delete, anonymize, or securely dispose of it as appropriate and in accordance with applicable law."
+        },
+        {
+          "type": "paragraph",
+          "text": "Specific retention periods should be disclosed through the applicable retention schedule or related in-product notices."
+        }
+      ]
+    },
+    {
+      "id": "your-privacy-rights",
+      "title": "11. Your Privacy Rights",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Subject to applicable law, users may request:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Information about their personal data and its processing.",
+            "Correction or updating of inaccurate information.",
+            "Erasure of eligible personal data.",
+            "Withdrawal of consent where processing is consent-based.",
+            "Assistance with account-related privacy concerns.",
+            "Access to applicable grievance redressal processes.",
+            "Other rights available under applicable Indian data protection law."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Requests may require reasonable identity verification before action is taken."
+        },
+        {
+          "type": "paragraph",
+          "text": "Withdrawal of consent may affect services that require the relevant information."
+        },
+        {
+          "type": "paragraph",
+          "text": "Certain information may need to be retained where required by law or legitimate legal obligations."
+        }
+      ]
+    },
+    {
+      "id": "account-deletion",
+      "title": "12. Account Deletion",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Users may request the deletion of their GoCoaching account and eligible associated personal data."
+        },
+        {
+          "type": "paragraph",
+          "text": "Requests can be submitted through available account controls or by contacting our designated privacy support channel."
+        },
+        {
+          "type": "paragraph",
+          "text": "Account deletion does not automatically eliminate records that must be retained under applicable law, financial obligations, pending disputes, or lawful safeguarding requirements."
+        },
+        {
+          "type": "paragraph",
+          "text": "We will explain relevant limitations where applicable."
+        }
+      ]
+    },
+    {
+      "id": "cookies-and-similar-technologies",
+      "title": "13. Cookies and Similar Technologies",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "We may use cookies and comparable technologies to:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Maintain authenticated sessions.",
+            "Protect accounts.",
+            "Remember relevant preferences.",
+            "Improve functionality.",
+            "Understand platform reliability and performance."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Where optional analytics or marketing technologies are deployed, their purposes and applicable choices will be disclosed."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users may manage cookies through their browser settings, although disabling essential cookies may affect account functionality."
+        }
+      ]
+    },
+    {
+      "id": "third-party-websites-and-services",
+      "title": "14. Third-Party Websites and Services",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Our platform may contain links or integrations involving external services."
+        },
+        {
+          "type": "paragraph",
+          "text": "Third-party providers may operate under their own privacy policies and terms."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users should review the policies of any third-party services they choose to use."
+        }
+      ]
+    },
+    {
+      "id": "international-data-processing",
+      "title": "15. International Data Processing",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Some authorized technology providers may process information in locations outside India."
+        },
+        {
+          "type": "paragraph",
+          "text": "Where cross-border processing occurs, we will apply appropriate contractual, technical, and organizational safeguards and comply with applicable Indian legal requirements and restrictions."
+        }
+      ]
+    },
+    {
+      "id": "changes-to-this-privacy-policy",
+      "title": "16. Changes to This Privacy Policy",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "We may update this Privacy Policy when our services, legal obligations, or data practices change."
+        },
+        {
+          "type": "paragraph",
+          "text": "The revised version will be published with an updated effective or revision date."
+        },
+        {
+          "type": "paragraph",
+          "text": "Where material changes require specific notification or renewed consent, we will provide it as required by applicable law."
+        }
+      ]
+    },
+    {
+      "id": "contact-and-grievance-redressal",
+      "title": "17. Contact and Grievance Redressal",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "For privacy-related questions, access requests, corrections, account deletion, or grievances, please contact:"
+        },
+        {
+          "type": "paragraph",
+          "text": "**GoCoaching Learning Solution LLP**"
+        },
+        {
+          "type": "paragraph",
+          "text": "Website: https://gocoaching.in\nPrivacy/Support Email: \nGrievance Officer: \nRegistered Office: \nContact Number: "
+        },
+        {
+          "type": "paragraph",
+          "text": "Complaints will be handled in accordance with applicable law and our grievance redressal procedures."
+        },
+        {
+          "type": "separator"
+        },
+        {
+          "type": "paragraph",
+          "text": "**© GoCoaching Learning Solution LLP. All rights reserved.**"
+        }
+      ]
+    }
+  ]
+}

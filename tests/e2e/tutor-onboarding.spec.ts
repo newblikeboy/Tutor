@@ -35,6 +35,8 @@ test('an unapproved tutor can continue their application without teaching access
     page.getByRole('navigation', { name: 'Everyday navigation', exact: true }),
   ).toHaveCount(0)
   expect((await page.request.get('/api/v1/tutor/workspace')).status()).toBe(403)
+  expect((await page.request.get('/api/v1/enrollments?history=1')).status()).toBe(403)
+  expect((await page.request.get('/api/v1/enrollments?history=unexpected')).status()).toBe(403)
   await mkdir('docs/visual-qa/tutor-workspace', { recursive: true })
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 })

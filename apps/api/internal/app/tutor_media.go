@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -79,7 +80,7 @@ func (a *App) tutorMedia(w http.ResponseWriter, r *http.Request, kind string) {
 		format := map[string]string{"image/jpeg": "jpg", "image/png": "png", "video/mp4": "mp4"}[f.ContentType]
 		w.Header().Set("Cache-Control", "private, no-store")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		http.Redirect(w, r, a.DirectFiles.Delivery(f.PublicID, f.ResourceType, format, false, kind == "photo", a.Now()), http.StatusFound)
+		http.Redirect(w, r, a.DirectFiles.Delivery(f.PublicID, f.ResourceType, format, false, kind == "photo", a.Now(), a.Now().Add(5*time.Minute)), http.StatusFound)
 		return
 	}
 	if f.Status != "clean" || f.ScannedAt == nil {

@@ -148,5 +148,11 @@ func (s *Store) Migrate(ctx context.Context) error {
 	if e = s.MigrateTeachingAgreements(ctx); e != nil {
 		return e
 	}
+	if e = s.MigrateStudy(ctx); e != nil {
+		return e
+	}
+	if e = s.MigrateSubjects(ctx); e != nil {
+		return e
+	}
 	return s.MigrateGoogle(ctx)
 }

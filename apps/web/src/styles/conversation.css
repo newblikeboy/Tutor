@@ -1,0 +1,98 @@
+.conversation-fields {
+  display: grid;
+  gap: 16px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.conversation-fields > .btn {
+  justify-self: start;
+}
+.conversation-compose-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.conversation-compose-actions > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.conversation-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.conversation-attachments,
+.conversation-drafts {
+  display: grid;
+  gap: 12px;
+}
+.conversation-attachment {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8faf4;
+  min-width: 0;
+}
+.conversation-attachment > img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: white;
+}
+.conversation-attachment > svg {
+  flex-shrink: 0;
+  color: #527044;
+}
+.conversation-attachment > div {
+  display: grid;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+.conversation-attachment strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.conversation-attachment span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.conversation-attachment > .btn {
+  flex-shrink: 0;
+}
+.conversation-drafts > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.conversation-drafts > div > span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  font-size: 13px;
+}
+.conversation-drafts .upload-local-preview {
+  max-width: 100px;
+}
+@media (max-width: 600px) {
+  .conversation-attachment {
+    flex-wrap: wrap;
+  }
+  .conversation-attachment > img {
+    width: 64px;
+    height: 64px;
+  }
+  .conversation-drafts > div {
+    flex-wrap: wrap;
+  }
+}

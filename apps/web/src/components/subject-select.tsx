@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
-import { teachingSubjects } from '../lib/subjects'
+import { useSubjects } from '../lib/subjects'
+import { Alert, Button } from './ui'
 import '../styles/subject-select.css'
 
 export function SubjectSelect({
@@ -9,7 +10,7 @@ export function SubjectSelect({
   onChange,
   label,
   placeholder,
-  options = teachingSubjects,
+  options,
   hint,
   error,
 }: {
@@ -22,6 +23,9 @@ export function SubjectSelect({
   error?: string
 }) {
   const { t } = useTranslation()
+  const catalog = useSubjects()
+  const available = options ?? catalog.teachingSubjects
+  const choices = [...new Set([...available, ...value])]
   const id = useId()
   const details = useRef<HTMLDetailsElement>(null)
   const summary = useRef<HTMLElement>(null)
@@ -82,12 +86,26 @@ export function SubjectSelect({
           aria-invalid={!!error}
         >
           <span id={`${id}-value`}>
-            {value.length ? value.join(', ') : (placeholder ?? t('landing.finderAnySubject'))}
+            {value.length
+              ? value.map(catalog.label).join(', ')
+              : (placeholder ?? t('landing.finderAnySubject'))}
           </span>
           <ChevronDown size={18} aria-hidden="true" />
         </summary>
         <div className="subject-select-options" role="group" aria-labelledby={`${id}-label`}>
-          {options.map((subject) => (
+          {!options && catalog.isPending && <p>Loading subjects…</p>}
+          {!catalog.isPending && !catalog.isError && !choices.length && (
+            <p>No active subjects are available.</p>
+          )}
+          {catalog.isError && (
+            <Alert kind="error">
+              Subjects could not be loaded.{' '}
+              <Button type="button" variant="text" onClick={() => void catalog.refetch()}>
+                Try again
+              </Button>
+            </Alert>
+          )}
+          {choices.map((subject) => (
             <label key={subject}>
               <input
                 type="checkbox"
@@ -100,7 +118,10 @@ export function SubjectSelect({
                   )
                 }}
               />
-              <span>{subject}</span>
+              <span>
+                {catalog.label(subject)}
+                {!available.includes(subject) && ' · Unavailable for new selections'}
+              </span>
             </label>
           ))}
         </div>

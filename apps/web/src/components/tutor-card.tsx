@@ -1,3 +1,4 @@
+import { SubjectNames } from './subject-name'
 import { useState } from 'react'
 import '../styles/tutor-card.css'
 import { Link } from 'react-router-dom'
@@ -25,7 +26,7 @@ export function TutorCard({
   context?: URLSearchParams
 }) {
   const { t } = useTranslation()
-  const subject = approvedTutorSubjects(tutor.scope).join(', ')
+  const subject = <SubjectNames values={approvedTutorSubjects(tutor.scope)} />
   const classRange = `${tutor.scope.minClass}-${tutor.scope.maxClass}`
   const language = tutor.teachingLanguages.join(' · ') || 'Not added'
   const mode = tutorModeLabel(tutor.scope, t)

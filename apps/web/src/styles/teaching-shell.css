@@ -1,5 +1,5 @@
-/* Shared teaching-role navigation; parent and administrative shells retain their theme. */
-:is(.desk-shell, .desk-drawer):is([data-role='mentor'], [data-role='tutor']) {
+/* Customer and teaching roles share surface tokens; role navigation retains its theme. */
+:is(.desk-shell, .desk-drawer):is([data-role='parent'], [data-role='mentor'], [data-role='tutor']) {
   --teaching-surface: #fff;
   --teaching-line: #dce3d9;
   --teaching-soft: #edf2e5;

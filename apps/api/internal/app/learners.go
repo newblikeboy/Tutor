@@ -5,11 +5,77 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"net/http"
 	"strings"
 	"tutorplatform/internal/domain"
 	"tutorplatform/internal/storage"
 )
+
+// References and deletion must write the same learner document inside their
+// transaction so a concurrent booking cannot commit against a deleted profile.
+func (a *App) referenceLearner(ctx context.Context, owner, id string) (domain.Learner, error) {
+	var learner domain.Learner
+	err := a.Store.C("learners").FindOneAndUpdate(ctx,
+		bson.M{"_id": id, "ownerId": owner},
+		bson.M{"$inc": bson.M{"referenceRevision": 1}},
+		options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&learner)
+	return learner, err
+}
+
+func (a *App) deleteLearner(w http.ResponseWriter, r *http.Request) {
+	if !a.role(w, r, "parent") {
+		return
+	}
+	var in struct {
+		ExpectedVersion *int `json:"expectedVersion"`
+	}
+	if !a.decode(w, r, &in) {
+		return
+	}
+	if in.ExpectedVersion == nil || *in.ExpectedVersion < 0 {
+		a.error(w, r, domain.Fail(422, "validation", "The current learner version is required."))
+		return
+	}
+	id, owner := chi.URLParam(r, "id"), user(r).ID
+	err := a.Store.Tx(r.Context(), func(ctx context.Context) error {
+		learner, err := storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": id, "ownerId": owner})
+		if err != nil {
+			return err
+		}
+		if learner.Version != *in.ExpectedVersion {
+			return domain.Fail(409, "learner_delete_stale", "The learner profile has changed. Reload before deleting.")
+		}
+		result, err := a.Store.C("learners").DeleteOne(ctx, bson.M{"_id": id, "ownerId": owner})
+		if err != nil {
+			return err
+		}
+		if result.DeletedCount != 1 {
+			return mongo.ErrNoDocuments
+		}
+		for _, collection := range []string{"trials", "enrollments", "study_access", "study_attempts"} {
+			err = a.Store.C(collection).FindOne(ctx, bson.M{"learnerId": id}).Err()
+			if err == nil {
+				return domain.Fail(409, "learner_in_use", "This learner has trial, booking, subscription or progress history and cannot be deleted. Existing records are preserved.")
+			}
+			if err != mongo.ErrNoDocuments {
+				return err
+			}
+		}
+		if _, err = a.Store.C("requirements").DeleteMany(ctx, bson.M{"learnerId": id, "ownerId": owner}); err != nil {
+			return err
+		}
+		if _, err = a.Store.C("drafts").DeleteOne(ctx, bson.M{"_id": owner, "learnerId": id}); err != nil {
+			return err
+		}
+		return a.audit(ctx, owner, "learner.deleted", id)
+	})
+	if err != nil {
+		a.error(w, r, err)
+		return
+	}
+	a.json(w, 200, map[string]bool{"ok": true})
+}
 
 type LearnerInput struct {
 	Name      string `json:"name" bson:"name"`

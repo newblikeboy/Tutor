@@ -1,3 +1,4 @@
+import { SubjectName, SubjectNames } from '../components/subject-name'
 import '../locales/tuition'
 import '../locales/experience'
 import '../locales/files'
@@ -40,13 +41,17 @@ import { Checkout } from './billing'
 import { Conversation } from './conversations'
 import { PrivateFiles } from './files'
 import { feeLabel, TutorFees } from '../components/tutor-fees'
-import { TabBar, TabPanel, useActivePanel } from '../components/workspace-tabs'
+import { TabBar, TabPanel } from '../components/workspace-tabs'
 import { LessonMeeting } from '../components/lesson-meeting'
-import { teachingSubjects } from '../lib/subjects'
+import { useSubjects } from '../lib/subjects'
 import { TutorBookingsTable } from '../components/tutor-bookings'
-import { TutorClassTable, TutorClassBack } from '../components/tutor-class-table'
+import { ParentBookingsTable } from '../components/parent-tables'
+import { WorkspaceClassTable, WorkspaceClassBack } from '../components/workspace-class-table'
 import { ClassProgressFields, classProgressFromForm } from '../components/class-progress-fields'
 import { BookingAgreement } from '../components/booking-agreement'
+import { BookingProgress } from '../components/booking-progress'
+import '../styles/journey-workspaces.css'
+import { TutorChangeRequest } from '../components/tutor-change-request'
 import { CompleteClass, ReportClassCompletion } from '../components/class-completion'
 
 type Agreement = Schema['Agreement']
@@ -343,11 +348,12 @@ function TuitionList() {
   const now = useClock()
   const archive = params.get('history') === '1'
   const tutor = auth.data?.user.role === 'tutor'
+  const parent = auth.data?.user.role === 'parent'
   const q = useQuery({
-    queryKey: ['tuition', 'list', cursor, tutor && archive],
+    queryKey: ['tuition', 'list', cursor, auth.data?.user.role, archive],
     queryFn: ({ signal }) =>
       api<Schema['EnrollmentPage']>(
-        `/enrollments?cursor=${encodeURIComponent(cursor)}${tutor && archive ? '&history=1' : ''}`,
+        `/enrollments?cursor=${encodeURIComponent(cursor)}${parent || tutor ? `&history=${archive ? '1' : '0'}` : ''}`,
         {
           signal,
         },
@@ -371,9 +377,8 @@ function TuitionList() {
     ) ?? []
   return (
     <div className="tu-page">
-      <Heading title={t(auth.data?.user.role === 'parent' ? 'parent.classes' : 'tuition.title')} />
-      {auth.data?.user.role === 'parent' && <NewAgreement />}
-      {tutor && (
+      <Heading title={t(parent ? 'parent.classes' : 'tuition.title')} />
+      {(tutor || parent) && (
         <nav className="teacher-filters" aria-label="Booking history">
           <Link to="/tuition" aria-current={!archive ? 'page' : undefined}>
             Current bookings
@@ -410,13 +415,25 @@ function TuitionList() {
           {bookings.length === 0 ? (
             <Empty
               headingLevel={2}
-              title={t(auth.data?.user.role === 'parent' ? 'tuition.none' : 'tuition.noAssigned')}
-              body={t(
-                auth.data?.user.role === 'parent' ? 'tuition.noneBody' : 'tuition.noAssignedBody',
-              )}
+              title={
+                archive
+                  ? 'No past bookings'
+                  : t(auth.data?.user.role === 'parent' ? 'tuition.none' : 'tuition.noAssigned')
+              }
+              body={
+                archive
+                  ? 'Completed and cancelled bookings appear here.'
+                  : t(
+                      auth.data?.user.role === 'parent'
+                        ? 'tuition.noneBody'
+                        : 'tuition.noAssignedBody',
+                    )
+              }
             />
           ) : tutor ? (
             <TutorBookingsTable bookings={bookings} archive={archive} cursor={cursor} />
+          ) : parent ? (
+            <ParentBookingsTable bookings={bookings} archive={archive} cursor={cursor} />
           ) : (
             <div className="tu-card-grid">
               {bookings.map((enrollment) => (
@@ -431,8 +448,10 @@ function TuitionList() {
                   <h2>{enrollment.learnerName}</h2>
                   <p>{t('tuition.withTutor', { name: enrollment.tutorName })}</p>
                   <p>
-                    {(enrollment.agreement.subjects ?? [enrollment.agreement.subject]).join(', ')} ·{' '}
-                    {enrollment.agreement.mode === 'home' ? 'Home Tuition' : 'Online'}
+                    <SubjectNames
+                      values={enrollment.agreement.subjects ?? [enrollment.agreement.subject]}
+                    />{' '}
+                    · {enrollment.agreement.mode === 'home' ? 'Home Tuition' : 'Online'}
                   </p>
                   <div className="tu-card-meta">
                     <span>
@@ -472,6 +491,7 @@ function TuitionList() {
           )}
         </>
       )}
+      {parent && !archive && <NewAgreement />}
     </div>
   )
 }
@@ -549,16 +569,18 @@ function RegularTeacherCard({
   dateLabel: string
 }) {
   const { t, i18n } = useTranslation()
+  const subjectCatalog = useSubjects()
   const navigate = useNavigate()
   const [requestKey, setRequestKey] = useState(() => crypto.randomUUID())
-  const subjectOptions = approvedTutorSubjects(tutor.scope).filter((subject) =>
+  const approvedSubjects = approvedTutorSubjects(tutor.scope).filter((subject) =>
     trial.class <= 5 ? subject === 'All Subjects' : subject !== 'All Subjects',
   )
   const [subjects, setSubjects] = useState<string[]>(() =>
     trial.class <= 5
       ? ['All Subjects']
-      : (trial.subjects ?? [trial.subject]).filter((subject) => subjectOptions.includes(subject)),
+      : (trial.subjects ?? [trial.subject]).filter((subject) => approvedSubjects.includes(subject)),
   )
+  const subjectOptions = approvedSubjects.filter(subjectCatalog.isActive)
   const [packageKey, setPackageKey] = useState('')
   const [pickedDate, setPickedDate] = useState('')
   const [start, setStart] = useState('')
@@ -632,7 +654,7 @@ function RegularTeacherCard({
         </div>
         <div className="tu-teacher-booking-meta">
           <span>
-            {(trial.subjects ?? [trial.subject]).join(', ')} · {t('class')} {trial.class}
+            <SubjectNames values={trial.subjects ?? [trial.subject]} /> · {t('class')} {trial.class}
           </span>
           <span>
             {tutor.scope.minClass}-{tutor.scope.maxClass}
@@ -785,8 +807,8 @@ function RegularTeacherCard({
                 )}
                 {selectedPlan && (
                   <p>
-                    {subjects.join(', ')} · {money(selectedPlan.amountPaise, i18n.language)} ×{' '}
-                    {subjects.length}
+                    <SubjectNames values={subjects} /> ·{' '}
+                    {money(selectedPlan.amountPaise, i18n.language)} × {subjects.length}
                   </p>
                 )}
                 {packageSchedule.length > 0 && (
@@ -1141,7 +1163,9 @@ function CheckoutSelection({ enrollment: e }: { enrollment: Schema['Enrollment']
     <section className="tu-panel">
       <h2>{e.learnerName}</h2>
       <p>{t('tuition.withTutor', { name: e.tutorName })}</p>
-      <p>{(e.agreement.subjects ?? [e.agreement.subject]).join(', ')}</p>
+      <p>
+        <SubjectNames values={e.agreement.subjects ?? [e.agreement.subject]} />
+      </p>
       <div className="tu-quote">
         <div>
           <span>{t('tuition.selectedClasses')}</span>
@@ -1183,19 +1207,32 @@ function TuitionDetail({ id }: { id: string }) {
   const showPaymentSuccess =
     role === 'parent' && ['active', 'pending_tutor_acceptance'].includes(e.status)
   const listParams = new URLSearchParams()
-  if (role === 'tutor' && (params.get('history') === '1' || archivedTutor))
+  if (
+    ['parent', 'tutor'].includes(role) &&
+    (params.get('history') === '1' || ['completed', 'cancelled'].includes(e.status))
+  )
     listParams.set('history', '1')
-  if (role === 'tutor' && params.get('listCursor'))
+  if (['parent', 'tutor'].includes(role) && params.get('listCursor'))
     listParams.set('cursor', params.get('listCursor')!)
   const backToList = `/tuition${listParams.size ? `?${listParams}` : ''}`
-  const selectedClassID = role === 'tutor' ? params.get('class') : null
+  const selectedClassID = ['parent', 'tutor'].includes(role) ? params.get('class') : null
   const selectedClass = d.sessions.find((lesson) => lesson.id === selectedClassID)
+  const nextLesson =
+    !selectedClassID &&
+    (!params.has('tab') || params.get('tab') === 'classes') &&
+    e.status === 'active'
+      ? d.sessions
+          .filter((session) => session.status === 'scheduled' && Date.parse(session.end) > now)
+          .sort((a, b) => a.start.localeCompare(b.start))[0]
+      : undefined
   const tabs =
     e.status === 'pending_tutor_acceptance'
       ? ['classes', 'agreement']
       : archivedTutor
         ? ['classes', 'plan', 'agreement']
-        : ['classes', 'plan', 'messages', 'files', 'agreement', 'handover']
+        : role === 'parent'
+          ? ['classes', 'messages', 'agreement', 'handover']
+          : ['classes', 'plan', 'messages', 'files', 'agreement', 'handover']
   const tab = tabs.includes(params.get('tab') ?? '') ? params.get('tab')! : 'classes'
   if (role === 'parent' && ['awaiting_payment', 'expired'].includes(e.status)) {
     const expired = e.status === 'expired' || !e.holdUntil || new Date(e.holdUntil).getTime() <= now
@@ -1213,6 +1250,7 @@ function TuitionDetail({ id }: { id: string }) {
           <LinkButton to="/tuition">{t('tuition.chooseNewDates')}</LinkButton>
         ) : (
           <>
+            <BookingProgress status={e.status} />
             <CheckoutSelection enrollment={e} />
             <p>{t('tuition.payBy', { time: indiaDate(e.holdUntil!, 'en') })}</p>
             <Checkout enrollment={e} />
@@ -1236,6 +1274,23 @@ function TuitionDetail({ id }: { id: string }) {
         <Alert kind={showPaymentSuccess ? 'success' : 'info'}>
           {showPaymentSuccess ? t('billing.simulationSuccess') : t('billing.simulationRecord')}
         </Alert>
+      )}
+      <BookingProgress status={e.status} />
+      {nextLesson && (
+        <section className="booking-next-class" aria-label="Next scheduled class">
+          <div>
+            <h2>Next scheduled class</h2>
+            <p>
+              <time dateTime={nextLesson.start}>{indiaDate(nextLesson.start, 'en')}</time>
+            </p>
+          </div>
+          <Link
+            className="btn primary"
+            to={`?${new URLSearchParams({ ...Object.fromEntries(params), class: nextLesson.id })}`}
+          >
+            Open next class <ArrowUpRight size={17} aria-hidden="true" />
+          </Link>
+        </section>
       )}
       <div className="tu-overview">
         {[
@@ -1280,7 +1335,7 @@ function TuitionDetail({ id }: { id: string }) {
       )}
       <TabBar
         id="tuition"
-        scrollable={role === 'tutor'}
+        scrollable={['parent', 'tutor'].includes(role)}
         label={t('tuition.title')}
         value={tab}
         options={tabs.map((value) => ({
@@ -1295,10 +1350,10 @@ function TuitionDetail({ id }: { id: string }) {
         }}
       />
       <TabPanel id="tuition" value="classes" active={tab === 'classes'} preserve>
-        {role === 'tutor' ? (
+        {['parent', 'tutor'].includes(role) ? (
           selectedClassID ? (
             <div className="tu-session-list">
-              <TutorClassBack />
+              <WorkspaceClassBack />
               {selectedClass ? (
                 <ClassCard
                   key={`${selectedClass.id}:${selectedClass.version}`}
@@ -1310,7 +1365,7 @@ function TuitionDetail({ id }: { id: string }) {
               )}
             </div>
           ) : (
-            <TutorClassTable sessions={d.sessions} />
+            <WorkspaceClassTable sessions={d.sessions} parent={role === 'parent'} />
           )
         ) : (
           <div className="tu-session-list">
@@ -1327,7 +1382,7 @@ function TuitionDetail({ id }: { id: string }) {
         )}
       </TabPanel>
       <TabPanel id="tuition" value="plan" active={tab === 'plan'} preserve>
-        <Plans detail={d} />
+        {role !== 'parent' && <Plans detail={d} />}
       </TabPanel>
       <TabPanel id="tuition" value="agreement" active={tab === 'agreement'} preserve>
         {e.tutorAgreement && <BookingAgreement enrollment={e} />}
@@ -1349,13 +1404,15 @@ function TuitionDetail({ id }: { id: string }) {
         <Conversation enrollment={e} />
       </TabPanel>
       <TabPanel id="tuition" value="files" active={tab === 'files'} preserve>
-        <PrivateFiles
-          target="enrollments"
-          id={e.id}
-          canUpload={['active', 'paused', 'pending_agreement', 'awaiting_payment'].includes(
-            e.status,
-          )}
-        />
+        {role !== 'parent' && (
+          <PrivateFiles
+            target="enrollments"
+            id={e.id}
+            canUpload={['active', 'paused', 'pending_agreement', 'awaiting_payment'].includes(
+              e.status,
+            )}
+          />
+        )}
       </TabPanel>
       {tab === 'agreement' &&
         ['parent', 'tutor'].includes(role) &&
@@ -1367,9 +1424,6 @@ function TuitionDetail({ id }: { id: string }) {
           'pending_tutor_acceptance',
         ].includes(e.status) && (
           <section className="tu-panel tu-controls">
-            {e.status === 'active' && (
-              <EnrollmentAction enrollment={e} action="pause" label="pause" />
-            )}
             {e.status === 'paused' && (
               <EnrollmentAction enrollment={e} action="resume" label="resume" />
             )}
@@ -1437,6 +1491,7 @@ function ClassCard({
   enrollment: Schema['Enrollment']
 }) {
   const { t, i18n } = useTranslation()
+  const subjectCatalog = useSubjects()
   const auth = useAuth(),
     config = useConfig()
   const role = auth.data!.user.role
@@ -1479,7 +1534,9 @@ function ClassCard({
         {s.progress && (
           <div className="tu-evidence">
             <div>
-              <h3>Subject feedback · {s.progress.subject}</h3>
+              <h3>
+                Subject feedback · <SubjectName value={s.progress.subject} />
+              </h3>
               <p>{s.progress.feedback}</p>
               <p>Homework: {s.progress.homeworkStatus.replaceAll('_', ' ')}</p>
               <p>Next practice: {s.progress.nextSteps}</p>
@@ -1619,10 +1676,12 @@ function ClassCard({
                 <select name="subject" defaultValue={s.plannedSubject ?? ''} required>
                   <option value="">Choose a booked subject</option>
                   {(enrollment.class <= 5
-                    ? ['All Subjects', ...teachingSubjects]
+                    ? subjectCatalog.rows.map((row) => row.id)
                     : (enrollment.agreement.subjects ?? [enrollment.agreement.subject])
                   ).map((subject) => (
-                    <option key={subject}>{subject}</option>
+                    <option key={subject} value={subject}>
+                      {subjectCatalog.label(subject)}
+                    </option>
                   ))}
                 </select>
               </Field>
@@ -1855,71 +1914,13 @@ function PlanForm({ detail, previous }: { detail: Detail; previous?: Schema['Lea
   )
 }
 function Continuity({ detail }: { detail: Detail }) {
-  const active = useActivePanel()
-  const { t } = useTranslation()
-  const auth = useAuth()
-  const parent = auth.data?.user.role === 'parent'
-  const open = detail.handovers.some((h) => ['requested', 'awaiting_tutor'].includes(h.status))
-  const tutors = useQuery({
-    queryKey: ['public-tutors'],
-    queryFn: ({ signal }) => api<Schema['PublicTutor'][]>('/tutors', { signal }),
-    enabled: active && parent && !open,
-  })
-  const mutation = useAction(`/enrollments/${detail.enrollment.id}/handovers`)
+  const parent = useAuth().data?.user.role === 'parent'
   return (
     <div className="tu-stack">
-      <section className="tu-panel">
-        <div className="tu-panel-title">
-          <Sprout />
-          <h2>{t('tuition.handoverTitle')}</h2>
-        </div>
-        <p>{t('tuition.handoverBody')}</p>
-        {parent &&
-          !open &&
-          ['active', 'paused'].includes(detail.enrollment.status) &&
-          (tutors.isPending ? (
-            <Loading />
-          ) : tutors.isError ? (
-            <LoadError retry={() => void tutors.refetch()} />
-          ) : (
-            <form
-              className="tu-stack"
-              onSubmit={(event) => {
-                const d = formValues(event)
-                mutation.mutate({
-                  tutorId: value(d, 'tutorId'),
-                  reason: value(d, 'reason'),
-                  consent: true,
-                })
-              }}
-            >
-              <Field label={t('tuition.replacement')}>
-                <select name="tutorId" required>
-                  <option value="">—</option>
-                  {tutors.data
-                    .filter((t) => t.id !== detail.enrollment.tutorId)
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                </select>
-              </Field>
-              <Reason />
-              <label className="tu-check">
-                <input type="checkbox" required />
-                {t('tuition.consent')}
-              </label>
-              <MutationError error={mutation.error} />
-              <Button busy={mutation.isPending}>{t('tuition.requestChange')}</Button>
-            </form>
-          ))}
-      </section>
-      {!detail.handovers.length ? (
-        <p>{t('tuition.noHistory')}</p>
-      ) : (
-        detail.handovers.map((h) => <HandoverCard key={`${h.id}:${h.status}`} handover={h} />)
-      )}
+      {parent && <TutorChangeRequest enrollment={detail.enrollment} handovers={detail.handovers} />}
+      {detail.handovers.map((h) => (
+        <HandoverCard key={`${h.id}:${h.status}`} handover={h} />
+      ))}
     </div>
   )
 }
@@ -1936,11 +1937,11 @@ function HandoverCard({ handover: h }: { handover: Schema['Handover'] }) {
       <p>{h.reason}</p>
       {h.nextSteps && (
         <>
-          <h3>{t('tuition.nextSteps')}</h3>
+          <h3>{auth.data?.user.role === 'parent' ? 'Admin update' : t('tuition.nextSteps')}</h3>
           <p>{h.nextSteps}</p>
         </>
       )}
-      {auth.data?.user.role === 'mentor' && h.status === 'requested' && (
+      {auth.data?.user.role === 'mentor' && h.status === 'requested' && h.newTutorId && (
         <form
           className="tu-stack"
           onSubmit={(event) => {
@@ -1953,15 +1954,6 @@ function HandoverCard({ handover: h }: { handover: Schema['Handover'] }) {
           </Field>
           <Button busy={mutation.isPending}>{t('tuition.prepareHandover')}</Button>
         </form>
-      )}
-      {auth.data?.user.role === 'parent' && ['requested', 'awaiting_tutor'].includes(h.status) && (
-        <Button
-          variant="secondary"
-          busy={mutation.isPending}
-          onClick={() => mutation.mutate({ action: 'cancel' })}
-        >
-          {t('tuition.withdraw')}
-        </Button>
       )}
       <MutationError error={mutation.error} />
     </article>

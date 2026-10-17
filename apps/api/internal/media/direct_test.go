@@ -30,12 +30,12 @@ func TestDirectCloudinaryCapabilities(t *testing.T) {
 			t.Fatal("secret exposed")
 		}
 	}
-	raw := c.Delivery(id, "image", "png", false, false, now)
+	raw := c.Delivery(id, "image", "png", false, false, now, now.Add(5*time.Minute))
 	u, _ := url.Parse(raw)
 	if u.Query().Get("expires_at") != "1700000300" || u.Query().Get("attachment") != "false" || u.Query().Get("type") != "authenticated" {
 		t.Fatal("delivery is not bounded/private")
 	}
-	preview, _ := url.Parse(c.Delivery(id, "image", "png", false, true, now))
+	preview, _ := url.Parse(c.Delivery(id, "image", "png", false, true, now, now.Add(5*time.Minute)))
 	p := preview.Query()
 	if p.Get("format") != "webp" || p.Get("transformation") != "c_limit,h_640,w_640/q_auto" || p.Get("expires_at") != "1700000300" || p.Get("type") != "authenticated" {
 		t.Fatal("preview is not optimized and private")
@@ -48,10 +48,18 @@ func TestDirectCloudinaryCapabilities(t *testing.T) {
 		t.Fatal("preview transformation is not signed")
 	}
 	for _, kind := range []string{"image", "raw", "video"} {
-		original, _ := url.Parse(c.Delivery(id, kind, "png", true, true, now))
+		original, _ := url.Parse(c.Delivery(id, kind, "png", true, true, now, now.Add(5*time.Minute)))
 		if original.Query().Get("transformation") != "" || original.Query().Get("format") != "png" {
 			t.Fatal("download changed the original")
 		}
+	}
+	short, _ := url.Parse(c.Delivery(id, "raw", "pdf", true, false, now, now.Add(12*time.Second)))
+	if short.Query().Get("expires_at") != "1700000012" {
+		t.Fatal("subscription deadline ignored")
+	}
+	long, _ := url.Parse(c.Delivery(id, "raw", "pdf", true, false, now, now.Add(time.Hour)))
+	if long.Query().Get("expires_at") != "1700000300" {
+		t.Fatal("delivery exceeds maximum lifetime")
 	}
 	response := Asset{PublicID: id, ResourceType: "image", Type: "authenticated", Format: "png", Bytes: 50, Version: 1, AssetID: "asset-id", ETag: "etag", URL: "https://attacker.invalid/file"}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

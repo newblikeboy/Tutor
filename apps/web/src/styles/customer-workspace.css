@@ -49,9 +49,6 @@
   :is(a, button):focus-visible {
   outline-color: var(--teal);
 }
-.desk-shell[data-role='parent'] .desk-main {
-  padding: 32px 36px 44px;
-}
 .desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-page-heading {
   align-items: start;
   margin-bottom: 24px;
@@ -171,9 +168,6 @@
   }
 }
 @media (max-width: 760px) {
-  .desk-shell[data-role='parent'] .desk-main {
-    padding: 24px 18px 32px;
-  }
   .customer-hero {
     padding: 24px;
     grid-template-columns: minmax(0, 1fr) 110px;

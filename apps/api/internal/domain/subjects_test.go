@@ -7,20 +7,20 @@ import (
 
 func TestClassBasedBookingSubjects(t *testing.T) {
 	for _, class := range []int{1, 5} {
-		got, err := BookingSubjects(class, []string{AllSubjects})
+		got, err := BookingSubjects(class, []string{AllSubjects}, InitialSubjectNames)
 		if err != nil || !reflect.DeepEqual(got, []string{AllSubjects}) {
 			t.Fatal(got, err)
 		}
-		if _, err = BookingSubjects(class, []string{"Mathematics"}); err == nil {
+		if _, err = BookingSubjects(class, []string{"Mathematics"}, InitialSubjectNames); err == nil {
 			t.Fatal("individual primary-class subject accepted")
 		}
 	}
-	got, err := BookingSubjects(6, []string{"Science", "Mathematics"})
+	got, err := BookingSubjects(6, []string{"Science", "Mathematics"}, InitialSubjectNames)
 	if err != nil || !reflect.DeepEqual(got, []string{"Mathematics", "Science"}) {
 		t.Fatal(got, err)
 	}
 	for _, subjects := range [][]string{nil, {AllSubjects}, {"Science", "Science"}, {"Unknown"}} {
-		if _, err := BookingSubjects(6, subjects); err == nil {
+		if _, err := BookingSubjects(6, subjects, InitialSubjectNames); err == nil {
 			t.Fatalf("invalid subjects accepted: %v", subjects)
 		}
 	}

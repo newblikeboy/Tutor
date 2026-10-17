@@ -75,6 +75,8 @@ export function errorKey(error: unknown): string {
   return (
     (
       {
+        subject_unavailable: 'subjectMaster.unavailable',
+        subjects_unconfigured: 'subjectMaster.notLoaded',
         schedule_conflict: 'failureConflict',
         interview_conflict: 'staffOps.failureOverlap',
         interview_validation: 'staffOps.failureInterview',
@@ -104,6 +106,8 @@ export function errorKey(error: unknown): string {
         guardian_unconfigured: 'parent.guardianUnavailable',
         learner_draft_stale: 'parent.draftStale',
         learner_stale: 'parent.editStale',
+        learner_in_use: 'parent.deleteInUse',
+        learner_delete_stale: 'parent.deleteStale',
         requirement_in_use: 'parent.needInUse',
         idempotency_conflict: 'parent.saveConflict',
         unauthenticated: 'authRequired',

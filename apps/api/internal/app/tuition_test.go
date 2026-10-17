@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
 	"net/http/cookiejar"
@@ -13,6 +14,7 @@ import (
 	"time"
 	"tutorplatform/internal/config"
 	"tutorplatform/internal/domain"
+	"tutorplatform/internal/media"
 	"tutorplatform/internal/payments"
 	"tutorplatform/internal/storage"
 )
@@ -143,6 +145,7 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 	replacement := client("tutor-arjun", srv.URL)
 	mentor := client("mentor-a", srv.URL)
 	finance := client("finance-a", srv.URL)
+	admin := client("admin-a", srv.URL)
 	consent := p.ok("POST", "/consents", map[string]any{"relationship": "parent", "accepted": true}, 201)
 	learner := p.ok("POST", "/learners", map[string]any{"name": "Fictional tuition learner", "class": 8, "board": "CBSE", "language": "Hindi", "kind": "minor", "consentId": consent["id"]}, 201)
 	trial := domain.Trial{ID: "reviewed-tuition-fixture", OwnerID: "parent-a", TutorID: "tutor-meera", MentorID: "mentor-a", LearnerID: learner["id"].(string), LearnerName: "Fictional tuition learner", Subject: "Mathematics", Class: 8, Status: "reviewed", Start: a.Now().Add(-48 * time.Hour), End: a.Now().Add(-47 * time.Hour)}
@@ -290,6 +293,58 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 		other.ok("POST", "/notifications/"+notificationID+"/read", map[string]any{}, 404)
 		tutor.ok("POST", "/notifications/"+notificationID+"/read", map[string]any{}, 200)
 	})
+	t.Run("message attachments are verified owned and bound once", func(t *testing.T) {
+		files := []domain.PrivateFile{}
+		for i, mime := range []string{"image/png", "application/pdf", "application/pdf"} {
+			file := domain.PrivateFile{ID: "message-file-" + token(), TargetKind: "enrollment", TargetID: v.ID, UploaderID: "parent-a", Name: fmt.Sprintf("evidence-%d.pdf", i), ContentType: mime, Size: 50, ObjectKey: token(), Provider: "cloudinary", PublicID: "private-uploads/" + token(), ResourceType: "raw", Status: "ready", CreatedAt: a.Now(), MessageDraft: true}
+			if _, err := s.C("files").InsertOne(ctx, file); err != nil {
+				t.Fatal(err)
+			}
+			files = append(files, file)
+		}
+		if _, err := s.C("files").UpdateOne(ctx, bson.M{"_id": files[2].ID}, bson.M{"$set": bson.M{"status": "uploading"}}); err != nil {
+			t.Fatal(err)
+		}
+		a.DirectFiles = media.NewCloudinaryDirect("fixture-cloud", "fixture-key", "fixture-secret")
+		p.http.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		tutor.http.CheckRedirect = p.http.CheckRedirect
+		tutor.ok("GET", "/files/"+files[0].ID+"/download", nil, 404)
+		page := tutor.ok("GET", "/enrollments/"+v.ID+"/files", nil, 200)
+		for _, row := range page["items"].([]any) {
+			if row.(map[string]any)["id"] == files[0].ID {
+				t.Fatal("unsent draft exposed")
+			}
+		}
+		send := func(ids []string, key string, want int) map[string]any {
+			status, data, raw := p.call("POST", "/enrollments/"+v.ID+"/messages", map[string]any{"body": "", "attachmentIds": ids}, map[string]string{"Idempotency-Key": key})
+			if status != want {
+				t.Fatalf("attachments expected %d got %d %s", want, status, raw)
+			}
+			return data
+		}
+		send([]string{files[0].ID, files[0].ID}, token(), 422)
+		send([]string{files[2].ID}, token(), 409)
+		send([]string{files[0].ID, files[1].ID, files[2].ID, "fourth"}, token(), 422)
+		other.ok("POST", "/enrollments/"+v.ID+"/messages", map[string]any{"body": "Foreign attachment", "attachmentIds": []string{files[0].ID}}, 404)
+		if status, _, raw := tutor.call("POST", "/enrollments/"+v.ID+"/messages", map[string]any{"body": "Not my upload", "attachmentIds": []string{files[0].ID}}, map[string]string{"Idempotency-Key": token()}); status != 404 {
+			t.Fatalf("foreign uploader %d %s", status, raw)
+		}
+		key := token()
+		first := send([]string{files[0].ID, files[1].ID}, key, 201)
+		repeat := send([]string{files[0].ID, files[1].ID}, key, 201)
+		if first["id"] != repeat["id"] || len(first["attachments"].([]any)) != 2 {
+			t.Fatal("attachment retry duplicated", first, repeat)
+		}
+		send([]string{files[0].ID}, token(), 404)
+		tutor.ok("GET", "/files/"+files[0].ID+"/download", nil, 302)
+		before := detail(p, v.ID)
+		for _, c := range []*testClient{p, tutor} {
+			c.ok("POST", "/enrollments/"+v.ID+"/action", map[string]any{"action": "pause", "version": before.Enrollment.Version, "reason": "This pause should not be allowed"}, 422)
+		}
+		if detail(p, v.ID).Enrollment.Status != "active" {
+			t.Fatal("pause changed the booking")
+		}
+	})
 	t.Run("both parties agree reschedule and old time is released atomically", func(t *testing.T) {
 		d := detail(p, v.ID)
 		s := d.Sessions[0]
@@ -327,10 +382,53 @@ func TestAtlasTuitionContinuity(t *testing.T) {
 		}
 	})
 	t.Run("family-authorised handover reserves replacement and revokes old tutor", func(t *testing.T) {
-		h := p.ok("POST", "/enrollments/"+v.ID+"/handovers", map[string]any{"tutorId": "tutor-arjun", "reason": "Family requests supported tutor continuity", "consent": true}, 201)
+		p.ok("POST", "/enrollments/"+v.ID+"/handovers", map[string]any{"tutorId": "tutor-arjun", "reason": "Parent cannot select a replacement directly", "consent": true}, 422)
+		p.ok("POST", "/enrollments/"+v.ID+"/handovers", map[string]any{"reason": "Parent requests a supported change", "consent": false}, 422)
+		other.ok("POST", "/enrollments/"+v.ID+"/handovers", map[string]any{"reason": "Foreign booking must be inaccessible", "consent": true}, 404)
+		request := map[string]any{"reason": "Family requests supported tutor continuity", "consent": true}
+		rejectedStatus, rejected, rawReject := p.call("POST", "/enrollments/"+v.ID+"/handovers", request, map[string]string{"Idempotency-Key": token()})
+		if rejectedStatus != 201 {
+			t.Fatalf("request for review %d %s", rejectedStatus, rawReject)
+		}
+		admin.ok("POST", "/handovers/"+rejected["id"].(string)+"/action", map[string]any{"action": "reject", "nextSteps": "Discussed this request and explained why a change is unavailable."}, 200)
+		if detail(p, v.ID).Enrollment.TutorID != "tutor-meera" {
+			t.Fatal("declining changed assignment")
+		}
+		key := token()
+		status, h, raw := p.call("POST", "/enrollments/"+v.ID+"/handovers", request, map[string]string{"Idempotency-Key": key})
+		if status != 201 {
+			t.Fatalf("request %d %s", status, raw)
+		}
+		_, repeat, _ := p.call("POST", "/enrollments/"+v.ID+"/handovers", request, map[string]string{"Idempotency-Key": key})
+		if h["id"] != repeat["id"] {
+			t.Fatal("duplicate request")
+		}
 		id := h["id"].(string)
+		if len(detail(tutor, v.ID).Handovers) != 0 {
+			t.Fatal("current tutor saw private parent request")
+		}
+		if h["newTutorId"] != "" {
+			t.Fatal("parent selected replacement", h)
+		}
+		if status, _, raw := p.call("POST", "/enrollments/"+v.ID+"/handovers", request, map[string]string{"Idempotency-Key": token()}); status != 409 {
+			t.Fatalf("duplicate request %d %s", status, raw)
+		}
+		p.ok("GET", "/admin/tutor-changes", nil, 403)
+		mentor.ok("GET", "/admin/tutor-changes", nil, 403)
+		finance.ok("GET", "/admin/tutor-changes", nil, 403)
+		admin.ok("GET", "/admin/tutor-changes/"+id, nil, 200)
+		admin.ok("GET", "/enrollments/"+v.ID+"/messages", nil, 403)
 		replacement.ok("GET", "/enrollments/"+v.ID, nil, 404)
-		mentor.ok("POST", "/handovers/"+id+"/action", map[string]any{"action": "prepare", "nextSteps": "Preserve both plan versions and start with thirds on number lines."}, 200)
+		mentor.ok("POST", "/handovers/"+id+"/action", map[string]any{"action": "prepare", "nextSteps": "A new request must be handled by admin."}, 403)
+		admin.ok("POST", "/handovers/"+id+"/action", map[string]any{"action": "prepare", "tutorId": "tutor-meera", "nextSteps": "Keep the current approved subject scope."}, 422)
+		// Retained consent for a named tutor cannot be silently redirected by admin.
+		legacy := domain.Handover{ID: token(), EnrollmentID: v.ID, OldTutorID: "tutor-meera", NewTutorID: "tutor-arjun", Reason: "Retained explicit family choice", Status: "requested", FamilyConsentAt: a.Now(), CreatedAt: a.Now()}
+		if _, err := s.C("handovers").InsertOne(ctx, legacy); err != nil {
+			t.Fatal(err)
+		}
+		admin.ok("POST", "/handovers/"+legacy.ID+"/action", map[string]any{"action": "prepare", "tutorId": "another-tutor", "nextSteps": "A different target needs new family consent."}, 409)
+		p.ok("POST", "/handovers/"+legacy.ID+"/action", map[string]any{"action": "cancel"}, 200)
+		admin.ok("POST", "/handovers/"+id+"/action", map[string]any{"action": "prepare", "tutorId": "tutor-arjun", "nextSteps": "Preserve both plan versions and start with thirds on number lines."}, 200)
 		replacement.ok("POST", "/handovers/"+id+"/action", map[string]any{"action": "accept"}, 200)
 		tutor.ok("GET", "/enrollments/"+v.ID, nil, 404)
 		tutor.ok("GET", "/enrollments/"+v.ID+"/messages", nil, 404)

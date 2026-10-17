@@ -7,6 +7,24 @@ export function activityNotification(
   t: TFunction,
 ) {
   const target = encodeURIComponent(item.targetId)
+  if (item.kind === 'tutor_change_requested' && role === 'admin')
+    return {
+      title: 'New tutor-change request',
+      href: `/tutor-changes?request=${target}`,
+      action: 'Review request',
+    }
+  if (item.kind === 'tutor_change_invitation')
+    return {
+      title: 'You have a tutor-change invitation',
+      href: '/tuition',
+      action: 'Review invitation',
+    }
+  if (item.kind === 'tutor_change_update')
+    return {
+      title: 'Your tutor-change request has an update',
+      href: `/tuition/${target}?tab=handover`,
+      action: 'View request',
+    }
   if (item.kind.startsWith('interview_'))
     return {
       title: 'Tutor interview updated',

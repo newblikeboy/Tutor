@@ -1,0 +1,153 @@
+.family-bookings {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.family-bookings header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+}
+.family-bookings h2 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+}
+.family-bookings header p {
+  font-size: 13px;
+  margin-top: 6px;
+}
+.family-booking-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  min-height: 76px;
+}
+.family-booking-row:hover {
+  background: var(--gc-sage-soft);
+}
+.family-booking-row p,
+.family-bookings-more {
+  font-size: 13px;
+  margin-top: 6px;
+}
+.family-booking-test {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.family-bookings-more {
+  padding: 0 20px 16px;
+}
+.parent-discovery-link {
+  justify-self: start;
+}
+.tutor-acceptance-list {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  background: var(--surface);
+}
+.tutor-acceptance-list h2 {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.tutor-acceptance-list > p {
+  margin-top: 8px;
+  font-size: 14px;
+}
+.tutor-acceptance-list a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+  color: var(--teal);
+  font-weight: 600;
+  font-size: 14px;
+}
+.tutor-acceptance-list a:first-of-type {
+  margin-top: 16px;
+}
+.tutor-home .google-connection {
+  background: var(--surface);
+}
+.booking-next-class {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: var(--gc-sage-soft);
+}
+.booking-next-class h2 {
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+.booking-next-class p {
+  font-size: 14px;
+  margin-top: 6px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-overview {
+  background: var(--surface);
+  color: var(--navy);
+  padding: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  gap: 0;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-overview > div {
+  padding: 0 16px;
+  gap: 4px;
+  border: 0;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-overview > div + div {
+  border-left: 1px solid var(--border);
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-overview span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-overview strong {
+  color: var(--navy);
+  font-size: 24px;
+  margin-top: 0;
+}
+@media (max-width: 600px) {
+  .family-booking-row {
+    grid-template-columns: minmax(0, 1fr) 18px;
+    gap: 8px 12px;
+    padding: 14px 16px;
+  }
+  .family-booking-row > div:nth-child(2) {
+    grid-column: 1;
+  }
+  .family-booking-row > svg {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .family-bookings header {
+    padding: 16px;
+  }
+  .family-bookings .text-link {
+    font-size: 13px;
+  }
+  .booking-next-class {
+    padding: 16px;
+  }
+  .booking-next-class > .btn {
+    width: 100%;
+  }
+}

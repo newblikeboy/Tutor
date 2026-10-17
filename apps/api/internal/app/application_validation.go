@@ -9,7 +9,7 @@ import (
 )
 
 // Drafts may be incomplete; both draft and submitted documents are bounded.
-func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) map[string]string {
+func applicationErrors(p domain.TutorApplication, submit bool, now time.Time, subjects []string) map[string]string {
 	errors := map[string]string{}
 	text := func(key, value string, minimum, maximum int) {
 		n := len([]rune(strings.TrimSpace(value)))
@@ -161,7 +161,7 @@ func applicationErrors(p domain.TutorApplication, submit bool, now time.Time) ma
 			errors[prefix+"id"] = "duplicate"
 		}
 		areas[a.ID] = a
-		choice(prefix+"subject", a.Subject, true, "All Subjects", "Mathematics", "Science", "English", "Hindi", "Social Science")
+		choice(prefix+"subject", a.Subject, true, subjects...)
 		number(prefix+"minClass", a.MinClass, 1, 12)
 		number(prefix+"maxClass", a.MaxClass, 1, 12)
 		if a.Subject == domain.AllSubjects && (a.MinClass > 5 || a.MaxClass > 5) {

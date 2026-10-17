@@ -1,3 +1,4 @@
+import { SubjectNames } from './subject-name'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ArrowRight, MapPin } from 'lucide-react'
@@ -5,7 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { api, indiaDate, type Schema } from '../lib/api'
 import { useClock } from '../lib/clock'
 import { Badge, Loading, LoadError } from './ui'
-import { TutorDistance, TutorRecordTable, tutorDistanceNote } from './tutor-record-table'
+import { WorkspaceRecordTable } from './workspace-record-table'
+import { TutorDistance, tutorDistanceNote } from './tutor-distance'
 
 export function TutorBookingsTable({
   bookings,
@@ -27,7 +29,7 @@ export function TutorBookingsTable({
   if (!archive && q.isPending) return <Loading />
   if (!archive && q.isError) return <LoadError retry={() => void q.refetch()} />
   return (
-    <TutorRecordTable
+    <WorkspaceRecordTable
       label={archive ? 'Past regular class bookings' : 'Current regular class bookings'}
       countLabel={`${bookings.length} ${bookings.length === 1 ? 'booking' : 'bookings'} on this page`}
       intro="Open a booking to see its classes, lesson plan and saved agreement."
@@ -77,7 +79,7 @@ export function TutorBookingsTable({
               )}
             </th>
             <td>
-              {(en.agreement.subjects ?? [en.agreement.subject]).join(', ')}
+              <SubjectNames values={en.agreement.subjects ?? [en.agreement.subject]} />
               <p className="student-table-secondary">
                 {en.agreement.mode === 'home' ? 'Home Tuition' : 'Online'}
               </p>
@@ -130,6 +132,6 @@ export function TutorBookingsTable({
           </tr>
         )
       })}
-    </TutorRecordTable>
+    </WorkspaceRecordTable>
   )
 }

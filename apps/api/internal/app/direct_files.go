@@ -35,6 +35,10 @@ func (a *App) createUploadIntent(w http.ResponseWriter, r *http.Request) {
 	if !a.decode(w, r, &in) {
 		return
 	}
+	if kind == "study" && in.ContentType != "application/pdf" {
+		a.error(w, r, domain.Fail(422, "file_type", "Study papers and notes must be PDF files up to 3 MiB."))
+		return
+	}
 	name, resource, format, e := media.UploadMetadata(in.Name, in.ContentType, in.Size, kind == "application" || kind == "public_profile")
 	if e != nil {
 		a.error(w, r, domain.Fail(422, "application_file", "Choose a JPG, PNG or PDF up to 3 MiB, or an application MP4 up to 25 MiB."))
@@ -59,7 +63,12 @@ func (a *App) createUploadIntent(w http.ResponseWriter, r *http.Request) {
 	var file domain.PrivateFile
 	resume := false
 	e = a.Store.Tx(r.Context(), func(ctx context.Context) error {
-		prior, fp, e := a.receipt(ctx, "direct-file:"+u.ID, r.Header.Get("Idempotency-Key"), map[string]any{"kind": kind, "target": target, "name": name, "type": in.ContentType, "size": in.Size})
+		fingerprint := map[string]any{"kind": kind, "target": target, "name": name, "type": in.ContentType, "size": in.Size}
+		messageDraft := kind == "enrollment" && strings.Contains(r.URL.Path, "/messages/files")
+		if messageDraft {
+			fingerprint["messageDraft"] = true
+		}
+		prior, fp, e := a.receipt(ctx, "direct-file:"+u.ID, r.Header.Get("Idempotency-Key"), fingerprint)
 		if e != nil {
 			return e
 		}
@@ -86,6 +95,7 @@ func (a *App) createUploadIntent(w http.ResponseWriter, r *http.Request) {
 		}
 		expiry := a.Now().Add(time.Hour)
 		file = domain.PrivateFile{ID: id, TargetKind: kind, TargetID: target, UploaderID: u.ID, UploaderName: u.Name, Name: name, ContentType: in.ContentType, Size: in.Size, ObjectKey: object, Provider: "cloudinary", PublicID: publicID, ResourceType: resource, Status: "uploading", CreatedAt: a.Now(), UploadExpiresAt: &expiry}
+		file.MessageDraft = messageDraft
 		if e = a.insertPrivateFile(ctx, file); e != nil {
 			return e
 		}
@@ -234,7 +244,7 @@ func (a *App) viewDirectFile(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
-	if e = a.fileAccess(r.Context(), user(r), f.TargetKind, f.TargetID, false); e != nil {
+	if _, e = a.fileReadAccess(r, f); e != nil {
 		a.error(w, r, e)
 		return
 	}
@@ -250,12 +260,13 @@ func (a *App) deliverDirectFile(w http.ResponseWriter, r *http.Request, f domain
 		a.error(w, r, e)
 		return
 	}
-	if e = a.fileAccess(r.Context(), user(r), f.TargetKind, f.TargetID, false); e != nil {
+	expires, e := a.fileReadAccess(r, f)
+	if e != nil {
 		a.error(w, r, e)
 		return
 	}
 	format := map[string]string{"image/jpeg": "jpg", "image/png": "png", "application/pdf": "pdf", "video/mp4": "mp4"}[f.ContentType]
-	location := a.DirectFiles.Delivery(f.PublicID, f.ResourceType, format, attachment, r.URL.Query().Get("preview") == "1", a.Now())
+	location := a.DirectFiles.Delivery(f.PublicID, f.ResourceType, format, attachment, r.URL.Query().Get("preview") == "1", a.Now(), expires)
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	http.Redirect(w, r, location, http.StatusFound)

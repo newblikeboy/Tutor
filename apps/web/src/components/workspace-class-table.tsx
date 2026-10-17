@@ -3,17 +3,27 @@ import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { indiaDate, type Schema } from '../lib/api'
 import { Badge, Empty } from './ui'
-import { TutorRecordTable } from './tutor-record-table'
+import { WorkspaceRecordTable } from './workspace-record-table'
 
-export function TutorClassTable({ sessions }: { sessions: Schema['ClassSession'][] }) {
+export function WorkspaceClassTable({
+  sessions,
+  parent = false,
+}: {
+  sessions: Schema['ClassSession'][]
+  parent?: boolean
+}) {
   const [params] = useSearchParams()
   const { t } = useTranslation()
   if (!sessions.length) return <Empty title="No classes in this booking" />
   return (
-    <TutorRecordTable
+    <WorkspaceRecordTable
       label="Classes in this booking"
       countLabel={`${sessions.length} ${sessions.length === 1 ? 'class' : 'classes'}`}
-      intro="Open a class to join, plan, record attendance or manage its schedule."
+      intro={
+        parent
+          ? 'Open a class to join, view progress, check schedule changes or report a concern.'
+          : 'Open a class to join, plan, record attendance or manage its schedule.'
+      }
       columns={['Class time', 'Subject', 'Status', 'Attendance', 'Progress']}
     >
       {[...sessions]
@@ -65,11 +75,11 @@ export function TutorClassTable({ sessions }: { sessions: Schema['ClassSession']
             </tr>
           )
         })}
-    </TutorRecordTable>
+    </WorkspaceRecordTable>
   )
 }
 
-export function TutorClassBack() {
+export function WorkspaceClassBack() {
   const [params] = useSearchParams()
   const next = new URLSearchParams(params)
   next.delete('class')

@@ -204,6 +204,17 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/account/sessions/{id}/revoke", a.revokeAccountSession)
 		r.Post("/api/v1/account/password", a.changePassword)
 		r.Get("/api/v1/dashboard", a.dashboard)
+		r.Post("/api/v1/admin/subjects", a.saveSubject)
+		r.Put("/api/v1/admin/subjects/{id}", a.saveSubject)
+		r.Get("/api/v1/study", a.studyLibrary)
+		r.Get("/api/v1/study/materials/{id}", a.studyDetail)
+		r.Post("/api/v1/study/materials/{id}/attempts", a.submitStudyQuiz)
+		r.Post("/api/v1/learners/{id}/study-payment", a.createStudyPayment)
+		r.Get("/api/v1/admin/study-materials", a.adminStudyMaterials)
+		r.Post("/api/v1/admin/study-materials", a.saveStudyMaterial)
+		r.Get("/api/v1/admin/study-materials/{id}", a.studyDetail)
+		r.Put("/api/v1/admin/study-materials/{id}", a.saveStudyMaterial)
+		r.Post("/api/v1/admin/study-materials/{id}/files/upload-intent", a.createUploadIntent)
 		r.Get("/api/v1/staff/overview", a.staffOverview)
 		r.Post("/api/v1/integrations/google/connect", a.googleConnect)
 		r.Get("/api/v1/integrations/google", a.googleStatus)
@@ -245,6 +256,7 @@ func (a *App) Routes() http.Handler {
 		r.Get("/api/v1/tutor/workspace", a.tutorWorkspace)
 		r.Get("/api/v1/tutor/learners/{id}/progress", a.tutorLearnerProgress)
 		r.Put("/api/v1/learners/{id}", a.updateLearner)
+		r.Delete("/api/v1/learners/{id}", a.deleteLearner)
 		r.Get("/api/v1/learner-draft", a.getLearnerDraft)
 		r.Put("/api/v1/learner-draft", a.saveLearnerDraft)
 		r.Delete("/api/v1/learner-draft", a.deleteLearnerDraft)
@@ -267,6 +279,8 @@ func (a *App) Routes() http.Handler {
 		r.Get("/api/v1/{kind:classes|trials}/{id}/meeting/join", a.joinLessonMeeting)
 		r.Post("/api/v1/enrollments/{id}/plans", a.savePlan)
 		r.Post("/api/v1/enrollments/{id}/handovers", a.requestHandover)
+		r.Get("/api/v1/admin/tutor-changes", a.adminTutorChanges)
+		r.Get("/api/v1/admin/tutor-changes/{id}", a.adminTutorChanges)
 		r.Get("/api/v1/handovers/invitations", a.handoverInvitations)
 		r.Post("/api/v1/handovers/{id}/action", a.handoverAction)
 		r.Post("/api/v1/enrollments/{id}/payment", a.createPayment)
@@ -314,6 +328,8 @@ func (a *App) Routes() http.Handler {
 		r.Post("/api/v1/applications/{id}/files", a.uploadFile)
 		r.Post("/api/v1/applications/{id}/files/upload-intent", a.createUploadIntent)
 		r.Post("/api/v1/enrollments/{id}/files/upload-intent", a.createUploadIntent)
+		r.Post("/api/v1/enrollments/{id}/messages/files/upload-intent", a.createUploadIntent)
+		r.Post("/api/v1/enrollments/{id}/messages/files", a.uploadFile)
 		r.Post("/api/v1/files/{id}/complete", a.completeDirectUpload)
 		r.Delete("/api/v1/files/{id}", a.deletePrivateFile)
 		r.Get("/api/v1/files/{id}/view", a.viewDirectFile)
@@ -321,6 +337,7 @@ func (a *App) Routes() http.Handler {
 		r.Get("/api/v1/files/{id}/play", a.downloadFile)
 		r.Post("/api/v1/files/{id}/scan", a.retryFileScan)
 	})
+	r.Get("/api/v1/subjects", a.subjects)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, domain.Fail(404, "not_found", "Route not found."))
 	})
@@ -339,6 +356,10 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 		for _, subject := range subjects {
 			if !validText(subject, 1, 80) {
 				a.error(w, r, domain.Fail(422, "validation", "Choose a valid subject."))
+				return
+			}
+			if err := a.activeSubject(r.Context(), subject, false); err != nil {
+				a.error(w, r, err)
 				return
 			}
 		}
@@ -380,6 +401,19 @@ func (a *App) tutors(w http.ResponseWriter, r *http.Request) {
 		}
 		searchRadiusKM = v
 	}
+	catalog, catalogErr := a.subjectCatalog(r.Context())
+	if catalogErr != nil {
+		a.error(w, r, catalogErr)
+		return
+	}
+	activeSubjects := []string{}
+	for _, subject := range catalog {
+		if subject.Active {
+			activeSubjects = append(activeSubjects, subject.ID)
+		}
+	}
+	conditions, _ := f["$and"].([]bson.M)
+	f["$and"] = append(conditions, bson.M{"$or": []bson.M{{"scope.subject": bson.M{"$in": activeSubjects}}, {"scope.subjects": bson.M{"$in": activeSubjects}}}})
 	items, next, e := a.tutorPage(r.Context(), f, r.URL.Query().Get("cursor"), hasLat, queryLat, queryLng, searchRadiusKM)
 	if e != nil {
 		a.error(w, r, e)

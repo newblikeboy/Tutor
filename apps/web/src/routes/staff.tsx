@@ -1,3 +1,6 @@
+import { ApplicationRows } from '../components/staff-application-rows'
+import { SubjectName, SubjectNames } from '../components/subject-name'
+import { useSubjects } from '../lib/subjects'
 import '../locales/staff'
 import '../locales/audit'
 import '../locales/application'
@@ -933,63 +936,6 @@ function StaffOverview({ queueView }: { queueView: string }) {
   )
 }
 
-function ApplicationRows({ applications, view }: { applications: Application[]; view: string }) {
-  const { t, i18n } = useTranslation()
-  const role = useAuth().data?.user.role
-  const mentor = role === 'mentor'
-  const structured = mentor || role === 'admin'
-  const [params] = useSearchParams()
-  return (
-    <div className="staff-rows">
-      {structured && applications.length > 0 && (
-        <div className={mentor ? 'mentor-list-heading' : 'admin-list-heading'} aria-hidden="true">
-          <span>{t('staffOps.mentorTutorColumn')}</span>
-          <span>{t('staffOps.mentorScopeColumn')}</span>
-          <span>{t('staffOps.status')}</span>
-        </div>
-      )}
-      {applications.map((application) => {
-        const next = new URLSearchParams(params)
-        next.set('view', view)
-        next.set('application', application.id)
-        const scope = application.profile
-          ? application.profile.teachingAreas
-              .map(
-                (area) =>
-                  `${t(`applicationForm.${area.subject}`)} ${area.minClass}–${area.maxClass} · ${area.modes.map((m) => t(`applicationForm.${m}`)).join(' / ')}`,
-              )
-              .join('; ')
-          : `${approvedTutorSubjects(application.scope).join(', ')} · ${t('classes')} ${application.scope.minClass}–${application.scope.maxClass}${structured ? ` · ${tutorModeLabel(application.scope, t)}` : ''}`
-        return (
-          <Link className="staff-row" key={application.id} to={`/workspace?${next}`}>
-            <span className="staff-avatar" aria-hidden="true">
-              {initials(application.name)}
-            </span>
-            <div className="staff-row-person">
-              <strong>{application.name}</strong>
-              {structured ? (
-                application.sample && <p className="staff-sample">{t('sample')}</p>
-              ) : (
-                <p>{scope}</p>
-              )}
-              {view === 'interviews' && application.interview && (
-                <time dateTime={application.interview.start}>
-                  {indiaDate(application.interview.start, i18n.language)}
-                </time>
-              )}
-            </div>
-            {structured && (
-              <p className={mentor ? 'mentor-row-scope' : 'admin-row-scope'}>{scope}</p>
-            )}
-            <Status status={application.status} />
-            <ArrowRight size={17} aria-hidden="true" />
-          </Link>
-        )
-      })}
-    </div>
-  )
-}
-
 function ApplicationQueue({ kind, compact = false }: { kind: string; compact?: boolean }) {
   const { t } = useTranslation()
   const auth = useAuth()
@@ -1040,6 +986,7 @@ function ApplicationQueue({ kind, compact = false }: { kind: string; compact?: b
             <input
               aria-label={t('staffOps.search')}
               value={params.get('q') ?? ''}
+              type="search"
               maxLength={80}
               placeholder={t('staffOps.searchPlaceholder')}
               onChange={(event) => update('q', event.target.value)}
@@ -1122,7 +1069,15 @@ function ApplicationQueue({ kind, compact = false }: { kind: string; compact?: b
         />
       ) : (
         <Empty
+          compact
           title={t(kind === 'interviews' ? 'staffOps.noInterviews' : 'staffOps.noApplications')}
+          body={
+            ['q', 'status', 'assignee', 'mode'].some((key) => params.has(key))
+              ? 'Try another search or clear the filters to see the rest of your queue.'
+              : mentor
+                ? 'Applications assigned to you appear here. Select a record to review its details and next action.'
+                : 'New applications appear here. Open a record to route it to an active mentor.'
+          }
         />
       )}
       {!compact && query.hasNextPage && (
@@ -1190,6 +1145,7 @@ function ApplicationDetail({ id }: { id: string }) {
           label={t('staffOps.applications')}
           value={tab}
           options={tabs}
+          scrollable
           onChange={(value) => {
             const next = new URLSearchParams(params)
             next.set('tab', value)
@@ -1210,7 +1166,7 @@ function ApplicationDetail({ id }: { id: string }) {
                   <div>
                     <dt>{t('staffOps.scope')}</dt>
                     <dd>
-                      {approvedTutorSubjects(a.scope).join(', ')} · {t('classes')}{' '}
+                      <SubjectNames values={approvedTutorSubjects(a.scope)} /> · {t('classes')}{' '}
                       {a.scope.minClass}–{a.scope.maxClass} · {tutorModeLabel(a.scope, t)}
                     </dd>
                   </div>
@@ -1728,6 +1684,7 @@ function FeeForm({ application }: { application: Application }) {
 
 function ApprovalForm({ application }: { application: Application }) {
   const { t } = useTranslation()
+  const subjectCatalog = useSubjects()
   const mutation = useDecision(application)
   const requestedAreas = application.profile?.teachingAreas
     .map((area) => ({
@@ -1831,7 +1788,8 @@ function ApprovalForm({ application }: { application: Application }) {
                 )
               }
             />
-            {subject}
+            <SubjectName value={subject} />
+            {subjectCatalog.isSuccess && !subjectCatalog.isActive(subject) && ' · Inactive'}
           </label>
         ))}
       </fieldset>
@@ -1894,6 +1852,8 @@ function ApprovalForm({ application }: { application: Application }) {
           disabled={
             !modes.length ||
             !subjects.length ||
+            !subjectCatalog.isSuccess ||
+            subjects.some((subject) => !subjectCatalog.isActive(subject)) ||
             invalidClasses ||
             !interviewReady ||
             !application.fees

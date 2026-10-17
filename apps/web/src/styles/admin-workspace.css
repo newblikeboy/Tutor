@@ -163,7 +163,6 @@
   background: var(--admin-surface);
   border-color: var(--admin-line);
   border-radius: 10px;
-  box-shadow: none;
   margin-bottom: 18px;
 }
 .desk-shell[data-role='admin'] .workspace-tabs [role='tab'] {
@@ -175,7 +174,6 @@
   background: var(--admin-soft);
   border-color: #cbd8c4;
   color: var(--navy);
-  box-shadow: none;
 }
 .desk-shell[data-role='admin'] .admin-work-queue > .workspace-tabs {
   border: 0;

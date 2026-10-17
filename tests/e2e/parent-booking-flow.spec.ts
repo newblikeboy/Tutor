@@ -167,7 +167,7 @@ test('parent finder, direct tutor feedback and payment booking follow the learne
     await write(tutorContext.request, `/trials/${trial.id}/action`, { action: 'accept' })
     await mkdir('docs/visual-qa/customer-workspaces/parent', { recursive: true })
     await page.goto(`/workspace?learner=${older.id}`)
-    await expect(page.locator('.parent-next-trial .record-card')).toContainText('Confirmed')
+    await expect(page.locator('.parent-next-summary')).toContainText('Confirmed')
     for (const [size, width] of [
       ['desktop', 1440],
       ['mobile', 390],
@@ -190,6 +190,7 @@ test('parent finder, direct tutor feedback and payment booking follow the learne
     })
     await page.goto(`/workspace?view=sessions&learner=${older.id}&tab=completed`)
     await expect(page.getByText('Feedback ready', { exact: true })).toBeVisible()
+    await page.getByRole('link', { name: /View trial/ }).click()
     await expect(
       page.getByText('Tutor feedback: the learner explained both sets of examples clearly.'),
     ).toBeVisible()

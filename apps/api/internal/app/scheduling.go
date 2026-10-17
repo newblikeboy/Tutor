@@ -131,14 +131,14 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 		if !enum(mode, "online", "home") {
 			return domain.Fail(422, "validation", "Select a teaching mode.")
 		}
-		l, er := storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": learnerID, "ownerId": u.ID})
+		l, er := a.referenceLearner(ctx, u.ID, learnerID)
 		if er != nil {
 			return er
 		}
 		if er = a.checkLearnerConsent(ctx, u.ID, LearnerInput{Kind: l.Kind, ConsentID: l.ConsentID}); er != nil {
 			return er
 		}
-		subjects, er := domain.BookingSubjects(l.Class, selected)
+		subjects, er := a.bookingSubjects(ctx, l.Class, selected)
 		if er != nil {
 			return er
 		}

@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { BookOpen, Check, CheckCircle2, ChevronRight, Compass, ShieldCheck } from 'lucide-react'
 
 import { Alert, Badge, Button, Empty, Field, Loading, Modal, PageHeading } from '../components/ui'
+import { TabBar, TabPanel } from '../components/workspace-tabs'
+import { WorkspaceRecordTable } from '../components/workspace-record-table'
+import '../styles/component-library.css'
 export function LearningPreview() {
   const { t } = useTranslation()
   return (
@@ -74,86 +77,120 @@ export function Showcase() {
   const { t } = useTranslation()
   const [tab, setTab] = useState('controls')
   return (
-    <div className="container section">
+    <div className="container section component-library">
       <PageHeading title={t('showcaseTitle')} body={t('showcaseBody')} />
-      <div className="tabs" role="tablist" aria-label={t('components')}>
-        {['controls', 'states'].map((key) => (
-          <button
-            key={key}
-            role="tab"
-            aria-selected={tab === key}
-            tabIndex={tab === key ? 0 : -1}
-            onClick={() => setTab(key)}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                setTab(tab === 'controls' ? 'states' : 'controls')
-                ;(
-                  e.currentTarget.parentElement?.querySelector(
-                    `[aria-selected="false"]`,
-                  ) as HTMLElement
-                )?.focus()
-              }
-            }}
-          >
-            {t(key)}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" className="panel">
-        {tab === 'controls' ? (
-          <>
-            <div className="button-row">
-              <Button>
-                {t('save')}
-                <ChevronRight size={16} />
-              </Button>
-              <Button variant="secondary">{t('back')}</Button>
-              <Button disabled>{t('unavailable')}</Button>
-              <Button busy>{t('saving')}</Button>
-            </div>
-            <div className="form-grid">
-              <Field label={t('name')}>
-                <input placeholder={t('name')} />
-              </Field>
-              <Field label={t('authPassword')} hint={t('authPasswordHint')}>
-                <input type="password" autoComplete="new-password" />
-              </Field>
-              <Field label={t('startTime')}>
-                <input type="datetime-local" />
-              </Field>
-              <Field label={t('subject')}>
-                <select>
-                  <option>{t('math')}</option>
-                </select>
-              </Field>
-            </div>
-            <Modal
-              title={t('dialogTitle')}
-              description={t('dialogBody')}
-              trigger={<Button variant="secondary">{t('dialog')}</Button>}
+      <TabBar
+        id="component-examples"
+        label={t('components')}
+        value={tab}
+        scrollable
+        options={[
+          { value: 'controls', label: t('controls') },
+          { value: 'states', label: t('states') },
+          { value: 'tables', label: 'Tables' },
+        ]}
+        onChange={setTab}
+      />
+      <TabPanel id="component-examples" value="controls" active={tab === 'controls'} preserve>
+        <div className="panel component-examples">
+          <h2>Controls and form fields</h2>
+          <div className="button-row">
+            <Button>
+              {t('save')}
+              <ChevronRight size={16} />
+            </Button>
+            <Button variant="secondary">{t('back')}</Button>
+            <Button disabled>{t('unavailable')}</Button>
+            <Button busy>{t('saving')}</Button>
+          </div>
+          <div className="form-grid">
+            <Field label={t('name')}>
+              <input placeholder={t('name')} />
+            </Field>
+            <Field label={t('authPassword')} hint={t('authPasswordHint')}>
+              <input type="password" autoComplete="new-password" />
+            </Field>
+            <Field label={t('startTime')}>
+              <input type="datetime-local" />
+            </Field>
+            <Field label={t('subject')}>
+              <select>
+                <option>{t('math')}</option>
+              </select>
+            </Field>
+          </div>
+          <p id="example-input-instructions" className="hint">
+            These fields demonstrate how instructions and validation are presented together.
+          </p>
+          <div className="form-grid">
+            <Field
+              label="Example name with an error"
+              hint="Enter a full name."
+              error="Add a name to continue."
             >
-              <Field label={t('name')}>
-                <input />
-              </Field>
-            </Modal>
-            <div className="badge-row">
-              <Badge>
-                <CheckCircle2 size={14} />
-                {t('scoped')}
-              </Badge>
-              <Badge tone="amber">{t('wait')}</Badge>
-              <Badge tone="neutral">{t('draft')}</Badge>
-            </div>
-          </>
-        ) : (
-          <>
-            <Alert kind="success">{t('actionSuccess')}</Alert>
-            <Alert kind="error">{t('actionError')}</Alert>
-            <Loading />
-            <Empty title={t('empty')} />
-          </>
-        )}
-      </div>
+              <input aria-describedby="example-input-instructions" />
+            </Field>
+            <Field label="Example selection with an error" error="Choose an option to continue.">
+              <select defaultValue="">
+                <option value="">Choose an option</option>
+                <option value="example">Illustrative option</option>
+              </select>
+            </Field>
+          </div>
+          <Modal
+            title={t('dialogTitle')}
+            description={t('dialogBody')}
+            trigger={<Button variant="secondary">{t('dialog')}</Button>}
+          >
+            <Field label={t('name')}>
+              <input />
+            </Field>
+          </Modal>
+          <div className="badge-row">
+            <Badge>
+              <CheckCircle2 size={14} />
+              {t('scoped')}
+            </Badge>
+            <Badge tone="amber">{t('wait')}</Badge>
+            <Badge tone="neutral">{t('draft')}</Badge>
+          </div>
+        </div>
+      </TabPanel>
+      <TabPanel id="component-examples" value="states" active={tab === 'states'}>
+        <div className="panel component-examples">
+          <h2>Feedback examples</h2>
+          <p>Illustrative states only. No account action has been performed.</p>
+          <Alert kind="success">{t('actionSuccess')}</Alert>
+          <Alert kind="error">{t('actionError')}</Alert>
+          <Loading />
+          <Empty title={t('empty')} />
+        </div>
+      </TabPanel>
+      <TabPanel id="component-examples" value="tables" active={tab === 'tables'} preserve>
+        <WorkspaceRecordTable
+          label="Example class records"
+          countLabel="2 fictional records"
+          intro="Illustrative rows showing the same table used in workspaces."
+          columns={['Student', 'Subject', 'Class date', 'Status']}
+        >
+          <tr>
+            <th scope="row">Example student A</th>
+            <td>Mathematics</td>
+            <td>17 October 2026</td>
+            <td>
+              <Badge tone="neutral">Scheduled example</Badge>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Example student B with a longer display name</th>
+            <td>Science</td>
+            <td>18 October 2026</td>
+            <td>
+              <Badge tone="neutral">Scheduled example</Badge>
+            </td>
+          </tr>
+        </WorkspaceRecordTable>
+      </TabPanel>
       <div className="showcase-preview">
         <LearningPreview />
       </div>

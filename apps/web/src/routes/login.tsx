@@ -471,7 +471,8 @@ export default function Login() {
                 </Button>
                 {signup && (
                   <p className="auth-privacy">
-                    {t('authPrivacyIntro')} <Link to="/privacy">{t('authPrivacyLink')}</Link>.
+                    {t('authPrivacyIntro')} <Link to="/privacy-policy">{t('authPrivacyLink')}</Link>
+                    . <Link to="/terms-of-service">{t('termsOfService')}</Link>
                   </p>
                 )}
               </form>

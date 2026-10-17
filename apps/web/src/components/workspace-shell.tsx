@@ -41,6 +41,7 @@ import {
 } from '../lib/workspace'
 import type { WorkspaceView } from '../lib/workspace'
 import { useClock } from '../lib/clock'
+import { isInformationPath } from '../lib/public-pages'
 import { Alert, Button, Loading, LoadError, Modal, MutationError } from './ui'
 import { CurrentLocationButton, locationLabel, type StoredLocation } from './location-search'
 import { NotificationBell } from './notification-bell'
@@ -50,7 +51,7 @@ import '../styles/teaching-shell.css'
 import '../styles/mentor-workspace.css'
 import '../styles/admin-workspace.css'
 import '../styles/customer-workspace.css'
-import '../styles/tutor-experience.css'
+import '../styles/customer-experience.css'
 
 const icons: Record<WorkspaceView, typeof BookOpen> = {
   overview: LayoutDashboard,
@@ -143,6 +144,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   if (
     applicant &&
     !['/apply', '/account', '/notifications', '/billing'].includes(pathname) &&
+    !isInformationPath(pathname) &&
     !pathname.startsWith('/cases')
   )
     return <Navigate to="/apply" replace />
@@ -159,49 +161,57 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     return <Navigate to={`/tutor-profile?section=${section}`} replace />
   }
   const section =
-    pathname === '/tutor-profile'
-      ? 'My profile'
-      : pathname === '/tutors'
-        ? 'Find a tutor'
-        : pathname.startsWith('/tutors/')
-          ? 'Tutor profile'
-          : pathname === '/account'
-            ? t(['parent', 'tutor'].includes(user.role) ? 'parent.account' : 'account.title')
-            : pathname.startsWith('/cases')
-              ? t(['parent', 'tutor'].includes(user.role) ? 'parent.help' : 'cases.title')
-              : pathname === '/notifications'
-                ? t('tuition.notifications')
-                : pathname.startsWith('/billing')
-                  ? user.role === 'tutor'
-                    ? 'Earnings & payouts'
-                    : params.get('tab') === 'business'
-                      ? 'Business & taxes'
-                      : t(user.role === 'parent' ? 'parent.payments' : 'billing.title')
-                  : pathname.startsWith('/tuition')
-                    ? t(user.role === 'parent' ? 'parent.classes' : 'tuition.title')
-                    : pathname === '/availability'
-                      ? t('tuition.availability')
-                      : pathname === '/match'
-                        ? t(
-                            params.get('edit') === '1'
-                              ? 'parent.edit'
-                              : params.get('profile') === '1'
-                                ? 'parent.add'
-                                : 'parent.start',
-                          )
-                        : pathname === '/apply'
-                          ? t('applicationTitle')
-                          : user.role === 'tutor' && view === 'learners'
-                            ? params.get('learner')
-                              ? 'Student progress report'
-                              : 'My students'
-                            : user.role === 'tutor' && view === 'sessions' && params.get('trial')
-                              ? 'Trial details'
-                              : user.role === 'mentor'
-                                ? t(`desk.mentorNav.${view}`)
-                                : t(
-                                    `${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${view}`,
-                                  )
+    pathname === '/tutor-changes'
+      ? 'Tutor change requests'
+      : pathname === '/subjects'
+        ? 'Subject master'
+        : pathname === '/study'
+          ? 'Papers, quizzes & notes'
+          : pathname === '/tutor-profile'
+            ? 'My profile'
+            : pathname === '/tutors'
+              ? 'Find a tutor'
+              : pathname.startsWith('/tutors/')
+                ? 'Tutor profile'
+                : pathname === '/account'
+                  ? t(user.role === 'parent' ? 'parent.account' : 'account.title')
+                  : pathname.startsWith('/cases')
+                    ? t(['parent', 'tutor'].includes(user.role) ? 'parent.help' : 'cases.title')
+                    : pathname === '/notifications'
+                      ? t('tuition.notifications')
+                      : pathname.startsWith('/billing')
+                        ? user.role === 'tutor'
+                          ? 'Earnings & payouts'
+                          : params.get('tab') === 'business'
+                            ? 'Business & taxes'
+                            : t(user.role === 'parent' ? 'parent.payments' : 'billing.title')
+                        : pathname.startsWith('/tuition')
+                          ? t(user.role === 'parent' ? 'parent.classes' : 'tuition.title')
+                          : pathname === '/availability'
+                            ? t('tuition.availability')
+                            : pathname === '/match'
+                              ? t(
+                                  params.get('edit') === '1'
+                                    ? 'parent.edit'
+                                    : params.get('profile') === '1'
+                                      ? 'parent.add'
+                                      : 'parent.start',
+                                )
+                              : pathname === '/apply'
+                                ? t('applicationTitle')
+                                : user.role === 'tutor' && view === 'learners'
+                                  ? params.get('learner')
+                                    ? 'Student progress report'
+                                    : 'My students'
+                                  : user.role === 'tutor' &&
+                                      view === 'sessions' &&
+                                      params.get('trial')
+                                    ? 'Trial details'
+                                    : user.role === 'mentor'
+                                      ? t(`desk.mentorNav.${view}`)
+                                      : t(
+                                          `${['parent', 'tutor'].includes(user.role) ? 'parent' : 'desk'}.nav.${view}`,
+                                        )
   const navigationViews = applicant ? [] : workspaceNavigationViews(user.role)
   function workspaceNavigationItem(item: WorkspaceView) {
     const Icon = icons[item]
@@ -209,7 +219,10 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     return (
       <Link
         key={item}
-        to={workspaceLink(item, user.role === 'parent' ? params.get('learner') : null)}
+        to={workspaceLink(
+          item,
+          user.role === 'parent' && item !== 'learners' ? params.get('learner') : null,
+        )}
         className={active ? 'active' : undefined}
         aria-current={active ? 'page' : undefined}
       >
@@ -281,6 +294,36 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             {t(user.role === 'parent' ? 'parent.classes' : 'tuition.title')}
           </Link>
         )}
+        {user.role === 'admin' && (
+          <Link
+            to="/tutor-changes"
+            className={pathname === '/tutor-changes' ? 'active' : undefined}
+            aria-current={pathname === '/tutor-changes' ? 'page' : undefined}
+          >
+            <BookOpen size={19} aria-hidden="true" />
+            Tutor changes
+          </Link>
+        )}
+        {user.role === 'admin' && (
+          <Link
+            to="/subjects"
+            className={pathname === '/subjects' ? 'active' : undefined}
+            aria-current={pathname === '/subjects' ? 'page' : undefined}
+          >
+            <BookOpen size={19} aria-hidden="true" />
+            Subject master
+          </Link>
+        )}
+        {['parent', 'admin'].includes(user.role) && (
+          <Link
+            to="/study"
+            className={pathname === '/study' ? 'active' : undefined}
+            aria-current={pathname === '/study' ? 'page' : undefined}
+          >
+            <ClipboardCheck size={19} aria-hidden="true" />
+            Papers, quizzes & notes
+          </Link>
+        )}
         {['parent', 'tutor', 'finance', 'admin'].includes(user.role) && (
           <Link
             to="/billing"
@@ -323,6 +366,16 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           >
             <GraduationCap size={19} aria-hidden="true" />
             My profile
+          </Link>
+        )}
+        {user.role === 'parent' && (
+          <Link
+            to="/account"
+            className={pathname === '/account' ? 'active' : undefined}
+            aria-current={pathname === '/account' ? 'page' : undefined}
+          >
+            <Users size={19} aria-hidden="true" />
+            {t('parent.account')}
           </Link>
         )}
         {user.role === 'tutor' && !applicant && (
@@ -390,7 +443,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           <ShieldCheck size={19} aria-hidden="true" />
           {t(['parent', 'tutor'].includes(user.role) ? 'parent.help' : 'cases.title')}
         </Link>
-        {(user.role !== 'tutor' || applicant) && (
+        {((user.role !== 'tutor' && user.role !== 'parent') || applicant) && (
           <Link
             to="/account"
             className={
@@ -407,7 +460,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             }
           >
             <Users size={19} aria-hidden="true" />
-            {t(['parent', 'tutor'].includes(user.role) ? 'parent.account' : 'account.title')}
+            {t(user.role === 'parent' ? 'parent.account' : 'account.title')}
           </Link>
         )}
       </nav>
@@ -499,7 +552,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
               active: pathname === '/workspace' && view === 'overview',
             },
             {
-              to: workspaceLink('learners', user.role === 'parent' ? params.get('learner') : null),
+              to: workspaceLink('learners'),
               label: user.role === 'tutor' ? 'My students' : 'Learners',
               icon: Users,
               active: pathname === '/workspace' && view === 'learners',

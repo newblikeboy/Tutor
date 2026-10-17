@@ -57,7 +57,7 @@ export const authEN = {
   authPrivate: 'Your space, kept private',
   authWorking: 'Just a moment…',
   authPrivacyIntro: 'Your account details stay private. Read our',
-  authPrivacyLink: 'privacy draft',
+  authPrivacyLink: 'privacy policy',
   authCare: 'Learning, with care',
   authTrustAssessment: 'Assessed teaching',
   authTrustContinuity: 'Continued academic support',

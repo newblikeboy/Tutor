@@ -89,12 +89,24 @@ export function Field({
       ? children.props.id
       : generated
   const described =
-    [hint ? `${id}-hint` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined
+    [
+      isValidElement<Record<string, unknown>>(children)
+        ? children.props['aria-describedby']
+        : undefined,
+      hint ? `${id}-hint` : '',
+      error ? `${id}-error` : '',
+    ]
+      .filter((value): value is string => typeof value === 'string' && !!value.trim())
+      .join(' ') || undefined
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
       {isValidElement<Record<string, unknown>>(children)
-        ? cloneElement(children, { id, 'aria-describedby': described })
+        ? cloneElement(children, {
+            id,
+            'aria-describedby': described,
+            'aria-invalid': error ? true : children.props['aria-invalid'],
+          })
         : children}
       {hint && (
         <span id={`${id}-hint`} className="hint">
@@ -143,15 +155,17 @@ export function Empty({
   body,
   children,
   headingLevel = 3,
+  compact = false,
 }: {
   title: string
   body?: string
   children?: ReactNode
   headingLevel?: 2 | 3
+  compact?: boolean
 }) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3'
   return (
-    <div className="empty">
+    <div className={`empty${compact ? ' empty-compact' : ''}`}>
       <span className="empty-icon">
         <Inbox size={26} />
       </span>
@@ -197,6 +211,7 @@ export function Modal({
   drawer?: boolean
 }) {
   const { t } = useTranslation()
+  const descriptionId = useId()
   return (
     <Dialog.Root>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
@@ -204,12 +219,10 @@ export function Modal({
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content
           className={`dialog-content ${drawer ? 'drawer' : ''}`}
-          aria-describedby={description ? 'dialog-description' : undefined}
+          aria-describedby={description ? descriptionId : undefined}
         >
           <Dialog.Title className="dialog-title">{title}</Dialog.Title>
-          {description && (
-            <Dialog.Description id="dialog-description">{description}</Dialog.Description>
-          )}
+          {description && <Dialog.Description id={descriptionId}>{description}</Dialog.Description>}
           <Dialog.Close className="icon-button dialog-close" aria-label={t('close')}>
             <X />
           </Dialog.Close>

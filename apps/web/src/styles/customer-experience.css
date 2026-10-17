@@ -1,0 +1,214 @@
+/* Shared customer task surfaces; existing components retain their data and action gates. */
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-main {
+  max-width: none;
+  padding: 24px 24px 32px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) :is(.desk-topbar, .desk-footnote) {
+  padding-inline: 24px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-page-heading {
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-page-heading h1 {
+  font-size: clamp(26px, 2.5vw, 34px);
+  font-weight: 650;
+  letter-spacing: -1px;
+}
+.tutor-page-description {
+  color: var(--teaching-muted);
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 8px 0 0;
+}
+.parent-payments-title {
+  margin: 0;
+  font-size: clamp(26px, 2.5vw, 34px);
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-page-actions .btn {
+  min-width: 46px;
+  min-height: 46px;
+  font-size: 13px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.tutor-next-time {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.tutor-next-time svg {
+  flex-shrink: 0;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) :is(.tu-panel, .tu-session) {
+  border-color: var(--teaching-line);
+  border-radius: 14px;
+  background: var(--teaching-surface);
+  box-shadow: none;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-panel {
+  padding: 20px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: -0.3px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-panel h2 > svg {
+  color: var(--teal);
+  flex-shrink: 0;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .teacher-filters {
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .teacher-filters a {
+  border-color: var(--teaching-line);
+  border-radius: 9px;
+  background: var(--teaching-surface);
+  text-decoration: none;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .teacher-filters a[aria-current='page'] {
+  color: var(--navy);
+  border-color: #92a77a;
+  background: var(--teaching-soft);
+  font-weight: 600;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .record-card {
+  border: 1px solid var(--teaching-line);
+  border-radius: 14px;
+  box-shadow: none;
+  background: var(--teaching-surface);
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .record-header {
+  background: #f7f9f4;
+  border-bottom-color: var(--teaching-line);
+  padding: 16px 20px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .record-header :is(h2, h3) {
+  font-size: 18px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .record-content {
+  padding: 16px 20px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tutor-preparation p {
+  font-size: 14px;
+  color: var(--teaching-muted);
+  margin-block: 8px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .child-report-heading h2 {
+  font-size: clamp(23px, 2.5vw, 28px);
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor'])
+  :is(.child-report-panel, .child-report-metrics, .child-report-filters) {
+  background: var(--teaching-surface);
+  border-color: var(--teaching-line);
+  border-radius: 14px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .child-report-focus {
+  background: #f3f6ed;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .workspace-tabs {
+  background: var(--teaching-surface);
+  border-color: var(--teaching-line);
+  border-radius: 12px;
+  padding: 6px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .workspace-tabs [role='tab'] {
+  font-size: 13px;
+  border-radius: 8px;
+  min-height: 44px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .workspace-tabs [aria-selected='true'] {
+  background: var(--teaching-soft);
+  border-color: #a4b891;
+}
+
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-page {
+  width: 100%;
+  max-width: none;
+  gap: 20px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .empty {
+  padding: 24px 20px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-page-actions {
+  margin: 0;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .google-connection {
+  padding: 18px;
+  gap: 14px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .google-connection h2 {
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .google-connection p {
+  font-size: 14px;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .google-connection .button-row {
+  margin: 0;
+}
+.tutor-home .customer-hero {
+  grid-template-columns: minmax(0, 1fr) 160px;
+  padding: 24px;
+  border-radius: 18px;
+}
+.tutor-home .customer-hero h2 {
+  font-size: clamp(25px, 2.5vw, 32px);
+  margin: 12px 0 8px;
+}
+.tutor-home .customer-hero .btn {
+  margin-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) :is(.desk-topbar, .desk-footnote) {
+    padding-inline: 12px;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-main {
+    padding: 16px 14px 24px;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-page-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .desk-page-heading h1 {
+    margin-top: 0;
+    font-size: 26px;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .tu-panel {
+    padding: 16px;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .record-header,
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .record-content {
+    padding: 16px;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .google-connection {
+    padding: 16px;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .inbox-layout {
+    min-height: 0;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .inbox-empty {
+    padding: 24px 16px;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .teacher-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 4px;
+    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
+  }
+  .desk-shell:is([data-role='parent'], [data-role='tutor']) .teacher-filters a {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .tutor-home .customer-hero {
+    padding: 18px;
+  }
+}

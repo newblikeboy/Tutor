@@ -252,3 +252,27 @@
     border-color: CanvasText;
   }
 }
+.profile-fee-summary {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.profile-fee-summary h3 {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.profile-price-help {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.profile-price-help summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--teal);
+  font-weight: 600;
+}
+.profile-price-help p {
+  margin-top: 8px;
+}

@@ -1,3 +1,4 @@
+import { SubjectName } from '../components/subject-name'
 import { useState } from 'react'
 import '../styles/home.css'
 
@@ -12,7 +13,6 @@ import { LocationSearchField, type StoredLocation } from '../components/location
 
 import { SubjectSelect } from '../components/subject-select'
 import {
-  Badge,
   Button,
   Empty,
   Field,
@@ -23,6 +23,9 @@ import {
   PageHeading,
 } from '../components/ui'
 import { TutorCard } from '../components/tutor-card'
+import { FilterChip } from '../components/filter-chip'
+import { removeDiscoveryFilter } from '../lib/discovery-filters'
+import { useSubjects } from '../lib/subjects'
 function QuickTutorFinder() {
   const { t } = useTranslation()
   const classOptions = [
@@ -94,7 +97,7 @@ function QuickTutorFinder() {
         </div>
       </div>
       <SubjectSelect value={finderSubjects} onChange={setFinderSubjects} />
-      <Field label={t('landing.finderPreferredTime')}>
+      <Field label={t('landing.finderPreferredTime')} hint={t('searchTimePreferenceHint')}>
         <input
           type="time"
           value={finderTime}
@@ -109,6 +112,7 @@ function QuickTutorFinder() {
 
 export function Search() {
   const { t } = useTranslation()
+  const catalog = useSubjects()
   const [params, setParams] = useSearchParams()
   const subjects = params.getAll('subject').filter(Boolean)
   const language = params.get('language') ?? ''
@@ -261,7 +265,7 @@ export function Search() {
           <p>
             {classFilter ? `${t('classes')} ${classFilter}` : t('allClasses')}
             {` - ${modeLabel}`}
-            {timeFilter ? ` - ${timeFilter}` : ''}
+            {timeFilter ? ` - ${t('searchTimePreference', { time: timeFilter })}` : ''}
             {selectedMode === 'home' && locationText ? ` - ${locationText}` : ''}
           </p>
         </div>
@@ -284,8 +288,10 @@ export function Search() {
       <div className="tutor-results-heading">
         <div>
           <p className="eyebrow">{t('teacherResultsEyebrow')}</p>
-          <h1>{t('searchTitle')}</h1>
-          <p>{t('searchIntro')}</p>
+          <h1>{t('searchResultsTitle')}</h1>
+          <p className={timeFilter ? 'search-time-note' : undefined}>
+            {t(timeFilter ? 'searchTimePreferenceHint' : 'searchResultsIntro')}
+          </p>
         </div>
         <Link to="/tutors" className="text-link">
           {t('editNeed')} <ArrowRight size={17} />
@@ -297,9 +303,11 @@ export function Search() {
           {fields}
         </aside>
         <div className="tutor-results-main">
+          <h2 className="sr-only">{t('tutorResults')}</h2>
           <div className="results-bar">
             <p aria-live="polite">
-              <strong>{query.data ? results.length : '...'}</strong> {t('results')}
+              <strong>{query.data ? results.length : '...'}</strong>{' '}
+              {t('tutorsShown', { count: results.length })}
             </p>
             <div className="mobile-filters">
               <Modal
@@ -316,25 +324,60 @@ export function Search() {
               </Modal>
             </div>
           </div>
-          <div className="filter-chips">
+          <div className="filter-chips" aria-label="Applied search filters">
+            {classFilter && (
+              <FilterChip
+                label={`Remove Class ${classFilter} and subject filters`}
+                onRemove={() => setParams(removeDiscoveryFilter(params, 'class'))}
+              >{`${t('classes')} ${classFilter}`}</FilterChip>
+            )}
             {subjects.map((subject) => (
-              <Badge key={subject} tone="neutral">
-                {subject}
-              </Badge>
+              <FilterChip
+                key={subject}
+                label={`Remove ${catalog.label(subject)} subject filter`}
+                onRemove={() => setParams(removeDiscoveryFilter(params, 'subject', subject))}
+              >
+                <SubjectName value={subject} />
+              </FilterChip>
             ))}
-            {classFilter && <Badge tone="neutral">{`${t('classes')} ${classFilter}`}</Badge>}
-            {selectedMode && <Badge tone="neutral">{modeLabel}</Badge>}
-            {selectedMode === 'home' && locationText && (
-              <Badge tone="neutral">{locationText}</Badge>
+            {selectedMode && (
+              <FilterChip
+                label={`Remove ${modeLabel} mode filter`}
+                onRemove={() => setParams(removeDiscoveryFilter(params, 'mode'))}
+              >
+                {modeLabel}
+              </FilterChip>
             )}
-            {selectedMode === 'home' && latitude && longitude && (
-              <Badge tone="neutral">{t('radiusKm', { count: Number(radiusKm) })}</Badge>
+            {selectedMode === 'home' && (locationText || (latitude && longitude)) && (
+              <FilterChip
+                label="Remove location and distance filters"
+                onRemove={() => setParams(removeDiscoveryFilter(params, 'location'))}
+              >
+                {[
+                  locationText,
+                  latitude && longitude ? t('radiusKm', { count: Number(radiusKm) }) : '',
+                ]
+                  .filter(Boolean)
+                  .join(' \u00b7 ')}
+              </FilterChip>
             )}
-            {timeFilter && <Badge tone="neutral">{timeFilter}</Badge>}
+            {timeFilter && (
+              <FilterChip
+                label="Remove preferred time"
+                onRemove={() => setParams(removeDiscoveryFilter(params, 'time'))}
+              >
+                {t('searchTimePreference', { time: timeFilter })}
+              </FilterChip>
+            )}
             {language && (
-              <button className="filter-chip" onClick={() => filter('language', '')}>
-                {t(language === 'Hindi' ? 'hindi' : 'english')} ?
-              </button>
+              <FilterChip
+                label={t('removeLanguageFilter', {
+                  language: t(language === 'Hindi' ? 'hindi' : 'english'),
+                })}
+                onRemove={() => setParams(removeDiscoveryFilter(params, 'language'))}
+              >
+                {t(language === 'Hindi' ? 'hindi' : 'english')}
+              </FilterChip>
             )}
           </div>
           {query.isPending ? (
@@ -349,7 +392,16 @@ export function Search() {
             </div>
           ) : (
             <Empty title={t('noTutors')} body={t('noTutorsBody')}>
-              <LinkButton to="/match">{t('requestMatch')}</LinkButton>
+              <div className="discovery-empty-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setParams({ searched: '1' })}
+                >
+                  Clear search filters
+                </Button>
+                <LinkButton to="/match">{t('requestMatch')}</LinkButton>
+              </div>
             </Empty>
           )}
           {query.isError && query.data && (

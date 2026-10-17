@@ -42,7 +42,6 @@
   border: 0;
   padding: 0;
   background: transparent;
-  box-shadow: none;
 }
 .notification-popover-body {
   min-height: 0;

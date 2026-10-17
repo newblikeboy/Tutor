@@ -634,12 +634,15 @@ func (a *App) decision(w http.ResponseWriter, r *http.Request) {
 			}
 			seenSubjects := map[string]bool{}
 			for _, subject := range subjects {
-				if !domain.ValidSubject(subject) || seenSubjects[subject] {
+				if seenSubjects[subject] {
 					return domain.Fail(422, "validation", "Choose unique teaching subjects.")
+				}
+				if e = a.activeSubject(ctx, subject, true); e != nil {
+					return e
 				}
 				seenSubjects[subject] = true
 			}
-			if len(subjects) > 6 || len(subjects) == 0 || seenSubjects[domain.AllSubjects] && in.MaxClass > 5 {
+			if len(subjects) > 20 || len(subjects) == 0 || seenSubjects[domain.AllSubjects] && in.MaxClass > 5 {
 				return domain.Fail(422, "validation", "All Subjects approval is limited to Classes 1–5.")
 			}
 			if v.Profile != nil {

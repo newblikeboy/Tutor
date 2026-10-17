@@ -1,22 +1,32 @@
 .student-roster {
+  --gc-table-line: var(--gc-line);
+  --gc-table-surface: var(--gc-surface);
+  --gc-table-muted: var(--gc-muted);
+  --gc-table-soft: var(--gc-sage-soft);
   min-width: 0;
-  border: 1px solid var(--teaching-line);
-  border-radius: 16px;
-  background: var(--teaching-surface);
+  border: 1px solid var(--gc-table-line);
+  border-radius: var(--gc-radius-card);
+  background: var(--gc-table-surface);
   overflow: hidden;
+}
+.desk-shell:is([data-role='parent'], [data-role='tutor']) .student-roster {
+  --gc-table-line: var(--teaching-line);
+  --gc-table-surface: var(--teaching-surface);
+  --gc-table-muted: var(--teaching-muted);
+  --gc-table-soft: var(--teaching-soft);
 }
 .student-roster-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid var(--teaching-line);
+  gap: var(--gc-space-4);
+  padding: var(--gc-space-4);
+  border-bottom: 1px solid var(--gc-table-line);
 }
 .student-roster-heading p {
   margin: 0;
   font-size: 13px;
-  color: var(--teaching-muted);
+  color: var(--gc-table-muted);
 }
 .student-roster-heading p:first-child {
   color: var(--navy);
@@ -24,17 +34,19 @@
   font-size: 16px;
 }
 .student-table-scroll {
+  position: relative;
   overflow-x: auto;
 }
 .student-table {
   width: 100%;
   min-width: 800px;
   border-collapse: collapse;
+  table-layout: fixed;
   text-align: left;
   font-size: 14px;
 }
 .student-table thead {
-  background: var(--teaching-soft);
+  background: var(--gc-table-soft);
 }
 .student-table :is(th, td) {
   padding: 14px 16px;
@@ -45,10 +57,13 @@
 .student-table thead th {
   font-size: 12px;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+}
+.student-table thead th:first-child {
+  width: 24%;
 }
 .student-table tbody tr + tr {
-  border-top: 1px solid var(--teaching-line);
+  border-top: 1px solid var(--gc-table-line);
 }
 .student-table tbody tr:is(:hover, :focus-within) {
   background: #f7f9f3;
@@ -80,7 +95,7 @@
 }
 .student-table .student-table-secondary {
   margin: 5px 0 0;
-  color: var(--teaching-muted);
+  color: var(--gc-table-muted);
   font-size: 12px;
 }
 .student-table .badge {
@@ -107,7 +122,11 @@
   font-weight: 600;
 }
 .student-table-help {
-  display: none;
+  margin: 0;
+  padding: var(--gc-space-2) var(--gc-space-4);
+  color: var(--gc-table-muted);
+  font-size: var(--gc-text-meta);
+  border-bottom: 1px solid var(--gc-table-line);
 }
 .student-distance {
   font-variant-numeric: tabular-nums;
@@ -116,19 +135,10 @@
 .student-distance-note {
   margin: 0;
   padding: 12px 16px;
-  border-top: 1px solid var(--teaching-line);
-  color: var(--teaching-muted);
+  border-top: 1px solid var(--gc-table-line);
+  color: var(--gc-table-muted);
   font-size: 12px;
   line-height: 1.6;
-}
-@media (max-width: 1200px) {
-  .student-table-help {
-    display: block;
-    margin: 0;
-    padding: 12px 20px;
-    color: var(--teaching-muted);
-    font-size: 12px;
-  }
 }
 @media (max-width: 600px) {
   .student-roster-heading {

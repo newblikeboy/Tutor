@@ -42,7 +42,7 @@ test('account preferences, password rotation and cross-browser revocation persis
     ).toBe(200)
     await page.addInitScript(() => localStorage.setItem('language', 'hi'))
     await page.goto('/account')
-    await expect(page.getByRole('heading', { name: 'Account' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'My profile', exact: true })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
     await expect(page.locator('.language-button, .auth-language')).toHaveCount(0)
     await expect(page.getByLabel('Preferred language')).toHaveCount(0)

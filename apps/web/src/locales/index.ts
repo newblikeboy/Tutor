@@ -55,9 +55,9 @@ const en = {
   profile: 'View profile',
   scoped: 'Scope approved',
   viewAll: 'Explore tutors',
-  footer: 'Thoughtful matches. Purposeful learning. Continued support.',
   standards: 'Selection standards',
-  privacy: 'Privacy draft',
+  privacy: 'Privacy Policy',
+  termsOfService: 'Terms of Service',
   components: 'Component library',
   staff: 'Staff sign in',
   faqTitle: 'What parents usually want to know.',
@@ -69,8 +69,7 @@ const en = {
     'Yes. You can search by home tuition or online tuition. Each tutor profile shows the mode, class range and subject that staff approved for that tutor.',
   faq3: 'When will I see fees, availability and next steps?',
   faq3Body:
-    'Tutor profiles show staff-confirmed prices where available. After you share a requirement, the academic team can review the fit, trial timing and learning plan before regular classes begin.',
-  searchTitle: 'Tutors that match your child’s needs.',
+    'Profiles show staff-confirmed prices and available trial times. After a trial, choose your regular package and dates, pay, and track tutor acceptance. Your tutor signs the teaching agreement before classes begin.',
   searchIntro:
     'Choose the class, teaching mode, subjects and preferred time. Then compare tutors by fit, price and teaching style.',
   filters: 'Refine results',
@@ -81,7 +80,15 @@ const en = {
   hindi: 'Hindi',
   science: 'Science',
   reset: 'Clear filters',
-  results: 'matching tutors',
+  tutorsShown_one: 'tutor shown',
+  tutorsShown_other: 'tutors shown',
+  searchResultsTitle: 'Tutors for your child',
+  tutorResults: 'Tutor results',
+  searchResultsIntro: 'Compare teaching experience, approved subjects and fees.',
+  searchTimePreference: 'Preferred time: {{time}}',
+  searchTimePreferenceHint:
+    'Preferred time is a guide. Check available times on the tutor’s profile.',
+  removeLanguageFilter: 'Remove {{language}} language filter',
   parentSearchLocation: 'Search from this location',
   parentSearchLocationHint:
     'Use current location for home tuition distance matching. Exact parent location is used only for this search.',
@@ -306,9 +313,6 @@ const en = {
   dialogTitle: 'A focused conversation',
   dialogBody: 'This dialog traps focus, closes with Escape and returns focus to its trigger.',
   badge: 'Academic review',
-  policyTitle: 'Privacy & operating policies',
-  policyBody:
-    'Draft — requires qualified and operator review. This preview uses fictional records. Do not enter real child information. Live consent, guardian verification, retention, safeguarding, cancellation and payment policies are not yet published.',
   standardsTitle: 'Approval should mean something specific.',
   standardsBody:
     'A tutor applies, an assigned academic assessor records evidence, and approval covers a defined subject, class range and teaching mode. Payment cannot buy approval. Suspended or expired scopes do not accept new trials.',
@@ -320,7 +324,6 @@ const en = {
   all: 'All',
   selected: 'Selected learner',
   until: 'Scope review due',
-  noFounder: 'Founder details and live coverage will be published after operator review.',
   topic: 'Fractions & proportional thinking',
   lesson: 'Lesson evidence',
   recorded: 'Recorded',

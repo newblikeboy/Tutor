@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"net/http"
 	"net/url"
+	"strings"
 	"tutorplatform/internal/domain"
 	"tutorplatform/internal/storage"
 )
@@ -30,13 +31,14 @@ func (a *App) messages(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) sendMessage(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Body string `json:"body"`
+		Body          string   `json:"body"`
+		AttachmentIDs []string `json:"attachmentIds"`
 	}
 	if !a.decode(w, r, &in) {
 		return
 	}
-	if !validText(in.Body, 1, 3000) {
-		a.error(w, r, domain.Fail(422, "validation", "Write a message of at most 3000 characters."))
+	if len([]rune(in.Body)) > 3000 || strings.TrimSpace(in.Body) == "" && len(in.AttachmentIDs) == 0 || len(in.AttachmentIDs) > 3 {
+		a.error(w, r, domain.Fail(422, "validation", "Write a message or attach up to three photos or PDFs."))
 		return
 	}
 	u := user(r)
@@ -51,7 +53,11 @@ func (a *App) sendMessage(w http.ResponseWriter, r *http.Request) {
 		if er != nil {
 			return er
 		}
-		prior, fp, er := a.receipt(ctx, "message:"+u.ID, r.Header.Get("Idempotency-Key"), map[string]any{"enrollment": v.ID, "body": in.Body})
+		fingerprint := map[string]any{"enrollment": v.ID, "body": in.Body}
+		if len(in.AttachmentIDs) > 0 {
+			fingerprint["attachmentIds"] = in.AttachmentIDs
+		}
+		prior, fp, er := a.receipt(ctx, "message:"+u.ID, r.Header.Get("Idempotency-Key"), fingerprint)
 		if er != nil {
 			return er
 		}
@@ -66,6 +72,30 @@ func (a *App) sendMessage(w http.ResponseWriter, r *http.Request) {
 			return er
 		}
 		message = domain.Message{ID: id, EnrollmentID: v.ID, AuthorID: u.ID, AuthorName: u.Name, AuthorRole: u.Role, Body: clean(in.Body), CreatedAt: a.Now()}
+		seenFiles := map[string]bool{}
+		for _, fileID := range in.AttachmentIDs {
+			if fileID == "" || seenFiles[fileID] {
+				return domain.Fail(422, "validation", "Choose distinct message attachments.")
+			}
+			seenFiles[fileID] = true
+			file, err := a.privateFile(ctx, fileID)
+			if err != nil {
+				return err
+			}
+			if file.TargetKind != "enrollment" || file.TargetID != v.ID || file.UploaderID != u.ID || file.MessageID != "" {
+				return domain.Fail(404, "not_found", "This attachment is unavailable.")
+			}
+			if !enum(file.ContentType, "image/jpeg", "image/png", "application/pdf") || file.Size < 1 || file.Size > 3*1024*1024 {
+				return domain.Fail(422, "file_type", "Attach a JPG, PNG or PDF up to 3 MiB.")
+			}
+			if !(file.Provider == "cloudinary" && file.Status == "ready" || file.Status == "clean" && file.ScannedAt != nil) {
+				return domain.Fail(409, "file_quarantined", "Wait until this attachment is ready before sending.")
+			}
+			if _, err = a.Store.C("files").UpdateOne(ctx, bson.M{"_id": file.ID}, bson.M{"$set": bson.M{"messageId": id}}); err != nil {
+				return err
+			}
+			message.Attachments = append(message.Attachments, domain.MessageAttachment{ID: file.ID, Name: file.Name, ContentType: file.ContentType, Size: file.Size})
+		}
 		if _, er = a.Store.C("messages").InsertOne(ctx, message); er != nil {
 			return er
 		}

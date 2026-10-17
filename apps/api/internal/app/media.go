@@ -65,6 +65,9 @@ func (a *App) fileStore(f domain.PrivateFile) media.Store {
 	return a.Files
 }
 func mediaTarget(r *http.Request) (string, string) {
+	if strings.Contains(r.URL.Path, "/admin/study-materials/") {
+		return "study", chi.URLParam(r, "id")
+	}
 	if strings.HasPrefix(r.URL.Path, "/api/v1/tutor-profile/files") {
 		return "public_profile", user(r).ID
 	}
@@ -74,6 +77,9 @@ func mediaTarget(r *http.Request) (string, string) {
 	return "enrollment", chi.URLParam(r, "id")
 }
 func (a *App) fileAccess(ctx context.Context, u domain.User, kind, id string, write bool) error {
+	if kind == "study" {
+		return a.studyFileAccess(ctx, u, id, write)
+	}
 	if kind == "public_profile" {
 		if u.ID != id {
 			return mongo.ErrNoDocuments
@@ -141,7 +147,14 @@ func (a *App) privateFiles(w http.ResponseWriter, r *http.Request) {
 	if kind == "application" {
 		p, e = a.applicationFilePage(r.Context(), id, r.URL.Query().Get("cursor"))
 	} else {
-		p, e = pageRecords[domain.PrivateFile](r.Context(), a.Store, "files", bson.M{"targetKind": kind, "targetId": id, "status": bson.M{"$ne": "archived"}}, r.URL.Query().Get("cursor"))
+		filter := bson.M{"targetKind": kind, "targetId": id, "status": bson.M{"$ne": "archived"}}
+		if r.URL.Query().Get("unlinked") == "1" && kind == "enrollment" {
+			filter["messageId"] = bson.M{"$in": []any{nil, ""}}
+			filter["messageDraft"] = bson.M{"$ne": true}
+		} else if kind == "enrollment" {
+			filter["$or"] = []bson.M{{"messageDraft": bson.M{"$ne": true}}, {"messageId": bson.M{"$nin": []any{nil, ""}}}, {"uploaderId": user(r).ID}}
+		}
+		p, e = pageRecords[domain.PrivateFile](r.Context(), a.Store, "files", filter, r.URL.Query().Get("cursor"))
 	}
 	if e != nil {
 		a.error(w, r, e)
@@ -223,7 +236,12 @@ func (a *App) uploadFile(w http.ResponseWriter, r *http.Request) {
 		if e := a.fileAccess(ctx, u, kind, target, false); e != nil {
 			return e
 		}
-		prior, fp, e := a.receipt(ctx, "file:"+u.ID, r.Header.Get("Idempotency-Key"), map[string]any{"kind": kind, "target": target, "name": name, "checksum": checksum})
+		fingerprint := map[string]any{"kind": kind, "target": target, "name": name, "checksum": checksum}
+		messageDraft := kind == "enrollment" && strings.Contains(r.URL.Path, "/messages/files")
+		if messageDraft {
+			fingerprint["messageDraft"] = true
+		}
+		prior, fp, e := a.receipt(ctx, "file:"+u.ID, r.Header.Get("Idempotency-Key"), fingerprint)
 		if e != nil {
 			return e
 		}
@@ -245,6 +263,7 @@ func (a *App) uploadFile(w http.ResponseWriter, r *http.Request) {
 			return domain.Fail(409, "file_quota", "Private file allowance is reached. Contact support.")
 		}
 		file = domain.PrivateFile{ID: id, TargetKind: kind, TargetID: target, UploaderID: u.ID, UploaderName: u.Name, Name: name, ContentType: contentType, Size: len(data), ObjectKey: object, Checksum: checksum, Status: "uploading", CreatedAt: a.Now()}
+		file.MessageDraft = messageDraft
 		file.Provider = provider
 		if e = a.insertPrivateFile(ctx, file); e != nil {
 			return e
@@ -296,7 +315,7 @@ func (a *App) downloadFile(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
-	if e = a.fileAccess(r.Context(), user(r), f.TargetKind, f.TargetID, false); e != nil {
+	if _, e = a.fileReadAccess(r, f); e != nil {
 		a.error(w, r, e)
 		return
 	}
@@ -319,7 +338,7 @@ func (a *App) downloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Recheck assignment after storage I/O; no bearer URL survives a handover.
-	if e = a.fileAccess(r.Context(), user(r), f.TargetKind, f.TargetID, false); e != nil {
+	if _, e = a.fileReadAccess(r, f); e != nil {
 		a.error(w, r, e)
 		return
 	}

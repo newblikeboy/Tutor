@@ -43,10 +43,11 @@ const schemas = {
         type: 'array',
         items: {
           type: 'string',
-          enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+          minLength: 2,
+          maxLength: 80,
         },
         minItems: 1,
-        maxItems: 6,
+        maxItems: 20,
         uniqueItems: true,
       },
       minClass: num,
@@ -302,10 +303,11 @@ const schemas = {
         type: 'array',
         items: {
           type: 'string',
-          enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+          minLength: 2,
+          maxLength: 80,
         },
         minItems: 1,
-        maxItems: 6,
+        maxItems: 20,
         uniqueItems: true,
       },
       mode: { type: 'string', enum: ['online', 'home'] },
@@ -327,10 +329,11 @@ schemas.Trial.properties.subjects = {
   type: 'array',
   items: {
     type: 'string',
-    enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+    minLength: 2,
+    maxLength: 80,
   },
   minItems: 1,
-  maxItems: 6,
+  maxItems: 20,
   uniqueItems: true,
 }
 schemas.Trial.properties.mode = { type: 'string', enum: ['online', 'home'] }
@@ -563,3 +566,6 @@ await writeFile(
 )
 // Apply recruitment additions every time the base contract is regenerated.
 await import('./recruitment-contract.mjs')
+await import('./study-contract.mjs')
+await import('./subjects-contract.mjs')
+await import('./regular-class-contract.mjs')

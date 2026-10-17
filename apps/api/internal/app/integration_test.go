@@ -260,8 +260,8 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		body["consentId"] = otherConsent["id"]
 		otherLearnerID = other.ok("POST", "/learners", body, 201)["id"].(string)
 		parent.ok("POST", "/requirements", map[string]any{"learnerId": otherLearnerID, "goal": "Practise fractions with confidence", "locality": "Purnea"}, 404)
-		reqID = parent.ok("POST", "/requirements", map[string]any{"learnerId": learnerID, "goal": "Practise fractions with confidence", "locality": "Purnea"}, 201)["id"].(string)
-		otherReqID = other.ok("POST", "/requirements", map[string]any{"learnerId": otherLearnerID, "goal": "Practise fractions with confidence", "locality": "Purnia"}, 201)["id"].(string)
+		reqID = parent.ok("POST", "/requirements", map[string]any{"learnerId": learnerID, "subject": "Mathematics", "goal": "Practise fractions with confidence", "locality": "Purnea"}, 201)["id"].(string)
+		otherReqID = other.ok("POST", "/requirements", map[string]any{"learnerId": otherLearnerID, "subject": "Mathematics", "goal": "Practise fractions with confidence", "locality": "Purnia"}, 201)["id"].(string)
 		tutor.ok("GET", "/learners/"+learnerID, nil, 403)
 	})
 	t.Run("adult self profile and multiple learners", func(t *testing.T) {

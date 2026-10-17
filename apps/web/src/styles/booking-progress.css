@@ -1,0 +1,43 @@
+.booking-progress ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: var(--gc-space-2);
+}
+.booking-progress li {
+  display: flex;
+  align-items: center;
+  gap: var(--gc-space-2);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  padding-block: var(--gc-space-3);
+  border-bottom: 2px solid var(--border);
+}
+.booking-progress [aria-current='step'] {
+  color: var(--navy);
+  border-color: var(--teal);
+  font-weight: 700;
+}
+.booking-step-marker {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+}
+.booking-progress li[data-complete='true'] .booking-step-marker,
+.booking-progress [aria-current='step'] .booking-step-marker {
+  color: var(--teal);
+  border-color: var(--teal);
+  background: var(--gc-sage-soft);
+}
+@media (max-width: 600px) {
+  .booking-progress ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

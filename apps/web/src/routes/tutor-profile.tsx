@@ -1,3 +1,4 @@
+import { SubjectNames } from '../components/subject-name'
 import { useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -238,7 +239,9 @@ function ProfileEditor({ data }: { data: Schema['OwnTutorProfile'] }) {
         <aside className="tutor-profile-approved">
           <h2>Teaching details</h2>
           <p>
-            <strong>{approvedTutorSubjects(data.tutor.scope).join(', ')}</strong>
+            <strong>
+              <SubjectNames values={approvedTutorSubjects(data.tutor.scope)} />
+            </strong>
           </p>
           <p>
             Classes {data.tutor.scope.minClass}–{data.tutor.scope.maxClass}

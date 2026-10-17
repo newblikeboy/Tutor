@@ -1,0 +1,736 @@
+{
+  "title": "Terms of Service",
+  "introduction": [
+    {
+      "type": "paragraph",
+      "text": "**GoCoaching**"
+    },
+    {
+      "type": "paragraph",
+      "text": "**Operated by:** GoCoaching Learning Solution LLP\n**Website:** https://gocoaching.in\n**Effective Date:**\n**Last Updated:**"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction-and-acceptance",
+      "title": "1. Introduction and Acceptance",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Welcome to GoCoaching."
+        },
+        {
+          "type": "paragraph",
+          "text": "These Terms of Service (\"Terms\") govern access to and use of the GoCoaching website, application, and associated educational technology services operated by **GoCoaching Learning Solution LLP** (\"GoCoaching\", \"Company\", \"we\", \"us\", or \"our\")."
+        },
+        {
+          "type": "paragraph",
+          "text": "By registering, accessing, or using the platform, users agree to comply with these Terms and applicable laws."
+        },
+        {
+          "type": "paragraph",
+          "text": "Where a minor student uses our services, the parent or lawful guardian is responsible for providing necessary authorization and overseeing the child's participation."
+        },
+        {
+          "type": "paragraph",
+          "text": "Additional agreements may apply to independent tutors, mentors, or specialized services."
+        }
+      ]
+    },
+    {
+      "id": "nature-of-the-platform",
+      "title": "2. Nature of the Platform",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "GoCoaching operates an educational technology platform facilitating connections between parents, students, independent tutors, teachers, and other authorized educational service providers."
+        },
+        {
+          "type": "paragraph",
+          "text": "Our platform may provide:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Tutor discovery and profile listings.",
+            "Tutor registration and assessment facilities.",
+            "Online and home tuition booking.",
+            "Class scheduling and related coordination.",
+            "Attendance and academic progress tracking.",
+            "Digital learning resources.",
+            "Quizzes, notes, assessments, and test papers.",
+            "Communication and support tools.",
+            "Technology-enabled payment and settlement arrangements."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching is not necessarily the direct provider of tutoring services arranged between parents and independent tutors."
+        },
+        {
+          "type": "paragraph",
+          "text": "Unless expressly stated otherwise, the tutoring engagement is entered into between the parent or eligible student and the selected independent tutor."
+        }
+      ]
+    },
+    {
+      "id": "independent-tutor-relationship",
+      "title": "3. Independent Tutor Relationship",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Tutors listed on GoCoaching operate as independent educational service providers."
+        },
+        {
+          "type": "paragraph",
+          "text": "Their relationship with GoCoaching is intended to be on a **principal-to-principal basis**, subject to the actual contractual arrangements and applicable law."
+        },
+        {
+          "type": "paragraph",
+          "text": "Registration on GoCoaching does not, by itself, establish:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "An employer-employee relationship.",
+            "A partnership with the Company.",
+            "An agency relationship authorizing the tutor to bind the Company.",
+            "A franchise relationship.",
+            "A guarantee of employment or earnings."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Tutors remain responsible for their independent professional conduct, qualifications, representations, and lawful delivery of educational services."
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may establish platform standards, onboarding requirements, reporting obligations, and safety rules without automatically creating an employment relationship."
+        },
+        {
+          "type": "paragraph",
+          "text": "The actual legal classification of any relationship will depend on its substance and applicable law, not merely this contractual description."
+        }
+      ]
+    },
+    {
+      "id": "user-eligibility-and-registration",
+      "title": "4. User Eligibility and Registration",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Users must provide accurate and current information when registering."
+        },
+        {
+          "type": "paragraph",
+          "text": "Adults may create accounts in accordance with platform requirements."
+        },
+        {
+          "type": "paragraph",
+          "text": "Accounts or educational profiles concerning minors must be created, authorized, or managed by their parent or lawful guardian as required by law and platform procedures."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users must:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Provide truthful registration information.",
+            "Keep account credentials confidential.",
+            "Use the platform for lawful purposes.",
+            "Avoid impersonation or fraudulent activity.",
+            "Update information when material changes occur.",
+            "Promptly report suspected account misuse."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may restrict or suspend accounts where reasonably necessary to address security risks, misconduct, fraud, or violations of applicable rules, subject to legal requirements."
+        }
+      ]
+    },
+    {
+      "id": "tutor-discovery-and-selection",
+      "title": "5. Tutor Discovery and Selection",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "GoCoaching provides tools intended to help parents and students discover educational service providers."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tutor profiles may contain information concerning qualifications, experience, subject expertise, teaching format, availability, service locations, and relevant platform assessments."
+        },
+        {
+          "type": "paragraph",
+          "text": "Parents and eligible students make their own decisions concerning tutor selection."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users are encouraged to assess the tutor's suitability, teaching style, schedule, price, and other relevant factors before confirming a booking."
+        },
+        {
+          "type": "paragraph",
+          "text": "Any platform verification or assessment label should be understood according to the specific checks actually completed."
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching does not guarantee that a particular tutor will produce a specific academic outcome."
+        }
+      ]
+    },
+    {
+      "id": "booking-and-confirmation",
+      "title": "6. Booking and Confirmation",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Users may request or book tuition services through the available booking process."
+        },
+        {
+          "type": "paragraph",
+          "text": "Depending on the service, confirmation may require:"
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            "Selection of a tutor.",
+            "Selection of tuition format, schedule, or duration.",
+            "Submission of relevant educational requirements.",
+            "Tutor acceptance, where applicable.",
+            "Acceptance of applicable terms or declarations.",
+            "Completion of any required payment.",
+            "Platform confirmation."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "A booking is considered confirmed according to the status and confirmation information displayed by the platform."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users must review booking details carefully."
+        },
+        {
+          "type": "paragraph",
+          "text": "Availability and schedules may depend on the selected independent tutor."
+        }
+      ]
+    },
+    {
+      "id": "fees-payments-and-settlements",
+      "title": "7. Fees, Payments, and Settlements",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Applicable tuition charges, platform fees, resource fees, taxes, and other relevant charges will be displayed before payment confirmation."
+        },
+        {
+          "type": "paragraph",
+          "text": "Payments may be collected through authorized third-party payment service providers."
+        },
+        {
+          "type": "paragraph",
+          "text": "Depending on the transaction structure, GoCoaching may facilitate collection and settlement of amounts payable to independent tutors."
+        },
+        {
+          "type": "paragraph",
+          "text": "The distribution of funds between GoCoaching and a tutor will be governed by the applicable tutor agreement and payment arrangement."
+        },
+        {
+          "type": "paragraph",
+          "text": "Platform commissions and settlement arrangements do not, by themselves, convert independent tutors into employees."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users must not knowingly submit fraudulent payment information or engage in unauthorized transactions."
+        },
+        {
+          "type": "paragraph",
+          "text": "Any mandatory taxes or legally required disclosures will be handled in accordance with applicable law."
+        }
+      ]
+    },
+    {
+      "id": "class-attendance-and-progress-reporting",
+      "title": "8. Class Attendance and Progress Reporting",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may provide attendance, session completion, and academic progress reporting tools."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tutors may be required to submit timely and accurate records relating to:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Classes conducted.",
+            "Session duration and attendance.",
+            "Subject coverage.",
+            "Learning observations.",
+            "Assignments or assessments.",
+            "Student academic progress."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "These records support transparency between tutors, parents, and the platform."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Tutor settlement may be subject to completion of required session and progress reporting, as specified in the applicable tutor agreement.**"
+        },
+        {
+          "type": "paragraph",
+          "text": "Reporting requirements do not authorize the platform or any tutor to falsify attendance or student performance."
+        },
+        {
+          "type": "paragraph",
+          "text": "Disputed records may be reviewed through the applicable support process."
+        }
+      ]
+    },
+    {
+      "id": "educational-quality-and-outcomes",
+      "title": "9. Educational Quality and Outcomes",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Education is influenced by several factors, including student participation, attendance, learning needs, prior knowledge, and tutor performance."
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching does not guarantee particular marks, examination results, admission outcomes, or academic improvements."
+        },
+        {
+          "type": "paragraph",
+          "text": "Independent tutors are responsible for providing the services they agree to deliver with reasonable skill, care, professionalism, and lawful conduct."
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing in these Terms removes consumer rights or remedies available under applicable law."
+        }
+      ]
+    },
+    {
+      "id": "child-safety-and-tutor-conduct",
+      "title": "10. Child Safety and Tutor Conduct",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Student safety and dignity are important requirements of the GoCoaching platform."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tutors must not:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Physically punish, assault, or beat students.",
+            "Engage in harassment, abuse, threats, or intimidation.",
+            "Use degrading, discriminatory, or humiliating teaching methods.",
+            "Engage in inappropriate physical or personal contact.",
+            "Request unnecessary personal or family information.",
+            "Intrude into unrelated areas of a student's home.",
+            "Share confidential parent or student information without authorization.",
+            "Record, photograph, or publish student content without appropriate authorization and consent.",
+            "Use the tutoring relationship for exploitation, coercion, or unlawful conduct."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Tutors must comply with applicable child-protection laws and platform safeguarding policies."
+        },
+        {
+          "type": "paragraph",
+          "text": "Parents and students may report suspected misconduct using available support or safeguarding channels."
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may suspend access, investigate complaints, preserve relevant records, or refer serious allegations to competent authorities where appropriate and legally required."
+        }
+      ]
+    },
+    {
+      "id": "parent-and-student-responsibilities",
+      "title": "11. Parent and Student Responsibilities",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Parents and eligible students are expected to:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Provide accurate educational requirements.",
+            "Maintain respectful communication.",
+            "Use authorized booking and payment channels.",
+            "Communicate relevant scheduling changes.",
+            "Respect reasonable tutor service arrangements.",
+            "Avoid abusive, discriminatory, fraudulent, or unlawful conduct."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "For minor students, parents or lawful guardians remain responsible for appropriate supervision and necessary authorization."
+        },
+        {
+          "type": "paragraph",
+          "text": "For home tuition, parents should establish suitable and safe arrangements appropriate to the student's age and circumstances."
+        }
+      ]
+    },
+    {
+      "id": "privacy-and-confidentiality",
+      "title": "12. Privacy and Confidentiality",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Users must respect the privacy of other platform participants."
+        },
+        {
+          "type": "paragraph",
+          "text": "Personal information obtained through GoCoaching may be used only for authorized educational, booking, communication, or related lawful purposes."
+        },
+        {
+          "type": "paragraph",
+          "text": "Tutors must not independently sell, distribute, or misuse student or parent contact information."
+        },
+        {
+          "type": "paragraph",
+          "text": "Parents and students must similarly respect tutors' confidential personal information."
+        },
+        {
+          "type": "paragraph",
+          "text": "The collection and handling of personal information by GoCoaching is described in our Privacy Policy:"
+        },
+        {
+          "type": "paragraph",
+          "text": "https://gocoaching.in/privacy-policy"
+        }
+      ]
+    },
+    {
+      "id": "online-classes-and-third-party-services",
+      "title": "13. Online Classes and Third-Party Services",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Certain educational meetings may use third-party video conferencing, authentication, or communication services, including Google services where configured."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users may be required to comply with the applicable provider's terms and privacy policies."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users must not access meetings without authorization, disclose private meeting information improperly, or record sessions without required permission."
+        },
+        {
+          "type": "paragraph",
+          "text": "Availability of external services may depend on the third-party provider."
+        }
+      ]
+    },
+    {
+      "id": "educational-resources-and-intellectual-property",
+      "title": "14. Educational Resources and Intellectual Property",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may provide digital educational resources including quizzes, practice materials, notes, tests, and downloadable content."
+        },
+        {
+          "type": "paragraph",
+          "text": "Unless expressly stated otherwise, the relevant copyrights and intellectual property rights remain with GoCoaching or the applicable lawful rights holder."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users receive only the license expressly granted for their purchased or authorized use."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users must not unlawfully:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Redistribute paid educational materials.",
+            "Resell unauthorized copies.",
+            "Circumvent access controls.",
+            "Publish protected resources without permission.",
+            "Misrepresent ownership of educational content."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Any restrictions and access conditions will remain subject to applicable law."
+        }
+      ]
+    },
+    {
+      "id": "cancellation-rescheduling-and-refunds",
+      "title": "15. Cancellation, Rescheduling, and Refunds",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Cancellation, rescheduling, refund eligibility, and payment settlement will be governed by the applicable policy communicated to the user before booking or purchase."
+        },
+        {
+          "type": "paragraph",
+          "text": "Relevant factors may include:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Whether a tutor accepted the booking.",
+            "Whether classes have commenced.",
+            "Whether a session was delivered.",
+            "Tutor or parent cancellation.",
+            "Documented service failures.",
+            "Advance payment and unutilized sessions.",
+            "Applicable statutory rights."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "The platform must display material cancellation and refund conditions clearly before a user commits to payment."
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing in these Terms limits a refund or remedy that must be provided under applicable law."
+        },
+        {
+          "type": "paragraph",
+          "text": "A separate, published Refund and Cancellation Policy may form part of these Terms."
+        }
+      ]
+    },
+    {
+      "id": "tutor-approval-and-platform-standards",
+      "title": "16. Tutor Approval and Platform Standards",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may establish requirements for tutor registration, documentation, qualifications, assessment, and continued platform access."
+        },
+        {
+          "type": "paragraph",
+          "text": "Approval to use the platform does not constitute a guarantee of future bookings, income, or employment."
+        },
+        {
+          "type": "paragraph",
+          "text": "Where a tutor violates applicable policies, GoCoaching may take proportionate action, including requesting clarification, restricting bookings, temporarily suspending access, or terminating platform privileges, consistent with applicable contractual and legal requirements."
+        }
+      ]
+    },
+    {
+      "id": "prohibited-activities",
+      "title": "17. Prohibited Activities",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Users must not:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Create fraudulent accounts or false profiles.",
+            "Misrepresent qualifications or identity.",
+            "Harass, abuse, or threaten other users.",
+            "Misuse student or family information.",
+            "Manipulate attendance or payment records.",
+            "Access accounts or information without authorization.",
+            "Introduce malicious software.",
+            "Attempt unauthorized access to platform infrastructure.",
+            "Engage in unlawful activity using the platform."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may take appropriate action to address suspected violations."
+        }
+      ]
+    },
+    {
+      "id": "service-availability-and-changes",
+      "title": "18. Service Availability and Changes",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "We aim to maintain reliable access to GoCoaching."
+        },
+        {
+          "type": "paragraph",
+          "text": "However, temporary interruptions may occur because of maintenance, network problems, third-party outages, security events, or other operational circumstances."
+        },
+        {
+          "type": "paragraph",
+          "text": "We may update platform functionality and design while respecting applicable commitments and legal obligations."
+        },
+        {
+          "type": "paragraph",
+          "text": "Material changes affecting purchased services or user rights will be addressed in accordance with applicable law."
+        }
+      ]
+    },
+    {
+      "id": "responsibility-and-liability",
+      "title": "19. Responsibility and Liability",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "GoCoaching provides a technology platform facilitating educational service arrangements."
+        },
+        {
+          "type": "paragraph",
+          "text": "Independent tutors remain responsible for their own actions, omissions, representations, and performance of independently provided tutoring services."
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching does not automatically assume responsibility for every act of an independent tutor solely because the tutor uses the platform."
+        },
+        {
+          "type": "paragraph",
+          "text": "However, nothing in these Terms excludes or limits liability that cannot lawfully be excluded, including liability arising from GoCoaching's own misconduct, negligence, applicable statutory obligations, or other non-excludable responsibilities."
+        },
+        {
+          "type": "paragraph",
+          "text": "Any applicable limitation of liability must be interpreted subject to Indian law and users' mandatory legal rights."
+        }
+      ]
+    },
+    {
+      "id": "complaints-and-dispute-resolution",
+      "title": "20. Complaints and Dispute Resolution",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Users may submit support requests and complaints concerning:"
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Account issues.",
+            "Booking or scheduling problems.",
+            "Payment disputes.",
+            "Academic service concerns.",
+            "Tutor conduct.",
+            "Privacy concerns.",
+            "Student safety and safeguarding matters."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may request relevant information to investigate and respond to a complaint."
+        },
+        {
+          "type": "paragraph",
+          "text": "Sensitive safeguarding complaints will be handled with appropriate access restrictions and escalation procedures."
+        },
+        {
+          "type": "paragraph",
+          "text": "Users retain rights to pursue remedies before competent authorities and courts as provided by applicable law."
+        }
+      ]
+    },
+    {
+      "id": "suspension-and-termination",
+      "title": "21. Suspension and Termination",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Users may request closure of their accounts through available platform procedures."
+        },
+        {
+          "type": "paragraph",
+          "text": "GoCoaching may restrict or terminate access where there is a legitimate basis, including serious policy violations, unlawful conduct, fraud, or security concerns."
+        },
+        {
+          "type": "paragraph",
+          "text": "Where appropriate, users will be informed of relevant account restrictions and any applicable review or grievance process."
+        },
+        {
+          "type": "paragraph",
+          "text": "Termination does not eliminate outstanding lawful obligations, valid payment liabilities, or record-retention requirements."
+        }
+      ]
+    },
+    {
+      "id": "governing-law-and-jurisdiction",
+      "title": "22. Governing Law and Jurisdiction",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "These Terms are governed by applicable laws of India."
+        },
+        {
+          "type": "paragraph",
+          "text": "Disputes will be subject to the jurisdiction of courts and authorities determined under applicable law."
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing in these Terms restricts statutory consumer remedies or mandatory rights to approach competent legal forums."
+        }
+      ]
+    },
+    {
+      "id": "changes-to-these-terms",
+      "title": "23. Changes to These Terms",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "We may revise these Terms to reflect changes in our services, business operations, policies, or legal obligations."
+        },
+        {
+          "type": "paragraph",
+          "text": "The updated Terms will be published on the website with a revised date."
+        },
+        {
+          "type": "paragraph",
+          "text": "Where required, users will receive notice or be asked to accept material changes."
+        }
+      ]
+    },
+    {
+      "id": "contact-information",
+      "title": "24. Contact Information",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "For service questions, complaints, or legal communications, please contact:"
+        },
+        {
+          "type": "paragraph",
+          "text": "**GoCoaching Learning Solution LLP**"
+        },
+        {
+          "type": "paragraph",
+          "text": "Website: https://gocoaching.in\nCustomer Support Email:\nGrievance Officer:\nRegistered Office:\nContact Number:"
+        },
+        {
+          "type": "separator"
+        },
+        {
+          "type": "paragraph",
+          "text": "**© GoCoaching Learning Solution LLP. All rights reserved.**"
+        }
+      ]
+    }
+  ]
+}

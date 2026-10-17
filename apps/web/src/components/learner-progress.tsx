@@ -1,3 +1,4 @@
+import { SubjectName, SubjectNames } from './subject-name'
 import '../locales/progress'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -15,6 +16,7 @@ import {
 } from '../lib/learner-progress'
 import { Alert, Badge, Button, Empty, Field, Loading, LoadError } from './ui'
 import { TabBar, TabPanel } from './workspace-tabs'
+import { DeleteLearner } from './delete-learner'
 import '../styles/learner-progress.css'
 
 const tabs = ['overview', 'subjects', 'history', 'feedback'] as const
@@ -114,12 +116,15 @@ export default function LearnerProgressReport({
           </p>
         </div>
         {!tutor && (
-          <Link
-            className="text-link"
-            to={`/match?profile=1&edit=1&learner=${encodeURIComponent(learner.id)}`}
-          >
-            {t('parent.edit')}
-          </Link>
+          <div className="learner-profile-actions">
+            <Link
+              className="text-link"
+              to={`/match?profile=1&edit=1&learner=${encodeURIComponent(learner.id)}`}
+            >
+              {t('parent.edit')}
+            </Link>
+            <DeleteLearner learner={learner} />
+          </div>
         )}
       </header>
       <div className="child-report-filters">
@@ -137,7 +142,9 @@ export default function LearnerProgressReport({
           <select value={filters.subject} onChange={(e) => set({ subject: e.target.value })}>
             <option value="">{t('childProgress.allSubjects')}</option>
             {subjectOptions.map((subject) => (
-              <option key={subject}>{subject}</option>
+              <option key={subject} value={subject}>
+                <SubjectName value={subject} />
+              </option>
             ))}
           </select>
         </Field>
@@ -183,7 +190,7 @@ export default function LearnerProgressReport({
         <>
           <TabBar
             id="child-report"
-            scrollable={tutor}
+            scrollable
             label={tutor ? 'Student progress report' : t('childProgress.title')}
             value={tab}
             options={tabs.map((value) => ({ value, label: t(`childProgress.${value}`) }))}
@@ -255,7 +262,7 @@ export default function LearnerProgressReport({
                       <div className="child-report-package" key={e.id}>
                         {e.paymentSimulated && <Badge tone="amber">Test booking</Badge>}
                         <strong>
-                          {(e.agreement.subjects ?? [e.agreement.subject]).join(', ')}
+                          <SubjectNames values={e.agreement.subjects ?? [e.agreement.subject]} />
                         </strong>
                         <span>{e.tutorName || t('childProgress.nameUnavailable')}</span>
                         <progress
@@ -341,7 +348,9 @@ export default function LearnerProgressReport({
                 )
                 return (
                   <section className="child-report-panel" key={subject}>
-                    <h3>{subject}</h3>
+                    <h3>
+                      <SubjectName value={subject} />
+                    </h3>
                     {subjectTopics.length ? (
                       <div className="child-report-topics">
                         {subjectTopics.map(({ topic, session }) => (
@@ -388,7 +397,9 @@ export default function LearnerProgressReport({
               {trials.map((trial) => (
                 <section className="child-report-panel" key={trial.id}>
                   <Badge>{t('childProgress.trial')}</Badge>
-                  <h3>{(trial.subjects ?? [trial.subject]).join(', ')}</h3>
+                  <h3>
+                    <SubjectNames values={trial.subjects ?? [trial.subject]} />
+                  </h3>
                   <small>
                     {trial.tutorName || t('childProgress.nameUnavailable')} ·{' '}
                     {indiaDate(trial.start, 'en')}
@@ -508,7 +519,9 @@ function Lesson({ session: s, expanded = false }: { session: ReportSession; expa
     <article className="child-report-panel child-report-lesson">
       <div className="child-report-section-title">
         <div>
-          <h3>{s.progress?.subject ?? s.subjects.join(', ')}</h3>
+          <h3>
+            <SubjectNames values={s.progress ? [s.progress.subject] : s.subjects} />
+          </h3>
           <small>
             {indiaDate(s.start, 'en')} · {s.tutorName || t('childProgress.nameUnavailable')}
           </small>
@@ -605,7 +618,9 @@ function Plan({ plan }: { plan: Schema['ProgressPlan'] }) {
       <Badge tone="neutral">
         {t('childProgress.plan')} · {plan.version}
       </Badge>
-      <h3>{plan.subjects.join(', ')}</h3>
+      <h3>
+        <SubjectNames values={plan.subjects} />
+      </h3>
       {plan.subjects.length > 1 && <p>{t('childProgress.sharedBody')}</p>}
       <small>
         {plan.authorName || t('childProgress.authorUnavailable')} ·{' '}

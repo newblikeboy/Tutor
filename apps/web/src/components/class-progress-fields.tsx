@@ -2,7 +2,7 @@ import '../locales/progress'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Schema } from '../lib/api'
-import { teachingSubjects } from '../lib/subjects'
+import { useSubjects } from '../lib/subjects'
 import { Button, Field } from './ui'
 
 export function classProgressFromForm(data: FormData): Schema['ClassProgressInput'] | undefined {
@@ -48,6 +48,7 @@ export function ClassProgressFields({
   plannedSubject?: string
 }) {
   const { t } = useTranslation()
+  const catalog = useSubjects()
   const [enabled, setEnabled] = useState(required || !!previous)
   const [testEnabled, setTestEnabled] = useState(!!previous?.test)
   const [topics, setTopics] = useState(() =>
@@ -57,7 +58,7 @@ export function ClassProgressFields({
   )
   const subjects =
     enrollment.class <= 5
-      ? ['All Subjects', ...teachingSubjects]
+      ? catalog.rows.map((row) => row.id)
       : (enrollment.agreement.subjects ?? [enrollment.agreement.subject])
   return (
     <fieldset className="class-progress-fields">
@@ -88,7 +89,9 @@ export function ClassProgressFields({
             >
               <option value="">{t('childProgress.chooseSubject')}</option>
               {subjects.map((subject) => (
-                <option key={subject}>{subject}</option>
+                <option key={subject} value={subject}>
+                  {catalog.label(subject)}
+                </option>
               ))}
             </select>
           </Field>

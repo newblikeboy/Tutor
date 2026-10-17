@@ -275,6 +275,9 @@ func (a *App) recordCaptured(ctx context.Context, id string, p payments.Payment,
 			}
 			return domain.Fail(409, "duplicate_payment", "Another captured payment needs reconciliation.")
 		}
+		if v.Purpose == "study_subscription" {
+			return a.captureStudy(ctx, v, p)
+		}
 		enrollment, e := storage.One[domain.Enrollment](ctx, a.Store, "enrollments", bson.M{"_id": v.EnrollmentID})
 		if e != nil {
 			return e
@@ -575,7 +578,14 @@ func (a *App) applyRefund(ctx context.Context, requestID string, p payments.Refu
 			if _, e = a.Store.C("payment_intents").UpdateOne(ctx, bson.M{"_id": v.ID}, bson.M{"$inc": bson.M{"refundReservedPaise": -r.Amount, "refundedPaise": r.Amount}}); e != nil {
 				return e
 			}
-			entry := domain.LedgerEntry{ID: "refund:" + p.ID, OwnerID: v.OwnerID, IntentID: v.ID, Amount: r.Amount, Debit: "family_prepaid", Credit: "gateway_receivable", Reference: p.ID, CreatedAt: a.Now()}
+			debit := "family_prepaid"
+			if v.Purpose == "study_subscription" {
+				debit = "study_subscriptions"
+				if e = a.refundStudyAccess(ctx, v); e != nil {
+					return e
+				}
+			}
+			entry := domain.LedgerEntry{ID: "refund:" + p.ID, OwnerID: v.OwnerID, IntentID: v.ID, Amount: r.Amount, Debit: debit, Credit: "gateway_receivable", Reference: p.ID, CreatedAt: a.Now()}
 			if _, e = a.Store.C("ledger").InsertOne(ctx, entry); e != nil {
 				return e
 			}
@@ -583,7 +593,7 @@ func (a *App) applyRefund(ctx context.Context, requestID string, p payments.Refu
 		if _, e = a.Store.C("refunds").ReplaceOne(ctx, bson.M{"_id": r.ID}, r); e != nil {
 			return e
 		}
-		if enum(r.Status, "processed", "failed") {
+		if v.Purpose != "study_subscription" && enum(r.Status, "processed", "failed") {
 			if e = a.reconcileBookingEarnings(ctx, v.ID); e != nil {
 				return e
 			}

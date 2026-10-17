@@ -20,7 +20,7 @@ import (
 func TestClassProgressValidation(t *testing.T) {
 	e := domain.Enrollment{Class: 8, Agreement: domain.Agreement{Subjects: []string{"Mathematics", "Science"}}}
 	valid := domain.ClassProgress{Subject: "Science", Topics: []domain.LearningTopic{{Title: "Plants", Status: "practising", Evidence: "Identified leaf parts independently.", Practice: "Draw and label one leaf."}}, HomeworkStatus: "completed", Feedback: "Recognises the important leaf parts.", NextSteps: "Practise describing photosynthesis.", Test: &domain.TestResult{Title: "Plant quiz", Score: 0, Maximum: 20}}
-	if err := validateClassProgress(&valid, e); err != nil {
+	if err := validateClassProgress(&valid, e, domain.InitialSubjectNames); err != nil {
 		t.Fatal(err)
 	}
 	for name, change := range map[string]func(*domain.ClassProgress){
@@ -36,18 +36,18 @@ func TestClassProgressValidation(t *testing.T) {
 			p := valid
 			p.Topics = append([]domain.LearningTopic{}, valid.Topics...)
 			change(&p)
-			if validateClassProgress(&p, e) == nil {
+			if validateClassProgress(&p, e, domain.InitialSubjectNames) == nil {
 				t.Fatal("invalid progress accepted")
 			}
 		})
 	}
 	e.Class = 5
 	e.Agreement.Subjects = []string{domain.AllSubjects}
-	if err := validateClassProgress(&valid, e); err != nil {
+	if err := validateClassProgress(&valid, e, domain.InitialSubjectNames); err != nil {
 		t.Fatal("All Subjects must allow recorded subject detail", err)
 	}
 	e.Class = 6
-	if validateClassProgress(&valid, e) == nil {
+	if validateClassProgress(&valid, e, domain.InitialSubjectNames) == nil {
 		t.Fatal("All Subjects widened upper-class coverage")
 	}
 }

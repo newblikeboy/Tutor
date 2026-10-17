@@ -1,0 +1,39 @@
+.learner-profile-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.learner-profile-actions > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.learner-delete-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #923c32;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.learner-delete-link:hover {
+  text-decoration: underline;
+}
+.learner-delete-dialog {
+  width: min(480px, calc(100vw - 24px));
+}
+.learner-delete-dialog > p {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.learner-delete-dialog .button-row {
+  justify-content: flex-end;
+}

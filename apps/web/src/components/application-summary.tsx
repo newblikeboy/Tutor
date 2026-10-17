@@ -1,3 +1,4 @@
+import { SubjectNames } from './subject-name'
 import '../locales/application'
 import '../locales/staff'
 import { useTranslation } from 'react-i18next'
@@ -5,6 +6,7 @@ import { applicationSteps, weekDays, type ApplicationProfile } from '../lib/appl
 import { Button } from './ui'
 import { indiaDate, type Application } from '../lib/api'
 import { approvedTutorSubjects, tutorModeLabel } from '../lib/tutors'
+import { useSubjects } from '../lib/subjects'
 import '../styles/application.css'
 export function ApplicationSummary({
   profile: p,
@@ -15,6 +17,7 @@ export function ApplicationSummary({
   onEdit?: (step: number) => void
   email?: string
 }) {
+  const catalog = useSubjects()
   const { t } = useTranslation(),
     c = (key: string) => t(`applicationForm.${key}`, { defaultValue: key })
   const value = (key: string, v: unknown): string => {
@@ -24,8 +27,9 @@ export function ApplicationSummary({
       return Array.isArray(v) && v.length ? `${v.length} · ${c('attached')}` : ''
     if (key === 'demoAreaId' || key === 'areaId') {
       const a = p.teachingAreas.find((a) => a.id === v)
-      return a ? `${c(a.subject)} · ${a.minClass}–${a.maxClass}` : ''
+      return a ? `${catalog.label(a.subject)} · ${a.minClass}–${a.maxClass}` : ''
     }
+    if (key === 'subject') return catalog.label(String(v))
     if (key === 'amountPaise') return `₹${Number(v) / 100} / 60 min`
     if (key === 'day') return c(weekDays[Number(v)])
     if (Array.isArray(v)) return v.map((x) => c(String(x))).join(', ')
@@ -188,8 +192,8 @@ export function ApplicationScope({ application }: { application: Application }) 
     <section className="panel af-approved-scope">
       <h3>{t('applicationForm.approvedScope')}</h3>
       <p>
-        {approvedTutorSubjects(s).join(', ')} · {t('classes')} {s.minClass}–{s.maxClass} ·{' '}
-        {tutorModeLabel(s, t)}
+        <SubjectNames values={approvedTutorSubjects(s)} /> · {t('classes')} {s.minClass}–
+        {s.maxClass} · {tutorModeLabel(s, t)}
       </p>
       <p>
         {t('staffOps.reviewDate')}: {indiaDate(s.expiresAt, i18n.language)}

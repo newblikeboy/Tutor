@@ -356,7 +356,12 @@ function ProfileForm({
                     />
                     <span>
                       {t('consent')}{' '}
-                      <a className="text-link" href="/privacy" target="_blank" rel="noreferrer">
+                      <a
+                        className="text-link"
+                        href="/privacy-policy"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
                         {t('privacy')}
                       </a>
                     </span>

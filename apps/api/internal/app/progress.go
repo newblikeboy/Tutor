@@ -143,13 +143,13 @@ func (a *App) learnerProgress(w http.ResponseWriter, r *http.Request) {
 	a.json(w, 200, out)
 }
 
-func validateClassProgress(progress *domain.ClassProgress, enrollment domain.Enrollment) error {
+func validateClassProgress(progress *domain.ClassProgress, enrollment domain.Enrollment, primarySubjects []string) error {
 	bad := domain.Fail(422, "validation", "Record a booked subject, 1–10 topics with evidence and practice, homework status, feedback and next steps. Test marks must be between zero and the maximum.")
 	if progress == nil {
 		return bad
 	}
 	subjects := agreementSubjects(enrollment.Agreement)
-	if !slices.Contains(subjects, progress.Subject) && !(enrollment.Class <= 5 && slices.Contains(subjects, domain.AllSubjects) && slices.Contains(domain.TeachingSubjects, progress.Subject)) {
+	if !slices.Contains(subjects, progress.Subject) && !(enrollment.Class <= 5 && slices.Contains(subjects, domain.AllSubjects) && slices.Contains(primarySubjects, progress.Subject)) {
 		return bad
 	}
 	if len(progress.Topics) < 1 || len(progress.Topics) > 10 || !enum(progress.HomeworkStatus, "not_checked", "assigned", "completed", "needs_help") || !validText(progress.Feedback, 5, 2000) || !validText(progress.NextSteps, 5, 1200) {

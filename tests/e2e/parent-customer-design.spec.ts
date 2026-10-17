@@ -96,6 +96,13 @@ test('parent learning space keeps learner choices and reachable mobile journeys'
     'page',
   )
   await everyday.getByRole('link', { name: 'Learners', exact: true }).click()
+  await expect(page).toHaveURL('/workspace?view=learners')
+  await expect(page.getByRole('table', { name: 'Your learners', exact: true })).toBeVisible()
+  await capture(page, 'learners-table')
+  await page.setViewportSize({ width: 390, height: 1000 })
+  await page
+    .getByRole('link', { name: 'Kabir · fictional learner View progress', exact: true })
+    .click()
   await expect(page).toHaveURL(`/workspace?view=learners&learner=${ids[1]}`)
   await expect(page.getByLabel('Learner', { exact: true })).toHaveValue(ids[1])
   await expect(everyday.getByRole('link', { name: 'Learners', exact: true })).toHaveAttribute(

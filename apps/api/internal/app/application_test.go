@@ -95,7 +95,7 @@ func TestPublicApplicationMediaPrivacy(t *testing.T) {
 func TestApplicationValidation(t *testing.T) {
 	now := time.Now()
 	p := completeApplicationWithEvidence("Test applicant", now)
-	if errors := applicationErrors(p, true, now); len(errors) > 0 {
+	if errors := applicationErrors(p, true, now, domain.InitialSubjectNames); len(errors) > 0 {
 		t.Fatal(errors)
 	}
 	cases := []struct {
@@ -137,7 +137,7 @@ func TestApplicationValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			p := completeApplicationWithEvidence("Test applicant", now)
 			tc.change(&p)
-			if applicationErrors(p, true, now)[tc.key] == "" {
+			if applicationErrors(p, true, now, domain.InitialSubjectNames)[tc.key] == "" {
 				t.Fatal("accepted invalid application")
 			}
 		})
@@ -146,7 +146,7 @@ func TestApplicationValidation(t *testing.T) {
 	p.TeachingAreas[0].Subject = domain.AllSubjects
 	p.TeachingAreas[0].MinClass = 1
 	p.TeachingAreas[0].MaxClass = 5
-	if errors := applicationErrors(p, true, now); len(errors) > 0 {
+	if errors := applicationErrors(p, true, now, domain.InitialSubjectNames); len(errors) > 0 {
 		t.Fatal(errors)
 	}
 	p = completeApplicationWithEvidence("Test applicant", now)
@@ -156,7 +156,7 @@ func TestApplicationValidation(t *testing.T) {
 	if p.About.PIN != "854301" || len(p.Availability.Home.Localities) != 0 || len(p.Fees.Rates) != 0 {
 		t.Fatal("conditional normalisation")
 	}
-	if errors := applicationErrors(p, true, now); len(errors) > 0 {
+	if errors := applicationErrors(p, true, now, domain.InitialSubjectNames); len(errors) > 0 {
 		t.Fatal(errors)
 	}
 }
@@ -176,7 +176,7 @@ func TestApplicationOnlineSetupFollowsTeachingModes(t *testing.T) {
 			p.TeachingAreas[0].Modes = tc.modes
 			p.Availability.Online = domain.OnlineTeachingRequest{}
 			normalizeApplication(&p)
-			errors := applicationErrors(p, true, now)
+			errors := applicationErrors(p, true, now, domain.InitialSubjectNames)
 			if tc.online {
 				if len(errors) != 7 {
 					t.Fatalf("expected seven online setup errors: %v", errors)
@@ -198,7 +198,7 @@ func TestApplicationOnlineSetupFollowsTeachingModes(t *testing.T) {
 	p.TeachingAreas = append(p.TeachingAreas, onlineArea)
 	p.Availability.Online.Device = ""
 	normalizeApplication(&p)
-	if applicationErrors(p, true, now)["availability.online.device"] == "" {
+	if applicationErrors(p, true, now, domain.InitialSubjectNames)["availability.online.device"] == "" {
 		t.Fatal("online mode in a later teaching area must require setup")
 	}
 	p.TeachingAreas = p.TeachingAreas[:1]
@@ -228,7 +228,7 @@ func TestApplicationWhatsApp(t *testing.T) {
 			t.Fatal("WhatsApp normalization failed")
 		}
 		for _, submit := range []bool{false, true} {
-			if valid := applicationErrors(p, submit, now)["about.whatsapp"] == ""; valid != tc.valid {
+			if valid := applicationErrors(p, submit, now, domain.InitialSubjectNames)["about.whatsapp"] == ""; valid != tc.valid {
 				t.Fatalf("WhatsApp validation: input %q submit=%v", tc.input, submit)
 			}
 		}
@@ -246,20 +246,20 @@ func TestApplicationMultipleSpecialisations(t *testing.T) {
 		if p.Education.Specialisation != value {
 			t.Fatal("authored education subjects changed")
 		}
-		if errors := applicationErrors(p, true, now); len(errors) != 0 {
+		if errors := applicationErrors(p, true, now, domain.InitialSubjectNames); len(errors) != 0 {
 			t.Fatal(errors)
 		}
 	}
 	p := completeApplicationWithEvidence("Sample applicant", now)
 	p.Education.Specialisation = ""
-	if applicationErrors(p, false, now)["education.specialisation"] != "" {
+	if applicationErrors(p, false, now, domain.InitialSubjectNames)["education.specialisation"] != "" {
 		t.Fatal("incomplete draft rejected")
 	}
-	if applicationErrors(p, true, now)["education.specialisation"] == "" {
+	if applicationErrors(p, true, now, domain.InitialSubjectNames)["education.specialisation"] == "" {
 		t.Fatal("empty submission accepted")
 	}
 	p.Education.Specialisation = strings.Repeat("x", 241)
-	if applicationErrors(p, false, now)["education.specialisation"] == "" {
+	if applicationErrors(p, false, now, domain.InitialSubjectNames)["education.specialisation"] == "" {
 		t.Fatal("unbounded subjects accepted")
 	}
 }
@@ -290,7 +290,7 @@ func TestApplicationHomeLocationAndRadius(t *testing.T) {
 				if submit {
 					wantInvalid = tc.invalidSubmit
 				}
-				fields := applicationErrors(p, submit, now)
+				fields := applicationErrors(p, submit, now, domain.InitialSubjectNames)
 				if tc.key == "" {
 					if len(fields) != 0 {
 						t.Fatalf("submit=%v: unexpected validation %v", submit, fields)

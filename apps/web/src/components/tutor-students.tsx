@@ -1,10 +1,11 @@
+import { SubjectNames } from './subject-name'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { indiaDate, type Schema } from '../lib/api'
 import { useClock } from '../lib/clock'
 import { Alert, Badge, Empty } from './ui'
 import LearnerProgressReport from './learner-progress'
-import { TutorDistance, tutorDistanceNote } from './tutor-record-table'
+import { TutorDistance, tutorDistanceNote } from './tutor-distance'
 import '../styles/tutor-students.css'
 
 const currentEnrollment = (en: Schema['Enrollment']) => ['active', 'paused'].includes(en.status)
@@ -135,7 +136,7 @@ export function TutorStudents({ data }: { data: Schema['TutorWorkspace'] }) {
                       <p className="student-table-secondary">{student.board}</p>
                     </td>
                     <td>
-                      {teachingSubjects.join(', ')}
+                      <SubjectNames values={teachingSubjects} />
                       <p className="student-table-secondary">{modes.join(', ')}</p>
                     </td>
                     <td>
@@ -198,8 +199,11 @@ function StudentReport({
         {enrolled.map((en) => (
           <div key={en.id}>
             <p>
-              <strong>{subjects(en).join(', ')}</strong> · {modeLabel(en.agreement.mode)} ·{' '}
-              {en.agreement.sessionCount} classes · {en.agreement.minutes} minutes per class
+              <strong>
+                <SubjectNames values={subjects(en)} />
+              </strong>{' '}
+              · {modeLabel(en.agreement.mode)} · {en.agreement.sessionCount} classes ·{' '}
+              {en.agreement.minutes} minutes per class
             </p>
             <Link className="text-link" to={`/tuition/${en.id}`}>
               Open classes and lesson plan
@@ -209,8 +213,8 @@ function StudentReport({
         {!enrolled.length &&
           trials.map((trial) => (
             <p key={trial.id}>
-              {(trial.subjects ?? [trial.subject]).join(', ')} · {modeLabel(trial.mode)} trial ·{' '}
-              {indiaDate(trial.start, 'en')}
+              <SubjectNames values={trial.subjects ?? [trial.subject]} /> · {modeLabel(trial.mode)}{' '}
+              trial · {indiaDate(trial.start, 'en')}
             </p>
           ))}
       </section>

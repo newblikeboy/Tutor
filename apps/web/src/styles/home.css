@@ -1,62 +1,4 @@
 /* Landing-only tokens. Account and workspace designs stay independent. */
-.landing-shell {
-  --navy: #15353b;
-  --teal: #315d4f;
-  --muted: #5b6861;
-  --border: #d9dfcf;
-  --paper: #f5f3ed;
-  --home-sage: #dfe8bc;
-  --home-glass: linear-gradient(130deg, #ffffffeb, #f4f7e7d9);
-  --home-shine: inset 0 1px 0 #fff, 0 16px 40px #15353b0a;
-  --home-space: clamp(70px, 7.5vw, 112px);
-  background: #f8f8f1;
-  color: var(--navy);
-  display: flow-root;
-}
-.landing-shell .site-header {
-  position: relative;
-  z-index: 3;
-  width: min(1312px, calc(100% - 48px));
-  margin: 20px auto 0;
-  border: 1px solid #fff;
-  border-radius: 20px;
-  background: var(--home-glass);
-  box-shadow:
-    var(--home-shine),
-    0 0 0 1px #e5e8db;
-  backdrop-filter: blur(16px);
-}
-.landing-shell .header-inner {
-  width: calc(100% - 48px);
-  min-height: 80px;
-}
-.landing-shell .wordmark > span {
-  color: var(--navy);
-  letter-spacing: -1.2px;
-}
-.landing-shell .sign-link,
-.landing-shell .btn.primary {
-  border: 1px solid #234741;
-  color: #fff;
-  background: linear-gradient(145deg, #37665a, #15353b 80%);
-  border-radius: 50px;
-  box-shadow:
-    inset 0 1px 0 #ffffff65,
-    0 7px 15px #15353b16;
-}
-.landing-shell .sign-link:hover,
-.landing-shell .btn.primary:hover {
-  background: #315c50;
-  box-shadow:
-    inset 0 1px 0 #ffffff65,
-    0 10px 20px #15353b24;
-}
-.landing-shell .btn.primary > svg {
-  margin-left: 8px;
-}
-.landing-shell :is(a, button, summary):focus-visible {
-  outline-color: #456849;
-}
 .home-page .eyebrow {
   font-size: 10px;
   font-weight: 700;
@@ -1017,31 +959,6 @@
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-.landing-shell footer {
-  background: #173b37;
-  color: #e3edda;
-  border-top: 1px solid #446050;
-}
-.landing-shell .footer-wordmark {
-  color: #f5f7ed;
-}
-.landing-shell .footer-wordmark .brand-mark {
-  background: #f5f3ed;
-  border-radius: 8px;
-  padding: 3px;
-}
-.landing-shell .footer-grid p {
-  color: #bfcebd;
-}
-.landing-shell footer a:focus-visible {
-  outline-color: #dfe8bc;
-}
-.landing-shell .footer-session {
-  border-color: #536e61;
-}
-.landing-shell .footer-session .btn.text {
-  color: #dfe8bc;
-}
 @media (min-width: 1001px) and (max-width: 1190px) {
   .home-hero.hero {
     gap: 30px;
@@ -1181,18 +1098,6 @@
   }
 }
 @media (max-width: 760px) {
-  .landing-shell .container {
-    width: calc(100% - 40px);
-  }
-  .landing-shell .site-header {
-    width: calc(100% - 24px);
-    margin-top: 12px;
-    border-radius: 16px;
-  }
-  .landing-shell .header-inner {
-    width: calc(100% - 26px);
-    min-height: 73px;
-  }
   .home-hero.hero {
     padding-block: 24px 30px;
     gap: 22px;
@@ -1415,9 +1320,6 @@
   .home-teach-link {
     justify-content: center;
   }
-  .landing-shell .footer-grid {
-    gap: 35px;
-  }
 }
 @media (prefers-reduced-motion: no-preference) {
   .home-hero .hero-copy,
@@ -1506,4 +1408,36 @@
   .tutor-search-finder .home-finder-note {
     text-align: left;
   }
+}
+.home-mode-entry {
+  display: flex;
+  gap: 8px 20px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.home-mode-entry a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--teal);
+  font-size: 13px;
+  font-weight: 600;
+}
+.home-mode-entry a:hover {
+  text-decoration: underline;
+}
+.home-image-label {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.discovery-empty-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 16px;
 }

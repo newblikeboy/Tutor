@@ -24,12 +24,16 @@ func progressCorrectionOpen(s domain.ClassSession, now time.Time) bool {
 
 func (a *App) validatePlannedSubject(ctx context.Context, tutorID, subject string, en domain.Enrollment) error {
 	subjects := agreementSubjects(en.Agreement)
-	if !slices.Contains(subjects, subject) && !(en.Class <= 5 && slices.Contains(subjects, domain.AllSubjects) && slices.Contains(domain.TeachingSubjects, subject)) {
+	primary, err := a.subjectReferences(ctx)
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(subjects, subject) && !(en.Class <= 5 && slices.Contains(subjects, domain.AllSubjects) && slices.Contains(primary, subject)) {
 		return domain.Fail(422, "validation", "Choose a subject included in this booking.")
 	}
 	// A write to the approval serializes planning against suspension and changes of scope.
 	var app domain.Application
-	err := a.Store.C("applications").FindOneAndUpdate(ctx, bson.M{"_id": tutorID}, bson.M{"$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&app)
+	err = a.Store.C("applications").FindOneAndUpdate(ctx, bson.M{"_id": tutorID}, bson.M{"$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&app)
 	if err != nil {
 		return err
 	}

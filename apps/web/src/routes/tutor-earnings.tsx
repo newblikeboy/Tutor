@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { api, indiaDate, type Schema } from '../lib/api'
 import { Alert, Badge, Button, Empty, Loading, LoadError } from '../components/ui'
 import { TabBar, TabPanel } from '../components/workspace-tabs'
-import { TutorRecordTable } from '../components/tutor-record-table'
+import { WorkspaceRecordTable } from '../components/workspace-record-table'
 import '../styles/tutor-earnings.css'
 
 const money = (amount: number) =>
@@ -202,11 +202,11 @@ function Records<T extends { id: string }>({
         </dl>
       )}
       {q.data.items.length ? (
-        <TutorRecordTable label={title} countLabel="Your records" intro={intro} columns={columns}>
+        <WorkspaceRecordTable label={title} countLabel="Your records" intro={intro} columns={columns}>
           {q.data.items.map((item) => (
             <tr key={item.id}>{row(item)}</tr>
           ))}
-        </TutorRecordTable>
+        </WorkspaceRecordTable>
       ) : (
         <div className="te-empty">
           <Empty title={empty.title} body={empty.body} />

@@ -148,6 +148,7 @@ test('parent sees tutor feedback immediately and can continue to regular classes
       .toBe('completed')
     await page.goto(`/workspace?view=sessions&learner=${learner.id}&tab=completed`)
     await expect(page.getByText('Feedback ready', { exact: true })).toBeVisible()
+    await page.getByRole('link', { name: /View trial/ }).click()
     await expect(page.getByText('Compared equivalent fractions with a number line.')).toBeVisible()
     await capture(page, 'tutor-feedback-en-desktop')
     await page.getByRole('main').getByRole('link', { name: 'Book tutor', exact: true }).click()

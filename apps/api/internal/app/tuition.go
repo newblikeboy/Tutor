@@ -90,12 +90,21 @@ func (a *App) enrollments(w http.ResponseWriter, r *http.Request) {
 			a.error(w, r, e)
 			return
 		}
-		states := []string{"active", "paused", "pending_agreement", "pending_tutor_acceptance"}
-		history := r.URL.Query().Get("history")
-		if history != "" && history != "0" && history != "1" {
-			a.error(w, r, domain.Fail(422, "validation", "Invalid booking history filter."))
-			return
+	}
+	history := r.URL.Query().Get("history")
+	if enum(user(r).Role, "parent", "tutor") && history != "" && history != "0" && history != "1" {
+		a.error(w, r, domain.Fail(422, "validation", "Invalid booking history filter."))
+		return
+	}
+	if user(r).Role == "parent" && history != "" {
+		states := []string{"active", "paused", "pending_agreement", "pending_tutor_acceptance", "awaiting_payment"}
+		if history == "1" {
+			states = []string{"completed", "cancelled"}
 		}
+		filter["status"] = bson.M{"$in": states}
+	}
+	if user(r).Role == "tutor" {
+		states := []string{"active", "paused", "pending_agreement", "pending_tutor_acceptance"}
 		if history == "1" {
 			states = []string{"completed", "cancelled"}
 		}
@@ -142,7 +151,11 @@ func (a *App) tuitionDetail(w http.ResponseWriter, r *http.Request) {
 		d.Agreements, e = progressRecords[domain.Agreement](r.Context(), a.Store, "agreements", f)
 	}
 	if e == nil {
-		d.Handovers, e = progressRecords[domain.Handover](r.Context(), a.Store, "handovers", f)
+		handoverFilter := bson.M{"enrollmentId": v.ID}
+		if user(r).Role == "tutor" {
+			handoverFilter["newTutorId"] = user(r).ID
+		}
+		d.Handovers, e = progressRecords[domain.Handover](r.Context(), a.Store, "handovers", handoverFilter)
 	}
 	for _, s := range d.Sessions {
 		if enum(s.Status, "completed", "reviewed") {
@@ -248,7 +261,7 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 		if er = a.checkLearnerConsent(ctx, u.ID, LearnerInput{Kind: learner.Kind, ConsentID: learner.ConsentID}); er != nil {
 			return er
 		}
-		subjects, er := domain.BookingSubjects(learner.Class, in.Subjects)
+		subjects, er := a.bookingSubjects(ctx, learner.Class, in.Subjects)
 		if er != nil {
 			return er
 		}
@@ -444,13 +457,13 @@ func (a *App) enrollmentAction(w http.ResponseWriter, r *http.Request) {
 					return er
 				}
 			}
-		case "pause", "resume":
+		case "pause":
+			return domain.Fail(422, "invalid_transition", "Pausing regular bookings is no longer available.")
+		case "resume":
 			if !enum(u.Role, "parent", "tutor") || !validText(in.Reason, 5, 1000) {
 				return domain.Fail(403, "forbidden", "The family or tutor must record a reason.")
 			}
-			if in.Action == "pause" && v.Status == "active" {
-				v.Status = "paused"
-			} else if in.Action == "resume" && v.Status == "paused" {
+			if v.Status == "paused" {
 				v.Status = "active"
 			} else {
 				return domain.Fail(409, "invalid_transition", "This tuition cannot make that transition.")
@@ -659,7 +672,7 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 				if in.Attendance != "present" {
 					return domain.Fail(422, "validation", "Learning progress requires present attendance.")
 				}
-				if er = validateClassProgress(in.Progress, v); er != nil {
+				if er = a.validateClassProgress(ctx, in.Progress, v); er != nil {
 					return er
 				}
 				in.Progress.RecordedAt = a.Now()
@@ -704,7 +717,7 @@ func (a *App) classAction(w http.ResponseWriter, r *http.Request) {
 			if !app.Scope.CoversSubjects(agreementSubjects(v.Agreement)) {
 				return domain.Fail(403, "scope_unavailable", "The current tutor approval must cover the booked subjects.")
 			}
-			if er = validateClassProgress(in.Progress, v); er != nil {
+			if er = a.validateClassProgress(ctx, in.Progress, v); er != nil {
 				return er
 			}
 			in.Progress.RecordedAt = a.Now()

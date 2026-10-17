@@ -13,17 +13,23 @@ import { QueryClientProvider, useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ArrowUpRight, Menu } from 'lucide-react'
 import './locales'
+import './locales/subjects'
 import '@fontsource/manrope/latin-400.css'
 import '@fontsource/manrope/latin-500.css'
 import '@fontsource/manrope/latin-600.css'
 import '@fontsource/manrope/latin-700.css'
 import './styles/index.css'
+import './styles/public-shell.css'
 import { queryClient, send, setCSRF } from './lib/api'
 import { useAuth, useConfig } from './lib/session'
+import { informationPages, isInformationPath } from './lib/public-pages'
 import { Button, Loading, LoadError, Modal, MutationError } from './components/ui'
 import { BrandMark } from './components/brand-mark'
+import { SiteFooter } from './components/site-footer'
 const Home = lazy(() => import('./routes/public-home').then((m) => ({ default: m.Home })))
 const Info = lazy(() => import('./routes/public-info').then((m) => ({ default: m.Info })))
+const PrivacyPolicy = lazy(() => import('./routes/privacy-policy'))
+const TermsOfService = lazy(() => import('./routes/terms-of-service'))
 const Search = lazy(() => import('./routes/public-search').then((m) => ({ default: m.Search })))
 const TutorDetail = lazy(() =>
   import('./routes/public-tutor').then((m) => ({ default: m.TutorDetail })),
@@ -39,6 +45,9 @@ const Apply = lazy(() => import('./routes/apply'))
 const TutorProfile = lazy(() => import('./routes/tutor-profile'))
 const Tuition = lazy(() => import('./routes/tuition'))
 const Billing = lazy(() => import('./routes/billing'))
+const Study = lazy(() => import('./routes/study'))
+const Subjects = lazy(() => import('./routes/subjects'))
+const TutorChanges = lazy(() => import('./routes/tutor-changes'))
 const Notifications = lazy(() => import('./routes/conversations'))
 const Cases = lazy(() => import('./routes/cases'))
 const Account = lazy(() => import('./routes/account'))
@@ -67,14 +76,20 @@ function SiteRoutes() {
       <Route path="/tuition" element={<Tuition />} />
       <Route path="/tuition/:id" element={<Tuition />} />
       <Route path="/billing" element={<Billing />} />
+      <Route path="/study" element={<Study />} />
+      <Route path="/subjects" element={<Subjects />} />
+      <Route path="/tutor-changes" element={<TutorChanges />} />
       <Route path="/billing/:id" element={<Billing />} />
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/cases" element={<Cases />} />
       <Route path="/account" element={<Account />} />
       <Route path="/cases/:id" element={<Cases />} />
       <Route path="/availability" element={<Availability />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
       <Route path="/components" element={<Showcase />} />
-      {['approach', 'standards', 'privacy', 'support', 'how-it-works'].map((path) => (
+      {informationPages.map((path) => (
         <Route key={path} path={`/${path}`} element={<Info page={path} />} />
       ))}
       <Route path="*" element={<Info page="404" />} />
@@ -90,6 +105,7 @@ function Layout() {
     location.pathname === '/' ||
     location.pathname === '/tutors' ||
     location.pathname.startsWith('/tutors/')
+  const publicInformation = isInformationPath(location.pathname)
   const logout = useMutation({
     mutationFn: () => send('/auth/logout', {}),
     onSuccess: () => {
@@ -119,13 +135,13 @@ function Layout() {
     )
   }
   // Resolve the session before choosing between the public site and private workspace.
-  if (publicLanding && auth.isPending)
+  if ((publicLanding || publicInformation) && auth.isPending)
     return (
-      <div className="container section">
+      <section className="container section public-session-loading">
         <Loading />
-      </div>
+      </section>
     )
-  if (publicLanding && auth.isError)
+  if ((publicLanding || publicInformation) && auth.isError)
     return (
       <div className="container section">
         <LoadError retry={() => void auth.refetch()} />
@@ -133,7 +149,10 @@ function Layout() {
     )
   if (auth.data && location.pathname === '/') return <Navigate to="/workspace" replace />
   if (
-    (auth.data && (location.pathname === '/tutors' || location.pathname.startsWith('/tutors/'))) ||
+    (auth.data &&
+      (publicInformation ||
+        location.pathname === '/tutors' ||
+        location.pathname.startsWith('/tutors/'))) ||
     [
       '/workspace',
       '/match',
@@ -142,6 +161,9 @@ function Layout() {
       '/tuition',
       '/availability',
       '/account',
+      '/study',
+      '/subjects',
+      '/tutor-changes',
     ].includes(location.pathname.replace(/\/+$/, '')) ||
     location.pathname.startsWith('/tuition/') ||
     location.pathname === '/billing' ||
@@ -211,7 +233,7 @@ function Layout() {
       <main id="main" tabIndex={-1}>
         <Suspense
           fallback={
-            <div className="container section">
+            <div className="container section public-route-loading">
               <Loading />
             </div>
           }
@@ -219,28 +241,9 @@ function Layout() {
           <SiteRoutes />
         </Suspense>
       </main>
-      <footer>
-        <div className="container footer-grid">
-          <div>
-            <Link to="/" className="footer-wordmark">
-              <BrandMark />
-              {config.data?.appName ?? t('brand')}
-            </Link>
-            <p>{t('footer')}</p>
-            {!publicLanding && <small>{t('noFounder')}</small>}
-          </div>
-          <nav aria-label="Footer">
-            <Link to="/standards">{t('standards')}</Link>
-            <Link to="/privacy">{t('privacy')}</Link>
-            <Link to="/support">{t('support')}</Link>
-            <Link to="/login?staff=1">{t('staff')}</Link>
-            {config.data?.development && !publicLanding && (
-              <Link to="/components">{t('components')}</Link>
-            )}
-          </nav>
-        </div>
+      <SiteFooter includeOrganization={location.pathname === '/'}>
         {auth.data && (
-          <div className="container footer-session">
+          <div className="site-footer-session">
             <span>{auth.data.user.name}</span>
             <Button variant="text" busy={logout.isPending} onClick={() => logout.mutate()}>
               {t('logout')}
@@ -248,7 +251,7 @@ function Layout() {
             <MutationError error={logout.error} />
           </div>
         )}
-      </footer>
+      </SiteFooter>
       <ScrollReset />
     </div>
   )

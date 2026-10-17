@@ -98,10 +98,11 @@ export function tuitionContract(schemas, route) {
         type: 'array',
         items: {
           type: 'string',
-          enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+          minLength: 2,
+          maxLength: 80,
         },
         minItems: 1,
-        maxItems: 6,
+        maxItems: 20,
         uniqueItems: true,
       },
       schedule: ref('RecurrenceInput'),
@@ -113,7 +114,7 @@ export function tuitionContract(schemas, route) {
     }),
     EnrollmentAction: input(
       {
-        action: { type: 'string', enum: ['accept', 'accept_booking', 'pause', 'resume', 'cancel'] },
+        action: { type: 'string', enum: ['accept', 'accept_booking', 'resume', 'cancel'] },
         version: integer,
         reason: str,
       },
@@ -281,10 +282,11 @@ export function tuitionContract(schemas, route) {
     type: 'array',
     items: {
       type: 'string',
-      enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+      minLength: 2,
+      maxLength: 80,
     },
     minItems: 1,
-    maxItems: 6,
+    maxItems: 20,
     uniqueItems: true,
   }
   schemas.Agreement.properties.packageFeePaise = { type: 'integer', minimum: 0 }

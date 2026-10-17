@@ -15,6 +15,16 @@
   line-height: 1.25;
   letter-spacing: -0.035em;
 }
+.desk-shell[data-role='parent'] .account-page {
+  max-width: none;
+  gap: 20px;
+}
+.desk-shell[data-role='parent'] .account-page .tu-panel {
+  padding: 20px;
+}
+.desk-shell[data-role='parent'] .account-profile-layout {
+  max-width: none;
+}
 .account-heading p {
   margin: 10px 0 0;
   color: var(--account-muted);
@@ -26,7 +36,6 @@
   border-color: var(--account-line);
   border-radius: 12px;
   background: #fff;
-  box-shadow: none;
 }
 .account-page > .workspace-tabs [role='tab'] {
   border-radius: 8px;
@@ -36,7 +45,6 @@
   color: var(--navy);
   border-color: #d1ddc7;
   background: var(--account-soft);
-  box-shadow: none;
 }
 .account-profile-layout {
   display: grid;

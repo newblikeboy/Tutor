@@ -179,7 +179,12 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	normalizeApplication(in.Profile)
-	if fields := applicationErrors(*in.Profile, in.Submit, a.Now()); len(fields) > 0 {
+	catalog, catalogErr := a.subjectReferences(r.Context())
+	if catalogErr != nil {
+		a.error(w, r, catalogErr)
+		return
+	}
+	if fields := applicationErrors(*in.Profile, in.Submit, a.Now(), catalog); len(fields) > 0 {
 		a.json(w, 422, map[string]any{"code": "application_validation", "message": "Review the highlighted application fields.", "fieldErrors": fields, "requestId": middleware.GetReqID(r.Context())})
 		return
 	}
@@ -195,6 +200,9 @@ func (a *App) application(w http.ResponseWriter, r *http.Request) {
 		}
 		if old.FormVersion != *in.Version {
 			return domain.Fail(409, "stale", "This draft changed in another window. Reload before saving.")
+		}
+		if err = a.applicationSubjects(ctx, *in.Profile, old.Profile, in.Submit); err != nil {
+			return err
 		}
 		if err = a.bindApplicationEvidence(ctx, &old, u.ID, *in.Profile, in.Submit); err != nil {
 			return err

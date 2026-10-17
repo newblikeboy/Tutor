@@ -4,6 +4,8 @@ import "time"
 
 type PrivateFile struct {
 	ID                 string     `json:"id" bson:"_id"`
+	MessageID          string     `json:"-" bson:"messageId,omitempty"`
+	MessageDraft       bool       `json:"-" bson:"messageDraft,omitempty"`
 	TargetKind         string     `json:"targetKind" bson:"targetKind"`
 	TargetID           string     `json:"targetId" bson:"targetId"`
 	UploaderID         string     `json:"-" bson:"uploaderId"`

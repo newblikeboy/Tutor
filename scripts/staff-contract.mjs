@@ -170,10 +170,11 @@ export function staffContract(schemas, route, paths) {
           type: 'array',
           items: {
             type: 'string',
-            enum: ['All Subjects', 'Mathematics', 'Science', 'English', 'Hindi', 'Social Science'],
+            minLength: 2,
+            maxLength: 80,
           },
           minItems: 1,
-          maxItems: 6,
+          maxItems: 20,
           uniqueItems: true,
         },
         minClass: { ...n, minimum: 1, maximum: 12 },

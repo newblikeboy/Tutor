@@ -1,14 +1,17 @@
+import { SubjectNames } from '../components/subject-name'
 import '../locales/parent'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowRight, BookOpen, CalendarDays, Sprout, Users } from 'lucide-react'
-import type { Dashboard } from '../lib/api'
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Sprout } from 'lucide-react'
+import { indiaDate, type Dashboard } from '../lib/api'
 import { initials, workspaceLink, type WorkspaceView } from '../lib/workspace'
 import { LearningMotif } from '../components/learning-motif'
-import { Field, LinkButton } from '../components/ui'
+import { Alert, Badge, Field, LinkButton } from '../components/ui'
 import { TabBar, TabPanel } from '../components/workspace-tabs'
 import { TrialCard } from '../components/trial-card'
 import LearnerProgressReport from '../components/learner-progress'
+import { ParentLearnersTable, ParentTrialsTable } from '../components/parent-tables'
+import { ParentHome } from '../components/parent-home'
 import '../styles/parent.css'
 
 export default function Parent({ data, view }: { data: Dashboard; view: WorkspaceView }) {
@@ -46,8 +49,38 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
       : params.get('tab') === 'past'
         ? 'past'
         : 'upcoming'
+  const selectedTrialID = params.get('trial')
+  const selectedTrial = trials.find((trial) => trial.id === selectedTrialID)
+  const trialListPath = `${workspaceLink('sessions', learner.id)}&tab=${tab}`
+  if (view === 'learners' && !params.get('learner'))
+    return <ParentLearnersTable learners={data.learners} />
+  if (view === 'learners' && !data.learners.some((item) => item.id === params.get('learner')))
+    return <Alert kind="error">This learner is not available.</Alert>
+  if (['sessions', 'progress'].includes(view) && selectedTrialID)
+    return (
+      <div className="parent-content">
+        <Link className="student-back-link" to={trialListPath}>
+          <ArrowLeft size={17} aria-hidden="true" /> Back to Trial lessons
+        </Link>
+        {selectedTrial ? (
+          <TrialCard
+            key={`${selectedTrial.id}:${selectedTrial.version}`}
+            trial={selectedTrial}
+            role="parent"
+            headingLevel={2}
+          />
+        ) : (
+          <Alert kind="error">This trial is not available.</Alert>
+        )}
+      </div>
+    )
   return (
     <div className="parent-content">
+      {view === 'learners' && (
+        <Link className="student-back-link" to={workspaceLink('learners')}>
+          <ArrowLeft size={17} aria-hidden="true" /> Back to Learners
+        </Link>
+      )}
       <section className="parent-home-learner">
         <span className="parent-learner-avatar" aria-hidden="true">
           {initials(learner.name)}
@@ -60,6 +93,7 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
               next.set('learner', event.target.value)
               next.delete('subject')
               next.delete('tutor')
+              next.delete('trial')
               setParams(next)
             }}
           >
@@ -76,79 +110,77 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
       </section>
       {view === 'overview' && (
         <>
-          <section className="parent-next customer-hero">
-            <div className="customer-hero-copy">
-              <span className="customer-eyebrow">
-                <Sprout size={17} aria-hidden="true" />
-                Room to learn. Space to grow.
-              </span>
-              <h2>Find a tutor for {learner.name}</h2>
-              <p>Choose the subjects and teaching mode that fit your child's day.</p>
-              <LinkButton to={`/match?learner=${encodeURIComponent(learner.id)}`}>
-                {t('parent.start')}
-              </LinkButton>
-            </div>
-            <LearningMotif />
-          </section>
-          <nav className="parent-home-paths" aria-label="Your learning essentials">
-            <Link to={workspaceLink('learners', learner.id)}>
-              <span className="customer-path-icon">
-                <Sprout size={23} aria-hidden="true" />
-              </span>
-              <span>
-                <strong>Learning progress</strong>
-                <small>Reports, subjects and tutor feedback</small>
-              </span>
-              <ArrowRight size={18} aria-hidden="true" />
-            </Link>
-            <Link to="/tuition">
-              <span className="customer-path-icon">
-                <BookOpen size={23} aria-hidden="true" />
-              </span>
-              <span>
-                <strong>Regular classes</strong>
-                <small>Bookings and class schedules</small>
-              </span>
-              <ArrowRight size={18} aria-hidden="true" />
-            </Link>
-            <Link to={workspaceLink('sessions', learner.id)}>
-              <span className="customer-path-icon">
-                <CalendarDays size={23} aria-hidden="true" />
-              </span>
-              <span>
-                <strong>Trial lessons</strong>
-                <small>Meet a tutor and view trial feedback</small>
-              </span>
-              <ArrowRight size={18} aria-hidden="true" />
-            </Link>
-          </nav>
-          <div className="parent-home-details">
+          <ParentHome learner={learner}>
             {upcoming[0] && (
-              <section className="parent-next-trial">
-                <h2>{t('parent.nextTrial')}</h2>
-                <TrialCard trial={upcoming[0]} role="parent" />
-              </section>
+              <div className="parent-home-details">
+                <section className="parent-next-trial">
+                  <h2>{t('parent.nextTrial')}</h2>
+                  <div className="parent-next-summary">
+                    <div>
+                      <strong>
+                        <SubjectNames values={upcoming[0].subjects ?? [upcoming[0].subject]} />
+                      </strong>
+                      <p>
+                        <time dateTime={upcoming[0].start}>
+                          {indiaDate(upcoming[0].start, 'en')}
+                        </time>{' '}
+                        · {upcoming[0].mode === 'home' ? 'Home Tuition' : 'Online'}
+                      </p>
+                    </div>
+                    <Badge tone={upcoming[0].status === 'confirmed' ? 'teal' : 'neutral'}>
+                      {t(`parent.trialStatus.${upcoming[0].status}`)}
+                    </Badge>
+                    <Link
+                      className="student-back-link"
+                      to={`${workspaceLink('sessions', learner.id)}&trial=${encodeURIComponent(upcoming[0].id)}`}
+                    >
+                      View trial <ArrowRight size={16} aria-hidden="true" />
+                    </Link>
+                  </div>
+                </section>
+              </div>
             )}
-            <section className="parent-learning-note">
-              <span className="customer-path-icon">
-                <Users size={23} aria-hidden="true" />
-              </span>
-              <h2>A place for every learner</h2>
-              <p>Switch learners above to keep each child's classes and progress together.</p>
-              <Link className="text-link" to="/match?new=1&profile=1">
-                {t('parent.add')}
-                <ArrowRight size={16} aria-hidden="true" />
+            <nav className="parent-home-paths" aria-label="Your learning essentials">
+              <Link to={workspaceLink('learners', learner.id)}>
+                <span className="customer-path-icon">
+                  <Sprout size={23} aria-hidden="true" />
+                </span>
+                <span>
+                  <strong>Learning progress</strong>
+                  <small>Reports, subjects and tutor feedback</small>
+                </span>
+                <ArrowRight size={18} aria-hidden="true" />
               </Link>
-            </section>
-          </div>
-          {!!completed.length && (
-            <Link
-              className="text-link"
-              to={`${workspaceLink('sessions', learner.id)}&tab=completed`}
-            >
-              {t('parent.feedback')} ({completed.length})
-            </Link>
-          )}
+              <Link to="/tuition">
+                <span className="customer-path-icon">
+                  <BookOpen size={23} aria-hidden="true" />
+                </span>
+                <span>
+                  <strong>Regular classes</strong>
+                  <small>Bookings and class schedules</small>
+                </span>
+                <ArrowRight size={18} aria-hidden="true" />
+              </Link>
+              <Link to={workspaceLink('sessions', learner.id)}>
+                <span className="customer-path-icon">
+                  <CalendarDays size={23} aria-hidden="true" />
+                </span>
+                <span>
+                  <strong>Trial lessons{upcoming.length > 0 ? ` (${upcoming.length})` : ''}</strong>
+                  <small>Upcoming trials and tutor feedback</small>
+                </span>
+                <ArrowRight size={18} aria-hidden="true" />
+              </Link>
+            </nav>
+            {!!completed.length && (
+              <Link
+                className="text-link"
+                to={`${workspaceLink('sessions', learner.id)}&tab=completed`}
+              >
+                {t('parent.feedback')} ({completed.length})
+              </Link>
+            )}
+          </ParentHome>
         </>
       )}
       {view === 'learners' && <LearnerProgressReport learner={learner} />}
@@ -157,6 +189,7 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
           <h2 className="sr-only">Trial records</h2>
           <TabBar
             id="parent-trials"
+            scrollable
             label={t('parent.nav.sessions')}
             value={tab}
             options={Object.entries(queues).map(([value, items]) => ({
@@ -175,7 +208,7 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
             <TabPanel id="parent-trials" value={value} active={tab === value} key={value}>
               <div className="queue">
                 {items.length ? (
-                  items.map((trial) => <TrialCard trial={trial} role="parent" key={trial.id} />)
+                  <ParentTrialsTable trials={items} listPath={trialListPath} />
                 ) : (
                   <p className="parent-empty">
                     {t(

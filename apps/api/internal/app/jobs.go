@@ -330,6 +330,10 @@ func (a *App) processJob(ctx context.Context, j job) error {
 			return a.applyCaptured(ctx, v.ID, p)
 		}
 		if p.Status == "failed" {
+			if v.Purpose == "study_subscription" {
+				// A failed payment attempt does not close the resumable order.
+				return a.audit(ctx, "razorpay", "study.payment_attempt_failed", v.ID)
+			}
 			_, e = a.Store.C("payment_intents").UpdateOne(ctx, bson.M{"_id": v.ID, "state": "created", "paymentId": ""}, bson.M{"$set": bson.M{"state": "payment_failed"}})
 			return e
 		}

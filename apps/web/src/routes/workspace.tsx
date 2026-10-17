@@ -60,11 +60,15 @@ function WorkspaceData() {
             {['parent', 'tutor'].includes(d.user.role)
               ? d.user.role === 'tutor' && view === 'overview'
                 ? t('desk.tutorTitle')
-                : d.user.role === 'tutor' && view === 'learners'
+                : view === 'learners'
                   ? params.get('learner')
-                    ? 'Student progress report'
-                    : 'My students'
-                  : d.user.role === 'tutor' && view === 'sessions' && params.get('trial')
+                    ? d.user.role === 'tutor'
+                      ? 'Student progress report'
+                      : 'Learning progress'
+                    : d.user.role === 'tutor'
+                      ? 'My students'
+                      : t('parent.nav.learners')
+                  : view === 'sessions' && params.get('trial')
                     ? 'Trial details'
                     : t(`parent.nav.${view}`)
               : view === 'overview'
@@ -92,12 +96,15 @@ function WorkspaceData() {
           >
             <RefreshCw size={17} aria-hidden="true" />
           </Button>
-          {d.user.role === 'parent' && view === 'learners' && d.learners.length > 0 && (
-            <LinkButton to="/match?new=1&profile=1">
-              <Plus size={17} aria-hidden="true" />
-              {t('parent.add')}
-            </LinkButton>
-          )}
+          {d.user.role === 'parent' &&
+            view === 'learners' &&
+            !params.get('learner') &&
+            d.learners.length > 0 && (
+              <LinkButton to="/match?new=1&profile=1">
+                <Plus size={17} aria-hidden="true" />
+                {t('parent.add')}
+              </LinkButton>
+            )}
         </div>
       </div>
       <p className="sr-only" role="status">

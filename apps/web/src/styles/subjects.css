@@ -1,0 +1,103 @@
+.subjects-page {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.subjects-page h1,
+.subjects-page h2,
+.subjects-page p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.subjects-page h1 {
+  font-size: clamp(26px, 2.5vw, 34px);
+  letter-spacing: -0.8px;
+}
+.subjects-page h2 {
+  font-size: 21px;
+}
+.subjects-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.subjects-heading > div {
+  display: grid;
+  gap: 8px;
+}
+.subjects-heading p {
+  color: var(--muted);
+}
+.subjects-guide {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #eff4e7;
+  border: 1px solid #d6dfca;
+  border-radius: 12px;
+}
+.subjects-guide svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.subjects-guide p {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.subject-form {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  background: white;
+  border-radius: 14px;
+}
+.subject-form fieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 18px;
+}
+.subject-active {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  grid-column: 1 / -1;
+}
+.subject-active input {
+  width: 18px;
+  height: 18px;
+  accent-color: #325845;
+}
+.subject-form-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.subjects-page .student-table {
+  min-width: 660px;
+}
+.subjects-page .student-table th span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+@media (max-width: 700px) {
+  .subjects-heading {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .subject-form {
+    padding: 16px;
+  }
+  .subject-form fieldset {
+    grid-template-columns: 1fr;
+  }
+}

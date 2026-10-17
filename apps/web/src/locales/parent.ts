@@ -10,7 +10,7 @@ const parentEN = {
     classes: 'Regular classes',
     payments: 'Payments',
     help: 'Help',
-    account: 'Account',
+    account: 'My profile',
     start: 'Find a tutor',
     add: 'Add learner',
     continue: 'Continue setup',
@@ -61,6 +61,9 @@ const parentEN = {
     saveConflict:
       'This request was already submitted with different details. Reload to check its result before trying again.',
     editStale: 'This learner profile changed in another tab. Reload before editing again.',
+    deleteStale: 'This learner profile changed. Reload before deleting it.',
+    deleteInUse:
+      'This learner has trial, booking, subscription or progress history and cannot be deleted. You can still edit their profile. Existing records are preserved.',
     historical: 'Existing bookings and agreements keep their saved details.',
     back: 'Back to home',
     name: 'First name or nickname',

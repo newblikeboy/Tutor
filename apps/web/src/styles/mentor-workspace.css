@@ -128,7 +128,6 @@
   background: var(--mentor-surface);
   border-color: var(--mentor-line);
   border-radius: 10px;
-  box-shadow: none;
   margin-bottom: 18px;
 }
 .desk-shell[data-role='mentor'] .workspace-tabs [role='tab'] {
@@ -140,7 +139,6 @@
   background: var(--mentor-soft);
   border-color: #cbd8c4;
   color: var(--navy);
-  box-shadow: none;
 }
 .desk-shell[data-role='mentor'] .staff-panel,
 .desk-shell[data-role='mentor'] .staff-content > .workspace-tab-panel,

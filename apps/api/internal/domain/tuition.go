@@ -128,3 +128,12 @@ type TuitionDetail struct {
 	Remaining  int            `json:"remaining"`
 	Delivered  int            `json:"delivered"`
 }
+type TutorChangeReview struct {
+	Request       Handover `json:"request"`
+	LearnerName   string   `json:"learnerName"`
+	TutorName     string   `json:"tutorName"`
+	Class         int      `json:"class"`
+	Subjects      []string `json:"subjects"`
+	Mode          string   `json:"mode"`
+	BookingStatus string   `json:"bookingStatus"`
+}

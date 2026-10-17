@@ -1,3 +1,4 @@
+import { SubjectNames } from '../components/subject-name'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ArrowRight, BookOpen, CalendarDays, Users } from 'lucide-react'
@@ -11,6 +12,7 @@ import { GoogleConnection } from '../components/google-connection'
 import { Alert, Loading, LoadError } from '../components/ui'
 import '../styles/tuition.css'
 import '../styles/tutor-workspace.css'
+import '../styles/journey-workspaces.css'
 
 const subjects = (en: Schema['Enrollment']) =>
   (en.agreement.subjects ?? [en.agreement.subject]).join(', ')
@@ -66,21 +68,12 @@ export default function TutorWorkspace({ view }: { view: WorkspaceView }) {
       })),
   ].sort((a, b) => a.start.localeCompare(b.start))
   const next = upcoming[0]
+  const pending = d.enrollments.filter((en) => en.status === 'pending_tutor_acceptance')
   const activeLearners = new Set(
     d.enrollments.filter((en) => en.status === 'active').map((en) => en.learnerId),
   )
   return (
     <div className="tutor-home">
-      <GoogleConnection />
-      {d.enrollments.some((en) => en.status === 'pending_tutor_acceptance') && (
-        <section className="tu-panel">
-          <h2>New bookings need your acceptance</h2>
-          <p>Review and sign the teaching agreement before starting these classes.</p>
-          <Link className="btn primary" to="/tuition">
-            Review new bookings <ArrowRight size={17} aria-hidden="true" />
-          </Link>
-        </section>
-      )}
       <section className="customer-hero">
         <div className="customer-hero-copy">
           <span className="customer-eyebrow">
@@ -91,7 +84,7 @@ export default function TutorWorkspace({ view }: { view: WorkspaceView }) {
           {next ? (
             <>
               <p>
-                {next.label} · {next.subject}
+                {next.label} · <SubjectNames values={next.subject.split(', ')} />
               </p>
               <p className="tutor-next-time">
                 <CalendarDays size={16} aria-hidden="true" />
@@ -108,6 +101,23 @@ export default function TutorWorkspace({ view }: { view: WorkspaceView }) {
         </div>
         <LearningMotif />
       </section>
+      {pending.length > 0 && (
+        <section className="tutor-acceptance-list" aria-label="Bookings awaiting your acceptance">
+          <h2>New bookings need your acceptance ({pending.length})</h2>
+          <p>Review the saved terms, sign by email code and accept before teaching starts.</p>
+          {pending.slice(0, 3).map((en) => (
+            <Link key={en.id} to={`/tuition/${encodeURIComponent(en.id)}?tab=agreement`}>
+              Review booking for {en.learnerName}
+              <ArrowRight size={17} aria-hidden="true" />
+            </Link>
+          ))}
+          {pending.length > 3 && (
+            <Link to="/tuition">
+              View all new bookings <ArrowRight size={17} aria-hidden="true" />
+            </Link>
+          )}
+        </section>
+      )}
       <nav className="tutor-summary" aria-label="Teaching overview">
         <Link to="/workspace?view=learners">
           <Users size={21} aria-hidden="true" />
@@ -122,6 +132,7 @@ export default function TutorWorkspace({ view }: { view: WorkspaceView }) {
           <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </nav>
+      <GoogleConnection />
     </div>
   )
 }

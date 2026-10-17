@@ -1,10 +1,11 @@
+import { SubjectNames } from './subject-name'
 import { useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { indiaDate, type Schema } from '../lib/api'
 import { Alert, Badge, Empty, Status } from './ui'
 import { TrialCard } from './trial-card'
-import { TutorRecordTable } from './tutor-record-table'
+import { WorkspaceRecordTable } from './workspace-record-table'
 
 const queues = ['all', 'requested', 'confirmed', 'completed', 'reviewed', 'cancelled', 'declined']
 const trialListPath = (queue: string) =>
@@ -77,7 +78,7 @@ export function TutorTrials({ data }: { data: Schema['TutorWorkspace'] }) {
         ))}
       </nav>
       {visible.length ? (
-        <TutorRecordTable
+        <WorkspaceRecordTable
           label="Tutor trial lessons"
           countLabel={`${visible.length} ${visible.length === 1 ? 'trial' : 'trials'}`}
           intro="Open a trial to confirm its time, join the lesson or record feedback."
@@ -98,7 +99,7 @@ export function TutorTrials({ data }: { data: Schema['TutorWorkspace'] }) {
                 <p className="student-table-secondary">Class {trial.class}</p>
               </th>
               <td>
-                {(trial.subjects ?? [trial.subject]).join(', ')}
+                <SubjectNames values={trial.subjects ?? [trial.subject]} />
                 <p className="student-table-secondary">
                   {trial.mode === 'home' ? 'Home Tuition' : 'Online'}
                 </p>
@@ -127,7 +128,7 @@ export function TutorTrials({ data }: { data: Schema['TutorWorkspace'] }) {
               </td>
             </tr>
           ))}
-        </TutorRecordTable>
+        </WorkspaceRecordTable>
       ) : (
         <Empty headingLevel={2} title="No trials in this view" />
       )}

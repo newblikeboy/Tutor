@@ -20,8 +20,10 @@ import {
 } from '../components/ui'
 import '../styles/tuition.css'
 import { BusinessSettings, FinanceOverview } from './finance'
+import { loadCheckout } from '../lib/checkout'
 import TutorEarnings from './tutor-earnings'
 import { PaidInvoice, InvoiceForm } from '../components/paid-invoice'
+import { WorkspaceRecordTable } from '../components/workspace-record-table'
 
 const price = (n: number, lang: string) =>
   new Intl.NumberFormat(lang === 'hi' ? 'hi-IN' : 'en-IN', {
@@ -34,57 +36,6 @@ const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ['tuition'] }),
     queryClient.invalidateQueries({ queryKey: ['jobs'] }),
   ])
-type CheckoutResult = {
-  razorpay_payment_id: string
-  razorpay_order_id: string
-  razorpay_signature: string
-}
-type CheckoutOptions = {
-  key: string
-  order_id: string
-  amount: number
-  currency: string
-  name: string
-  description: string
-  handler: (r: CheckoutResult) => void
-  modal: { ondismiss: () => void }
-  theme: { color: string }
-}
-declare global {
-  interface Window {
-    Razorpay?: new (options: CheckoutOptions) => {
-      open: () => void
-      on: (name: string, fn: () => void) => void
-    }
-  }
-}
-let checkoutScript: Promise<void> | undefined
-function loadCheckout() {
-  if (window.Razorpay) return Promise.resolve()
-  if (!checkoutScript)
-    checkoutScript = new Promise<void>((resolve, reject) => {
-      const script = document.createElement('script')
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-      script.async = true
-      const fail = () => {
-        script.remove()
-        checkoutScript = undefined
-        reject(new Error('checkout_unavailable'))
-      }
-      const timer = window.setTimeout(fail, 12000)
-      script.onload = () => {
-        clearTimeout(timer)
-        if (window.Razorpay) resolve()
-        else fail()
-      }
-      script.onerror = () => {
-        clearTimeout(timer)
-        fail()
-      }
-      document.head.append(script)
-    })
-  return checkoutScript
-}
 export function Checkout({ enrollment }: { enrollment: Schema['Enrollment'] }) {
   const { t } = useTranslation(),
     config = useConfig()
@@ -279,7 +230,7 @@ export default function Billing() {
     )
   return (
     <div className="tu-page billing-page">
-      <h1 className="sr-only">
+      <h1 className={auth.data?.user.role === 'parent' ? 'parent-payments-title' : 'sr-only'}>
         {t(auth.data?.user.role === 'parent' ? 'parent.payments' : 'billing.title')}
       </h1>
       {id ? (
@@ -334,6 +285,7 @@ function StaffPaymentTabs() {
   )
 }
 function PaymentList() {
+  const auth = useAuth()
   const { t, i18n } = useTranslation(),
     [params, setParams] = useSearchParams()
   const cursor = params.get('cursor') ?? ''
@@ -352,6 +304,49 @@ function PaymentList() {
         <>
           {!q.data.items.length ? (
             <Empty headingLevel={2} title={t('billing.none')} body={t('billing.noneBody')} />
+          ) : auth.data?.user.role === 'parent' ? (
+            <WorkspaceRecordTable
+              label="Your payments"
+              countLabel={`${q.data.items.length} ${q.data.items.length === 1 ? 'payment' : 'payments'} on this page`}
+              intro="Open a payment to see its details, invoice and refund status."
+              columns={['Payment', 'Date', 'Amount', 'Status', 'Refunded']}
+            >
+              {q.data.items.map((payment) => (
+                <tr key={payment.id}>
+                  <th scope="row">
+                    <Link
+                      className="student-report-link"
+                      to={`/billing/${encodeURIComponent(payment.id)}${cursor ? `?listCursor=${encodeURIComponent(cursor)}` : ''}`}
+                    >
+                      <strong>
+                        {payment.purpose === 'study_subscription'
+                          ? 'Study subscription'
+                          : t('billing.view')}
+                      </strong>
+                      <span>Reference {payment.id.slice(-8)}</span>
+                    </Link>
+                    {payment.provider === 'simulation' && <Badge tone="amber">Test payment</Badge>}
+                  </th>
+                  <td>
+                    <time dateTime={payment.createdAt}>
+                      {indiaDate(payment.createdAt, i18n.language)}
+                    </time>
+                  </td>
+                  <td>{price(payment.amountPaise, i18n.language)}</td>
+                  <td>
+                    <PaymentStatus
+                      state={payment.state}
+                      simulated={payment.provider === 'simulation'}
+                    />
+                  </td>
+                  <td>
+                    {payment.provider === 'simulation'
+                      ? 'Not applicable'
+                      : price(payment.refundedPaise, i18n.language)}
+                  </td>
+                </tr>
+              ))}
+            </WorkspaceRecordTable>
           ) : (
             <div className="tu-card-grid">
               {q.data.items.map((v) => (
@@ -404,6 +399,7 @@ function PaymentList() {
   )
 }
 function PaymentDetail({ id }: { id: string }) {
+  const [params] = useSearchParams()
   const { t, i18n } = useTranslation(),
     auth = useAuth()
   const q = useQuery({
@@ -428,7 +424,14 @@ function PaymentDetail({ id }: { id: string }) {
         ]
   return (
     <>
-      <Link className="tu-back" to="/billing">
+      <Link
+        className="tu-back"
+        to={
+          params.get('listCursor')
+            ? `/billing?cursor=${encodeURIComponent(params.get('listCursor')!)}`
+            : '/billing'
+        }
+      >
         <ArrowLeft size={16} />
         {t('billing.back')}
       </Link>
@@ -461,8 +464,15 @@ function PaymentDetail({ id }: { id: string }) {
           </p>
         )}
         {!staff && (
-          <Link to={`/tuition/${v.enrollmentId}`} className="text-link">
-            {t('billing.openTuition')}
+          <Link
+            to={
+              v.purpose === 'study_subscription'
+                ? `/study?learner=${encodeURIComponent(v.learnerId ?? '')}`
+                : `/tuition/${v.enrollmentId}`
+            }
+            className="text-link"
+          >
+            {v.purpose === 'study_subscription' ? 'Open study materials' : t('billing.openTuition')}
           </Link>
         )}
         {staff &&
@@ -480,6 +490,12 @@ function PaymentDetail({ id }: { id: string }) {
       {q.data.invoice && <PaidInvoice invoice={q.data.invoice} />}
       {staff && v.provider !== 'simulation' && v.paymentId && !q.data.invoice && (
         <InvoiceForm id={id} />
+      )}
+      {v.purpose === 'study_subscription' && v.provider !== 'simulation' && v.paymentId && (
+        <p>
+          A processed refund ends access funded by this subscription payment. Saved quiz results
+          remain available.
+        </p>
       )}
       {v.provider !== 'simulation' &&
         v.paymentId &&

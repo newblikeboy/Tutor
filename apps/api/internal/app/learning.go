@@ -76,6 +76,14 @@ func (a *App) requestHandover(w http.ResponseWriter, r *http.Request) {
 	if !a.decode(w, r, &in) {
 		return
 	}
+	if in.TutorID != "" {
+		a.error(w, r, domain.Fail(422, "validation", "An administrator selects the replacement tutor after reviewing your request."))
+		return
+	}
+	if err := a.rate(r.Context(), "tutor-change:"+user(r).ID, 8); err != nil {
+		a.error(w, r, err)
+		return
+	}
 	if !in.Consent || !validText(in.Reason, 10, 1000) {
 		a.error(w, r, domain.Fail(422, "validation", "Explain the tutor change and consent to sharing the learning record."))
 		return
@@ -87,19 +95,16 @@ func (a *App) requestHandover(w http.ResponseWriter, r *http.Request) {
 		if er != nil {
 			return er
 		}
-		if !enum(v.Status, "active", "paused") || v.TutorID == in.TutorID {
-			return domain.Fail(409, "invalid_transition", "Choose another approved tutor for open tuition.")
-		}
-		app, _, er := a.lockOffering(ctx, in.TutorID, v.Class, v.Agreement.Mode)
+		prior, fp, er := a.receipt(ctx, "tutor-change:"+u.ID, r.Header.Get("Idempotency-Key"), map[string]any{"enrollment": v.ID, "reason": in.Reason, "consent": in.Consent})
 		if er != nil {
 			return er
 		}
-		subjects := v.Agreement.Subjects
-		if len(subjects) == 0 {
-			subjects = []string{v.Agreement.Subject}
+		if prior != "" {
+			h, er = storage.One[domain.Handover](ctx, a.Store, "handovers", bson.M{"_id": prior, "enrollmentId": v.ID})
+			return er
 		}
-		if !app.Scope.CoversSubjects(subjects) || !app.Scope.HasMode(v.Agreement.Mode) {
-			return domain.Fail(409, "scope_unavailable", "The new tutor must cover the existing agreement scope.")
+		if !enum(v.Status, "active", "paused") {
+			return domain.Fail(409, "invalid_transition", "Tutor changes can be requested for current bookings.")
 		}
 		count, er := a.Store.C("handovers").CountDocuments(ctx, bson.M{"enrollmentId": v.ID, "status": bson.M{"$in": []string{"requested", "awaiting_tutor"}}})
 		if er != nil {
@@ -108,12 +113,24 @@ func (a *App) requestHandover(w http.ResponseWriter, r *http.Request) {
 		if count > 0 {
 			return domain.Fail(409, "conflict", "A tutor-change request is already open.")
 		}
-		h = domain.Handover{ID: token(), EnrollmentID: v.ID, OldTutorID: v.TutorID, NewTutorID: in.TutorID, Reason: clean(in.Reason), Status: "requested", FamilyConsentAt: a.Now(), CreatedAt: a.Now()}
+		h = domain.Handover{ID: token(), EnrollmentID: v.ID, OldTutorID: v.TutorID, NewTutorID: "", Reason: clean(in.Reason), Status: "requested", FamilyConsentAt: a.Now(), CreatedAt: a.Now()}
 		if _, er = a.Store.C("enrollments").UpdateOne(ctx, bson.M{"_id": v.ID}, bson.M{"$inc": bson.M{"version": 1}}); er != nil {
 			return er
 		}
 		if _, er = a.Store.C("handovers").InsertOne(ctx, h); er != nil {
 			return er
+		}
+		if er = a.saveReceipt(ctx, "tutor-change:"+u.ID, r.Header.Get("Idempotency-Key"), fp, h.ID); er != nil {
+			return er
+		}
+		admins, er := storage.Many[domain.User](ctx, a.Store, "users", bson.M{"role": "admin", "status": "active"})
+		if er != nil {
+			return er
+		}
+		for _, admin := range admins {
+			if er = a.notifyActivity(ctx, admin.ID, "tutor_change_requested", h.ID); er != nil {
+				return er
+			}
 		}
 		return a.audit(ctx, u.ID, "handover.requested", h.ID)
 	})
@@ -153,6 +170,7 @@ func (a *App) handoverAction(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Action    string `json:"action"`
 		NextSteps string `json:"nextSteps"`
+		TutorID   string `json:"tutorId"`
 	}
 	if !a.decode(w, r, &in) {
 		return
@@ -167,19 +185,48 @@ func (a *App) handoverAction(w http.ResponseWriter, r *http.Request) {
 		if er != nil {
 			return er
 		}
-		if !(u.Role == "mentor" && u.ID == v.MentorID) && !(u.Role == "parent" && u.ID == v.OwnerID) && !(u.Role == "tutor" && u.ID == h.NewTutorID) {
+		if u.Role != "admin" && !(u.Role == "mentor" && u.ID == v.MentorID) && !(u.Role == "parent" && u.ID == v.OwnerID) && !(u.Role == "tutor" && u.ID == h.NewTutorID) {
 			return domain.Fail(404, "not_found", "This record is unavailable.")
 		}
-		if !enum(v.Status, "active", "paused") || v.TutorID != h.OldTutorID {
+		if in.Action != "reject" && (!enum(v.Status, "active", "paused") || v.TutorID != h.OldTutorID) {
 			return domain.Fail(409, "invalid_transition", "The teaching arrangement changed.")
 		}
 		switch in.Action {
 		case "prepare":
-			if u.Role != "mentor" || u.ID != v.MentorID || h.Status != "requested" || !validText(in.NextSteps, 10, 2000) {
-				return domain.Fail(403, "forbidden", "The assigned mentor must record concrete handover steps.")
+			if h.FamilyConsentAt.IsZero() {
+				return domain.Fail(409, "guardian_required", "Family consent is required before preparing a replacement.")
+			}
+			legacyMentor := u.Role == "mentor" && u.ID == v.MentorID && h.NewTutorID != "" && in.TutorID == ""
+			if !(u.Role == "admin" || legacyMentor) || h.Status != "requested" || !validText(in.NextSteps, 10, 2000) {
+				return domain.Fail(403, "forbidden", "An administrator must select an approved replacement and record the handover steps.")
+			}
+			if u.Role == "admin" {
+				if h.NewTutorID != "" && in.TutorID != h.NewTutorID {
+					return domain.Fail(409, "consent_required", "The saved family consent names a different replacement tutor.")
+				}
+				if in.TutorID == "" || in.TutorID == v.TutorID {
+					return domain.Fail(422, "validation", "Choose a different approved tutor.")
+				}
+				app, _, err := a.lockOffering(ctx, in.TutorID, v.Class, v.Agreement.Mode)
+				if err != nil {
+					return err
+				}
+				if !app.Scope.CoversSubjects(agreementSubjects(v.Agreement)) {
+					return domain.Fail(409, "scope_unavailable", "The replacement must cover every booked subject.")
+				}
+				h.NewTutorID = in.TutorID
 			}
 			h.NextSteps = clean(in.NextSteps)
 			h.Status = "awaiting_tutor"
+			if er = a.notifyTutorChange(ctx, h.NewTutorID, "tutor_change_invitation", v.ID, h); er != nil {
+				return er
+			}
+		case "reject":
+			if u.Role != "admin" || h.Status != "requested" || !validText(in.NextSteps, 10, 2000) {
+				return domain.Fail(403, "forbidden", "An administrator must explain a declined tutor-change request.")
+			}
+			h.NextSteps = clean(in.NextSteps)
+			h.Status = "rejected"
 		case "cancel":
 			if u.ID != v.OwnerID || !enum(h.Status, "requested", "awaiting_tutor") {
 				return domain.Fail(403, "forbidden", "Only the family can withdraw an open request.")
@@ -264,6 +311,9 @@ func (a *App) handoverAction(w http.ResponseWriter, r *http.Request) {
 		if _, er = a.Store.C("handovers").ReplaceOne(ctx, bson.M{"_id": h.ID}, h); er != nil {
 			return er
 		}
+		if er = a.notifyTutorChange(ctx, v.OwnerID, "tutor_change_update", v.ID, h); er != nil {
+			return er
+		}
 		return a.audit(ctx, u.ID, "handover."+h.Status, h.ID)
 	})
 	if e != nil {
@@ -271,4 +321,49 @@ func (a *App) handoverAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.json(w, 200, map[string]bool{"ok": true})
+}
+
+// Administrators see operational request context, without general access to
+// learner progress, private conversations or academic approval controls.
+func (a *App) adminTutorChanges(w http.ResponseWriter, r *http.Request) {
+	if !a.role(w, r, "admin") {
+		return
+	}
+	filter := bson.M{}
+	status := r.URL.Query().Get("status")
+	if !enum(status, "", "requested", "awaiting_tutor", "closed") {
+		a.error(w, r, domain.Fail(422, "validation", "Choose a valid request status."))
+		return
+	}
+	if status == "closed" {
+		filter["status"] = bson.M{"$in": []string{"completed", "rejected", "cancelled", "declined"}}
+	} else if status != "" {
+		filter["status"] = status
+	} else {
+		filter["status"] = bson.M{"$in": []string{"requested", "awaiting_tutor"}}
+	}
+	if id := chi.URLParam(r, "id"); id != "" {
+		filter = bson.M{"_id": id}
+	}
+	page, err := pageRecords[domain.Handover](r.Context(), a.Store, "handovers", filter, r.URL.Query().Get("cursor"))
+	if err != nil {
+		a.error(w, r, err)
+		return
+	}
+	items := []domain.TutorChangeReview{}
+	for _, h := range page.Items {
+		v, err := storage.One[domain.Enrollment](r.Context(), a.Store, "enrollments", bson.M{"_id": h.EnrollmentID})
+		if err != nil {
+			a.error(w, r, err)
+			return
+		}
+		items = append(items, domain.TutorChangeReview{Request: h, LearnerName: v.LearnerName, TutorName: v.TutorName, Class: v.Class, Subjects: agreementSubjects(v.Agreement), Mode: v.Agreement.Mode, BookingStatus: v.Status})
+	}
+	a.json(w, 200, map[string]any{"items": items, "nextCursor": page.NextCursor})
+}
+
+func (a *App) notifyTutorChange(ctx context.Context, recipient, kind, enrollment string, h domain.Handover) error {
+	n := domain.Notification{ID: "handover:" + h.ID + ":" + h.Status + ":" + recipient, OwnerID: recipient, Kind: kind, TargetID: enrollment, CreatedAt: a.Now()}
+	_, err := a.Store.C("notifications").InsertOne(ctx, n)
+	return err
 }

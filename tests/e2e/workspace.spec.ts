@@ -64,7 +64,7 @@ for (const scenario of [
       await page.locator('.staff-metrics').waitFor()
     }
     await expect(page.locator('.site-header')).toHaveCount(0)
-    await expect(page.locator('.footer-grid')).toHaveCount(0)
+    await expect(page.locator('.site-footer')).toHaveCount(0)
     await page.keyboard.press('Tab')
     await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused()
     await page.keyboard.press('Enter')
@@ -225,12 +225,9 @@ test('family learner selection uses real owned records and persists across views
   expect(consent.ok()).toBe(true)
   const consentId = (await consent.json()).id
   const ids: string[] = []
-  for (const [name, goal] of [
-    [
-      'Aarohi · fictional learner with a deliberately long display name',
-      'Practise comparing fractions using a number line.',
-    ],
-    ['Kabir · fictional learner', 'Understand ratios through everyday examples.'],
+  for (const name of [
+    'Aarohi · fictional learner with a deliberately long display name',
+    'Kabir · fictional learner',
   ]) {
     const learner = await page.request.post('/api/v1/learners', {
       headers: { ...headers, 'Idempotency-Key': crypto.randomUUID() },
@@ -239,27 +236,25 @@ test('family learner selection uses real owned records and persists across views
     expect(learner.ok()).toBe(true)
     const id = (await learner.json()).id
     ids.push(id)
-    expect(
-      (
-        await page.request.post('/api/v1/requirements', {
-          headers,
-          data: { learnerId: id, goal, locality: 'Purnea' },
-        })
-      ).ok(),
-    ).toBe(true)
   }
   await page.goto('/workspace?view=learners')
-  await page.getByRole('combobox', { name: 'Learner', exact: true }).selectOption(ids[1])
-  await expect(page.locator('.parent-requests')).toContainText('Understand ratios')
-  await expect(page.locator('.parent-requests')).not.toContainText('comparing fractions')
+  await expect(page.getByRole('table', { name: 'Your learners', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: /Kabir .* View progress/ }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Kabir · fictional learner', exact: true }),
+  ).toBeVisible()
   await page.reload()
   await expect(page.getByRole('combobox', { name: 'Learner', exact: true })).toHaveValue(ids[1])
   await page.locator('.desk-sidebar').getByRole('link', { name: 'Trial lessons' }).click()
   await expect(page.getByRole('combobox', { name: 'Learner', exact: true })).toHaveValue(ids[1])
   await page.locator('.desk-sidebar').getByRole('link', { name: 'Learners' }).click()
+  await expect(page.getByRole('table', { name: 'Your learners', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: /Aarohi .* View progress/ }).click()
   await page.getByRole('combobox', { name: 'Learner', exact: true }).selectOption(ids[0])
   await expect(page).toHaveURL(`/workspace?view=learners&learner=${ids[0]}`)
-  await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText('Learners')
+  await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText(
+    'Learning progress',
+  )
   await page.setViewportSize({ width: 360, height: 1000 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({

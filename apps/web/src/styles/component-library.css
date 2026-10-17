@@ -1,0 +1,17 @@
+.component-library > .page-heading {
+  margin-bottom: var(--gc-space-6);
+}
+.component-examples {
+  padding: var(--gc-space-5);
+}
+.component-examples h2 {
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+}
+.component-examples > p {
+  margin-top: var(--gc-space-2);
+}
+.component-examples .form-grid {
+  gap: var(--gc-space-4);
+  margin-block: var(--gc-space-5);
+}

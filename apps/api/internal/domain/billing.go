@@ -3,6 +3,9 @@ package domain
 import "time"
 
 type PaymentIntent struct {
+	Purpose        string     `json:"purpose,omitempty" bson:"purpose,omitempty"`
+	LearnerID      string     `json:"learnerId,omitempty" bson:"learnerId,omitempty"`
+	AccessUntil    *time.Time `json:"accessUntil,omitempty" bson:"accessUntil,omitempty"`
 	Provider       string     `json:"provider" bson:"provider,omitempty"`
 	CapturedAt     *time.Time `json:"capturedAt" bson:"capturedAt,omitempty"`
 	ID             string     `json:"id" bson:"_id"`

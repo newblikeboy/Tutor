@@ -1,0 +1,112 @@
+.info-page {
+  display: grid;
+  gap: 28px;
+}
+.info-heading h1 {
+  margin-top: 8px;
+  font-size: clamp(28px, 3.5vw, 42px);
+  letter-spacing: -0.035em;
+}
+.info-heading .intro {
+  margin-top: 12px;
+  max-width: 760px;
+}
+.info-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 32px;
+  align-items: start;
+}
+.info-sections {
+  display: grid;
+  gap: 24px;
+}
+.info-sections section {
+  display: flex;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.info-sections h2,
+.info-next h2,
+.info-support-start h2 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+}
+.info-sections p,
+.info-next p,
+.info-support-start p {
+  margin-top: 10px;
+  font-size: 15px;
+}
+.info-step {
+  color: var(--teal);
+  font-size: 13px;
+  font-weight: 700;
+  padding-top: 4px;
+}
+.info-next {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 24px;
+}
+.info-next p {
+  margin: 0;
+}
+.info-support-start {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+}
+.info-support-start > .text-link {
+  grid-column: 2 / -1;
+}
+.info-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.info-shortcuts a {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.info-shortcuts a:hover {
+  border-color: var(--teal);
+}
+.info-shortcuts svg {
+  color: var(--teal);
+}
+.info-shortcuts span {
+  color: var(--muted);
+  font-size: 14px;
+}
+@media (max-width: 760px) {
+  .info-layout,
+  .info-shortcuts,
+  .info-support-start {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .info-support-start > .text-link {
+    grid-column: auto;
+  }
+  .info-support-start,
+  .info-next {
+    padding: 20px;
+  }
+  .info-support-start > svg {
+    display: none;
+  }
+}

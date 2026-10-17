@@ -1,4 +1,10 @@
-import { test, expect, type Page, type APIRequestContext } from '@playwright/test'
+import {
+  test,
+  expect,
+  type Page,
+  type APIRequestContext,
+  request as requestFactory,
+} from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mkdir, readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -24,7 +30,8 @@ async function capture(page: Page, name: string) {
     await page.setViewportSize({ width, height: 1000 })
     await page.evaluate(() => document.fonts.ready)
     await page.evaluate(() => window.scrollTo(0, 0))
-    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+    expect(page.frames()).toHaveLength(1)
+    expect((await new AxeBuilder({ page }).setLegacyMode().analyze()).violations).toEqual([])
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({
       path: `docs/visual-qa/booking-agreements/${name}-${width}.png`,
@@ -34,7 +41,6 @@ async function capture(page: Page, name: string) {
 }
 test('admin agreements, paid tutor signing, directions, completion and parent concerns', async ({
   page,
-  browser,
 }) => {
   test.skip(process.env.E2E_PAYMENT_SIMULATION !== '1', 'Explicit isolated simulation required')
   test.setTimeout(240000)
@@ -44,14 +50,17 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
   const mongo = new MongoClient(process.env.MONGODB_URI!)
   await mongo.connect()
   const db = mongo.db(runtime.databaseName)
-  const parentContext = await browser.newContext(),
-    tutorContext = await browser.newContext()
-  const parent = await parentContext.newPage(),
-    tutor = await tutorContext.newPage()
+  const parentContext = await requestFactory.newContext({ baseURL: origin }),
+    tutorContext = await requestFactory.newContext({ baseURL: origin }),
+    adminContext = await requestFactory.newContext({ baseURL: origin })
+  // Switch one rendered page between independent real sessions on memory-limited hosts.
+  const parent = page,
+    tutor = page
   const errors: string[] = []
-  for (const p of [page, parent, tutor]) p.on('pageerror', (e) => errors.push(e.message))
+  page.on('pageerror', (e) => errors.push(e.message))
   try {
-    const adminHeaders = await login(page.request, 'admin-a@example.test')
+    const adminHeaders = await login(adminContext, 'admin-a@example.test')
+    await page.context().addCookies((await adminContext.storageState()).cookies)
     await page.goto('/account?tab=agreements')
     await expect(
       page.getByRole('heading', { name: 'Agreement Builder', exact: true, level: 1 }),
@@ -97,8 +106,8 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
     await expect(builder('home').getByText('Published version 2', { exact: true })).toBeVisible()
     await capture(page, 'admin-builder')
 
-    const parentHeaders = await login(parent.request, 'parent-a@example.test')
-    const tutorHeaders = await login(tutor.request, 'tutor-arjun@example.test')
+    const parentHeaders = await login(parentContext, 'parent-a@example.test')
+    const tutorHeaders = await login(tutorContext, 'tutor-arjun@example.test')
     const id = crypto.randomUUID()
     const first = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Kolkata',
@@ -121,7 +130,7 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
         },
       },
     )
-    const available = await tutor.request.put('/api/v1/availability', {
+    const available = await tutorContext.put('/api/v1/availability', {
       headers: tutorHeaders,
       data: {
         timezone: 'Asia/Kolkata',
@@ -136,12 +145,12 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
     expect(available.status(), await available.text()).toBe(200)
     const av = await available.json()
     const consent = await (
-      await parent.request.post('/api/v1/consents', {
+      await parentContext.post('/api/v1/consents', {
         headers: parentHeaders,
         data: { relationship: 'parent', accepted: true },
       })
     ).json()
-    const learnerResponse = await parent.request.post('/api/v1/learners', {
+    const learnerResponse = await parentContext.post('/api/v1/learners', {
       headers: { ...parentHeaders, 'Idempotency-Key': crypto.randomUUID() },
       data: {
         name: 'Booking agreement student',
@@ -189,7 +198,7 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
       start: new Date(Date.now() - 7200000),
       end: new Date(Date.now() - 3600000),
     })
-    const booked = await parent.request.post('/api/v1/enrollments', {
+    const booked = await parentContext.post('/api/v1/enrollments', {
       headers: { ...parentHeaders, 'Idempotency-Key': id },
       data: {
         trialId: id,
@@ -211,7 +220,7 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
     })
     expect(booked.status(), await booked.text()).toBe(201)
     const enrollment = await booked.json()
-    const checkout = await parent.request.post(`/api/v1/enrollments/${enrollment.id}/payment`, {
+    const checkout = await parentContext.post(`/api/v1/enrollments/${enrollment.id}/payment`, {
       headers: { ...parentHeaders, 'Idempotency-Key': crypto.randomUUID() },
       data: { retry: false },
     })
@@ -219,12 +228,13 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
     const intent = (await checkout.json()).intent
     expect(
       (
-        await parent.request.post(`/api/v1/billing/${intent.id}/simulate`, {
+        await parentContext.post(`/api/v1/billing/${intent.id}/simulate`, {
           headers: parentHeaders,
           data: { confirmed: true },
         })
       ).status(),
     ).toBe(200)
+    await page.context().addCookies((await tutorContext.storageState()).cookies)
     await tutor.goto('/tuition')
     await expect(tutor.getByRole('cell', { name: /^Awaiting tutor acceptance/ })).toBeVisible()
     await expect(tutor.getByRole('link', { name: /Directions to/ })).toHaveCount(0)
@@ -260,11 +270,11 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
     await expect(tutor.getByRole('button', { name: 'Accept booking', exact: true })).toBeVisible()
     await capture(tutor, 'signed-agreement')
     // Publishing a new version cannot change the signed booking.
-    const latest = await (await page.request.get('/api/v1/admin/teaching-agreements')).json()
+    const latest = await (await adminContext.get('/api/v1/admin/teaching-agreements')).json()
     const home = latest.items.find((v: { mode: string }) => v.mode === 'home')
     expect(
       (
-        await page.request.put('/api/v1/admin/teaching-agreements/home', {
+        await adminContext.put('/api/v1/admin/teaching-agreements/home', {
           headers: adminHeaders,
           data: {
             version: home.version,
@@ -292,7 +302,7 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
     })
     await expect(directions).toHaveAttribute('href', /destination=25.75%2C87.45/)
     await capture(tutor, 'current-booking-directions')
-    const detail = await (await tutor.request.get(`/api/v1/enrollments/${enrollment.id}`)).json()
+    const detail = await (await tutorContext.get(`/api/v1/enrollments/${enrollment.id}`)).json()
     const session = detail.sessions[0]
     await tutor.goto(`/tuition/${enrollment.id}?class=${encodeURIComponent(session.id)}`)
     await tutor.getByRole('button', { name: 'Mark class completed', exact: true }).click()
@@ -320,7 +330,7 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
       tutor.getByRole('table', { name: 'Current regular class bookings', exact: true }),
     ).toBeVisible()
     for (const lesson of detail.sessions.slice(1)) {
-      const result = await tutor.request.post(
+      const result = await tutorContext.post(
         `/api/v1/classes/${encodeURIComponent(lesson.id)}/action`,
         {
           headers: tutorHeaders,
@@ -345,6 +355,7 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
     ).toBeVisible()
     await expect(tutor.getByRole('link', { name: /Directions to/ })).toHaveCount(0)
     await capture(tutor, 'past-bookings')
+    await page.context().addCookies((await parentContext.storageState()).cookies)
     await parent.goto(`/tuition/${enrollment.id}?class=${encodeURIComponent(session.id)}&report=1`)
     const report = parent.getByRole('dialog', { name: 'Report a class concern', exact: true })
     await expect(report).toBeVisible()
@@ -360,8 +371,9 @@ test('admin agreements, paid tutor signing, directions, completion and parent co
     await capture(parent, 'parent-ticket')
     expect(errors).toEqual([])
   } finally {
-    await parentContext.close()
-    await tutorContext.close()
+    await parentContext.dispose()
+    await tutorContext.dispose()
+    await adminContext.dispose()
     await mongo.close()
   }
 })
