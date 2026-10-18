@@ -180,7 +180,13 @@ function StudentLibrary({ learner }: { learner: string }) {
         `/study?${new URLSearchParams({ learner, kind, cursor, attemptCursor })}`,
         { signal },
       ),
-    refetchInterval: (query) => (query.state.data?.pendingPayment ? 5000 : 30000),
+    retry: (failureCount, error) =>
+      !(
+        error instanceof APIError &&
+        ['guardian_unconfigured', 'guardian_required'].includes(error.code)
+      ) && failureCount < 1,
+    refetchInterval: (query) =>
+      query.state.status === 'error' ? false : query.state.data?.pendingPayment ? 5000 : 30000,
     refetchOnWindowFocus: true,
     placeholderData: (previous) => previous,
   })
@@ -194,7 +200,24 @@ function StudentLibrary({ learner }: { learner: string }) {
     setParams(next)
   }
   if (q.isPending) return <Loading />
-  if (q.isError) return <LoadError retry={() => void q.refetch()} />
+  if (q.isError)
+    return (
+      <>
+        <LoadError
+          title="Study resources are unavailable"
+          body={q.error instanceof APIError ? q.error.message : undefined}
+          retry={() => void q.refetch()}
+        />
+        {q.error instanceof APIError && q.error.code === 'guardian_required' && (
+          <Link
+            className="btn primary"
+            to={`/match?${new URLSearchParams({ profile: '1', learner, edit: '1', consent: '1' })}`}
+          >
+            Confirm parent consent
+          </Link>
+        )}
+      </>
+    )
   const d = q.data,
     active = d.active && Date.parse(d.subscription.expiresAt) > now
   if (material && active)

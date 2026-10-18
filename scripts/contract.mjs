@@ -20,10 +20,10 @@ const str = { type: 'string' },
   date = { type: 'string', format: 'date-time' }
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` })
 const array = (name) => ({ type: 'array', items: ref(name) })
-const obj = (properties) => ({
+const obj = (properties, required = Object.keys(properties)) => ({
   type: 'object',
   additionalProperties: false,
-  required: Object.keys(properties),
+  required,
   properties,
 })
 const schemas = {
@@ -266,13 +266,21 @@ const schemas = {
     kind: { type: 'string', enum: ['minor', 'adult_self'] },
     consentId: str,
   }),
-  LearnerUpdate: obj({
-    name: { ...str, minLength: 1, maxLength: 80 },
-    class: { ...num, minimum: 1, maximum: 12 },
-    board: { ...str, enum: ['CBSE', 'BSEB', 'ICSE'] },
-    language: { ...str, enum: ['Hindi', 'English'] },
-    expectedVersion: { ...num, minimum: 0 },
-  }),
+  LearnerUpdate: obj(
+    {
+      name: { ...str, minLength: 1, maxLength: 80 },
+      class: { ...num, minimum: 1, maximum: 12 },
+      board: { ...str, enum: ['CBSE', 'BSEB', 'ICSE'] },
+      language: { ...str, enum: ['Hindi', 'English'] },
+      expectedVersion: { ...num, minimum: 0 },
+      consentId: {
+        ...str,
+        description:
+          'Optional newly recorded owned parent declaration; does not establish verified identity.',
+      },
+    },
+    ['name', 'class', 'board', 'language', 'expectedVersion'],
+  ),
   LearnerDraft: obj({
     name: { ...str, maxLength: 80 },
     class: { ...num, minimum: 0, maximum: 12 },

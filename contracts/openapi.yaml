@@ -10146,6 +10146,10 @@
           "expectedVersion": {
             "type": "integer",
             "minimum": 0
+          },
+          "consentId": {
+            "type": "string",
+            "description": "Optional newly recorded owned parent declaration; does not establish verified identity."
           }
         }
       },

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, APIError, queryClient, send, type Learner, type Schema } from '../lib/api'
 import { workspaceLink } from '../lib/workspace'
@@ -76,6 +76,8 @@ export function LearnerFields({
 }
 
 export function LearnerProfile({ learner }: { learner?: Learner }) {
+  const [params] = useSearchParams()
+  const renewConsent = learner?.kind === 'minor' && params.get('consent') === '1'
   const draft = useQuery({
     queryKey: ['learner-draft'],
     queryFn: () => api<Schema['LearnerDraft'] | null>('/learner-draft'),
@@ -84,15 +86,24 @@ export function LearnerProfile({ learner }: { learner?: Learner }) {
   })
   if (!learner && draft.isPending) return <Loading />
   if (!learner && draft.isError) return <LoadError retry={() => void draft.refetch()} />
-  return <ProfileForm key={learner?.id ?? 'new'} learner={learner} initial={draft.data ?? null} />
+  return (
+    <ProfileForm
+      key={`${learner?.id ?? 'new'}:${renewConsent}`}
+      learner={learner}
+      initial={draft.data ?? null}
+      renewConsent={renewConsent}
+    />
+  )
 }
 
 function ProfileForm({
   learner,
   initial,
+  renewConsent,
 }: {
   learner?: Learner
   initial: Schema['LearnerDraft'] | null
+  renewConsent: boolean
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -107,7 +118,7 @@ function ProfileForm({
     requestId: initial?.requestId ?? crypto.randomUUID(),
     version: initial?.version ?? 0,
   }))
-  const [step, setStep] = useState(learner || initial ? 2 : 1)
+  const [step, setStep] = useState(renewConsent ? 1 : learner || initial ? 2 : 1)
   const [guardian, setGuardian] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [relationship, setRelationship] = useState<'parent' | 'legal_guardian'>('parent')
@@ -164,6 +175,25 @@ function ProfileForm({
           consentId = result.id
         }
         const next = { ...form, consentId }
+        if (learner && renewConsent) {
+          await send(
+            `/learners/${learner.id}`,
+            {
+              name: learner.name,
+              class: learner.class,
+              board: learner.board,
+              language: learner.language,
+              consentId,
+              expectedVersion: learner.version,
+            },
+            'PUT',
+          )
+          completed.current = true
+          await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          await queryClient.invalidateQueries({ queryKey: ['study'] })
+          navigate(`/study?${new URLSearchParams({ learner: learner.id })}`, { replace: true })
+          return
+        }
         await persist(next)
         setForm(next)
         setStep(2)
@@ -300,7 +330,17 @@ function ProfileForm({
           save.mutate()
         }}
       >
-        <h2>{t(learner ? 'parent.edit' : step === 1 ? 'guardianStep' : 'parent.profile')}</h2>
+        <h2>
+          {t(
+            renewConsent
+              ? 'guardianStep'
+              : learner
+                ? 'parent.edit'
+                : step === 1
+                  ? 'guardianStep'
+                  : 'parent.profile',
+          )}
+        </h2>
         {validation && <Alert kind="error">{t(step === 1 ? 'consentHelp' : 'required')}</Alert>}
         <fieldset
           className="form-stack"
@@ -308,27 +348,29 @@ function ProfileForm({
         >
           {step === 1 ? (
             <>
-              <fieldset>
-                <legend>{t('adultQuestion')}</legend>
-                <label className="radio-card">
-                  <input
-                    type="radio"
-                    name="kind"
-                    checked={form.kind === 'minor'}
-                    onChange={() => setForm({ ...form, kind: 'minor' })}
-                  />
-                  {t('minorOption')}
-                </label>
-                <label className="radio-card">
-                  <input
-                    type="radio"
-                    name="kind"
-                    checked={form.kind === 'adult_self'}
-                    onChange={() => setForm({ ...form, kind: 'adult_self' })}
-                  />
-                  {t('adultOption')}
-                </label>
-              </fieldset>
+              {!learner && (
+                <fieldset>
+                  <legend>{t('adultQuestion')}</legend>
+                  <label className="radio-card">
+                    <input
+                      type="radio"
+                      name="kind"
+                      checked={form.kind === 'minor'}
+                      onChange={() => setForm({ ...form, kind: 'minor' })}
+                    />
+                    {t('minorOption')}
+                  </label>
+                  <label className="radio-card">
+                    <input
+                      type="radio"
+                      name="kind"
+                      checked={form.kind === 'adult_self'}
+                      onChange={() => setForm({ ...form, kind: 'adult_self' })}
+                    />
+                    {t('adultOption')}
+                  </label>
+                </fieldset>
+              )}
               {form.kind === 'minor' && (
                 <>
                   <Field label={t('guardianStep')}>
@@ -380,7 +422,7 @@ function ProfileForm({
             />
           )}
         </fieldset>
-        {learner && <p className="fine-print">{t('parent.historical')}</p>}
+        {learner && !renewConsent && <p className="fine-print">{t('parent.historical')}</p>}
         {!learner && step === 2 && (
           <p className="fine-print" role="status">
             {draftBusy ? t('parent.draftSaving') : !dirty ? t('parent.draftSaved') : ''}
@@ -411,7 +453,9 @@ function ProfileForm({
             </Button>
           )}
           <Button type="submit" busy={save.isPending} disabled={discard.isPending}>
-            {t(learner ? 'parent.saveChanges' : step === 1 ? 'next' : 'parent.saveProfile')}
+            {renewConsent
+              ? 'Confirm parent consent'
+              : t(learner ? 'parent.saveChanges' : step === 1 ? 'next' : 'parent.saveProfile')}
           </Button>
         </div>
       </form>

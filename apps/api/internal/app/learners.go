@@ -100,10 +100,10 @@ func (a *App) checkLearnerConsent(ctx context.Context, owner string, in LearnerI
 	if in.Kind != "minor" {
 		return nil
 	}
-	if a.Config.Env == "production" {
-		return domain.Fail(503, "guardian_unconfigured", "Guardian verification is not enabled.")
+	if in.ConsentID == "" {
+		return domain.Fail(403, "guardian_required", "Confirm your guardian relationship and privacy consent before continuing.")
 	}
-	_, err := storage.One[domain.Consent](ctx, a.Store, "consents", bson.M{"_id": in.ConsentID, "ownerId": owner, "version": "guardian-draft-v1"})
+	_, err := storage.One[domain.Consent](ctx, a.Store, "consents", bson.M{"_id": in.ConsentID, "ownerId": owner, "version": bson.M{"$in": []string{"parent-consent-v1", "guardian-draft-v1"}}})
 	if err == mongo.ErrNoDocuments {
 		return domain.Fail(403, "guardian_required", "Guardian consent is required before collecting learner details.")
 	}
@@ -115,6 +115,7 @@ func (a *App) updateLearner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
+		ConsentID       string `json:"consentId"`
 		Name            string `json:"name"`
 		Class           int    `json:"class"`
 		Board           string `json:"board"`
@@ -136,6 +137,9 @@ func (a *App) updateLearner(w http.ResponseWriter, r *http.Request) {
 			return domain.Fail(409, "learner_stale", "The learner profile has changed. Reload before editing.")
 		}
 		fields := LearnerInput{Name: in.Name, Class: in.Class, Board: in.Board, Language: in.Language, Kind: result.Kind, ConsentID: result.ConsentID}
+		if in.ConsentID != "" {
+			fields.ConsentID = in.ConsentID
+		}
 		if !validLearner(fields, false) {
 			return domain.Fail(422, "validation", "Check learner name, class, board and language.")
 		}
@@ -143,6 +147,7 @@ func (a *App) updateLearner(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		result.Name, result.Class, result.Board, result.Language = in.Name, in.Class, in.Board, in.Language
+		result.ConsentID = fields.ConsentID
 		result.Version++
 		if _, err = a.Store.C("learners").ReplaceOne(ctx, bson.M{"_id": result.ID, "ownerId": user(r).ID}, result); err != nil {
 			return err

@@ -3061,6 +3061,8 @@ export interface components {
             /** @enum {string} */
             language: "Hindi" | "English";
             expectedVersion: number;
+            /** @description Optional newly recorded owned parent declaration; does not establish verified identity. */
+            consentId?: string;
         };
         LearnerDraft: {
             name: string;

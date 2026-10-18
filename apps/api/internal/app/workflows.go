@@ -23,10 +23,6 @@ func (a *App) consent(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "parent") {
 		return
 	}
-	if a.Config.Env == "production" {
-		a.error(w, r, domain.Fail(503, "guardian_unconfigured", "Guardian verification procedure requires operator approval."))
-		return
-	}
 	var in struct {
 		Relationship string `json:"relationship"`
 		Accepted     bool   `json:"accepted"`
@@ -38,7 +34,7 @@ func (a *App) consent(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, domain.Fail(422, "guardian_required", "Confirm your guardian relationship and privacy consent first."))
 		return
 	}
-	c := domain.Consent{ID: token(), OwnerID: user(r).ID, Relationship: in.Relationship, Version: "guardian-draft-v1", At: a.Now(), Verification: "development_declaration_only"}
+	c := domain.Consent{ID: token(), OwnerID: user(r).ID, Relationship: in.Relationship, Version: "parent-consent-v1", At: a.Now(), Verification: "parent_declaration_only"}
 	e := a.Store.Tx(r.Context(), func(ctx context.Context) error {
 		_, er := a.Store.C("consents").InsertOne(ctx, c)
 		if er != nil {

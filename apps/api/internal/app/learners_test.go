@@ -165,10 +165,10 @@ func TestLearnerProfiles(t *testing.T) {
 	}
 }
 
-func TestProductionLearnerConsentGate(t *testing.T) {
+func TestProductionLearnerConsentRequired(t *testing.T) {
 	a := New(nil, config.Config{Env: "production"})
 	if err := a.checkLearnerConsent(context.Background(), "parent", LearnerInput{Kind: "minor"}); err == nil {
-		t.Fatal("production guardian gate bypassed")
+		t.Fatal("missing parent consent accepted")
 	}
 	if err := a.checkLearnerConsent(context.Background(), "parent", LearnerInput{Kind: "adult_self"}); err != nil {
 		t.Fatal(err)

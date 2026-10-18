@@ -246,7 +246,7 @@ const en = {
   minorOption: 'My child / a learner in my care',
   adultOption: 'Myself, aged 18 or over',
   guardian: 'I am the parent or legal guardian',
-  consent: 'I agree to the draft privacy notice for this learner profile.',
+  consent: 'I consent to the use of this student’s learning information as described in the',
   consentHelp:
     'This declaration is not guardian verification. Use fictional learner details only in this preview.',
   confirmGuardian: 'Confirm and continue',
