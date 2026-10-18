@@ -1,97 +1,129 @@
 # GoCoaching
 
-A bilingual, academically supervised tutor platform for Purnea. **Development checkpoint, not a live service.** Go/chi is the only API, React/TypeScript is the frontend, and MongoDB Atlas stores real application state. No Docker.
+A tutor marketplace built with Go/chi, React/TypeScript/Vite and MongoDB Atlas.
+Go serves the REST API; Nginx serves the built frontend on the existing DigitalOcean
+deployment. The interface uses English and the paper/ink/sage design system.
 
-The original brief is preserved in `Codex_Trusted_Tutor_Platform_Master_Prompt.md` and copied in full to [docs/product-spec.md](docs/product-spec.md). Read [progress](docs/progress.md), the [acceptance matrix](docs/acceptance-matrix.md), and [launch blockers](docs/release-checklist.md) before extending or deploying.
+## Source map
 
-## Run on Windows PowerShell
+- `apps/api/cmd`: API, additive migrations, development seeds and staff provisioning.
+- `apps/api/internal/app`: authenticated workflows and background jobs.
+- `apps/api/internal/domain`: saved records and business validation.
+- `apps/api/internal/storage`: MongoDB access, indexes and schema migrations.
+- `apps/web/src/routes`: public pages and role-specific workspace screens.
+- `apps/web/src/components`: shared UI, forms and workflow controls.
+- `apps/web/src/lib`: API/session clients and shared frontend behavior.
+- `contracts/openapi.yaml`: generated API contract; its authoring scripts live in `scripts`.
+- `tests`: browser coverage and [test/fixture guidance](tests/README.md).
+- `infra` and `scripts`: systemd/Nginx configuration and build/deployment tooling.
 
-Go 1.26.5 and Node 22.17.1 were used for this checkpoint. Vite/Vitest require Node >=22.12 on the Node 22 line. Exact npm/Go dependencies are locked.
+`AGENTS.md` records current product decisions. Local `docs` contains the product
+specification, progress and design evidence; that directory is intentionally
+Git-ignored. Older requirements are superseded by the dated decisions in AGENTS.
 
-**Current workspace setup blocker:** the supplied Atlas cluster has reached its collection limit. The new extension's migrations have not been installed there. Resolve capacity or approve the exact retained-test cleanup manifest before running migration/startup for these new workflows. The existing API can still pass its database health check; that alone does not mean the extension is installed. See [progress](docs/progress.md).
+## Run locally
 
-**Staff operations are available locally:** additive staff/application migrations use existing Atlas collections. Staff sign-in opens application queues, Google Calendar/Meet interviews, assessment/approval, tutor suspension/reinstatement/termination, follow-ups and decision history. New tutors complete their application before teaching features unlock; introduction videos use private Cloudinary storage. See [staff operations](docs/staff-operations.md) and [Cloudinary/Google configuration and current limits](docs/recruitment-integrations.md). Email invitations and the wider tuition/files/billing extension described above remain pending.
+Install the Go version in `apps/api/go.mod` and a compatible Node.js release
+(Node 22.12+ on the Node 22 line). Dependencies are locked in npm and Go lockfiles.
 
 ```powershell
 npm ci
-# Only create this file if it does not already exist; never overwrite your credentials.
+# Create only if missing; configure backend secrets privately before startup.
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# Privately configure MONGODB_URI and AUTH_PROVIDER=password in .env.
-./scripts/api.ps1 migrate
-./scripts/api.ps1 seed
 ./scripts/api.ps1 api
 ```
 
-In another terminal:
+In another terminal at repository root:
 
 ```powershell
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. Local Vite page navigation from `http://localhost:5173` now redirects to this address, preserving the path and query, so login uses the origin trusted by Go. API requests retain exact Origin and CSRF checks. The supplied Atlas URI has already been verified in this workspace. `.env` is Git-ignored. The helper scripts load it without printing secrets. The API listens only on loopback, port 8080.
+Open http://127.0.0.1:5173. Vite redirects local document navigation from localhost
+to this canonical origin, preserving the destination. The API binds to loopback
+on port 8080 and keeps exact Origin/CSRF checks.
 
-If your terminal is already in `apps/api`, `go run ./cmd/api` now loads the private development `.env` from that directory or up to two parent directories. Existing process variables take precedence; values are never evaluated as shell code or printed. `..\..\scripts\api.ps1 api` also remains supported. Production uses the explicit systemd environment. Stop an existing API instance before starting another on port 8080.
+Go entrypoints load the nearest development `.env` up to two parent directories;
+explicit process variables win. Production uses the explicit systemd environment
+and never auto-loads `.env`. Keep all secrets out of `VITE_*` variables.
 
-Open **/signup** to create a parent/adult-learner or tutor account with your name, email and password. Then use **/login** with the same email/password. Passwords require 8–128 characters; a memorable passphrase works well. No OTP or SMS is used. The account, salted Argon2id credential and session persist in Atlas. Creating a tutor account does not approve or publish the tutor. Real child data and live bookings remain disabled pending review.
-
-For fictional staff accounts, set a private `SEED_PASSWORD` before running the development seed. Emails are `mentor-a@example.test` and `admin-a@example.test`; sign in at `/login?staff=1`. Existing fixture passwords are never changed by rerunning the seed. This workspace has a generated `SEED_PASSWORD` stored privately in `.env`; do not share it or commit it. Test scripts use different, explicitly test-only credentials in isolated databases. Public signup cannot create staff accounts. Password recovery/email verification are not configured yet; the sign-in help dialog states this limitation.
-
-## Run on Linux/macOS
+For Linux/macOS, run the Go entrypoint from `apps/api`:
 
 ```bash
-npm ci
-# Configure the development .env privately first; Go loads it as literal values.
-cd apps/api
-go run ./cmd/migrate
-go run ./cmd/seed
 go run ./cmd/api
-# In another terminal at repository root: npm run dev
 ```
 
-Atlas needs a database user with access to the development/test databases and an IP access entry for this machine. Prefer a narrowly scoped temporary development IP entry. Never use unrestricted production network access or disable TLS. Optional offline development setup: `npm run db:local` starts an actual on-disk MongoDB replica set; it is not used when an Atlas URI is configured.
+Configure Atlas privately, or explicitly run `npm run db:local` for a local
+on-disk replica set. There is no automatic database fallback and no Docker.
+Apply required additive migrations with `./scripts/api.ps1 migrate` or
+`go run ./cmd/migrate` from `apps/api`; running the API never seeds accounts.
 
-## Exercise the complete first journey
+## Accounts and integrations
 
-1. `/signup?role=tutor`: create a tutor account with email/password. `/apply`: submit a fictional teaching application for preview testing.
-2. Use a separate browser profile/private window for `/login?staff=1`, sign in as the provisioned `mentor-a@example.test` using the private fixture password. In `/workspace`, connect the mentor's Google account, open the application and schedule Google Meet. After conducting it, submit the four ratings, feedback and recommendation, finalize fees, then explicitly approve the requested subject/class/mode scope. Admins cannot approve. Tutors connect their own Google account to host online lessons; see [Google lessons](docs/google-lessons.md).
-3. In another browser profile, create a **Parent / adult learner** account at `/signup` and open `/match`. Complete the guardian declaration (fictional learner only) or choose adult self-management. Add learning needs, review and submit; then choose the approved tutor and a future trial time. Drafts survive refresh after Continue/Back saves.
-4. The tutor accepts the request in `/workspace`. MongoDB transaction guards prevent tutor or learner overlaps. The server confirms a ₹0 **development trial** with a terms snapshot; there is no payment simulation.
-5. The tutor records development lesson evidence and next steps. The UI explicitly allows time compression for testing and does not assert real attendance. The assigned mentor reviews it. The family sees the reviewed progress, persisted through Go and Atlas.
-6. **Administrator** can suspend an approved tutor with a reason. Discovery/acceptance immediately reject that scope and an operations follow-up task is saved; existing trials are not deleted.
+Public parent/tutor signup requires an email OTP before creating the account.
+Parents and tutors can use password or email-code sign-in; provisioned staff use
+passwords only. Staff accounts are created by `apps/api/cmd/staff`, with a hidden
+password prompt, never by public signup. Passwords require 8–128 characters.
 
-Accounts have deliberately separate permissions. Staff accounts are preseeded development identities with privately configured passwords, never a production registration mechanism. Sample seeds are idempotent and production seeding is prohibited. Previously issued OTP sessions are invalidated; sign in with email/password again.
+Parents declare their relationship and accept privacy consent before saving a
+minor's learning profile. This is a declaration, not identity verification or
+admin approval. Owned student references and each student's subscription/expiry
+remain independent checks. Tutors require assigned-mentor academic approval.
 
-## Verify
+Google Calendar/Meet uses the hosting mentor's or tutor's own authorization.
+Cloudinary uploads go directly from the browser; Go verifies metadata and
+controls short-lived private access. SMTP, Google, Cloudinary and Razorpay use
+explicit backend configuration; see `.env.example`. Missing configuration never
+silently activates a test adapter.
 
-Ongoing tuition is available at `/tuition` after a reviewed trial; tutors configure `/availability`. Tuition includes classes, versioned plans, family conversation, private files and consented tutor handover. `/billing`, `/cases`, `/notifications` and `/account` provide real saved payment records, support/privacy requests, in-app updates and password/session controls. See [payments](docs/payments.md) and [private files](docs/private-files.md) for disabled-by-default integrations. The current Atlas cluster reached its collection limit; new migrations await operator-approved test-database cleanup or additional capacity. No existing database is automatically deleted.
+`PAYMENT_PROVIDER=simulation` is an explicit supported test mode. Its captures and
+bookings are labelled and never counted as real revenue or tutor earnings. Keep
+these labels and provider checks when changing payment code.
+
+Development seeds are optional and fictional. Set a private `SEED_PASSWORD` and
+run `./scripts/api.ps1 seed` only for a development/test database. Seeding refuses
+production and does not replace existing passwords. Never publish sample records
+as real tutors or delete retained test databases during source cleanup.
+
+## Verify changes
 
 ```powershell
 npm run typecheck
 npm run lint
 npm run test
 npm run build
-./scripts/integration.ps1 -Race
-npx playwright install chromium
-npm run e2e
 ```
 
-On Linux, export `TEST_MONGODB_URI="$MONGODB_URI"`, then from `apps/api` run `go vet ./...` and `go test -race -count=1 -v ./...`. Without `TEST_MONGODB_URI`, the integration test explicitly skips; a skip is not evidence of database correctness. E2E automatically loads the root `.env`, creates a fresh `tutor_e2e_*` database, starts a Go API on 8081 and a Vite test server on 5174, and stops those test processes afterward. Real provider calls never occur. Test databases are retained for review; cleanup requires an explicit operator action.
+From `apps/api`:
 
-`node scripts/contract.mjs` authors the implemented OpenAPI contract; `npm run contract` regenerates frontend API types. `/components` is the internal bilingual component showcase. Screenshot artifacts are in `docs/visual-qa`; only images explicitly marked reviewed in its README count as visual evidence.
-
-When verifying locally while Atlas capacity is blocked, explicitly start `npm run db:local` in another terminal and set test-process variables only:
-
-```powershell
-$env:MONGODB_URI='mongodb://127.0.0.1:27017/?replicaSet=rs0&directConnection=true'
-$env:TEST_MONGODB_URI=$env:MONGODB_URI
-npm run e2e
-# From apps/api in that same test terminal:
-go test -race -count=1 ./...
+```bash
 go vet ./...
+go test ./...
 ```
 
-These are test-environment overrides, not an application fallback or an edit to `.env`. Close that test terminal before starting the Atlas application, so its explicit process variables cannot shadow the private file. `node scripts/check-private-config.mjs` checks source and frontend build artifacts for exact private values from the local `.env` without displaying them; it also rejects tracked private environment files. This is a limited local release check, not a general secret-scanning service. Provision real development staff only through the [audited staff command](docs/staff-provisioning.md); no public signup grants those roles.
+Integration tests need an explicit `TEST_MONGODB_URI` for an isolated replica set.
+Without it they skip; that does not validate persistence. Browser tests use
+`npm run e2e`, start separate API/Vite servers on 8081/5174 and retain generated
+`tutor_e2e_*` databases for review. See [tests/README.md](tests/README.md) for fixture
+boundaries and screenshot guidance. The `/components` showcase is local-only and
+is excluded from production builds.
 
-## Deployment target
+Regenerate API types after contract changes:
 
-GitHub → DigitalOcean droplet with Nginx and systemd → MongoDB Atlas. See [deployment instructions](docs/deployment.md), [Nginx](infra/nginx.conf) and [systemd](infra/tutor-api.service). The operator deployed the earlier release to DigitalOcean. This release enables explicitly configured non-sample public accounts and provisioned staff password login; deploy its binary and frontend before setting AUTH_PROVIDER=password. Staff MFA is not required under the explicit operator override; minor guardian verification and live payments remain gated. See [production account access](docs/production-auth.md).
+```bash
+node scripts/contract.mjs
+npm run contract
+```
+
+## Deploy the existing droplet
+
+From the droplet's existing Tutor Git checkout, after the intended commit is pushed:
+
+```bash
+git pull --ff-only origin main && sudo bash scripts/deploy-existing.sh
+```
+
+The script builds a release, runs the existing additive migration scopes using
+the API service identity, switches the release symlink and checks readiness.
+It retains the previous release and private `/etc/tutor/api.env`; it never seeds
+or resets production data. A GitHub push alone does not deploy the website.

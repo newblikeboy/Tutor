@@ -47,6 +47,8 @@ func New(s *storage.Store, c config.Config) *App {
 	if c.InterviewProvider == "google" || c.MeetingProvider == "google" {
 		a.Google, _ = googlecalendar.New(c.GoogleOAuthClientID, c.GoogleOAuthClientSecret, c.GoogleOAuthRedirectURI, c.GoogleTokenKey)
 		if a.Google != nil && c.Env == "test" && c.TestGoogleURL != "" {
+			// Closed-loop provider fixtures exercise real OAuth/job handling without
+			// creating live meetings. Config validation forbids this in production.
 			a.Google.AuthURL = c.TestGoogleURL + "/authorize"
 			a.Google.Base = c.TestGoogleURL + "/calendar/v3"
 			a.Google.TokenURL = c.TestGoogleURL + "/token"

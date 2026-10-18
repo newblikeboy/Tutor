@@ -12,6 +12,7 @@ for (const [name, route, language, width] of [
       'Reviewed Windows Chromium baselines; Linux needs its own reviewed images.',
     )
     await page.setViewportSize({ width, height: 1000 })
+    // Old saved language preferences must not re-enable the retired Hindi UI.
     await page.addInitScript((value) => localStorage.setItem('language', value), language)
     await page.goto(route)
     await expect(page.locator('input[type=email]')).toBeVisible()

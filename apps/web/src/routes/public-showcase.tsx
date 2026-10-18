@@ -7,7 +7,7 @@ import { Alert, Badge, Button, Empty, Field, Loading, Modal, PageHeading } from 
 import { TabBar, TabPanel } from '../components/workspace-tabs'
 import { WorkspaceRecordTable } from '../components/workspace-record-table'
 import '../styles/component-library.css'
-export function LearningPreview() {
+function LearningPreview() {
   const { t } = useTranslation()
   return (
     <div className="learning-preview">

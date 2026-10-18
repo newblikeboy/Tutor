@@ -8,25 +8,25 @@ import (
 func TestEligibilityRequiresActiveScope(t *testing.T) {
 	now := time.Now()
 	a := Application{Status: "approved", Scope: Scope{Subject: "Mathematics", MinClass: 8, MaxClass: 9, Mode: "online", ExpiresAt: now.Add(time.Hour)}}
-	if !Eligible(a, 8, now) {
+	if !EligibleForMode(a, 8, "online", now) {
 		t.Fatal("valid approval denied")
 	}
 	for _, status := range []string{"draft", "submitted", "assessed", "suspended", "revoked", "paused"} {
 		a.Status = status
-		if Eligible(a, 8, now) {
+		if EligibleForMode(a, 8, "online", now) {
 			t.Fatalf("%s allowed", status)
 		}
 	}
 	a.Status = "approved"
-	if Eligible(a, 7, now) || Eligible(a, 10, now) || Eligible(a, 8, now.Add(time.Hour)) {
+	if EligibleForMode(a, 7, "online", now) || EligibleForMode(a, 10, "online", now) || EligibleForMode(a, 8, "online", now.Add(time.Hour)) {
 		t.Fatal("class or explicit expiry bypass")
 	}
 	a.Scope.Mode = "home"
-	if Eligible(a, 8, now) {
+	if EligibleForMode(a, 8, "online", now) {
 		t.Fatal("home-only mode permitted for an online trial")
 	}
 	a.Scope.Modes = []string{"online", "home"}
-	if !Eligible(a, 8, now) {
+	if !EligibleForMode(a, 8, "online", now) {
 		t.Fatal("online eligibility missing when both modes are approved")
 	}
 }

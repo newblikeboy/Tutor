@@ -175,6 +175,8 @@ function ProfileForm({
           consentId = result.id
         }
         const next = { ...form, consentId }
+        // Repair consent for the selected existing student without creating a
+        // second profile or overwriting another tab's newer version.
         if (learner && renewConsent) {
           await send(
             `/learners/${learner.id}`,

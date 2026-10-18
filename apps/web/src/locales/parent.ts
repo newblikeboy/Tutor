@@ -54,8 +54,6 @@ const parentEN = {
     discard: 'Discard draft',
     discardConfirm: 'Discard this unsaved learner profile?',
     unsaved: 'Your latest changes have not been saved. Leave this page?',
-    guardianUnavailable:
-      'Learner registration for children is not available yet. Guardian verification must be enabled before you can continue.',
     draftStale:
       'This profile draft changed in another tab. Reload to continue with the latest version.',
     saveConflict:

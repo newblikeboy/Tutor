@@ -11,6 +11,7 @@ export type Dashboard = Schema['Dashboard']
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: false } },
 })
+// Session-bound CSRF state stays in memory; authentication uses HttpOnly cookies.
 let csrf = ''
 export function setCSRF(value: string) {
   csrf = value
@@ -103,7 +104,6 @@ export function errorKey(error: unknown): string {
         fee_plans: 'tutorFees.invalid',
         requested_scope: 'applicationForm.scopeBoundary',
         guardian_required: 'consentHelp',
-        guardian_unconfigured: 'parent.guardianUnavailable',
         learner_draft_stale: 'parent.draftStale',
         learner_stale: 'parent.editStale',
         learner_in_use: 'parent.deleteInUse',

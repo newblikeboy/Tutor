@@ -19,6 +19,9 @@ func (a *App) audit(ctx context.Context, actor, action, target string) error {
 func validText(s string, min, max int) bool {
 	return len(strings.TrimSpace(s)) >= min && len([]rune(s)) <= max
 }
+
+// consent records the signed-in parent's relationship/privacy declaration and
+// audit together. It does not perform identity verification or admin approval.
 func (a *App) consent(w http.ResponseWriter, r *http.Request) {
 	if !a.role(w, r, "parent") {
 		return

@@ -12,6 +12,8 @@ import (
 	"tutorplatform/internal/storage"
 )
 
+// Exercise the production policy through HTTPS and actual MongoDB transactions.
+// Seeded users and simulated captures stay in a newly named test database.
 func TestProductionParentDeclarationWithoutAdminReview(t *testing.T) {
 	uri := os.Getenv("TEST_MONGODB_URI")
 	if uri == "" {

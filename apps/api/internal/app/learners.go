@@ -96,6 +96,8 @@ func validLearner(in LearnerInput, draft bool) bool {
 		(enum(in.Language, "Hindi", "English") || draft && in.Language == "") && enum(in.Kind, "minor", "adult_self")
 }
 
+// checkLearnerConsent requires an owned declaration for minors. Historical
+// declarations remain readable without being promoted to verified identity.
 func (a *App) checkLearnerConsent(ctx context.Context, owner string, in LearnerInput) error {
 	if in.Kind != "minor" {
 		return nil

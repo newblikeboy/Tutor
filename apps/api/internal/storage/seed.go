@@ -11,6 +11,8 @@ import (
 	"tutorplatform/internal/password"
 )
 
+// Seed creates fictional development/test records idempotently. It refuses
+// production and never replaces existing passwords or application snapshots.
 func (s *Store) Seed(ctx context.Context, env string) error {
 	if env != "development" && env != "test" {
 		return errors.New("sample seeding is prohibited outside development/test")

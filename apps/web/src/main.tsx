@@ -34,9 +34,10 @@ const Search = lazy(() => import('./routes/public-search').then((m) => ({ defaul
 const TutorDetail = lazy(() =>
   import('./routes/public-tutor').then((m) => ({ default: m.TutorDetail })),
 )
-const Showcase = lazy(() =>
-  import('./routes/public-showcase').then((m) => ({ default: m.Showcase })),
-)
+// Keep illustrative controls available locally without shipping a public demo route.
+const Showcase = import.meta.env.DEV
+  ? lazy(() => import('./routes/public-showcase').then((m) => ({ default: m.Showcase })))
+  : null
 const Login = lazy(() => import('./routes/login'))
 const WorkspaceShell = lazy(() => import('./components/workspace-shell'))
 const Workspace = lazy(() => import('./routes/workspace'))
@@ -88,7 +89,7 @@ function SiteRoutes() {
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />
       <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
-      <Route path="/components" element={<Showcase />} />
+      {Showcase && <Route path="/components" element={<Showcase />} />}
       {informationPages.map((path) => (
         <Route key={path} path={`/${path}`} element={<Info page={path} />} />
       ))}

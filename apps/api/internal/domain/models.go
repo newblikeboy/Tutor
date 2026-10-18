@@ -264,9 +264,9 @@ type Fault struct {
 
 func (f *Fault) Error() string                    { return f.Message }
 func Fail(status int, code, message string) error { return &Fault{status, code, message} }
-func Eligible(a Application, class int, now time.Time) bool {
-	return EligibleForMode(a, class, "online", now)
-}
+
+// EligibleForMode checks the saved approval's status, class, mode and explicit
+// expiry. Callers must separately enforce ownership, availability and payment.
 func EligibleForMode(a Application, class int, mode string, now time.Time) bool {
 	return a.Status == "approved" && a.Scope.HasMode(mode) && class >= a.Scope.MinClass && class <= a.Scope.MaxClass && a.Scope.ExpiresAt.After(now)
 }

@@ -14,6 +14,8 @@ import (
 	"tutorplatform/internal/storage"
 )
 
+// studyStudent resolves only the selected household-owned, consented student.
+// A sibling's subscription must never authorize this student's content request.
 func (a *App) studyStudent(ctx context.Context, owner, id string) (domain.Learner, error) {
 	l, err := storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": id, "ownerId": owner})
 	if err == nil {
@@ -22,6 +24,8 @@ func (a *App) studyStudent(ctx context.Context, owner, id string) (domain.Learne
 	return l, err
 }
 
+// studyEntitlement checks the access window on every request; MongoDB TTL cleanup
+// is not an authorization boundary. Simulation access requires explicit config.
 func (a *App) studyEntitlement(ctx context.Context, owner, learner string) (domain.StudyAccess, bool, error) {
 	v, err := storage.One[domain.StudyAccess](ctx, a.Store, "study_access", bson.M{"_id": learner, "ownerId": owner})
 	if errors.Is(err, mongo.ErrNoDocuments) {

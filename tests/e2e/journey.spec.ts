@@ -104,7 +104,7 @@ test('complete application → scoped approval → requirement → trial → rev
   await expect(parent.getByRole('alert')).toBeVisible()
   await expect(parent.getByLabel('First name or nickname')).toHaveCount(0)
   await parent.getByLabel('I am the parent or legal guardian').check()
-  await parent.getByLabel('I agree to the draft privacy notice').check()
+  await parent.getByRole('checkbox', { name: /I consent to the use of this student/ }).check()
   await parent.getByRole('button', { name: 'Continue', exact: true }).click()
   await parent.getByLabel('First name or nickname').fill('Aarohi · sample')
   await parent.getByLabel('Class', { exact: true }).selectOption('8')

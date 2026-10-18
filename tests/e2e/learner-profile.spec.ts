@@ -34,7 +34,7 @@ async function capture(page: Page, name: string) {
 }
 async function consent(page: Page) {
   await page.getByLabel('I am the parent or legal guardian').check()
-  await page.getByLabel('I agree to the draft privacy notice').check()
+  await page.getByRole('checkbox', { name: /I consent to the use of this student/ }).check()
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await expect(page.getByLabel('First name or nickname')).toBeVisible()
 }
@@ -166,26 +166,4 @@ test('adult profile keeps matching draft separate and recovers a lost draft resp
   await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible()
   await page.getByRole('main').getByRole('link', { name: 'Edit profile', exact: true }).click()
   await expect(page.getByLabel('First name or nickname')).toHaveValue(learner.name)
-})
-
-test('guardian setup failure explains the gate before collecting learner details', async ({
-  page,
-}) => {
-  await family(page)
-  await page.route('**/api/v1/consents', (route) =>
-    route.fulfill({
-      status: 503,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        code: 'guardian_unconfigured',
-        message: 'Guardian verification is not enabled.',
-      }),
-    }),
-  )
-  await page.goto('/match?new=1&profile=1')
-  await page.getByLabel('I am the parent or legal guardian').check()
-  await page.getByLabel('I agree to the draft privacy notice').check()
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
-  await expect(page.getByRole('alert')).toContainText('Guardian verification must be enabled')
-  await expect(page.getByLabel('First name or nickname')).toHaveCount(0)
 })

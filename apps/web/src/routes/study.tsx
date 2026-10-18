@@ -180,11 +180,9 @@ function StudentLibrary({ learner }: { learner: string }) {
         `/study?${new URLSearchParams({ learner, kind, cursor, attemptCursor })}`,
         { signal },
       ),
+    // Consent needs a parent action; retries cannot resolve it.
     retry: (failureCount, error) =>
-      !(
-        error instanceof APIError &&
-        ['guardian_unconfigured', 'guardian_required'].includes(error.code)
-      ) && failureCount < 1,
+      !(error instanceof APIError && error.code === 'guardian_required') && failureCount < 1,
     refetchInterval: (query) =>
       query.state.status === 'error' ? false : query.state.data?.pendingPayment ? 5000 : 30000,
     refetchOnWindowFocus: true,

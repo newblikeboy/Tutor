@@ -46,8 +46,6 @@ if (process.env.E2E_CLOUDINARY === '1')
     TEST_CLOUDINARY_ENDPOINT: 'http://127.0.0.1:7998',
   })
 else env.TEST_CLOUDINARY_ENDPOINT = ''
-// Browser email tests inspect encrypted jobs in their isolated database.
-// SMTP transport and accepted content are tested separately with a private TLS fixture.
 // Public signup now always needs mail configured. All test mail is confined to
 // a closed loopback SMTP fixture; these settings never inherit operator secrets.
 Object.assign(env, {
