@@ -1,3 +1,4 @@
+import { endTrialFixture } from './trial-fixture'
 import { verifiedSignup } from './signup-fixture'
 import { test, expect, request, type Page, type Browser } from '@playwright/test'
 import { connectGoogle } from './helpers/google'
@@ -81,7 +82,7 @@ async function capture(page: Page, name: string) {
   })
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 }
-test('parent sees tutor feedback immediately and can continue to regular classes', async ({
+test('parent can book regular classes after automatic trial completion', async ({
   page,
   browser,
 }) => {
@@ -98,7 +99,7 @@ test('parent sees tutor feedback immediately and can continue to regular classes
   }
   const consent = await post('/consents', { relationship: 'parent', accepted: true })
   const learner = await post('/learners', {
-    name: `Fictional feedback learner ${Date.now()}`,
+    name: `Fictional trial learner ${Date.now()}`,
     class: 8,
     board: 'CBSE',
     language: 'Hindi',
@@ -133,26 +134,17 @@ test('parent sees tutor feedback immediately and can continue to regular classes
       .toBe('confirmed')
     await teacher.goto('/workspace?view=sessions&queue=confirmed')
     await teacher.getByRole('link', { name: new RegExp(`${learner.name} View trial`) }).click()
-    await record
-      .getByLabel('What did the student work through?')
-      .fill('Compared equivalent fractions with a number line.')
-    await record
-      .getByLabel('Practice and next teaching steps')
-      .fill('Practise three pairs of equivalent fractions.')
-    await record
-      .getByLabel('Trial feedback')
-      .fill('Tutor feedback: the learner can compare equivalent fractions.')
-    await record.getByRole('button', { name: 'Record lesson evidence' }).click()
-    await expect
-      .poll(async () => (await dashboard(page)).trials.find((item) => item.id === trial.id)?.status)
-      .toBe('completed')
+    await expect(record.getByRole('textbox')).toHaveCount(0)
+    await endTrialFixture(page.request, trial.id)
     await page.goto(`/workspace?view=sessions&learner=${learner.id}&tab=completed`)
-    await expect(page.getByText('Feedback ready', { exact: true })).toBeVisible()
+    await expect(page.getByText('Completed', { exact: true })).toBeVisible()
     await page.getByRole('link', { name: /View trial/ }).click()
-    await expect(page.getByText('Compared equivalent fractions with a number line.')).toBeVisible()
-    await capture(page, 'tutor-feedback-en-desktop')
+    await expect(page.getByRole('textbox')).toHaveCount(0)
+    await capture(page, 'trial-completed-en-desktop')
     await page.getByRole('main').getByRole('link', { name: 'Book tutor', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Regular classes', exact: true })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Start regular classes', exact: true }),
+    ).toBeVisible()
   } finally {
     await context.close()
   }

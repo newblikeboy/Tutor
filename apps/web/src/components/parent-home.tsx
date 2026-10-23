@@ -6,7 +6,7 @@ import { api, type Learner, type Schema } from '../lib/api'
 import { useClock } from '../lib/clock'
 import { SubjectNames } from './subject-name'
 import { LearningMotif } from './learning-motif'
-import { Badge, LinkButton, LoadError, Loading } from './ui'
+import { Badge, LoadError, Loading } from './ui'
 import { useTranslation } from 'react-i18next'
 import '../styles/journey-workspaces.css'
 
@@ -24,7 +24,6 @@ export function ParentHome({ learner, children }: { learner: Learner; children: 
       (item) =>
         item.status === 'awaiting_payment' && !!item.holdUntil && Date.parse(item.holdUntil) > now,
     ) ?? []
-  const returning = current.length > 0 || checkouts.length > 0
   return (
     <>
       {bookings.isPending ? (
@@ -77,9 +76,6 @@ export function ParentHome({ learner, children }: { learner: Learner; children: 
           <div className="customer-hero-copy">
             <h2>Find a tutor for {learner.name}</h2>
             <p>Choose the subjects and teaching mode that fit your child's day.</p>
-            <LinkButton to={`/match?learner=${encodeURIComponent(learner.id)}`}>
-              {t('parent.start')}
-            </LinkButton>
           </div>
           <LearningMotif />
         </section>
@@ -100,15 +96,6 @@ export function ParentHome({ learner, children }: { learner: Learner; children: 
       {bookings.data?.nextCursor && !current.length && (
         <Link className="text-link" to="/tuition">
           View all bookings
-        </Link>
-      )}
-      {(returning || bookings.isError) && (
-        <Link
-          className="parent-discovery-link text-link"
-          to={`/match?learner=${encodeURIComponent(learner.id)}`}
-        >
-          Find a tutor for {learner.name}
-          <ArrowRight size={16} aria-hidden="true" />
         </Link>
       )}
     </>

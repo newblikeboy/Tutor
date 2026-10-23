@@ -44,7 +44,8 @@ const tuitionEN = {
     saveAvailability: 'Save schedule',
     saved: 'Saved.',
     new: 'Start regular classes',
-    newBody: 'Book after your tutor has submitted trial feedback.',
+    trialUnavailable: 'This completed trial is not available for booking.',
+    tutorUnavailable: 'This tutor is not available for new bookings.',
     completedTrial: 'Completed trial',
     bookNow: 'Book Now',
     choosePackage: 'Choose package',
@@ -64,7 +65,7 @@ const tuitionEN = {
     noAvailabilityBody:
       'The tutor needs to save teaching times before an ongoing agreement can be proposed.',
     none: 'No regular classes yet',
-    noneBody: 'Start after your trial feedback is ready.',
+    noneBody: 'Open a completed trial in Trial classes to book your tutor.',
     noAssigned: 'No regular classes yet',
     noAssignedBody: 'Paid class bookings appear here.',
     open: 'View classes',

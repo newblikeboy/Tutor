@@ -1,3 +1,4 @@
+import { endTrialFixture } from './trial-fixture'
 import { verifiedSignup } from './signup-fixture'
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -145,15 +146,10 @@ test('weekly books six classes and monthly books twenty-four across calendar per
       termsAccepted: true,
     })
     await write(tutor.request, `/trials/${trial.id}/action`, { action: 'accept' })
-    await write(tutor.request, `/trials/${trial.id}/action`, {
-      action: 'complete',
-      notes: 'Worked through fictional examples with the learner.',
-      nextSteps: 'Practise the examples before regular classes.',
-      review: 'Tutor feedback is ready for the parent.',
-    })
-    await page.goto('/tuition')
+    await endTrialFixture(page.request, trial.id)
+    await page.goto(`/workspace?view=sessions&learner=${learner.id}&tab=completed`)
+    await page.getByRole('main').getByRole('link', { name: 'Book tutor', exact: true }).click()
     const card = page.locator('.tu-teacher-booking-card').filter({ hasText: 'Arjun' })
-    await card.getByRole('button', { name: 'Book Now', exact: true }).click()
     const requests: string[] = []
     page.on('request', (request) => {
       if (new URL(request.url()).pathname === '/api/v1/enrollments' && request.method() === 'POST')
@@ -226,7 +222,8 @@ test('weekly books six classes and monthly books twenty-four across calendar per
       ).toBeVisible()
       if (label === 'weekly') {
         await page.getByRole('link', { name: 'All classes', exact: true }).click()
-        await card.getByRole('button', { name: 'Book Now', exact: true }).click()
+        await page.goto(`/workspace?view=sessions&learner=${learner.id}&tab=completed`)
+        await page.getByRole('main').getByRole('link', { name: 'Book tutor', exact: true }).click()
       }
     }
     expect(requests).toHaveLength(2)

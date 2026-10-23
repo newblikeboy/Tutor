@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -150,7 +149,7 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 		if !domain.EligibleForMode(t, l.Class, mode, a.Now()) || !t.Scope.CoversSubjects(subjects) {
 			return domain.Fail(409, "scope_unavailable", "This tutor is not currently approved for this learning scope.")
 		}
-		v = domain.Trial{ID: id, OwnerID: u.ID, LearnerID: l.ID, RequirementID: requirementID, TutorID: t.ID, MentorID: t.AcademicMentor(), LearnerName: l.Name, Subject: subjects[0], Subjects: subjects, Mode: mode, Class: l.Class, Start: in.Start.UTC(), End: in.Start.UTC().Add(time.Hour), Status: "requested", FeePaise: 0, TermsVersion: "development-trial-v1", Terms: "Development only. One selected-scope trial, 60 minutes, INR 0. No payment or tuition enrollment. Either party can cancel before completion. No service availability guarantee.", CreatedAt: a.Now()}
+		v = domain.Trial{ID: id, OwnerID: u.ID, LearnerID: l.ID, RequirementID: requirementID, TutorID: t.ID, LearnerName: l.Name, Subject: subjects[0], Subjects: subjects, Mode: mode, Class: l.Class, Start: in.Start.UTC(), End: in.Start.UTC().Add(time.Hour), Status: "requested", FeePaise: 0, TermsVersion: "development-trial-v2", Terms: "Development only. One selected-scope trial, 60 minutes, INR 0. No payment or tuition enrollment. Either party can cancel before completion. Confirmed trials complete automatically at the scheduled end time, without feedback or mentor review. The parent chooses whether to book regular classes. No service availability guarantee.", CreatedAt: a.Now()}
 		var av domain.Availability
 		er = a.Store.C("availability").FindOneAndUpdate(ctx, bson.M{"_id": t.ID}, bson.M{"$inc": bson.M{"bookingRevision": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&av)
 		if er != nil && er != mongo.ErrNoDocuments {
@@ -180,12 +179,11 @@ func (a *App) requestTrial(w http.ResponseWriter, r *http.Request) {
 	a.json(w, 201, v)
 }
 func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
+	if !a.role(w, r, "parent", "tutor") {
+		return
+	}
 	var in struct {
-		Version   *int   `json:"version"`
-		Action    string `json:"action"`
-		Notes     string `json:"notes"`
-		NextSteps string `json:"nextSteps"`
-		Review    string `json:"review"`
+		Action string `json:"action"`
 	}
 	if !a.decode(w, r, &in) {
 		return
@@ -197,8 +195,16 @@ func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, e)
 		return
 	}
-	if initial.OwnerID != u.ID && initial.TutorID != u.ID && initial.MentorID != u.ID {
+	if initial.OwnerID != u.ID && initial.TutorID != u.ID {
 		a.error(w, r, domain.Fail(404, "not_found", "This record is unavailable."))
+		return
+	}
+	if !enum(in.Action, "accept", "cancel", "decline") {
+		a.error(w, r, domain.Fail(422, "validation", "Trials complete automatically after their scheduled end time."))
+		return
+	}
+	if _, e = a.finishTrialByID(r.Context(), id, a.Now()); e != nil {
+		a.error(w, r, e)
 		return
 	}
 	if e = a.ensureGuards(r.Context(), initial); e != nil {
@@ -269,6 +275,9 @@ func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 			if v.Status != "requested" && v.Status != "confirmed" {
 				return domain.Fail(409, "invalid_transition", "Completed trials cannot be cancelled.")
 			}
+			if v.Status == "confirmed" && !v.End.After(a.Now()) {
+				return domain.Fail(409, "invalid_transition", "The trial's scheduled time has ended.")
+			}
 			if v.Status == "confirmed" {
 				if e = a.reserve(ctx, v, true); e != nil {
 					return e
@@ -278,65 +287,14 @@ func (a *App) trialAction(w http.ResponseWriter, r *http.Request) {
 				return e
 			}
 			v.Status = map[string]string{"cancel": "cancelled", "decline": "declined"}[in.Action]
-		case "complete", "feedback":
-			if u.Role != "tutor" || v.TutorID != u.ID {
-				return domain.Fail(403, "forbidden", "Only the assigned tutor can submit lesson evidence.")
-			}
-			if in.Action == "feedback" {
-				recorded := v.End
-				if v.CompletedAt != nil {
-					recorded = *v.CompletedAt
-				}
-				if !enum(v.Status, "completed", "reviewed") || a.Now().After(recorded.Add(7*24*time.Hour)) {
-					return domain.Fail(409, "correction_closed", "Trial feedback corrections close seven days after completion.")
-				}
-				if in.Version == nil || *in.Version != v.Version {
-					return domain.Fail(409, "stale_version", "This trial changed. Reload first.")
-				}
-			} else if v.Status != "confirmed" {
-				return domain.Fail(409, "invalid_transition", "Confirm the trial before adding a lesson record.")
-			}
-			if a.Config.Env == "production" && a.Now().Before(v.End) {
-				return domain.Fail(409, "not_finished", "The class has not ended yet.")
-			}
-			if !validText(in.Notes, 10, 2000) || !validText(in.NextSteps, 10, 1200) || !validText(in.Review, 10, 2000) {
-				return domain.Fail(422, "validation", "Add lesson evidence and concrete next steps.")
-			}
-			var t domain.Application
-			er := a.Store.C("applications").FindOneAndUpdate(ctx, bson.M{"_id": u.ID}, bson.M{"$inc": bson.M{"version": 1}}, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&t)
-			if er != nil {
-				return er
-			}
-			mode := v.Mode
-			if mode == "" {
-				mode = "online"
-			}
-			subjects := v.Subjects
-			if len(subjects) == 0 {
-				subjects = []string{v.Subject}
-			}
-			if !domain.EligibleForMode(t, v.Class, mode, a.Now()) || !t.Scope.CoversSubjects(subjects) {
-				return domain.Fail(403, "scope_unavailable", "Teaching approval must cover this trial.")
-			}
-			v.Notes = in.Notes
-			v.NextSteps = clean(in.NextSteps)
-			v.Review = clean(in.Review)
-			if e = a.clearLessonMeeting(ctx, "trials", v.ID, &v.Meeting); e != nil {
-				return e
-			}
-			if in.Action == "complete" {
-				now := a.Now()
-				v.CompletedAt = &now
-				v.Status = "completed"
-			}
 		default:
-			return domain.Fail(422, "validation", fmt.Sprintf("Unsupported trial action."))
+			return domain.Fail(422, "validation", "Unsupported trial action.")
 		}
 		v.Version++
 		if _, e = a.Store.C("trials").ReplaceOne(ctx, bson.M{"_id": id}, v); e != nil {
 			return e
 		}
-		event := map[string]string{"accept": "trial_confirmed", "cancel": "trial_cancelled", "decline": "trial_declined", "complete": "trial_feedback", "feedback": "trial_feedback"}[in.Action]
+		event := map[string]string{"accept": "trial_confirmed", "cancel": "trial_cancelled", "decline": "trial_declined"}[in.Action]
 		if e = a.queueTrialEmail(ctx, v, event); e != nil {
 			return e
 		}

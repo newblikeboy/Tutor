@@ -72,7 +72,7 @@ test('tutor home prioritises Google connection, API recovery and private mobile 
   await capture(page, 'teaching-hours')
   for (const [path, heading, name] of [
     ['/workspace?view=learners', 'My students', 'students-empty'],
-    ['/workspace?view=sessions', 'Trial lessons', 'trials-empty'],
+    ['/workspace?view=sessions', 'Trial classes', 'trials-empty'],
     ['/tuition', 'Regular classes', 'classes-empty'],
     ['/billing', 'Earnings & payouts', 'earnings'],
     ['/tutor-profile', 'My profile', 'profile'],
@@ -140,7 +140,7 @@ test('tutor home prioritises Google connection, API recovery and private mobile 
     'aria-current',
     'page',
   )
-  const trialFilters = page.getByRole('navigation', { name: 'Filter trial lessons', exact: true })
+  const trialFilters = page.getByRole('navigation', { name: 'Filter trial classes', exact: true })
   const selectedFilter = trialFilters.locator('[aria-current="page"]')
   await expect
     .poll(async () => {

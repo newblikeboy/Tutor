@@ -46,9 +46,6 @@
 .family-bookings-more {
   padding: 0 20px 16px;
 }
-.parent-discovery-link {
-  justify-self: start;
-}
 .tutor-acceptance-list {
   border: 1px solid var(--border);
   border-radius: 14px;

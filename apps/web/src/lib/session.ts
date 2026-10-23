@@ -23,6 +23,7 @@ export function useDashboard() {
   return useQuery({
     queryKey: ['dashboard'],
     queryFn: ({ signal }) => api<Schema['Dashboard']>('/dashboard', { signal }),
+    refetchInterval: (query) => (query.state.data?.user.role === 'parent' ? 5000 : false),
     retry: false,
   })
 }

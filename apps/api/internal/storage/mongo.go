@@ -129,6 +129,9 @@ func (s *Store) Migrate(ctx context.Context) error {
 			return e
 		}
 	}
+	if e = s.MigrateTrials(ctx); e != nil {
+		return e
+	}
 	_, e = s.C("migrations").UpdateOne(ctx, bson.M{"_id": "002-tuition-continuity"}, bson.M{"$setOnInsert": bson.M{"appliedAt": time.Now().UTC()}}, options.UpdateOne().SetUpsert(true))
 	if e != nil {
 		return e
@@ -155,4 +158,18 @@ func (s *Store) Migrate(ctx context.Context) error {
 		return e
 	}
 	return s.MigrateGoogle(ctx)
+}
+
+// MigrateTrials adds the completion sweep index without changing records or
+// core validators. Existing-droplet updates can apply this narrow scope safely.
+func (s *Store) MigrateTrials(ctx context.Context) error {
+	names, err := s.DB.ListCollectionNames(ctx, bson.M{"name": "trials"})
+	if err != nil {
+		return err
+	}
+	if len(names) == 0 {
+		return fmt.Errorf("existing trials collection is required before applying the trial index")
+	}
+	_, err = s.C("trials").Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{Key: "status", Value: 1}, {Key: "end", Value: 1}, {Key: "_id", Value: 1}}})
+	return err
 }

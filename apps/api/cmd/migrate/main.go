@@ -22,9 +22,10 @@ func main() {
 	teachingOnly := flag.Bool("teaching-agreements-only", false, "Apply additive tutor teaching agreement storage only")
 	studyOnly := flag.Bool("study-only", false, "Apply additive study subscription and materials storage only")
 	subjectsOnly := flag.Bool("subjects-only", false, "Apply shared subject catalog and import existing study subjects only")
+	trialsOnly := flag.Bool("trials-only", false, "Apply automatic completion index to existing trials only")
 	flag.Parse()
 	scopes := 0
-	for _, selected := range []bool{*financeOnly, *inboxOnly, *staffOnly, *applicationOnly, *emailOnly, *googleOnly, *teachingOnly, *studyOnly, *subjectsOnly} {
+	for _, selected := range []bool{*financeOnly, *inboxOnly, *staffOnly, *applicationOnly, *emailOnly, *googleOnly, *teachingOnly, *studyOnly, *subjectsOnly, *trialsOnly} {
 		if selected {
 			scopes++
 		}
@@ -46,7 +47,9 @@ func main() {
 		log.Fatal("Database connection failed; check private configuration")
 	}
 	defer s.Client.Disconnect(ctx)
-	if *subjectsOnly {
+	if *trialsOnly {
+		e = s.MigrateTrials(ctx)
+	} else if *subjectsOnly {
 		e = s.MigrateSubjects(ctx)
 	} else if *studyOnly {
 		e = s.MigrateStudy(ctx)

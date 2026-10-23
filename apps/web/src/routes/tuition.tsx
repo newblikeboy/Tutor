@@ -2,9 +2,9 @@ import { SubjectName, SubjectNames } from '../components/subject-name'
 import '../locales/tuition'
 import '../locales/experience'
 import '../locales/files'
-import { allTutors, approvedTutorSubjects } from '../lib/tutors'
+import { approvedTutorSubjects } from '../lib/tutors'
 import { SubjectSelect } from '../components/subject-select'
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -334,11 +334,21 @@ function AvailabilityForm({
 }
 export default function Tuition() {
   const { id } = useParams()
+  const [params] = useSearchParams()
   const { t } = useTranslation()
   const auth = useAuth()
   if (!['parent', 'tutor', 'mentor'].includes(auth.data?.user.role ?? ''))
     return <Alert>{t('permission')}</Alert>
-  return id ? <TuitionDetail id={id} /> : <TuitionList />
+  if (id) return <TuitionDetail id={id} />
+  if (auth.data?.user.role === 'parent' && params.has('trial'))
+    return (
+      <TrialBooking
+        key={params.get('trial')}
+        trialId={params.get('trial')!}
+        returnTab={params.get('trialTab') ?? 'completed'}
+      />
+    )
+  return <TuitionList />
 }
 function TuitionList() {
   const { t, i18n } = useTranslation()
@@ -491,67 +501,60 @@ function TuitionList() {
           )}
         </>
       )}
-      {parent && !archive && <NewAgreement />}
     </div>
   )
 }
-function NewAgreement() {
+function TrialBooking({ trialId, returnTab }: { trialId: string; returnTab: string }) {
   const { t, i18n } = useTranslation()
   const dashboard = useDashboard()
-  const tutors = useQuery({
-    queryKey: ['tutors', 'regular-classes'],
-    queryFn: ({ signal }) => allTutors('/tutors', signal),
-  })
-  const [openKey, setOpenKey] = useState('')
-  const completedTrials = useMemo(() => {
-    const trials =
-      dashboard.data?.trials.filter((trial) => ['completed', 'reviewed'].includes(trial.status)) ??
-      []
-    const latest = new Map<string, Schema['Trial']>()
-    for (const trial of [...trials].sort((a, b) => b.start.localeCompare(a.start))) {
-      const key = `${trial.learnerId}:${trial.tutorId}`
-      if (!latest.has(key)) latest.set(key, trial)
-    }
-    return Array.from(latest.values())
-  }, [dashboard.data?.trials])
-  const tutorById = useMemo(
-    () => new Map((tutors.data ?? []).map((tutor) => [tutor.id, tutor])),
-    [tutors.data],
+  const trial = dashboard.data?.trials.find(
+    (item) => item.id === trialId && ['completed', 'reviewed'].includes(item.status),
   )
-  const options = completedTrials
-    .map((trial) => ({ trial, tutor: tutorById.get(trial.tutorId) }))
-    .filter((item): item is { trial: Schema['Trial']; tutor: Tutor } => !!item.tutor)
+  const tutor = useQuery({
+    queryKey: ['tutor', trial?.tutorId],
+    queryFn: ({ signal }) =>
+      api<Tutor>(`/tutors/${encodeURIComponent(trial!.tutorId)}`, { signal }),
+    enabled: !!trial,
+  })
+  const [open, setOpen] = useState(true)
+  const tab = ['all', 'completed', 'upcoming', 'cancelled'].includes(returnTab)
+    ? returnTab
+    : returnTab === 'past'
+      ? 'cancelled'
+      : 'completed'
+  const back = `/workspace?view=sessions${trial ? `&learner=${encodeURIComponent(trial.learnerId)}` : ''}&tab=${tab}`
 
-  if (dashboard.isError) return <LoadError retry={() => void dashboard.refetch()} />
-  if (tutors.isError) return <LoadError retry={() => void tutors.refetch()} />
-  if (dashboard.isPending || tutors.isPending) return <Loading />
-  if (!options.length) return null
+  let content: ReactNode
+  if (dashboard.isPending) content = <Loading />
+  else if (dashboard.isError) content = <LoadError retry={() => void dashboard.refetch()} />
+  else if (!trial) content = <Alert kind="error">{t('tuition.trialUnavailable')}</Alert>
+  else if (tutor.isPending) content = <Loading />
+  else if (tutor.isError)
+    content =
+      tutor.error instanceof APIError && [403, 404].includes(tutor.error.status) ? (
+        <Alert kind="error">{t('tuition.tutorUnavailable')}</Alert>
+      ) : (
+        <LoadError retry={() => void tutor.refetch()} />
+      )
+  else
+    content = (
+      <RegularTeacherCard
+        trial={trial}
+        tutor={tutor.data}
+        open={open}
+        onOpen={() => setOpen(!open)}
+        dateLabel={indiaDate(trial.start, i18n.language)}
+      />
+    )
 
   return (
-    <section className="tu-panel tu-regular-start" aria-label={t('tuition.new')}>
-      <div className="tu-panel-title">
-        <Plus size={20} aria-hidden="true" />
-        <div>
-          <h2>{t('tuition.new')}</h2>
-          <p>{t('tuition.newBody')}</p>
-        </div>
-      </div>
-      <div className="tu-teacher-booking-list">
-        {options.map(({ trial, tutor }) => {
-          const key = `${trial.learnerId}:${trial.tutorId}`
-          return (
-            <RegularTeacherCard
-              key={key}
-              trial={trial}
-              tutor={tutor}
-              open={openKey === key}
-              onOpen={() => setOpenKey(openKey === key ? '' : key)}
-              dateLabel={indiaDate(trial.start, i18n.language)}
-            />
-          )
-        })}
-      </div>
-    </section>
+    <div className="tu-page">
+      <Heading title={t('tuition.new')} />
+      <Link className="student-back-link" to={back}>
+        <ArrowLeft size={17} aria-hidden="true" /> Back to Trial classes
+      </Link>
+      {content}
+    </div>
   )
 }
 
@@ -647,7 +650,7 @@ function RegularTeacherCard({
       <div className="tu-teacher-booking-main">
         <div>
           <small>{t('tuition.completedTrial')}</small>
-          <h3>{tutor.name}</h3>
+          <h2>{tutor.name}</h2>
           <p>
             {trial.learnerName} · {dateLabel}
           </p>

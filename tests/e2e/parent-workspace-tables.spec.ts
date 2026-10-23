@@ -216,12 +216,11 @@ test('parent tables preserve ownership, booking history, progress, class reports
   await capture(page, 'learners')
   await page.getByRole('link', { name: /Fictional table student View progress/ }).click()
   await expect(page.locator('.child-report-summary')).toBeVisible()
-  await page.getByRole('tab', { name: 'Feedback', exact: true }).click()
-  await expect(
-    page.getByText('Fictional tutor feedback: clear understanding of fractions.', { exact: true }),
-  ).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Subjects', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: 'Feedback', exact: true })).toHaveCount(0)
+  await page.getByRole('tab', { name: 'Class history', exact: true }).click()
   await page.reload()
-  await expect(page.getByRole('tab', { name: 'Feedback', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('tab', { name: 'Class history', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   )
@@ -229,11 +228,24 @@ test('parent tables preserve ownership, booking history, progress, class reports
   await page.getByRole('link', { name: 'Back to Learners', exact: true }).click()
   await expect(page.getByRole('table', { name: 'Your learners', exact: true })).toBeVisible()
 
-  await page.goto(`/workspace?view=sessions&learner=${learner.id}&tab=completed`)
-  await expect(page.getByRole('table', { name: 'Your trial lessons', exact: true })).toBeVisible()
+  await page.goto(`/workspace?view=sessions&learner=${learner.id}`)
+  await expect(page.getByRole('tab')).toHaveText([
+    'All (1)',
+    'Completed (1)',
+    'Upcoming (0)',
+    'Cancelled (0)',
+  ])
+  await expect(page.getByRole('tab', { name: 'All (1)', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await page.getByRole('tab', { name: 'Completed (1)', exact: true }).click()
+  await expect(page.getByRole('table', { name: 'Your trial classes', exact: true })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Booking', exact: true })).toBeVisible()
   await expect(
     page.getByRole('columnheader', { name: 'Feedback status', exact: true }),
-  ).toBeVisible()
+  ).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Book tutor', exact: true })).toHaveCount(1)
   await capture(page, 'trials')
   await page.getByRole('link', { name: /View trial/ }).click()
   await expect(page.getByRole('heading', { name: 'Trial details', exact: true })).toBeVisible()
@@ -242,10 +254,11 @@ test('parent tables preserve ownership, booking history, progress, class reports
   await expect(
     page.getByText('Fictional tutor feedback: clear understanding of fractions.', { exact: true }),
   ).toBeVisible()
-  await page.getByRole('link', { name: 'Back to Trial lessons', exact: true }).click()
+  await page.getByRole('link', { name: 'Back to Trial classes', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`tab=completed$`))
 
   await page.goto('/tuition')
+  await expect(page.locator('.tu-teacher-booking-card')).toHaveCount(0)
   await expect(
     page.getByRole('table', { name: 'Current regular class bookings', exact: true }),
   ).toBeVisible()

@@ -305,51 +305,24 @@ test('tutor daily teaching, scoped reports, planning, feedback, archives and Goo
     await capture('home')
     await page.goto('/workspace?view=sessions&queue=completed')
     await expect(
-      page.getByRole('table', { name: 'Tutor trial lessons', exact: true }),
+      page.getByRole('table', { name: 'Tutor trial classes', exact: true }),
     ).toBeVisible()
     await expect(page.locator('.student-table tbody tr')).toHaveCount(1)
     await expect(
       page.getByRole('columnheader', { name: 'Feedback status', exact: true }),
-    ).toBeVisible()
+    ).toHaveCount(0)
     await expect(page.getByRole('columnheader', { name: 'Distance', exact: true })).toHaveCount(0)
-    await expect(page.getByRole('cell', { name: 'Submitted', exact: true })).toBeVisible()
     await capture('trial-table')
     await page.getByRole('link', { name: /Tutor workflow learner View trial/ }).click()
     await expect(page).toHaveURL(new RegExp(`queue=completed&trial=${id}-completed`))
+    await expect(page.getByText('Completed', { exact: true })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Trial feedback', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Edit Feedback', exact: true })).toHaveCount(0)
     await expect(
       page.getByText('Tutor recommends practice with everyday fractions.', { exact: true }),
-    ).toBeVisible()
-    await expect(page.getByText('Awaiting academic review', { exact: true })).toHaveCount(0)
-    await capture('trial-feedback')
-    await page.getByRole('button', { name: 'Edit Feedback', exact: true }).click()
-    await expect(page.getByLabel('What the student worked on', { exact: true })).toBeFocused()
-    await page
-      .getByRole('textbox', { name: 'Trial feedback', exact: true })
-      .fill('Unsaved trial feedback edit.')
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Edit Feedback', exact: true })).toBeFocused()
-    await expect(page.getByText('Unsaved trial feedback edit.', { exact: true })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Edit Feedback', exact: true }).click()
-    await expect(page.getByRole('textbox', { name: 'Trial feedback', exact: true })).toHaveValue(
-      'Tutor recommends practice with everyday fractions.',
-    )
-    await capture('trial-feedback-edit')
-    await page
-      .getByRole('textbox', { name: 'Trial feedback', exact: true })
-      .fill('Tutor corrected the trial feedback with a concrete practice recommendation.')
-    const correction = page.waitForResponse(
-      (r) => r.url().endsWith(`/trials/${id}-completed/action`) && r.request().method() === 'POST',
-    )
-    await page.getByRole('button', { name: 'Save Feedback', exact: true }).click()
-    expect((await correction).status()).toBe(200)
-    await page.reload({ waitUntil: 'domcontentloaded' })
-    await expect(
-      page.getByText(
-        'Tutor corrected the trial feedback with a concrete practice recommendation.',
-        { exact: true },
-      ),
-    ).toBeVisible()
-    await page.getByRole('link', { name: 'Back to Trial lessons', exact: true }).click()
+    ).toHaveCount(0)
+    await capture('trial-completed')
+    await page.getByRole('link', { name: 'Back to Trial classes', exact: true }).click()
     await expect(page).toHaveURL('/workspace?view=sessions&queue=completed')
     await page.goto('/workspace?view=sessions&queue=requested')
     await page.getByRole('link', { name: /Trial student sample View trial/ }).click()

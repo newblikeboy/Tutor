@@ -145,7 +145,7 @@
 }
 .study-categories {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 .study-categories button {
@@ -344,52 +344,21 @@
 .study-section-heading p {
   font-size: 13px;
 }
-.study-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: 16px;
+.study-library-table .student-table {
+  min-width: 600px;
 }
-.study-card {
-  min-width: 0;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: white;
+.study-library-table .student-table thead th:first-child {
+  width: 46%;
 }
-.study-card h3 {
-  overflow-wrap: anywhere;
-  line-height: 1.5;
+.study-library-table .student-table :is(th, td) {
+  vertical-align: middle;
 }
-.study-card p {
-  font-size: 13px;
+.study-library-table .student-table :is(th, td):last-child {
+  width: 170px;
+  text-align: right;
 }
-.study-card-quiz {
-  border-color: #cbd8ba;
-  background: linear-gradient(145deg, #fff, #f6f9ef);
-}
-.study-card-type > span {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: #edf3e3;
-}
-.study-card .btn {
-  width: 100%;
-  margin-top: auto;
-}
-.study-card-type {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #496645;
-  font-size: 12px;
-  font-weight: 600;
+.study-library-table .btn {
+  white-space: nowrap;
 }
 .study-results {
   display: grid;

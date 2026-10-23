@@ -247,9 +247,16 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 			result, er = a.tuitionAccess(ctx, u, prior)
 			return er
 		}
-		trial, er := storage.One[domain.Trial](ctx, a.Store, "trials", bson.M{"_id": in.TrialID, "ownerId": u.ID, "status": bson.M{"$in": []string{"completed", "reviewed"}}})
+		trial, er := storage.One[domain.Trial](ctx, a.Store, "trials", bson.M{"_id": in.TrialID, "ownerId": u.ID})
 		if er != nil {
 			return er
+		}
+		trial, er = a.finishTrial(ctx, trial, a.Now())
+		if er != nil {
+			return er
+		}
+		if !enum(trial.Status, "completed", "reviewed") || trial.End.After(a.Now()) {
+			return mongo.ErrNoDocuments
 		}
 		learner, er := storage.One[domain.Learner](ctx, a.Store, "learners", bson.M{"_id": trial.LearnerID, "ownerId": u.ID})
 		if er != nil {
@@ -313,7 +320,9 @@ func (a *App) createEnrollment(w http.ResponseWriter, r *http.Request) {
 		if er != nil {
 			return er
 		}
-		result = domain.Enrollment{ID: id, OwnerID: u.ID, TrialID: trial.ID, LearnerID: trial.LearnerID, LearnerName: trial.LearnerName, Class: trial.Class, TutorID: app.ID, TutorName: app.Name, MentorID: trial.MentorID, Status: "awaiting_payment", Agreement: ag, Version: 1, CreatedAt: a.Now()}
+		// Trials have no mentor workflow. Regular-class support keeps the
+		// approved tutor's assigned academic mentor in the new booking snapshot.
+		result = domain.Enrollment{ID: id, OwnerID: u.ID, TrialID: trial.ID, LearnerID: trial.LearnerID, LearnerName: trial.LearnerName, Class: trial.Class, TutorID: app.ID, TutorName: app.Name, MentorID: app.AcademicMentor(), Status: "awaiting_payment", Agreement: ag, Version: 1, CreatedAt: a.Now()}
 		result.TutorAgreement = tutorAgreement
 		until := a.Now().Add(15 * time.Minute)
 		result.HoldUntil = &until

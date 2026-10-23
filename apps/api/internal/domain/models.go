@@ -205,6 +205,7 @@ type Requirement struct {
 type Trial struct {
 	Version          int             `json:"version" bson:"version"`
 	CompletedAt      *time.Time      `json:"completedAt,omitempty" bson:"completedAt,omitempty"`
+	CompletionMethod string          `json:"completionMethod,omitempty" bson:"completionMethod,omitempty"`
 	Meeting          *LessonMeeting  `json:"meeting,omitempty" bson:"meeting,omitempty"`
 	MeetingHistory   []LessonMeeting `json:"-" bson:"meetingHistory,omitempty"`
 	Subjects         []string        `json:"subjects,omitempty" bson:"subjects,omitempty"`

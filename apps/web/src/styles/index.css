@@ -1098,9 +1098,6 @@ footer:not(.site-footer) {
 .record-form .btn {
   justify-self: start;
 }
-.reviewed-record {
-  border-left: 3px solid var(--teal);
-}
 .queue {
   display: grid;
   gap: 22px;

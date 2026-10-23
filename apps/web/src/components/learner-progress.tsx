@@ -16,7 +16,6 @@ import {
 } from '../lib/learner-progress'
 import { Alert, Badge, Button, Empty, Field, Loading, LoadError } from './ui'
 import { TabBar, TabPanel } from './workspace-tabs'
-import { DeleteLearner } from './delete-learner'
 import '../styles/learner-progress.css'
 
 const tabs = ['overview', 'subjects', 'history', 'feedback'] as const
@@ -47,7 +46,10 @@ export default function LearnerProgressReport({
     }
     setParams(next)
   }
-  const tab: Tab = tabs.find((value) => value === params.get('reportTab')) ?? 'overview'
+  const visibleTabs = tutor
+    ? tabs
+    : tabs.filter((value) => value === 'overview' || value === 'history')
+  const tab: Tab = visibleTabs.find((value) => value === params.get('reportTab')) ?? 'overview'
   const range = ['month', 'custom'].includes(params.get('range') ?? '')
     ? params.get('range')!
     : 'all'
@@ -81,7 +83,18 @@ export default function LearnerProgressReport({
   const tutors = new Map(d.enrollments.map((e) => [e.tutorId, e.tutorName]))
   for (const item of [...d.sessions, ...d.trials]) tutors.set(item.tutorId, item.tutorName)
   const valid = !filters.from || !filters.to || filters.from <= filters.to
-  const { sessions, trials, plans } = filterReport(d, filters)
+  const { sessions, plans } = filterReport(d, filters)
+  // A scheduled date passing does not create a recorded class outcome.
+  const historySessions = sessions.filter((s) =>
+    [
+      'completed',
+      'reviewed',
+      'missed',
+      'cancelled',
+      'cancelled_consumed',
+      'awaiting_review',
+    ].includes(s.status),
+  )
   const summary = progressSummary(sessions)
   const evidence = sessions.filter(
     (s) => ['completed', 'reviewed'].includes(s.status) && (s.progress || s.notes),
@@ -98,35 +111,21 @@ export default function LearnerProgressReport({
         (e.agreement.subjects ?? [e.agreement.subject]).includes(filters.subject) ||
         (learner.class <= 5 && e.agreement.subject === 'All Subjects')),
   )
-  const feedback = latest?.progress?.feedback || latest?.notes || trials[0]?.notes
-  const practice =
-    latest?.progress?.nextSteps || latest?.homework || trials[0]?.nextSteps || plans[0]?.nextSteps
+  const feedback = latest?.progress?.feedback || latest?.notes
+  const practice = latest?.progress?.nextSteps || latest?.homework || plans[0]?.nextSteps
   return (
-    <div className="child-report">
-      <header className="child-report-heading">
-        <div>
-          <span className="eyebrow">
-            {tutor ? 'Student progress report' : t('childProgress.title')}
-          </span>
-          <h2>{learner.name}</h2>
-          <p>
-            {tutor
-              ? 'Progress recorded in your current teaching assignments.'
-              : t('childProgress.subtitle')}
-          </p>
-        </div>
-        {!tutor && (
-          <div className="learner-profile-actions">
-            <Link
-              className="text-link"
-              to={`/match?profile=1&edit=1&learner=${encodeURIComponent(learner.id)}`}
-            >
-              {t('parent.edit')}
-            </Link>
-            <DeleteLearner learner={learner} />
+    <div className={`child-report${tutor ? '' : ' child-report-parent'}`}>
+      {tutor ? (
+        <header className="child-report-heading">
+          <div>
+            <span className="eyebrow">Student progress report</span>
+            <h2>{learner.name}</h2>
+            <p>Progress recorded in your current teaching assignments.</p>
           </div>
-        )}
-      </header>
+        </header>
+      ) : (
+        <h2 className="sr-only">{learner.name}</h2>
+      )}
       <div className="child-report-filters">
         <Field label={t('childProgress.range')}>
           <select
@@ -193,7 +192,7 @@ export default function LearnerProgressReport({
             scrollable
             label={tutor ? 'Student progress report' : t('childProgress.title')}
             value={tab}
-            options={tabs.map((value) => ({ value, label: t(`childProgress.${value}`) }))}
+            options={visibleTabs.map((value) => ({ value, label: t(`childProgress.${value}`) }))}
             onChange={(value) => set({ reportTab: value === 'overview' ? '' : value })}
           />
           <TabPanel id="child-report" value="overview" active={tab === 'overview'}>
@@ -237,23 +236,24 @@ export default function LearnerProgressReport({
             </div>
             <div className="child-report-columns">
               <section className="child-report-panel child-report-focus">
-                <h3>{t('childProgress.latestFeedback')}</h3>
-                <p>{feedback || t('childProgress.noFeedback')}</p>
-                {(latest || trials[0]) && (
-                  <small>
-                    {latest?.tutorName ||
-                      trials[0]?.tutorName ||
-                      t('childProgress.nameUnavailable')}{' '}
-                    · {indiaDate(latest?.start ?? trials[0].start, 'en')}
-                  </small>
-                )}
-                <h3>{t('childProgress.nextSteps')}</h3>
-                <p>{practice || t('childProgress.noPractice')}</p>
+                <div className="child-report-remarks">
+                  <h3>{t('childProgress.latestFeedback')}</h3>
+                  <p>{feedback || t('childProgress.noRemarks')}</p>
+                  {latest && (
+                    <small>
+                      {latest.tutorName || t('childProgress.nameUnavailable')} ·{' '}
+                      {indiaDate(latest.start, 'en')}
+                    </small>
+                  )}
+                </div>
+                <div className="child-report-homework">
+                  <h3>{t('childProgress.homeWork')}</h3>
+                  <p>{practice || t('childProgress.noHomeGiven')}</p>
+                </div>
               </section>
               <section className="child-report-panel">
                 <div className="child-report-section-title">
                   <h3>{t('childProgress.packages')}</h3>
-                  <small>{t('childProgress.allDates')}</small>
                 </div>
                 {activePackages.length ? (
                   activePackages.map((e) => {
@@ -281,7 +281,7 @@ export default function LearnerProgressReport({
                         </p>
                         <small>{t('childProgress.remaining', { count: balance.remaining })}</small>
                         <Link className="text-link" to={`/tuition/${e.id}`}>
-                          {t('parent.classes')}
+                          {t('childProgress.viewDetails')}
                         </Link>
                       </div>
                     )
@@ -291,96 +291,62 @@ export default function LearnerProgressReport({
                 )}
               </section>
             </div>
-            <section className="child-report-panel">
-              <h3>{t('childProgress.learning')}</h3>
-              {topics.length ? (
-                <div className="child-report-topics">
-                  {topics.slice(0, 4).map(({ topic, session, subject }) => (
-                    <Topic
-                      key={`${subject}:${topic.title}`}
-                      topic={topic}
-                      author={session.tutorName}
-                      date={session.start}
-                      subject={subject}
-                    />
-                  ))}
-                </div>
-              ) : plans[0] ? (
-                <>
-                  <h4>{t('childProgress.goals')}</h4>
-                  <p>{plans[0].goals}</p>
-                  <div className="child-report-topics">
-                    {plans[0].topics.map((topic) => (
-                      <Topic
-                        key={topic.title}
-                        topic={topic}
-                        author={plans[0].authorName}
-                        date={plans[0].createdAt}
-                        subject={plans[0].subjects.join(', ')}
-                      />
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <p>{t('childProgress.noTopicsBody')}</p>
-              )}
-            </section>
-            <LearningJourney
-              report={d}
-              sessions={sessions}
-              trials={trials}
-              plans={plans}
-              filters={filters}
-            />
+            <LearningJourney report={d} sessions={sessions} plans={plans} filters={filters} />
           </TabPanel>
-          <TabPanel id="child-report" value="subjects" active={tab === 'subjects'}>
-            <div className="child-report-stack">
-              {(filters.subject ? [filters.subject] : subjectOptions).map((subject) => {
-                const subjectTopics = topics.filter(
-                  (topic) =>
-                    topic.subject === subject ||
-                    (subject === 'All Subjects' && topic.session.subjects.includes('All Subjects')),
-                )
-                const subjectSessions = sessions.filter(
-                  (s) =>
-                    s.progress?.subject === subject ||
-                    (subject === 'All Subjects' && s.subjects.includes(subject)),
-                )
-                return (
-                  <section className="child-report-panel" key={subject}>
-                    <h3>
-                      <SubjectName value={subject} />
-                    </h3>
-                    {subjectTopics.length ? (
-                      <div className="child-report-topics">
-                        {subjectTopics.map(({ topic, session }) => (
-                          <Topic
-                            key={`${session.id}:${topic.title}`}
-                            topic={topic}
-                            author={session.tutorName}
-                            date={session.start}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <p>{t('childProgress.noTopics')}</p>
-                    )}
-                    <TestResults sessions={subjectSessions} />
-                  </section>
-                )
-              })}
-              {!subjectOptions.length && (
-                <Empty title={t('childProgress.noTopics')} body={t('childProgress.noTopicsBody')} />
-              )}
-              {plans.map((plan) => (
-                <Plan key={plan.id} plan={plan} />
-              ))}
-            </div>
-          </TabPanel>
+          {tutor && (
+            <TabPanel id="child-report" value="subjects" active={tab === 'subjects'}>
+              <div className="child-report-stack">
+                {(filters.subject ? [filters.subject] : subjectOptions).map((subject) => {
+                  const subjectTopics = topics.filter(
+                    (topic) =>
+                      topic.subject === subject ||
+                      (subject === 'All Subjects' &&
+                        topic.session.subjects.includes('All Subjects')),
+                  )
+                  const subjectSessions = sessions.filter(
+                    (s) =>
+                      s.progress?.subject === subject ||
+                      (subject === 'All Subjects' && s.subjects.includes(subject)),
+                  )
+                  return (
+                    <section className="child-report-panel" key={subject}>
+                      <h3>
+                        <SubjectName value={subject} />
+                      </h3>
+                      {subjectTopics.length ? (
+                        <div className="child-report-topics">
+                          {subjectTopics.map(({ topic, session }) => (
+                            <Topic
+                              key={`${session.id}:${topic.title}`}
+                              topic={topic}
+                              author={session.tutorName}
+                              date={session.start}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p>{t('childProgress.noTopics')}</p>
+                      )}
+                      <TestResults sessions={subjectSessions} />
+                    </section>
+                  )
+                })}
+                {!subjectOptions.length && (
+                  <Empty
+                    title={t('childProgress.noTopics')}
+                    body={t('childProgress.noTopicsBody')}
+                  />
+                )}
+                {plans.map((plan) => (
+                  <Plan key={plan.id} plan={plan} />
+                ))}
+              </div>
+            </TabPanel>
+          )}
           <TabPanel id="child-report" value="history" active={tab === 'history'}>
             <div className="child-report-stack">
-              {sessions.length ? (
-                sessions.map((s) => <Lesson key={s.id} session={s} />)
+              {historySessions.length ? (
+                historySessions.map((s) => <Lesson key={s.id} session={s} />)
               ) : (
                 <Empty
                   title={t('childProgress.noClasses')}
@@ -389,40 +355,21 @@ export default function LearnerProgressReport({
               )}
             </div>
           </TabPanel>
-          <TabPanel id="child-report" value="feedback" active={tab === 'feedback'}>
-            <div className="child-report-stack">
-              {evidence.map((s) => (
-                <Lesson key={s.id} session={s} expanded />
-              ))}
-              {trials.map((trial) => (
-                <section className="child-report-panel" key={trial.id}>
-                  <Badge>{t('childProgress.trial')}</Badge>
-                  <h3>
-                    <SubjectNames values={trial.subjects ?? [trial.subject]} />
-                  </h3>
-                  <small>
-                    {trial.tutorName || t('childProgress.nameUnavailable')} ·{' '}
-                    {indiaDate(trial.start, 'en')}
-                  </small>
-                  <p>{trial.notes || t('childProgress.noFeedback')}</p>
-                  {trial.review && (
-                    <>
-                      <h4>{t('childProgress.historicalReview')}</h4>
-                      <p>{trial.review}</p>
-                    </>
-                  )}
-                  <h4>{t('childProgress.nextSteps')}</h4>
-                  <p>{trial.nextSteps || t('childProgress.noPractice')}</p>
-                </section>
-              ))}
-              {!evidence.length && !trials.length && (
-                <Empty
-                  title={t('childProgress.noFeedback')}
-                  body={t('childProgress.noRecordBody')}
-                />
-              )}
-            </div>
-          </TabPanel>
+          {tutor && (
+            <TabPanel id="child-report" value="feedback" active={tab === 'feedback'}>
+              <div className="child-report-stack">
+                {evidence.map((s) => (
+                  <Lesson key={s.id} session={s} expanded />
+                ))}
+                {!evidence.length && (
+                  <Empty
+                    title={t('childProgress.noFeedback')}
+                    body={t('childProgress.noRecordBody')}
+                  />
+                )}
+              </div>
+            </TabPanel>
+          )}
         </>
       )}
     </div>
@@ -433,12 +380,10 @@ function Topic({
   topic,
   author,
   date,
-  subject,
 }: {
   topic: Schema['LearningTopic']
   author: string
   date: string
-  subject?: string
 }) {
   const { t } = useTranslation()
   return (
@@ -457,7 +402,6 @@ function Topic({
           {t(`childProgress.${topic.status}`)}
         </Badge>
       </div>
-      {subject && <small>{subject}</small>}
       <p>{topic.evidence}</p>
       <p>
         <strong>{t('childProgress.practice')}: </strong>
@@ -647,25 +591,16 @@ function Plan({ plan }: { plan: Schema['ProgressPlan'] }) {
 function LearningJourney({
   report,
   sessions,
-  trials,
   plans,
   filters,
 }: {
   report: ProgressReport
   sessions: ReportSession[]
-  trials: Schema['ProgressTrial'][]
   plans: Schema['ProgressPlan'][]
   filters: { from: string; to: string; subject: string; tutor: string }
 }) {
   const { t } = useTranslation()
   const entries = [
-    ...trials.map((trial) => ({
-      id: `trial:${trial.id}`,
-      date: trial.start,
-      type: 'trial',
-      title: trial.tutorName || t('childProgress.nameUnavailable'),
-      body: trial.notes || t('childProgress.noFeedback'),
-    })),
     ...sessions
       .filter((s) => ['completed', 'reviewed'].includes(s.status) && (s.progress || s.notes))
       .map((s) => ({

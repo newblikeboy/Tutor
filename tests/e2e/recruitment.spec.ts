@@ -28,7 +28,7 @@ test('new tutor sees application stages first and teaching routes stay locked un
   await expect(page.getByRole('tab')).toHaveCount(6)
   const nav = page.locator('.desk-sidebar nav')
   await expect(nav.getByRole('link', { name: 'My application', exact: true })).toBeVisible()
-  await expect(nav.getByRole('link', { name: 'Trial lessons', exact: true })).toHaveCount(0)
+  await expect(nav.getByRole('link', { name: 'Trial classes', exact: true })).toHaveCount(0)
   await expect(nav.locator('a[href="/tuition"]')).toHaveCount(0)
   await expect(nav.locator('a[href="/availability"]')).toHaveCount(0)
   expect((await page.request.get('/api/v1/enrollments')).status()).toBe(403)
@@ -85,7 +85,7 @@ test('new tutor sees application stages first and teaching routes stay locked un
     await approved.goto('/workspace')
     await expect(approved).toHaveURL(/\/workspace$/)
     await expect(
-      approved.locator('.desk-sidebar').getByRole('link', { name: 'Trial lessons', exact: true }),
+      approved.locator('.desk-sidebar').getByRole('link', { name: 'Trial classes', exact: true }),
     ).toBeVisible()
     await expect(approved.locator('.desk-sidebar a[href="/availability"]')).toBeVisible()
     expect((await approved.request.get('/api/v1/enrollments')).status()).toBe(200)

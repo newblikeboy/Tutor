@@ -1,3 +1,4 @@
+import { endTrialFixture } from './trial-fixture'
 import { verifiedSignup } from './signup-fixture'
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -129,18 +130,7 @@ test('unconfigured payments stay blocked while family conversation and owned upd
       201,
     )
     await write(tutor, `/trials/${trial.id}/action`, { action: 'accept' })
-    await write(tutor, `/trials/${trial.id}/action`, {
-      action: 'complete',
-      notes: 'Fictional learner compares thirds and sixths with number lines.',
-      nextSteps: 'Continue explaining equivalent fractions independently.',
-    })
-    const mentor = await contexts[2].newPage()
-    await login(mentor, 'mentor-a')
-    await write(mentor, `/trials/${trial.id}/action`, {
-      action: 'review',
-      review: 'The evidence supports practice with thirds and sixths.',
-    })
-    await mentor.close()
+    await endTrialFixture(parent.request, trial.id)
     await login(finance, 'finance-a')
     const first = new Date(Date.now() + 4 * 86400000)
     const enrollment = await write(

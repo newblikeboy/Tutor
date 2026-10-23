@@ -247,9 +247,6 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	case "mentor":
 		d.Applications, e = storage.Many[domain.Application](ctx, a.Store, "applications", staffApplicationFilter(u))
-		if e == nil {
-			d.Trials, e = storage.Many[domain.Trial](ctx, a.Store, "trials", bson.M{"mentorId": u.ID})
-		}
 	case "admin":
 		d.Applications, e = storage.Many[domain.Application](ctx, a.Store, "applications", bson.M{})
 		if e == nil {
@@ -258,6 +255,9 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 	default:
 		a.error(w, r, domain.Fail(403, "forbidden", "This role has no access to academic records."))
 		return
+	}
+	if e == nil && enum(u.Role, "parent", "tutor") {
+		e = a.finishVisibleTrials(ctx, d.Trials)
 	}
 	if e != nil {
 		a.error(w, r, e)

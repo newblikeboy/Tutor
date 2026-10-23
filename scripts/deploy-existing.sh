@@ -72,7 +72,7 @@ printf '%s\n' "$previous" > "$release/PREVIOUS_RELEASE"
 
 # systemd reads the private environment without sourcing or printing secrets.
 # Additive migrations preserve records and must succeed before activation.
-for scope in --inbox-only --finance-only --email-only --google-only --teaching-agreements-only --study-only --subjects-only; do
+for scope in --inbox-only --finance-only --email-only --google-only --teaching-agreements-only --study-only --subjects-only --trials-only; do
   systemd-run --quiet --wait --pipe --collect \
     --property="User=$migration_user" --property="Group=$migration_group" \
     --property="SupplementaryGroups=$migration_supplementary_groups" \

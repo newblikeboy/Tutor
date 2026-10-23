@@ -286,19 +286,15 @@ func TestMongoTutorWorkspace(t *testing.T) {
 	if _, err = a.runJobBatch(ctx, 10); err != nil {
 		t.Fatal(err)
 	}
-	feedback := conflicting
-	feedback.ID = "feedback-correction"
-	feedback.Start = a.Now().Add(-2 * time.Hour)
-	feedback.End = a.Now().Add(-time.Hour)
-	insert("trials", feedback)
-	tutor.ok("POST", "/trials/feedback-correction/action", map[string]any{"action": "complete", "notes": "Actual tutor evidence for the fictional trial.", "nextSteps": "Practise with five fraction examples.", "review": "Explains worked examples independently."}, 200)
-	correction := map[string]any{"action": "feedback", "version": 0, "notes": "Corrected tutor evidence for the fictional trial.", "nextSteps": "Practise comparing fraction examples.", "review": "Corrected feedback with the actual observation."}
-	tutor.ok("POST", "/trials/feedback-correction/action", correction, 409)
-	correction["version"] = 1
-	tutor.ok("POST", "/trials/feedback-correction/action", correction, 200)
-	update("trials", feedback.ID, bson.M{"completedAt": a.Now().Add(-8 * 24 * time.Hour)})
-	correction["version"] = 2
-	tutor.ok("POST", "/trials/feedback-correction/action", correction, 409)
+	autoEnded := conflicting
+	autoEnded.ID = "auto-ended-trial"
+	autoEnded.Start = a.Now().Add(-2 * time.Hour)
+	autoEnded.End = a.Now().Add(-time.Hour)
+	insert("trials", autoEnded)
+	if err = a.completeEndedTrials(ctx); err != nil {
+		t.Fatal(err)
+	}
+	tutor.ok("POST", "/trials/auto-ended-trial/action", map[string]any{"action": "feedback"}, 422)
 	unpaid := en
 	unpaid.ID = "cancelled-unpaid"
 	unpaid.Status = "cancelled"

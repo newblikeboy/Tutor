@@ -37,12 +37,6 @@ const kinds = [
     description: 'Practise one chapter at a time.',
   },
   {
-    value: 'mid_term',
-    label: 'Mid-term papers',
-    icon: BookOpen,
-    description: 'Prepare for mid-term exams.',
-  },
-  {
     value: 'monthly_test',
     label: 'Monthly tests',
     icon: FileText,
@@ -56,7 +50,10 @@ const kinds = [
   },
   { value: 'notes', label: 'Notes', icon: BookOpen, description: 'Download notes for revision.' },
 ]
-const kindLabel = (kind: string) => kinds.find((item) => item.value === kind)?.label ?? kind
+const kindLabel = (kind: string) =>
+  kind === 'mid_term'
+    ? 'Mid-term papers'
+    : (kinds.find((item) => item.value === kind)?.label ?? kind)
 const refresh = () =>
   Promise.all([
     queryClient.invalidateQueries({ queryKey: ['study'] }),
@@ -218,6 +215,15 @@ function StudentLibrary({ learner }: { learner: string }) {
     )
   const d = q.data,
     active = d.active && Date.parse(d.subscription.expiresAt) > now
+  const materialCount = d.materials.items.length
+  const materialLabel =
+    kind === 'quiz'
+      ? materialCount === 1
+        ? 'quiz'
+        : 'quizzes'
+      : materialCount === 1
+        ? 'resource'
+        : 'resources'
   if (material && active)
     return <MaterialDetail id={material} learner={learner} back={() => change('material', '')} />
   const history = q.isPlaceholderData ? (
@@ -312,36 +318,43 @@ function StudentLibrary({ learner }: { learner: string }) {
           {q.isPlaceholderData ? (
             <Loading />
           ) : d.materials.items.length ? (
-            <div className="study-grid">
-              {d.materials.items.map((m) => (
-                <article
-                  className={`study-card${m.kind === 'quiz' ? ' study-card-quiz' : ''}`}
-                  key={m.id}
-                >
-                  <div className="study-card-type">
-                    <span>
-                      {m.kind === 'quiz' ? (
-                        <ClipboardList size={21} aria-hidden="true" />
-                      ) : (
-                        <FileText size={21} aria-hidden="true" />
-                      )}
-                    </span>
-                    {kindLabel(m.kind)}
-                  </div>
-                  <h3>{m.title}</h3>
-                  <p>
-                    <SubjectName value={m.subject} /> · Class {m.class}
-                  </p>
-                  {m.description && <p>{m.description}</p>}
-                  <Button
-                    variant={m.kind === 'quiz' ? 'primary' : 'secondary'}
-                    onClick={() => change('material', m.id)}
-                  >
-                    {m.kind === 'quiz' ? 'Start quiz' : 'Open resource'}
-                    <ArrowRight size={16} aria-hidden="true" />
-                  </Button>
-                </article>
-              ))}
+            <div className="study-library-table">
+              <WorkspaceRecordTable
+                label={kind === 'quiz' ? 'Quizzes' : 'Study resources'}
+                countLabel={`${materialCount} ${materialLabel} on this page`}
+                intro={
+                  kind === 'quiz'
+                    ? 'Choose a quiz to answer in the app.'
+                    : 'Open a resource to study or practise.'
+                }
+                columns={
+                  kind
+                    ? [kind === 'quiz' ? 'Quiz' : 'Title', 'Subject', 'Action']
+                    : ['Title', 'Resource type', 'Subject', 'Action']
+                }
+              >
+                {d.materials.items.map((m) => (
+                  <tr key={m.id}>
+                    <th scope="row">
+                      <strong>{m.title}</strong>
+                      {m.description && <p className="student-table-secondary">{m.description}</p>}
+                    </th>
+                    {!kind && <td>{kindLabel(m.kind)}</td>}
+                    <td>
+                      <SubjectName value={m.subject} />
+                    </td>
+                    <td>
+                      <Button
+                        variant={m.kind === 'quiz' ? 'primary' : 'secondary'}
+                        onClick={() => change('material', m.id)}
+                      >
+                        {m.kind === 'quiz' ? 'Start quiz' : 'Open resource'}
+                        <ArrowRight size={16} aria-hidden="true" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </WorkspaceRecordTable>
             </div>
           ) : (
             <Empty
@@ -1134,6 +1147,11 @@ function AdminForm({
                 })
               }
             >
+              {value.kind === 'mid_term' && (
+                <option value="mid_term" disabled>
+                  Mid-term papers (saved resource)
+                </option>
+              )}
               {kinds.map((k) => (
                 <option key={k.value} value={k.value}>
                   {k.label}

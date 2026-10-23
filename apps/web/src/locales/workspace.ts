@@ -20,13 +20,13 @@ const workspaceEN = {
     tutorViewIntro: {
       overview: 'Your lessons, students and next steps.',
       learners: 'See your students and open their individual progress reports.',
-      sessions: 'Manage trial requests and share your teaching feedback.',
+      sessions: 'Manage trial requests and scheduled classes. Trials complete automatically.',
     },
     mentorNav: {
+      reviews: 'Lesson reviews',
       overview: 'Overview',
       assessments: 'Tutor applications',
       interviews: 'Tutor applications',
-      reviews: 'Lesson reviews',
     },
     roles: {
       parent: 'Family space',
@@ -37,12 +37,12 @@ const workspaceEN = {
       finance: 'Finance',
     },
     nav: {
+      reviews: 'Lesson reviews',
       overview: 'Overview',
       learners: 'My learners',
       sessions: 'Sessions',
       progress: 'Learning progress',
       assessments: 'Assessments',
-      reviews: 'Lesson reviews',
       tutors: 'Tutor network',
       team: 'Mentor logins',
       families: 'Families',
@@ -116,8 +116,6 @@ const workspaceEN = {
     progressIntro: 'Lesson evidence reviewed by the academic team.',
     requests: 'Requests to respond to',
     confirmed: 'Confirmed sessions',
-    awaitingReview: 'Feedback submitted',
-    completedReviews: 'Reviewed lessons',
     assessmentQueue: 'Applications in view',
     activeScopes: 'Approved scopes in view',
     suspendedScopes: 'Suspended scopes in view',
@@ -139,7 +137,6 @@ const workspaceEN = {
     clearFilters: 'Clear filters',
     assessmentIntro:
       'Arrange interviews, finalize fees and approve teaching scope for your assigned applicants.',
-    reviewsIntro: 'Review lesson evidence and share useful next steps with the family.',
     tutorsIntro: 'Review approval scopes and manage eligibility for new bookings.',
     auditIntro: 'A traceable record of decisions made in the platform.',
     pendingLabel: 'NEXT ACTION',
@@ -148,9 +145,6 @@ const workspaceEN = {
     privacyTitle: 'Their learning. Your oversight.',
     tutorEmpty:
       'Trial requests will appear here once you have an approved teaching scope. Accept a suitable time before the session is confirmed.',
-    reviewEmpty: 'No lessons to review yet',
-    reviewEmptyBody:
-      'When an assigned tutor records a lesson, its evidence will appear here for your academic review.',
     teachingScopes: 'Applications & teaching scopes',
   },
 }

@@ -5,10 +5,10 @@
   min-width: 0;
 }
 .parent-home-learner {
-  display: flex;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 300px) minmax(0, 1fr) auto;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px 20px;
+  gap: 8px 20px;
   padding: 14px 18px;
   border: 1px solid var(--teaching-line);
   border-radius: 14px;
@@ -17,7 +17,8 @@
 .parent-learner-avatar {
   display: grid;
   place-items: center;
-  flex-shrink: 0;
+  grid-column: 1;
+  grid-row: 2;
   width: 42px;
   height: 42px;
   border-radius: 12px;
@@ -26,11 +27,32 @@
   font-size: 16px;
   font-weight: 650;
 }
+.parent-home-discovery {
+  grid-column: 4;
+  grid-row: 2;
+  justify-self: end;
+}
+.parent-learner-actions {
+  grid-column: 4;
+  grid-row: 2;
+  justify-content: flex-end;
+}
 .parent-home-learner .field {
-  width: min(100%, 300px);
-  margin: 0;
+  display: contents;
+}
+.parent-home-learner .field label {
+  grid-column: 2;
+  grid-row: 1;
+}
+.parent-home-learner .field select {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  width: 100%;
 }
 .parent-home-learner p {
+  grid-column: 3;
+  grid-row: 2;
   margin: 0;
   color: var(--teaching-muted);
   font-size: 13px;
@@ -127,22 +149,21 @@
 .desk-shell[data-role='parent'] .parent-welcome .customer-eyebrow {
   margin-bottom: 12px;
 }
-.desk-shell[data-role='parent'] .child-report {
-  gap: 18px;
-}
-.desk-shell[data-role='parent'] .child-report-panel {
-  padding: 20px;
-}
-.desk-shell[data-role='parent'] .child-report-summary > div {
-  padding: 16px;
-}
-.desk-shell[data-role='parent'] .child-report-heading p {
-  font-size: 14px;
-  line-height: 1.6;
-}
 @media (max-width: 1100px) {
   .parent-home-paths {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (min-width: 601px) and (max-width: 900px) {
+  .parent-home-learner:has(.parent-learner-actions) {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+  }
+  .parent-home-learner:has(.parent-learner-actions) p {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .parent-learner-actions {
+    grid-column: 3;
   }
 }
 @media (max-width: 600px) {
@@ -150,15 +171,29 @@
     gap: 16px;
   }
   .parent-home-learner {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
     gap: 10px;
     padding: 14px;
   }
-  .parent-home-learner .field {
-    flex: 1;
-    min-width: 0;
+  .parent-home-learner .field label,
+  .parent-home-learner .field select {
+    grid-column: 2 / -1;
+  }
+  .parent-home-discovery {
+    grid-column: 3;
+    grid-row: 3;
   }
   .parent-home-learner p {
-    width: 100%;
+    grid-column: 1 / 3;
+    grid-row: 3;
+    min-width: 0;
+  }
+  .parent-learner-actions {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    border-top: 1px solid var(--teaching-line);
+    padding-top: 8px;
+    justify-content: space-between;
   }
   .parent-home-paths a {
     padding: 14px;
@@ -183,14 +218,6 @@
   }
   .desk-shell[data-role='parent'] .customer-hero h2 {
     padding-right: 36px;
-  }
-  .desk-shell[data-role='parent'] .child-report-panel {
-    padding: 16px;
-  }
-  .desk-shell[data-role='parent'] .child-report-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    padding: 16px;
   }
 }
 

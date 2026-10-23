@@ -1427,7 +1427,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ActionInput"
+                "$ref": "#/components/schemas/TrialActionInput"
               }
             }
           }
@@ -9524,6 +9524,13 @@
           "completedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "completionMethod": {
+            "type": "string",
+            "enum": [
+              "scheduled_end"
+            ],
+            "description": "Automatic closure at the confirmed trial scheduled end; does not assert attendance or academic outcomes."
           }
         }
       },
@@ -10340,14 +10347,11 @@
           }
         ]
       },
-      "ActionInput": {
+      "TrialActionInput": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "action",
-          "notes",
-          "nextSteps",
-          "review"
+          "action"
         ],
         "properties": {
           "action": {
@@ -10355,22 +10359,8 @@
             "enum": [
               "accept",
               "decline",
-              "cancel",
-              "complete",
-              "feedback"
+              "cancel"
             ]
-          },
-          "notes": {
-            "type": "string"
-          },
-          "nextSteps": {
-            "type": "string"
-          },
-          "review": {
-            "type": "string"
-          },
-          "version": {
-            "type": "integer"
           }
         }
       },
@@ -15379,6 +15369,13 @@
           "completedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "completionMethod": {
+            "type": "string",
+            "enum": [
+              "scheduled_end"
+            ],
+            "description": "Automatic closure at the confirmed trial scheduled end; does not assert attendance or academic outcomes."
           },
           "tutorName": {
             "type": "string"

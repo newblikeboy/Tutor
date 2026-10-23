@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { indiaDate, type Schema } from '../lib/api'
 import { workspaceLink } from '../lib/workspace'
-import { Badge } from './ui'
+import { Badge, LinkButton } from './ui'
 import { WorkspaceRecordTable } from './workspace-record-table'
 import { DeleteLearner } from './delete-learner'
 
@@ -50,17 +50,19 @@ export function ParentLearnersTable({ learners }: { learners: Schema['Learner'][
 export function ParentTrialsTable({
   trials,
   listPath,
+  trialTab,
 }: {
   trials: Schema['Trial'][]
   listPath: string
+  trialTab: string
 }) {
   const { t } = useTranslation()
   return (
     <WorkspaceRecordTable
-      label="Your trial lessons"
+      label="Your trial classes"
       countLabel={`${trials.length} ${trials.length === 1 ? 'trial' : 'trials'}`}
-      intro="Open a trial for lesson details, joining options and tutor feedback."
-      columns={['Learner', 'Subjects & mode', 'Trial time', 'Status', 'Feedback status']}
+      intro="Open a trial for class details or book your tutor after it completes."
+      columns={['Learner', 'Subjects & mode', 'Trial time', 'Status', 'Booking']}
     >
       {trials.map((trial) => (
         <tr key={trial.id}>
@@ -98,13 +100,15 @@ export function ParentTrialsTable({
             </Badge>
           </td>
           <td>
-            <Badge tone={trial.review?.trim() ? 'teal' : 'neutral'}>
-              {trial.review?.trim()
-                ? 'Available'
-                : ['cancelled', 'declined'].includes(trial.status)
-                  ? 'Not required'
-                  : 'Pending'}
-            </Badge>
+            {['completed', 'reviewed'].includes(trial.status) ? (
+              <LinkButton
+                to={`/tuition?trial=${encodeURIComponent(trial.id)}&trialTab=${encodeURIComponent(trialTab)}`}
+              >
+                {t('bookTutor')}
+              </LinkButton>
+            ) : (
+              <span aria-label="No booking action">—</span>
+            )}
           </td>
         </tr>
       ))}

@@ -151,6 +151,10 @@ func (a *App) tutorWorkspace(w http.ResponseWriter, r *http.Request) {
 		a.error(w, r, err)
 		return
 	}
+	if err = a.finishVisibleTrials(ctx, out.Trials); err != nil {
+		a.error(w, r, err)
+		return
+	}
 	for _, trial := range out.Trials {
 		if enum(trial.Status, "requested", "confirmed") {
 			learners = append(learners, trial.LearnerID)

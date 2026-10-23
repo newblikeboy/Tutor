@@ -113,9 +113,9 @@ func TestMongoParentBookingFlow(t *testing.T) {
 		trial domain.Trial
 	}{{tutor, oldTrial}, {primary, youngTrial}} {
 		fixture.c.ok("POST", "/trials/"+fixture.trial.ID+"/action", map[string]any{"action": "accept"}, 200)
-		fixture.c.ok("POST", "/trials/"+fixture.trial.ID+"/action", map[string]any{"action": "complete", "notes": "Worked through the learner's questions and examples.", "nextSteps": "Practise the examples before the next lesson.", "review": "Tutor feedback: the learner explained their reasoning clearly."}, 200)
+		endTrialFixture(t, a, fixture.trial.ID)
 	}
-	t.Run("direct trials and immediate tutor feedback", func(t *testing.T) {
+	t.Run("direct trials complete without feedback or mentor review", func(t *testing.T) {
 		n, _ := s.C("requirements").CountDocuments(ctx, bson.M{})
 		if n != 0 {
 			t.Fatal("direct trial created a learning need")
@@ -124,13 +124,13 @@ func TestMongoParentBookingFlow(t *testing.T) {
 		for _, item := range p.ok("GET", "/dashboard", nil, 200)["trials"].([]any) {
 			v := item.(map[string]any)
 			if v["id"] == oldTrial.ID {
-				found = v["status"] == "completed" && v["notes"] != "" && v["review"] != ""
+				found = v["status"] == "completed" && v["notes"] == "" && v["review"] == ""
 			}
 		}
 		if !found {
-			t.Fatal("feedback hidden")
+			t.Fatal("automatic completion missing or fabricated feedback")
 		}
-		mentor.ok("POST", "/trials/"+oldTrial.ID+"/action", map[string]any{"action": "review", "review": "Mentor feedback cannot override tutor feedback."}, 422)
+		mentor.ok("POST", "/trials/"+oldTrial.ID+"/action", map[string]any{"action": "review"}, 403)
 		other.ok("GET", "/dashboard", nil, 200)
 		status, _, _ := other.call("POST", "/trials", map[string]any{"learnerId": older, "subjects": []string{"Mathematics"}, "mode": "online", "tutorId": "tutor-meera", "start": now.AddDate(0, 0, 1), "termsAccepted": true}, map[string]string{"Idempotency-Key": token()})
 		if status != 404 {
@@ -152,6 +152,9 @@ func TestMongoParentBookingFlow(t *testing.T) {
 	}
 	olderBody := input(oldTrial.ID, []string{"Mathematics", "Science"}, 3, "10:00")
 	paid := book(p, olderBody, "parent-direct-multi-subject")
+	if oldTrial.MentorID != "" || paid.MentorID != "mentor-a" {
+		t.Fatal("trial mentor workflow returned or regular-class support assignment was lost")
+	}
 	t.Run("server price and no tutor acceptance", func(t *testing.T) {
 		if paid.Status != "awaiting_payment" || paid.HoldUntil == nil || paid.Agreement.TotalPaise != 400000 || paid.Agreement.PackageFeePaise != 200000 {
 			t.Fatal("incorrect direct booking", paid)

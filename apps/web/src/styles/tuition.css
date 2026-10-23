@@ -210,14 +210,6 @@
   outline-offset: 5px;
   border-radius: 4px;
 }
-.tu-regular-start {
-  display: grid;
-  gap: 18px;
-}
-.tu-teacher-booking-list {
-  display: grid;
-  gap: 16px;
-}
 .tu-teacher-booking-card {
   display: grid;
   gap: 16px;
@@ -242,7 +234,7 @@
   font-size: 12px;
   line-height: 1.55;
 }
-.tu-teacher-booking-main h3 {
+.tu-teacher-booking-main h2 {
   margin: 4px 0;
   color: var(--ink);
   font-size: 20px;

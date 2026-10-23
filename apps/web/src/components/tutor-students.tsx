@@ -223,10 +223,10 @@ function StudentReport({
       ) : (
         <Empty
           title="No regular-class progress yet"
-          body="A progress report opens after a regular booking is confirmed. Manage this student's trial and feedback in Trial lessons."
+          body="A progress report opens after a regular booking is confirmed. Manage this student's trial in Trial classes."
         >
           <Link className="text-link" to="/workspace?view=sessions">
-            Open trial lessons
+            Open trial classes
           </Link>
         </Empty>
       )}

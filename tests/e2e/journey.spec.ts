@@ -1,3 +1,4 @@
+import { endTrialFixture } from './trial-fixture'
 import { connectGoogle, conductInterview } from './helpers/google'
 import { fillApplication, fillStaffFees } from './helpers/application'
 import { test, expect } from '@playwright/test'
@@ -32,7 +33,7 @@ async function axe(page: Page) {
     })),
   ).toEqual([])
 }
-test('complete application → scoped approval → requirement → trial → reviewed progress', async ({
+test('complete application → scoped approval → requirement → trial → automatic completion', async ({
   browser,
 }) => {
   // Four real Atlas-backed roles plus visual/axe review need a larger total budget;
@@ -159,43 +160,24 @@ test('complete application → scoped approval → requirement → trial → rev
   await axe(tutor)
   await expect(tutor.locator('.language-button')).toHaveCount(0)
   await tutor.setViewportSize({ width: 1440, height: 1000 })
-  await teachingTrial
-    .getByLabel('What did the learner work through?')
-    .fill(
-      'Aarohi used a number line to show why one half and two quarters represent the same amount.',
-    )
-  await teachingTrial
-    .getByLabel('Practice and next teaching steps')
-    .fill('Practise comparing thirds and sixths using a number line, then explain the denominator.')
-  await teachingTrial.getByRole('button', { name: 'Record development lesson' }).click()
-  await tutor
-    .locator('.teacher-filters')
-    .getByRole('link', { name: /Awaiting review/ })
-    .click()
-  await expect(teachingTrial.getByText('Awaiting academic review', { exact: true })).toBeVisible()
+  await expect(teachingTrial.getByRole('textbox')).toHaveCount(0)
+  const dashboard = await (await parent.request.get('/api/v1/dashboard')).json()
+  const trial = dashboard.trials.find((item: { learnerName: string }) =>
+    item.learnerName.startsWith('Aarohi'),
+  )
+  expect(trial).toBeTruthy()
+  await endTrialFixture(parent.request, trial.id)
   await mentor.goto('/workspace?view=reviews')
-  const mentoredTrial = mentor.getByRole('article').filter({
-    has: mentor.getByRole('heading', { name: 'Aarohi · sample · Mathematics', exact: true }),
-  })
-  await mentoredTrial
-    .getByLabel('Academic review and evidence')
-    .fill(
-      'The worked examples support continued practice with equivalent fractions. Review thirds and sixths next.',
-    )
-  await mentoredTrial.getByRole('button', { name: 'Share reviewed progress with family' }).click()
-  await expect(mentoredTrial.getByText('Reviewed', { exact: true })).toBeVisible()
-  await parent.reload()
   await expect(
-    parent.getByText(
-      'The worked examples support continued practice with equivalent fractions. Review thirds and sixths next.',
-    ),
-  ).toBeVisible()
-  await capture(parent, 'parent-reviewed-en-desktop')
+    mentor.getByRole('button', { name: 'Share reviewed progress with family' }),
+  ).toHaveCount(0)
+  await parent.goto(`/workspace?view=sessions&learner=${trial.learnerId}&tab=completed`)
+  await expect(parent.getByText('Completed', { exact: true })).toBeVisible()
+  await expect(parent.getByRole('link', { name: 'Book tutor', exact: true })).toBeVisible()
+  await capture(parent, 'parent-trial-completed-en-desktop')
   await axe(parent)
   await parent.setViewportSize({ width: 390, height: 844 })
-  await capture(parent, 'parent-reviewed-en-mobile')
-  await expect(parent.locator('.language-button')).toHaveCount(0)
-  await capture(parent, 'parent-reviewed-en-mobile')
+  await capture(parent, 'parent-trial-completed-en-mobile')
   await axe(parent)
   await login(admin, 'admin-a', true)
   await capture(admin, 'admin-en-desktop')

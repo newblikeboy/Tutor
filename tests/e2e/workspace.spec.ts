@@ -14,8 +14,8 @@ async function signIn(page: Page, baseURL: string, identity: string) {
   return response.json()
 }
 for (const scenario of [
-  { role: 'parent', identity: 'parent-b', views: ['Learners', 'Trial lessons'] },
-  { role: 'tutor', identity: 'tutor-meera', views: ['Trial lessons', 'My profile'] },
+  { role: 'parent', identity: 'parent-b', views: ['Learners', 'Trial classes'] },
+  { role: 'tutor', identity: 'tutor-meera', views: ['Trial classes', 'My profile'] },
   { role: 'mentor', identity: 'mentor-a', views: ['Tutor applications', 'Lesson reviews'] },
   { role: 'admin', identity: 'admin-a', views: ['Tutor network', 'Decision history'] },
 ]) {
@@ -245,7 +245,7 @@ test('family learner selection uses real owned records and persists across views
   ).toBeVisible()
   await page.reload()
   await expect(page.getByRole('combobox', { name: 'Learner', exact: true })).toHaveValue(ids[1])
-  await page.locator('.desk-sidebar').getByRole('link', { name: 'Trial lessons' }).click()
+  await page.locator('.desk-sidebar').getByRole('link', { name: 'Trial classes' }).click()
   await expect(page.getByRole('combobox', { name: 'Learner', exact: true })).toHaveValue(ids[1])
   await page.locator('.desk-sidebar').getByRole('link', { name: 'Learners' }).click()
   await expect(page.getByRole('table', { name: 'Your learners', exact: true })).toBeVisible()

@@ -171,10 +171,6 @@
     align-content: start;
     margin: 0;
   }
-  .desk-shell[data-role='parent'] .tu-regular-start > .tu-panel-title {
-    margin-bottom: 0;
-  }
-  .desk-shell[data-role='parent'] .tu-regular-start,
   .desk-shell[data-role='parent'] .tu-teacher-booking-card {
     border-radius: 14px;
   }

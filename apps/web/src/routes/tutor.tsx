@@ -21,7 +21,7 @@ export default function TutorWorkspace({ view }: { view: WorkspaceView }) {
   const q = useQuery({
     queryKey: ['tutor-workspace'],
     queryFn: ({ signal }) => api<Schema['TutorWorkspace']>('/tutor/workspace', { signal }),
-    refetchInterval: 15000,
+    refetchInterval: 5000,
   })
   if (q.isPending) return <Loading />
   if (q.isError)

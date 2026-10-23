@@ -2922,6 +2922,11 @@ export interface components {
             version?: number;
             /** Format: date-time */
             completedAt?: string;
+            /**
+             * @description Automatic closure at the confirmed trial scheduled end; does not assert attendance or academic outcomes.
+             * @enum {string}
+             */
+            completionMethod?: "scheduled_end";
         };
         Draft: {
             step: number;
@@ -3102,13 +3107,9 @@ export interface components {
             start: string;
             termsAccepted: boolean;
         } & (unknown | unknown);
-        ActionInput: {
+        TrialActionInput: {
             /** @enum {string} */
-            action: "accept" | "decline" | "cancel" | "complete" | "feedback";
-            notes: string;
-            nextSteps: string;
-            review: string;
-            version?: number;
+            action: "accept" | "decline" | "cancel";
         };
         Message: {
             id: string;
@@ -4325,6 +4326,11 @@ export interface components {
             version?: number;
             /** Format: date-time */
             completedAt?: string;
+            /**
+             * @description Automatic closure at the confirmed trial scheduled end; does not assert attendance or academic outcomes.
+             * @enum {string}
+             */
+            completionMethod?: "scheduled_end";
             tutorName: string;
         };
         ProgressPlan: {
@@ -5502,7 +5508,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ActionInput"];
+                "application/json": components["schemas"]["TrialActionInput"];
             };
         };
         responses: {

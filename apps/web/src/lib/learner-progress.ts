@@ -24,14 +24,6 @@ export function filterReport(report: ProgressReport, filters: ReportFilters) {
           (filters.subject === 'All Subjects' && session.subjects.includes('All Subjects'))),
     )
     .sort((a, b) => b.start.localeCompare(a.start))
-  const trials = report.trials
-    .filter(
-      (trial) =>
-        inReportRange(trial.start, filters) &&
-        (!filters.tutor || trial.tutorId === filters.tutor) &&
-        (!filters.subject || (trial.subjects ?? [trial.subject]).includes(filters.subject)),
-    )
-    .sort((a, b) => b.start.localeCompare(a.start))
   const plans = report.plans
     .filter((plan) => {
       const enrollment = report.enrollments.find((e) => e.id === plan.enrollmentId)
@@ -46,7 +38,7 @@ export function filterReport(report: ProgressReport, filters: ReportFilters) {
       )
     })
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  return { sessions, trials, plans }
+  return { sessions, plans }
 }
 
 export function progressSummary(sessions: ReportSession[]) {

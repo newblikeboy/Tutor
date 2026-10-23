@@ -325,11 +325,8 @@ const schemas = {
     },
     oneOf: [{ required: ['learnerId', 'subjects', 'mode'] }, { required: ['requirementId'] }],
   },
-  ActionInput: obj({
-    action: { type: 'string', enum: ['accept', 'decline', 'cancel', 'complete'] },
-    notes: str,
-    nextSteps: str,
-    review: str,
+  TrialActionInput: obj({
+    action: { type: 'string', enum: ['accept', 'decline', 'cancel'] },
   }),
 }
 schemas.Trial.properties.reviewAt = date
@@ -487,7 +484,7 @@ route('/requirements', 'post', 'Requirement', 'RequirementInput')
 route('/requirements/{id}', 'delete', 'OK')
 route('/location/reverse', 'get', 'ReverseLocation', null, true)
 route('/trials', 'post', 'Trial', 'TrialInput')
-route('/trials/{id}/action', 'post', 'OK', 'ActionInput')
+route('/trials/{id}/action', 'post', 'OK', 'TrialActionInput')
 tuitionContract(schemas, route)
 schemas.NotificationStatus = obj({
   unreadCount: { ...num, minimum: 0 },

@@ -7,13 +7,18 @@ import { Alert, Badge, Empty, Status } from './ui'
 import { TrialCard } from './trial-card'
 import { WorkspaceRecordTable } from './workspace-record-table'
 
-const queues = ['all', 'requested', 'confirmed', 'completed', 'reviewed', 'cancelled', 'declined']
+const queues = ['all', 'requested', 'confirmed', 'completed', 'cancelled', 'declined']
 const trialListPath = (queue: string) =>
   `/workspace?view=sessions${queue === 'all' ? '' : `&queue=${queue}`}`
 
 export function TutorTrials({ data }: { data: Schema['TutorWorkspace'] }) {
   const [params] = useSearchParams()
-  const queue = queues.includes(params.get('queue') ?? '') ? params.get('queue')! : 'all'
+  const queue =
+    params.get('queue') === 'reviewed'
+      ? 'completed'
+      : queues.includes(params.get('queue') ?? '')
+        ? params.get('queue')!
+        : 'all'
   const trials = [...data.trials].sort((a, b) => b.start.localeCompare(a.start))
   const selectedID = params.get('trial')
   const filters = useRef<HTMLElement>(null)
@@ -39,7 +44,7 @@ export function TutorTrials({ data }: { data: Schema['TutorWorkspace'] }) {
       <div className="tutor-learners">
         <Link className="student-back-link" to={trialListPath(queue)}>
           <ArrowLeft size={17} aria-hidden="true" />
-          Back to Trial lessons
+          Back to Trial classes
         </Link>
         {selected ? (
           <TrialCard
@@ -54,35 +59,35 @@ export function TutorTrials({ data }: { data: Schema['TutorWorkspace'] }) {
       </div>
     )
   }
-  const visible = trials.filter((trial) => queue === 'all' || trial.status === queue)
+  const matches = (trial: Schema['Trial'], value: string) =>
+    value === 'all' ||
+    trial.status === value ||
+    (value === 'completed' && trial.status === 'reviewed')
+  const visible = trials.filter((trial) => matches(trial, queue))
   return (
-    <section className="teacher-sessions" aria-label="Trial lessons">
-      <nav ref={filters} className="teacher-filters" aria-label="Filter trial lessons">
+    <section className="teacher-sessions" aria-label="Trial classes">
+      <nav ref={filters} className="teacher-filters" aria-label="Filter trial classes">
         {queues.map((value) => (
           <Link
             key={value}
             to={trialListPath(value)}
             aria-current={queue === value ? 'page' : undefined}
           >
-            {value === 'reviewed'
-              ? 'Historical reviews'
-              : value === 'all'
-                ? 'All trials'
-                : value[0].toUpperCase() + value.slice(1)}
+            {value === 'all' ? 'All trials' : value[0].toUpperCase() + value.slice(1)}
             <span>
               {value === 'all'
                 ? trials.length
-                : trials.filter((trial) => trial.status === value).length}
+                : trials.filter((trial) => matches(trial, value)).length}
             </span>
           </Link>
         ))}
       </nav>
       {visible.length ? (
         <WorkspaceRecordTable
-          label="Tutor trial lessons"
+          label="Tutor trial classes"
           countLabel={`${visible.length} ${visible.length === 1 ? 'trial' : 'trials'}`}
-          intro="Open a trial to confirm its time, join the lesson or record feedback."
-          columns={['Student', 'Subjects & mode', 'Trial time', 'Status', 'Feedback status']}
+          intro="Confirm trial requests and open scheduled classes. Trials complete automatically at their end time."
+          columns={['Student', 'Subjects & mode', 'Trial time', 'Status']}
         >
           {visible.map((trial) => (
             <tr key={trial.id}>
@@ -111,20 +116,11 @@ export function TutorTrials({ data }: { data: Schema['TutorWorkspace'] }) {
                 </p>
               </td>
               <td>
-                {trial.status === 'completed' ? (
+                {['completed', 'reviewed'].includes(trial.status) ? (
                   <Badge tone="teal">Completed</Badge>
                 ) : (
                   <Status status={trial.status} />
                 )}
-              </td>
-              <td>
-                <Badge tone={trial.review?.trim() ? 'teal' : 'neutral'}>
-                  {trial.review?.trim()
-                    ? 'Submitted'
-                    : ['cancelled', 'declined'].includes(trial.status)
-                      ? 'Not required'
-                      : 'Pending'}
-                </Badge>
               </td>
             </tr>
           ))}

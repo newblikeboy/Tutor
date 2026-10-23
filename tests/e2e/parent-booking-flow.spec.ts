@@ -1,3 +1,4 @@
+import { endTrialFixture } from './trial-fixture'
 import { verifiedSignup } from './signup-fixture'
 import { test, expect, type Page, type APIRequestContext } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -38,7 +39,7 @@ async function capture(page: Page, name: string) {
   await page.screenshot({ path: `docs/visual-qa/parent-booking-flow/${name}.png`, fullPage: true })
 }
 
-test('parent finder, direct tutor feedback and payment booking follow the learner class', async ({
+test('parent finder, ended trial and payment booking follow the learner class', async ({
   page,
   browser,
 }) => {
@@ -182,30 +183,20 @@ test('parent finder, direct tutor feedback and payment booking follow the learne
         fullPage: true,
       })
     }
-    await write(tutorContext.request, `/trials/${trial.id}/action`, {
-      action: 'complete',
-      notes: 'Tutor explained the learner questions with worked examples.',
-      nextSteps: 'Practise the examples in both selected subjects.',
-      review: 'Tutor feedback: the learner explained both sets of examples clearly.',
-    })
+    await endTrialFixture(page.request, trial.id)
     await page.goto(`/workspace?view=sessions&learner=${older.id}&tab=completed`)
-    await expect(page.getByText('Feedback ready', { exact: true })).toBeVisible()
+    await expect(page.getByText('Completed', { exact: true })).toBeVisible()
     await page.getByRole('link', { name: /View trial/ }).click()
-    await expect(
-      page.getByText('Tutor feedback: the learner explained both sets of examples clearly.'),
-    ).toBeVisible()
-    await capture(page, 'tutor-feedback-390')
+    await expect(page.getByRole('textbox')).toHaveCount(0)
+    await capture(page, 'trial-completed-390')
     await page.getByRole('main').getByRole('link', { name: 'Book tutor', exact: true }).click()
     const regular = page.locator('.tu-teacher-booking-card').filter({ hasText: 'Meera' })
-    await regular.getByRole('button', { name: 'Book Now', exact: true }).click()
     await regular.getByRole('radio').check()
     const today = new Intl.DateTimeFormat('en-IN', {
       dateStyle: 'full',
       timeZone: 'Asia/Kolkata',
     }).format(new Date())
     await expect(regular.getByRole('button', { name: today, exact: true })).toBeDisabled()
-    // The development trial was recorded before its future scheduled time.
-    // Keep that protected reservation and book a later day.
     await regular.locator('.trial-date.available').nth(1).click()
     await regular.locator('.parent-trial-times button:enabled').first().click()
     await expect(regular.locator('.tu-quote')).toContainText('4,000')

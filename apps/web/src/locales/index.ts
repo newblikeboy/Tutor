@@ -284,12 +284,10 @@ const en = {
   cancelTrial: 'Cancel trial',
   lessonNotes: 'What did the student work through?',
   nextSteps: 'Practice and next teaching steps',
-  completeLesson: 'Record lesson evidence',
   simulation:
     'Development timeline: a lesson can be recorded before its scheduled end for testing. No real class attendance is asserted.',
   reviewNotes: 'Academic review and evidence',
   publishReview: 'Share reviewed progress with family',
-  reviewedProgress: 'Reviewed learning progress',
   practiceNext: 'What comes next',
   pendingReview: 'Your academic mentor will review the lesson evidence before it appears here.',
   actionSuccess: 'The server has saved this action.',

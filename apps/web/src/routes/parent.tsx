@@ -12,6 +12,7 @@ import { TrialCard } from '../components/trial-card'
 import LearnerProgressReport from '../components/learner-progress'
 import { ParentLearnersTable, ParentTrialsTable } from '../components/parent-tables'
 import { ParentHome } from '../components/parent-home'
+import { DeleteLearner } from '../components/delete-learner'
 import '../styles/parent.css'
 
 export default function Parent({ data, view }: { data: Dashboard; view: WorkspaceView }) {
@@ -41,14 +42,23 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
   const completed = trials
     .filter((trial) => ['completed', 'reviewed'].includes(trial.status))
     .sort((a, b) => b.start.localeCompare(a.start))
-  const past = trials.filter((trial) => ['cancelled', 'declined'].includes(trial.status))
-  const queues = { upcoming, completed, past }
+  const cancelled = trials
+    .filter((trial) => ['cancelled', 'declined'].includes(trial.status))
+    .sort((a, b) => b.start.localeCompare(a.start))
+  const queues = {
+    all: [...trials].sort((a, b) => b.start.localeCompare(a.start)),
+    completed,
+    upcoming,
+    cancelled,
+  }
   const tab =
     view === 'progress' || params.get('tab') === 'completed'
       ? 'completed'
-      : params.get('tab') === 'past'
-        ? 'past'
-        : 'upcoming'
+      : params.get('tab') === 'upcoming'
+        ? 'upcoming'
+        : ['past', 'cancelled'].includes(params.get('tab') ?? '')
+          ? 'cancelled'
+          : 'all'
   const selectedTrialID = params.get('trial')
   const selectedTrial = trials.find((trial) => trial.id === selectedTrialID)
   const trialListPath = `${workspaceLink('sessions', learner.id)}&tab=${tab}`
@@ -60,7 +70,7 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
     return (
       <div className="parent-content">
         <Link className="student-back-link" to={trialListPath}>
-          <ArrowLeft size={17} aria-hidden="true" /> Back to Trial lessons
+          <ArrowLeft size={17} aria-hidden="true" /> Back to Trial classes
         </Link>
         {selectedTrial ? (
           <TrialCard
@@ -107,6 +117,24 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
         <p>
           Class {learner.class} · {learner.board} · {learner.language}
         </p>
+        {view === 'overview' && (
+          <div className="parent-home-discovery">
+            <LinkButton to={`/match?learner=${encodeURIComponent(learner.id)}`}>
+              {t('parent.start')}
+            </LinkButton>
+          </div>
+        )}
+        {view === 'learners' && (
+          <div className="parent-learner-actions learner-profile-actions">
+            <Link
+              className="text-link"
+              to={`/match?profile=1&edit=1&learner=${encodeURIComponent(learner.id)}`}
+            >
+              {t('parent.edit')}
+            </Link>
+            <DeleteLearner learner={learner} />
+          </div>
+        )}
       </section>
       {view === 'overview' && (
         <>
@@ -156,7 +184,7 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
                   <BookOpen size={23} aria-hidden="true" />
                 </span>
                 <span>
-                  <strong>Regular classes</strong>
+                  <strong>{t('parent.classes')}</strong>
                   <small>Bookings and class schedules</small>
                 </span>
                 <ArrowRight size={18} aria-hidden="true" />
@@ -166,8 +194,8 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
                   <CalendarDays size={23} aria-hidden="true" />
                 </span>
                 <span>
-                  <strong>Trial lessons{upcoming.length > 0 ? ` (${upcoming.length})` : ''}</strong>
-                  <small>Upcoming trials and tutor feedback</small>
+                  <strong>Trial classes{upcoming.length > 0 ? ` (${upcoming.length})` : ''}</strong>
+                  <small>Upcoming and completed trial classes</small>
                 </span>
                 <ArrowRight size={18} aria-hidden="true" />
               </Link>
@@ -177,7 +205,7 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
                 className="text-link"
                 to={`${workspaceLink('sessions', learner.id)}&tab=completed`}
               >
-                {t('parent.feedback')} ({completed.length})
+                View completed trials ({completed.length})
               </Link>
             )}
           </ParentHome>
@@ -194,7 +222,7 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
             value={tab}
             options={Object.entries(queues).map(([value, items]) => ({
               value,
-              label: `${t(`parent.${value}`)} (${items.length})`,
+              label: `${t(`parent.trialTabs.${value}`)} (${items.length})`,
             }))}
             onChange={(value) => {
               const next = new URLSearchParams(params)
@@ -208,15 +236,17 @@ export default function Parent({ data, view }: { data: Dashboard; view: Workspac
             <TabPanel id="parent-trials" value={value} active={tab === value} key={value}>
               <div className="queue">
                 {items.length ? (
-                  <ParentTrialsTable trials={items} listPath={trialListPath} />
+                  <ParentTrialsTable trials={items} listPath={trialListPath} trialTab={tab} />
                 ) : (
                   <p className="parent-empty">
                     {t(
-                      value === 'upcoming'
-                        ? 'parent.noUpcoming'
+                      value === 'all'
+                        ? 'parent.noTrials'
                         : value === 'completed'
                           ? 'parent.noCompleted'
-                          : 'parent.noPast',
+                          : value === 'upcoming'
+                            ? 'parent.noUpcoming'
+                            : 'parent.noCancelled',
                     )}
                   </p>
                 )}

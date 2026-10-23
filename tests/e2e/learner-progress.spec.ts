@@ -299,32 +299,26 @@ test('child progress spans tutors and packages, filters by learner and records t
       page.getByRole('main').getByRole('link', { name: 'Find a tutor', exact: true }),
     ).toHaveCount(0)
     await capture(`overview-${width}`)
+    await expect(page.getByRole('tab', { name: 'Subjects', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('tab', { name: 'Feedback', exact: true })).toHaveCount(0)
     await page.getByRole('tab', { name: 'Overview', exact: true }).focus()
     await page.keyboard.press('ArrowRight')
-    await expect(page.getByRole('tab', { name: 'Subjects', exact: true })).toBeFocused()
+    await expect(page.getByRole('tab', { name: 'Class history', exact: true })).toBeFocused()
     await page.keyboard.press('Enter')
-    await page.getByRole('tab', { name: 'Subjects', exact: true }).click()
-    await expect(page.getByRole('img', { name: 'Recorded test scores' })).toBeVisible()
-    await expect(page.getByRole('listitem').filter({ hasText: 'Fractions quiz 18' })).toContainText(
-      '18/20',
-    )
-    await capture(`subjects-${width}`)
-    await page.getByLabel('Subject', { exact: true }).selectOption('Science')
-    await expect(page.getByText('No topic progress recorded yet', { exact: true })).toBeVisible()
+    await expect(page.locator('.child-report-lesson')).toHaveCount(9)
     await expect(
-      page.getByText('Explain evidence clearly using scientific vocabulary.', { exact: true }),
-    ).toBeVisible()
-    await page.getByRole('button', { name: 'Reset filters' }).click()
-    await page.getByRole('tab', { name: 'Class history', exact: true }).click()
-    await expect(page.locator('.child-report-lesson')).toHaveCount(30)
+      page.locator('.child-report-lesson').getByText('Scheduled', { exact: true }),
+    ).toHaveCount(0)
     await capture(`history-${width}`)
-    await page.getByRole('tab', { name: 'Feedback', exact: true }).click()
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click()
+    if (await page.locator('.child-report-older summary').isVisible())
+      await page.locator('.child-report-older summary').click()
     await expect(
       page.getByText('Trial identified a need to practise scientific explanations.', {
         exact: true,
       }),
-    ).toBeVisible()
-    await capture(`feedback-${width}`)
+    ).toHaveCount(0)
+    await page.getByRole('tab', { name: 'Class history', exact: true }).click()
     await page.getByLabel('Tutor', { exact: true }).selectOption('tutor-meera')
     await expect(page.locator('.child-report-lesson')).toHaveCount(6)
     await page.reload()
@@ -332,11 +326,16 @@ test('child progress spans tutors and packages, filters by learner and records t
     await page.getByLabel('Learner', { exact: true }).selectOption(younger.id)
     await expect(page.getByLabel('Tutor', { exact: true })).toHaveValue('')
     await expect(page.getByText('No feedback recorded yet', { exact: true })).toHaveCount(0)
-    await page.getByRole('tab', { name: 'Subjects', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'All Subjects', exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Science', exact: true })).toBeVisible()
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click()
+    await expect(page.getByLabel('Subject', { exact: true })).toContainText('All Subjects')
+    await expect(page.getByLabel('Subject', { exact: true })).toContainText('Science')
     await page.getByLabel('Learner', { exact: true }).selectOption(empty.id)
-    await expect(page.getByText('No topic progress recorded yet', { exact: true })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    await page.getByRole('tab', { name: 'Class history', exact: true }).click()
+    await expect(page.getByText('No classes in this report', { exact: true })).toBeVisible()
     await capture(`empty-${width}`)
   }
   await page.goto(`/workspace?view=learners&learner=${learner.id}`)
@@ -426,7 +425,7 @@ test('child progress spans tutors and packages, filters by learner and records t
     ).toBe(14)
     await page.reload()
     await expect(page.locator('.child-report-summary')).toContainText('2/2')
-    await page.getByRole('tab', { name: 'Feedback', exact: true }).click()
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click()
     await expect(
       page.getByText('Tutor recorded improved fraction explanations after practice.', {
         exact: true,

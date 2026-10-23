@@ -34,8 +34,12 @@ export function progressContract(schemas, route, paths) {
   schemas.Trial.properties.meeting = ref('LessonMeeting')
   schemas.Trial.properties.version = { type: 'integer' }
   schemas.Trial.properties.completedAt = date
-  schemas.ActionInput.properties.version = { type: 'integer' }
-  schemas.ActionInput.properties.action.enum.push('feedback')
+  schemas.Trial.properties.completionMethod = {
+    type: 'string',
+    enum: ['scheduled_end'],
+    description:
+      'Automatic closure at the confirmed trial scheduled end; does not assert attendance or academic outcomes.',
+  }
   schemas.ClassAction.properties.action.enum.push('plan_subject')
   schemas.ClassAction.properties.subject = string
   schemas.TutorLearnerBrief = obj(

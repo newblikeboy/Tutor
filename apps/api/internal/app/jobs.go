@@ -126,6 +126,9 @@ func (a *App) RunJobs(ctx context.Context) {
 			return
 		case <-ticker.C:
 			work, cancel := context.WithTimeout(ctx, 12*time.Second)
+			if err := a.completeEndedTrials(work); err != nil {
+				slog.Error("trial completion failed", "type", fmt.Sprintf("%T", err))
+			}
 			if err := a.expireHolds(work); err != nil {
 				slog.Error("hold expiry failed", "type", fmt.Sprintf("%T", err))
 			}

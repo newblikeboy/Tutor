@@ -70,6 +70,9 @@ func emailSkip(code string) error {
 	return domain.Fail(409, "email_skip_"+code, "This email no longer applies.")
 }
 func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.TemplateData, error) {
+	if j.Payload["event"] == "trial_feedback" {
+		return mailer.TemplateData{}, emailSkip("retired_event")
+	}
 	p := j.Payload
 	d := mailer.TemplateData{Name: u.Name, Support: a.Config.SMTPFrom}
 	if d.Support == "" {
@@ -212,9 +215,6 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 			if enum(t.Status, "cancelled", "declined") {
 				d.URL += "&tab=past"
 			}
-			if p["event"] == "trial_feedback" {
-				d.URL = a.Config.Origin + "/workspace?view=learners&learner=" + url.QueryEscape(t.LearnerID) + "&reportTab=feedback"
-			}
 		}
 		d.Action = "View trial"
 	case "enrollment", "class":
@@ -317,12 +317,11 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 	case "trial_declined":
 		d.Title = "Trial request declined"
 		d.Intro = "The tutor declined this trial request. You can choose another available tutor or date."
-	case "trial_feedback":
-		d.Title = "Trial feedback is ready"
-		d.Intro = "The tutor's trial feedback and practice guidance are available in your account."
+	case "trial_completed":
+		d.Title = "Trial class completed"
+		d.Intro = "The scheduled trial has ended. Open Trial classes if you would like to book this tutor."
 		if u.Role == "tutor" {
-			d.Title = "Your trial feedback is saved"
-			d.Intro = "Your trial feedback is saved and visible to the parent."
+			d.Intro = "The scheduled trial has ended. No further action is needed."
 		}
 	case "booking_confirmed":
 		d.Title = "Regular classes confirmed"
@@ -383,8 +382,8 @@ func (a *App) emailTemplate(ctx context.Context, j job, u domain.User) (mailer.T
 	}
 	if enum(p["event"], "trial_cancelled", "trial_declined", "booking_cancelled", "class_cancelled") {
 		d.Notice = "This email does not confirm a refund or a replacement class. Check the current booking and payment status in your account."
-	} else if p["event"] == "trial_feedback" {
-		d.Notice = "Feedback is shared directly by the tutor. Open your account to read the notes and next steps."
+	} else if p["event"] == "trial_completed" {
+		d.Notice = "The class completed automatically at its scheduled end time."
 	} else if mode == "home" {
 		d.Notice = "View the authorised teaching address in your account. If you need to change the schedule, use the class controls so everyone sees the same update."
 	} else {

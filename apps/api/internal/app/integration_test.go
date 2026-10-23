@@ -294,7 +294,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		if repeated["id"] != trialID {
 			t.Fatal("duplicate request created another trial")
 		}
-		if v["feePaise"] != float64(0) || v["termsVersion"] != "development-trial-v1" {
+		if v["feePaise"] != float64(0) || v["termsVersion"] != "development-trial-v2" {
 			t.Fatal("missing price/terms snapshot")
 		}
 		body["start"] = start.Add(30 * time.Minute)
@@ -339,24 +339,24 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		}
 		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "accept"}, 200)
 	})
-	t.Run("tutor feedback is visible immediately without mentor approval", func(t *testing.T) {
+	t.Run("ended trials complete without feedback or mentor approval", func(t *testing.T) {
 		if winner == "" {
 			t.Fatal("no valid trial")
 		}
-		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "complete", "notes": "Learner used equivalent fractions in three worked examples.", "nextSteps": "Practise comparing denominators with a number line.", "review": "Tutor feedback: continue with fraction comparison practice."}, 200)
+		endTrialFixture(t, a, winner)
 		after := winnerParent.ok("GET", "/dashboard", nil, 200)
 		found := false
 		for _, raw := range after["trials"].([]any) {
 			v := raw.(map[string]any)
-			if v["id"] == winner && v["status"] == "completed" && v["notes"] != "" && v["review"] != "" {
+			if v["id"] == winner && v["status"] == "completed" && v["notes"] == "" && v["review"] == "" {
 				found = true
 			}
 		}
 		if !found {
-			t.Fatal("tutor feedback was hidden")
+			t.Fatal("automatic completion missing or invented trial feedback")
 		}
-		mentor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "review", "review": "A mentor cannot replace tutor feedback."}, 422)
-		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "complete", "notes": "Try changing an ended assignment", "nextSteps": "Should never be permitted", "review": "Feedback cannot be overwritten."}, 409)
+		mentor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "review"}, 403)
+		tutor.ok("POST", "/trials/"+winner+"/action", map[string]any{"action": "complete"}, 422)
 	})
 	t.Run("cancellation releases resource guards and retry does not double release", func(t *testing.T) {
 		body := map[string]any{"requirementId": reqID, "tutorId": "tutor-a", "start": start.Add(6 * time.Hour), "termsAccepted": true}
@@ -464,7 +464,7 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 			t.Fatal(fmt.Sprint(keys))
 		}
 	})
-	t.Run("tutor feedback survives stopped API and reopened database client", func(t *testing.T) {
+	t.Run("automatic trial completion survives stopped API and reopened database client", func(t *testing.T) {
 		server.Close()
 		if e := s.Client.Disconnect(ctx); e != nil {
 			t.Fatal(e)
@@ -476,17 +476,22 @@ func TestAtlasVerticalSliceAndSecurity(t *testing.T) {
 		defer reopened.Client.Disconnect(ctx)
 		restarted := httptest.NewServer(New(reopened, c).Routes())
 		defer restarted.Close()
-		mentor.base = restarted.URL
-		d := mentor.ok("GET", "/dashboard", nil, 200)
+		winnerParent.base = restarted.URL
+		ownerID := "parent-a"
+		if winnerParent == other {
+			ownerID = "parent-b"
+		}
+		winnerParent.login(ownerID)
+		d := winnerParent.ok("GET", "/dashboard", nil, 200)
 		found := false
 		for _, raw := range d["trials"].([]any) {
 			v := raw.(map[string]any)
-			if v["id"] == winner && v["status"] == "completed" && v["review"] != "" {
+			if v["id"] == winner && v["status"] == "completed" && v["completionMethod"] == "scheduled_end" && v["review"] == "" {
 				found = true
 			}
 		}
 		if !found {
-			t.Fatal("reviewed progress lost across API restart")
+			t.Fatal("automatic completion lost across API restart")
 		}
 	})
 }

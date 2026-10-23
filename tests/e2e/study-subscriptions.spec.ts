@@ -163,10 +163,10 @@ test('admin publishes resources; each student pays separately, downloads and com
     await page.getByRole('button', { name: 'Quizzes', exact: true }).click()
     await expect(page).toHaveURL(new RegExp(`learner=${students[0]}.*kind=quiz`))
     await expect(
-      page.getByRole('heading', { name: 'Fictional fraction practice', exact: true }),
+      page.getByRole('rowheader', { name: 'Fictional fraction practice', exact: true }),
     ).toBeVisible()
     await expect(
-      page.getByRole('heading', { name: 'Fictional monthly science paper', exact: true }),
+      page.getByRole('rowheader', { name: 'Fictional monthly science paper', exact: true }),
     ).toHaveCount(0)
     await page.getByRole('button', { name: 'Notes', exact: true }).click()
     await expect(
@@ -174,8 +174,13 @@ test('admin publishes resources; each student pays separately, downloads and com
     ).toBeVisible()
     await page.getByRole('button', { name: 'All resources', exact: true }).click()
     await expect(
-      page.getByRole('heading', { name: 'Fictional monthly science paper', exact: true }),
+      page.getByRole('rowheader', { name: 'Fictional monthly science paper', exact: true }),
     ).toBeVisible()
+    await expect(page.getByRole('table', { name: 'Study resources', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Quizzes', exact: true }).click()
+    await expect(page.getByRole('table', { name: 'Quizzes', exact: true })).toBeVisible()
+    await expect(page.getByRole('columnheader')).toHaveText(['Quiz', 'Subject', 'Action'])
+    await page.getByRole('button', { name: 'All resources', exact: true }).click()
     await capture(page, 'parent-active-library')
     const detailResponse = await page.request.get(
       `/api/v1/study/materials/${quiz.id}?learner=${students[0]}`,
@@ -218,9 +223,9 @@ test('admin publishes resources; each student pays separately, downloads and com
     await expect(page.locator('.study-results')).toContainText('1 / 2')
     await page.getByRole('button', { name: 'Study library', exact: true }).click()
     await page
-      .getByRole('article')
+      .getByRole('row')
       .filter({
-        has: page.getByRole('heading', { name: 'Fictional monthly science paper', exact: true }),
+        has: page.getByRole('rowheader', { name: 'Fictional monthly science paper', exact: true }),
       })
       .getByRole('button', { name: 'Open resource', exact: true })
       .click()

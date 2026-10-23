@@ -1,3 +1,4 @@
+import { endTrialFixture } from './trial-fixture'
 import { verifiedSignup } from './signup-fixture'
 import { acceptFixtureBooking } from './helpers/booking-signing'
 import { test, expect, type Page } from '@playwright/test'
@@ -135,15 +136,10 @@ test('staff fee changes require renewed consent before payment and tutors only e
       201,
     )
     await write(tutor, `/trials/${trial.id}/action`, { action: 'accept' })
-    await write(tutor, `/trials/${trial.id}/action`, {
-      action: 'complete',
-      notes: 'The learner compared fractions using number lines.',
-      nextSteps: 'Continue practising fractions with worked examples.',
-      review: 'The tutor recommends continuing regular classes.',
-    })
-    await parent.goto('/tuition')
+    await endTrialFixture(parent.request, trial.id)
+    await parent.goto(`/workspace?view=sessions&learner=${learner.id}&tab=completed`)
+    await parent.getByRole('main').getByRole('link', { name: 'Book tutor', exact: true }).click()
     const card = parent.locator('.tu-teacher-booking-card').filter({ hasText: 'Meera' })
-    await card.getByRole('button', { name: 'Book Now', exact: true }).click()
     await card.getByRole('radio').check()
     await card.locator('.trial-date.available').nth(1).click()
     await card.locator('.parent-trial-times button:enabled').first().click()
